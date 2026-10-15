@@ -1,14 +1,19 @@
 // 集まったプレイ記録を見る画面。環境変数 ADMIN_PASS（パスワード）が必要。
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+function decodeB64(b64) {
+  const bin = atob(b64); const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
 function authed(request, env) {
   const h = request.headers.get('Authorization') || '';
-  if (!env.ADMIN_PASS || !h.startsWith('Basic ')) return false;
-  try { const p = atob(h.slice(6)).split(':').slice(1).join(':'); return p === env.ADMIN_PASS; } catch (e) { return false; }
+  const want = String(env.ADMIN_PASS || '').trim();
+  if (!want || !h.startsWith('Basic ')) return false;
+  try { const p = decodeB64(h.slice(6)).split(':').slice(1).join(':').trim(); return p === want; } catch (e) { return false; }
 }
 
 export async function onRequestGet({ request, env }) {
-  if (!authed(request, env)) return new Response('パスワードが必要です', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="solo-siege"' } });
+  if (!authed(request, env)) return new Response(env.ADMIN_PASS ? 'パスワードが違います（ログインをやり直すにはこのタブを閉じて開き直してください）' : 'ADMIN_PASS が設定されていません（Settings → Variables and Secrets で Secret として追加し、再デプロイしてください）', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="solo-siege"' } });
   if (!env.DB) return new Response('DBが未設定です（README参照）', { status: 500 });
   const url = new URL(request.url);
   const f = url.searchParams.get('f');
