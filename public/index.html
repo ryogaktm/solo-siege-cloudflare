@@ -54,6 +54,7 @@
   html,body{ margin:0; height:100%; overflow:hidden; }
   html{ box-sizing:border-box; background:#0d1a12; }
   html.standalone, html.standalone body{ height:var(--full-h,100%); }   /* iPhoneのホーム画面アプリ：画面の高さが実際より短く測られる不具合への対策 */
+  html.standalone .handbar .rail{ display:none; }
   html.standalone .handbar{ position:absolute; }   /* 外側（アプリ内ビューアなど）が html に上下の余白を付けても、画面の高さからはみ出さない */
   body{
     font-family:'Noto Sans JP',sans-serif; color:var(--cream);
@@ -1003,6 +1004,7 @@
     <button class="btn title-startbtn" id="titleStartBtn">はじめる</button>
     <button class="btn ghost title-howtobtn" id="titleCharBtn" style="display:none">キャラ選択</button>
     <button class="btn ghost title-howtobtn" id="titleHowtoBtn">遊び方</button>
+    <button class="btn ghost title-howtobtn" id="titleXferBtn" style="display:none">データ引き継ぎ</button>
     <button class="btn ghost title-howtobtn" id="titleDbgBtn" style="opacity:.7;">🐞 デバッグログ</button>
     <div class="title-logNote" id="titleLogNote" style="display:none;font-size:10px;opacity:.6;line-height:1.5;margin-top:6px;text-align:center">バランス調整のため、プレイの記録（個人情報は含みません）を送信しています。<br><a href="#" id="logOptOut" style="color:inherit;text-decoration:underline">送信しない</a></div>
     <div class="title-sound-row">
@@ -6230,6 +6232,48 @@ function resumeGame(){
   document.getElementById('titleResumeBtn').onclick=resumeGame;
   const bk=document.getElementById('charBackBtn'); if(bk){ const o=bk.onclick; bk.onclick=function(){ if(o) o.apply(this,arguments); refreshResumeBtn(); }; }
   refreshResumeBtn();
+})();
+</script>
+<script>
+/* ===== セーブデータの自動バックアップ（公開サイト用。引き継ぎコードで別の端末・作り直したアプリに復元できる） ===== */
+(function(){
+  if(window.claude||!/^https?:$/.test(location.protocol)) return;
+  const URL_='/api/save', FRESH=['soloSiegeMons','soloSiegeHighScore2','soloSiegeSave1','soloSiegeSel','soloSiegeAlienSeen','soloSiegeWinStreak'];
+  const SKIP={soloSiegeDebugLog:1,soloSiegeCode:1,soloSiegePid:1,soloSiegeNoLog:1};
+  const keys=()=>{ try{ return Object.keys(localStorage).filter(k=>k.indexOf('soloSiege')===0&&!SKIP[k]); }catch(e){ return []; } };
+  const snap=()=>{ const o={}; keys().forEach(k=>{ try{ o[k]=localStorage.getItem(k); }catch(e){} }); return o; };
+  const hasData=()=>keys().some(k=>FRESH.some(f=>k.indexOf(f)===0));
+  const AL='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function getCode(){ try{ let c=localStorage.getItem('soloSiegeCode'); if(!/^[A-Z2-9]{12}$/.test(c||'')){ const a=new Uint8Array(12); (crypto&&crypto.getRandomValues)?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*256); c=Array.from(a,v=>AL[v%AL.length]).join(''); localStorage.setItem('soloSiegeCode',c); } return c; }catch(e){ return ''; } }
+  let last='', lastAt=0;
+  async function push(force){
+    try{ if(!hasData()) return; const code=getCode(); if(!code) return; const cur=JSON.stringify(snap()); if(cur===last) return;
+      if(!force&&Date.now()-lastAt<20000) return; lastAt=Date.now();
+      const r=await fetch(URL_,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({code:code,kv:JSON.parse(cur)}),keepalive:cur.length<60000});
+      if(r.ok) last=cur; }catch(e){}
+  }
+  setInterval(()=>push(false),8000); setTimeout(()=>push(true),3000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') push(true); });
+  function fmt(c){ return c.replace(/(.{4})(?=.)/g,'$1-'); }
+  function open(){
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
+    const m=document.createElement('div'); m.className='modal';
+    m.innerHTML='<h2>データ引き継ぎ</h2><div style="font-size:12px;opacity:.8;text-align:center">このコードを控えておくと、アプリを作り直しても復元できます</div><div id="xferMy" style="font-size:22px;font-weight:800;letter-spacing:.08em;text-align:center;margin:12px 0;user-select:all"></div><div style="font-size:12px;opacity:.8;text-align:center;margin-top:14px">復元するコード</div><input id="xferIn" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" style="width:100%;box-sizing:border-box;margin:6px 0;padding:10px;font-size:18px;text-align:center;letter-spacing:.08em;border-radius:8px;border:1px solid #5a7a68;background:#0b1510;color:#fff"><div id="xferMsg" style="min-height:18px;font-size:12px;text-align:center;color:#ffb3a6"></div><button class="btn" id="xferGo">復元する</button><button class="btn ghost" id="xferClose">とじる</button>';
+    bg.appendChild(m); document.body.appendChild(bg);
+    m.querySelector('#xferMy').textContent=fmt(getCode());
+    const msg=m.querySelector('#xferMsg'); m.querySelector('#xferClose').onclick=()=>bg.remove();
+    m.querySelector('#xferGo').onclick=async()=>{
+      const c=m.querySelector('#xferIn').value.toUpperCase().replace(/[^A-Z0-9]/g,''); msg.style.color='#ffb3a6';
+      if(!/^[A-Z2-9]{12}$/.test(c)){ msg.textContent='コードが正しくありません'; return; }
+      if(hasData()&&!confirm('いまのデータは、復元したデータに置き換わります。よろしいですか？')) return;
+      try{ const r=await fetch(URL_+'?code='+c,{cache:'no-store'}); if(r.status===404){ msg.textContent='このコードのデータが見つかりません'; return; } if(!r.ok) throw 0;
+        const kv=await r.json(); keys().forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+        Object.keys(kv).forEach(k=>{ if(k.indexOf('soloSiege')===0&&!SKIP[k]){ try{ localStorage.setItem(k,kv[k]); }catch(e){} } });
+        localStorage.setItem('soloSiegeCode',c); msg.style.color='#8ff0c4'; msg.textContent='復元しました'; setTimeout(()=>location.reload(),600);
+      }catch(e){ msg.textContent='通信できませんでした'; }
+    };
+  }
+  const b=document.getElementById('titleXferBtn'); if(b){ b.style.display=''; b.onclick=open; }
 })();
 </script>
 <script>
