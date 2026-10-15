@@ -1,0 +1,16 @@
+{
+  "name": "solo-siege-cloudflare",
+  "main": "src/index.js",
+  "compatibility_date": "2025-07-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "solo-siege-logs",
+      "database_id": "9232a2f8-3a81-4ba6-ba85-32a017eb9f60"
+    }
+  ]
+}
