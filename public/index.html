@@ -52,7 +52,9 @@
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
   html,body{ margin:0; height:100%; overflow:hidden; }
-  html{ box-sizing:border-box; }   /* 外側（アプリ内ビューアなど）が html に上下の余白を付けても、画面の高さからはみ出さない */
+  html{ box-sizing:border-box; background:#0d1a12; }
+  html.standalone, html.standalone body{ height:var(--full-h,100%); }   /* iPhoneのホーム画面アプリ：画面の高さが実際より短く測られる不具合への対策 */
+  html.standalone .handbar{ position:absolute; }   /* 外側（アプリ内ビューアなど）が html に上下の余白を付けても、画面の高さからはみ出さない */
   body{
     font-family:'Noto Sans JP',sans-serif; color:var(--cream);
     background:
@@ -71,7 +73,7 @@
     content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
     box-shadow: inset 0 0 120px 40px rgba(0,0,0,.55);
   }
-  .app{ position:relative; z-index:1; max-width:460px; margin:0 auto; padding:8px 16px 184px; box-sizing:border-box; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+  .app{ position:relative; z-index:1; max-width:460px; margin:0 auto; padding:calc(8px + env(safe-area-inset-top)) 16px calc(184px + env(safe-area-inset-bottom)); box-sizing:border-box; height:100%; display:flex; flex-direction:column; overflow:hidden; }
   .title-screen{
     position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
     background:radial-gradient(circle at 50% 30%, #1a2a20 0%, #0d1810 60%, #060a08 100%);
@@ -330,7 +332,7 @@
   .st-hp{ top:10px; }
   .st-atk{ top:44px; }
   /* 縦が足りない画面（アプリ内ビューアなど）では、上の部分を詰めて盤面に高さを回す */
-  .app.compact{ padding-top:2px; }
+  .app.compact{ padding-top:calc(2px + env(safe-area-inset-top)); }
   .app.compact .stage{ height:118px; margin:2px 0 6px; }
   .app.compact .st-hp{ top:6px; } .app.compact .st-atk{ top:36px; }
   .app.compact .wavebar{ margin-bottom:6px; }
@@ -775,7 +777,7 @@
 
   /* ---------- hand ---------- */
   .handbar{
-    position:fixed; left:0; right:0; bottom:0; height:184px; z-index:5; display:flex; flex-direction:column; justify-content:flex-start;
+    position:fixed; left:0; right:0; bottom:0; height:calc(184px + env(safe-area-inset-bottom)); z-index:5; display:flex; flex-direction:column; justify-content:flex-start;
     background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.55) 40%, rgba(0,0,0,.75) 100%);
     pointer-events:none;
   }
@@ -977,6 +979,15 @@
   #dbOk:disabled{ opacity:.45; }
   .cardlist-empty{ text-align:center; color:var(--cream-2); font-size:12px; padding:10px 0; }
 </style>
+<script>
+(function(){ try{
+  if(window.navigator.standalone!==true) return;   // iPhoneのホーム画面から開いた時だけ
+  const r=document.documentElement; r.classList.add('standalone');
+  const fit=()=>{ const sh=Math.max(screen.width,screen.height), sw=Math.min(screen.width,screen.height); r.style.setProperty('--full-h',((innerWidth<innerHeight)?sh:sw)+'px'); try{ window.dispatchEvent(new Event('resize')); }catch(e){} };
+  r.style.setProperty('--full-h',Math.max(screen.width,screen.height)+'px');
+  window.addEventListener('orientationchange',()=>setTimeout(fit,250));
+}catch(e){} })();
+</script>
 </head>
 <body>
 <div class="title-screen" id="titleScreen">
