@@ -883,6 +883,11 @@
 
   .cardinfo{ width:100%; max-width:300px; text-align:center; }
   .reward-box{ width:100%; max-width:420px; max-height:96vh; overflow-y:auto; text-align:center; background:var(--panel); border:1px solid rgba(226,192,106,.3); border-radius:16px; padding:20px 16px; }
+  .prep-head{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .prep-mid{ flex:1 1 auto; text-align:center; min-width:0; }
+  .prep-char{ flex:0 0 76px; display:flex; align-items:flex-end; justify-content:center; --cyc:.8s; }
+  .prep-char .spr{ width:72px; height:72px; filter:drop-shadow(0 3px 0 rgba(0,0,0,.45)); transform-origin:50% 100%; animation:stepIdle var(--cyc) steps(1) infinite; }
+  .prep-home{ flex:0 0 76px; font-size:64px; line-height:1; text-align:center; filter:drop-shadow(0 3px 0 rgba(0,0,0,.4)); }
   .reward-title{ font-family:'Cinzel',serif; font-size:19px; color:var(--gold); font-weight:800; margin-bottom:4px; }
   .reward-sub{ font-size:11.5px; color:var(--cream-2); opacity:.85; margin-bottom:14px; }
   .reward-options{ flex-wrap:wrap; display:flex; gap:10px; justify-content:center; }
@@ -1167,11 +1172,11 @@
 </div>
 <div class="modal-bg" id="prepModal" style="display:none;">
   <div class="reward-box">
-    <div class="reward-title">🏕 次の戦いの準備</div>
-    <div class="reward-sub" id="prepInfo"></div>
+    <div class="prep-head"><div class="prep-char" id="prepChar"></div><div class="prep-mid"><div class="reward-title">次の戦いの準備</div><div class="reward-sub" id="prepInfo"></div></div><div class="prep-home">🏕</div></div>
     <div class="reward-options" style="flex-direction:column;margin-top:10px">
       <button class="btn" id="prepAcc">🎒 アクセサリーを装備する</button>
       <button class="btn" id="prepDeck">🃏 デッキ屋</button>
+      <button class="btn" id="prepDeckView">📚 いまの山札を見る</button>
       <button class="btn" id="prepShop">💎 アクセサリー屋</button>
       <button class="btn" id="prepGo" style="margin-top:8px">▶ 次の戦闘へ</button>
     </div>
@@ -1479,6 +1484,7 @@ const MON_SP_KINDS=['punch','guard','cure','beg','bullet','shuffle'];
 const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'🙏命乞い',bullet:'⏱バレットタイム',shuffle:'🔄シャッフル'};
 const MON_KEY='soloSiegeMons';
 function unlockedMons(){ try{ return JSON.parse(lsGet(MON_KEY)||'[]').map(n=>(n==='生え抜きの将軍'||n==='元の体')?HUMAN_MON:n); }catch(e){ return []; } }
+function unlockMonAndBelow(wave){ try{ unlockMon(wave.id); if(wave.boss) return; const i=WAVES.indexOf(wave); if(i>0&&WAVES[i-1]&&!WAVES[i-1].boss) unlockMon(WAVES[i-1].id); }catch(e){} }   // 倒した敵と、その1つ下の順位（弱い方）の敵を使えるようにする
 function unlockMon(name){ try{ const L=unlockedMons(); if(!L.includes(name)){ L.push(name); lsSet(MON_KEY,JSON.stringify(L)); } }catch(e){} }
 function monSpKind(idx){ return MON_SP_KINDS[idx%MON_SP_KINDS.length]; }
 function makeMonChar(idx,id){
@@ -2836,7 +2842,7 @@ function weakBodyFinale(wave){   // 弱い体は、1回敵を倒すと調子に�
 }
 function finishWaveOutcome(defeated, wave){
   if(defeated){
-    unlockMon(wave.id);
+    unlockMonAndBelow(wave);
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
     if(wave.boss){
       hint(`${wave.name}を倒した！`,true);
@@ -4684,7 +4690,7 @@ function advanceToNextStage(){
       triggerBossAttackFX(carriedIn, ()=>{
         animateBossHp(finalHp, 550).then(()=>{
           if(chainedKill){
-            unlockMon(wave.id);   // 余剰ダメージで即撃破した敵も、次回から選べる
+            unlockMonAndBelow(wave);   // 余剰ダメージで即撃破した敵も、次回から選べる
             if(isWeakBody()&&!wave.boss){ setTimeout(()=>weakBodyFinale(wave),700); return; }
             let wonNow=false;
             if(wave.immortal){
@@ -5001,11 +5007,11 @@ function specUse(kind){
   dlog('action',{name:'spec_'+kind});
   render();
 }
-document.getElementById('specBeg').onclick=()=>openSpecModal('beg');
-document.getElementById('specPunch').onclick=()=>openSpecModal('punch');
-document.getElementById('specGuard').onclick=()=>openSpecModal('guard');
-document.getElementById('specCure').onclick=()=>openSpecModal('cure');
-document.getElementById('specBullet').onclick=()=>openSpecModal('bullet');
+function bindSpecTap(id,kind){ const el=document.getElementById(id); if(!el) return; let t=0;
+  const go=()=>{ if(Date.now()-t<500) return; t=Date.now(); openSpecModal(kind); };   // 画面を触った時（click が来ない端末でも動くように touchend でも受ける）
+  el.addEventListener('click',go);
+  el.addEventListener('touchend',e=>{ if(el.disabled) return; e.preventDefault(); go(); },{passive:false}); }
+bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet');
 function doShuffle(){
   if(gameEnded||busy||pending) return;
   if(!(CHARACTER.startShuffles===Infinity)){
@@ -5028,7 +5034,7 @@ const SPEC_INFO={
 let specModalKind=null;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
-  if(gameEnded||busy||pending||waveAdvancing) return;
+  if(gameEnded||busy||pending||waveAdvancing){ try{ dlog('action',{name:'spec_blocked',kind:k,gameEnded:!!gameEnded,busy:!!busy,pending:!!pending,waveAdvancing:!!waveAdvancing}); }catch(e){} return; }
   specModalKind=k;
   document.getElementById('specModalTitle').textContent=SPEC_INFO[k].title;
   document.getElementById('specModalDesc').textContent=SPEC_INFO[k].desc+(k==='guard'&&guardOn?'（今すでに発動中です）':'');
@@ -5579,7 +5585,7 @@ function runGoalToast(){
   if(goalToastBusy||!goalToastQ.length) return;
   goalToastBusy=true;
   let el=document.getElementById('goalToast');
-  if(!el){ el=document.createElement('div'); el.id='goalToast'; el.style.cssText='position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:9999;max-width:88vw;background:rgba(20,16,8,.94);border:2px solid var(--gold,#e8c050);color:#fff;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;text-align:center;white-space:pre-line;box-shadow:0 4px 18px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .25s'; document.body.appendChild(el); }
+  if(!el){ el=document.createElement('div'); el.id='goalToast'; el.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 4px);transform:translateX(-50%);z-index:9999;width:max-content;max-width:92vw;box-sizing:border-box;background:rgba(20,16,8,.94);border:2px solid var(--gold,#e8c050);color:#fff;border-radius:10px;padding:6px 12px;font-size:12px;line-height:1.4;font-weight:700;text-align:center;white-space:pre-line;box-shadow:0 4px 18px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .25s'; document.body.appendChild(el); }
   el.textContent=goalToastQ.shift(); el.style.opacity='1';
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
@@ -5865,6 +5871,7 @@ function showPrep(keepStock){
   document.getElementById('prepModal').style.display='flex';
 }
 function refreshPrep(){
+  try{ document.getElementById('prepChar').innerHTML=charSpr(CHARACTER,72,true); }catch(e){}
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
   document.getElementById('prepInfo').innerHTML=`次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
 }
@@ -6128,6 +6135,7 @@ function renderAccModal(){
 document.getElementById('accBtn').onclick=openAccModal;
 document.getElementById('prepAcc').onclick=openAccModal;
 document.getElementById('prepDeck').onclick=()=>openShop('deck');
+document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(deckEligible).filter(c=>c.inDeck)); }catch(e){ showCardListModal('山札', activeDeck.concat(hand,graveyard)); } };
 document.getElementById('prepShop').onclick=()=>openShop('acc');
 document.getElementById('rankBtn').onclick=()=>openRanking(true);
 function openRanking(first){
