@@ -4252,7 +4252,7 @@ function showCardInfo(idx){
 function closeCardInfo(){ document.getElementById('cardInfoBg').style.display='none'; infoIdx=null; }
 
 /* ---- deck / graveyard inspection ---- */
-function showCardListModal(title, cards){
+function showCardListModal(title, cards, dim){
   document.getElementById('cardListTitle').textContent=title;
   const body=document.getElementById('cardListBody');
   body.innerHTML='';
@@ -4275,6 +4275,7 @@ function showCardListModal(title, cards){
   grid.className='cardgrid';
   sorted.forEach(c=>{
     const el=cardEl(c,true);
+    if(dim && dim.has(c.uid)) el.style.opacity='.3';
     grid.appendChild(el);
   });
   body.appendChild(grid);
@@ -5251,7 +5252,7 @@ document.getElementById('endChangeChar').onclick=()=>{
   document.getElementById('charScreen').style.display='flex';
 };
 document.getElementById('grandPileBtn').onclick=()=>showCardListModal('大山札', grandDeck);
-document.getElementById('deckPileBtn').onclick=()=>{ if(discardGuidanceCard('deck')) return; showCardListModal('山札', activeDeck); };
+document.getElementById('deckPileBtn').onclick=()=>{ if(discardGuidanceCard('deck')) return; { const rest=new Set(activeDeck.map(c=>c.uid)); showCardListModal('山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased), new Set(allCardsUnique().filter(c=>!rest.has(c.uid)).map(c=>c.uid))); } };
 document.getElementById('gravePileBtn').onclick=()=>{ if(discardGuidanceCard('grave')) return; showCardListModal('墓地', graveyard); };
 document.getElementById('cardListClose').onclick=()=>document.getElementById('cardListModal').style.display='none';
 document.getElementById('rehireCancel').onclick=()=>{
