@@ -897,6 +897,12 @@
   #shopDeckMini,#accDeckMini{ flex:1 1 44%; min-height:0; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
   #shopModal #shopBody{ flex:1 1 50%; }
   #shopModal #shopBody{ flex-wrap:nowrap; justify-content:flex-start; }
+  #shopModal.modal-bg:has(.topback), #accModal.modal-bg:has(.topback){ padding-top:calc(46px + env(safe-area-inset-top,0px)); padding-bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
+  #shopModal .reward-box, #accModal.inprep .reward-box{ padding:8px 14px 10px; }
+  #shopModal .reward-title, #accModal.inprep .reward-title{ font-size:17px; margin:0; line-height:1.2; }
+  #shopModal .reward-sub, #accModal.inprep .reward-sub{ margin-bottom:4px; line-height:1.2; }
+  #shopModal #shopBody{ margin-top:2px !important; }
+  #shopModal .reward-box, #accModal.inprep .reward-box{ height:min(94vh,860px); height:min(100dvh - 54px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px),860px); }
   .shop-act{ position:sticky; top:0; z-index:5; background:#0a120d; padding:2px 0 8px; margin-top:-2px; }
   #shopModal #shopBody>*{ flex:0 0 auto; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
@@ -6105,7 +6111,10 @@ function installScrollbars(){
     try{ new ResizeObserver(upd).observe(el); }catch(_){}
     try{ new MutationObserver(upd).observe(el,{childList:true,subtree:true}); }catch(_){}
     window.addEventListener('resize',upd); el._sbUpd=upd; upd(); });
+  try{ document.fonts&&document.fonts.ready.then(()=>updAllBars()); }catch(_){}
 }
+function updAllBars(){ ['shopBody','shopDeckMini','accUpper','accDeckMini'].forEach(id=>{ const e=document.getElementById(id); if(e&&e._sbUpd) e._sbUpd(); }); }
+function updBarsSoon(){ updAllBars(); requestAnimationFrame(updAllBars); setTimeout(updAllBars,150); setTimeout(updAllBars,500); }
 function renderShopMini(m,sel){
   const box=m.querySelector(sel||'#shopDeckMini'); if(!box) return;
   let cards=[]; try{ cards=allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased); }catch(e){}
@@ -6121,7 +6130,7 @@ function renderShop(){
   m.querySelector('#shopTitle').textContent={buyacc:'💎 アクセサリーを買う',buydeck:'🃏 デッキを買う',sell:'💰 売る'}[mode]||'';
   m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`;
   renderShopMini(m);
-  installScrollbars();
+  installScrollbars(); updBarsSoon();
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
   m.querySelector('#shopClose').textContent='◀ 戻る';
   const row=(icon,name,desc,btnTxt,fn,disabled)=>{
@@ -6330,7 +6339,7 @@ function startAddCards(o,cont){
 /* ----- 🎒 装備画面 ----- */
 function accEditable(){ return inPrep; }
 function openAccModal(){
-  try{ installScrollbars(); }catch(e){}
+  try{ installScrollbars(); updBarsSoon(); }catch(e){}
   if(typeof gameEnded!=='undefined' && gameEnded) return;
   renderAccModal(); document.getElementById('accModal').style.display='flex';
 }
@@ -6353,7 +6362,7 @@ function renderAccModal(){
     list.appendChild(el);
   });
   document.getElementById('accSlotInfo').textContent=`装備枠 ${accEq.length}/${ACC_SLOTS}`;
-  { const am=document.getElementById('accModal'); am.classList.toggle('inprep',!!inPrep); if(inPrep) renderShopMini(am,'#accDeckMini'); }
+  { const am=document.getElementById('accModal'); am.classList.toggle('inprep',!!inPrep); if(inPrep) renderShopMini(am,'#accDeckMini'); try{ updBarsSoon(); }catch(_){} }
 }
 document.getElementById('accBtn').onclick=openAccModal;
 document.getElementById('prepAcc').onclick=openAccModal;
