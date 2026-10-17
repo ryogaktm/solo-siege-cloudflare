@@ -6055,7 +6055,11 @@ function rollShopStock(){
   rollDeckOffer();
   rollAccStock();
 }
+function restoreAllMods(){   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
+  [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } }); });
+}
 function showPrep(keepStock){
+  try{ restoreAllMods(); }catch(e){}
   inPrep=true;
   if(!keepStock) rollShopStock();
   refreshPrep();
