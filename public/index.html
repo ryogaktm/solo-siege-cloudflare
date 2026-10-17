@@ -978,7 +978,7 @@
   }
 
   .cardgrid{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-height:52vh; overflow-y:auto; padding:6px 2px; }
-  .db-modal{ width:100%; max-width:560px; height:100%; max-height:100%; display:flex; flex-direction:column; }
+  .db-modal{ position:relative; width:100%; max-width:560px; height:100%; max-height:100%; display:flex; flex-direction:column; }
   .db-grid{ flex:1; max-height:none; min-height:0; align-content:flex-start; }
   .db-sec{ font-size:12px; color:var(--gold); margin:6px 0 2px; text-align:center; }
   .db-rem{ max-height:none; flex:none; }
@@ -1201,13 +1201,14 @@
 </div>
 <div class="modal-bg" id="pickModal" style="display:none;">
   <div class="modal db-modal">
-    <h2 id="pickTitle"></h2>
+    <button class="btn" id="pickDeckView" style="position:absolute;top:10px;right:10px;padding:6px 10px;font-size:12px;width:auto">📚 山札確認</button>
+    <h2 id="pickTitle" style="margin-top:30px"></h2>
     <div class="db-sec" id="pickSub"></div>
     <div class="pick-tabs" id="pickTabs"></div>
     <div class="cardgrid db-grid" id="pickGrid"></div>
     <div class="db-sec" id="pickSelLabel" style="display:none">選んだカード（タップで外す）</div>
     <div class="cardgrid db-grid" id="pickSel"></div>
-    <button class="btn" id="pickOk">OK</button>
+    <div style="display:flex;gap:10px"><button class="btn" id="pickCancel" style="flex:0 0 32%">キャンセル</button><button class="btn" id="pickOk" style="flex:1">OK</button></div>
   </div>
 </div>
 <div class="urgency-vignette" id="urgencyVignette"></div>
@@ -5348,7 +5349,7 @@ function buildCharList(){
     const go=()=>{ lsSet(SEL_KEY,d.id); possess(el,()=>startAs(ch),()=>{ if(haloOn){ lsSet('soloSiegeBodyBack','1'); const sp=el.querySelector('.mon-spr'); if(sp) sp.innerHTML=spriteSVG('general',wide?40:48,''); } }); };   // 乗り移ると輪っかが消える
     el.onclick=wide?(()=>{
       if(d.locked) return;
-      if(d.id===curMonId()){ document.getElementById('charCancel').onclick(); return; }   // 使用中のキャラを押したら、キャンセルと同じ扱い
+      if(d.id===curMonId()){ if(picked){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); renderCurPanel(null); } return; }   // 使用中のキャラを押した時：選択中なら選択を取り消すだけ。何も選んでいなければ何も起こさない（タイトルへは戻らない）
       const sel=()=>{ grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); picked={id:d.id,i,ch,haloOn}; renderCurPanel(picked); };
       if(isWeakId(d.id)) monConfirm('チュートリアル用です。',sel); else sel();
     }):(hasLeader&&d.id===prevId?(()=>{}):go);   // ミジンコのボスが解放済みなら、今の個体（そこらへんのミジンコ）には憑依できない
@@ -6164,6 +6165,8 @@ function renderPicker(){
   document.getElementById('pickSelLabel').style.display=pk.dup?'':'none';
   const ok=document.getElementById('pickOk'); ok.disabled=pk.sel.length<need; ok.textContent=pk.okText;
 }
+document.getElementById('pickCancel').onclick=()=>{ pk=null; document.getElementById('pickModal').style.display='none'; };
+document.getElementById('pickDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(deckEligible).filter(c=>c.inDeck)); }catch(e){} };
 document.getElementById('pickOk').onclick=()=>{
   if(!pk) return; const need=Math.min(pk.count, pk.need||pk.count); if(pk.sel.length<need) return;
   const f=pk.done, sel=pk.sel.slice(); pk=null;
