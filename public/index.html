@@ -2261,6 +2261,7 @@ function startRebuild(){
 
 /* ================= RULES ================= */
 const val=c=>c.kind==='wild'?8:(c.kind==='monster'?((c.sub==='number'||c.sub==='combined')?c.value:0):accVal(c));
+const YAKU_GOLD={'スカーミッシュ':8,'バタリオン':8,'ファランクス':12,'ウェッジ':20,'ロイヤルファランクス':40,'ホスト':0};   // 役を作った時に入るお金
 function evaluate(f){
   const cs=f.cards; if(cs.length<3) return null;
   const sum=cs.reduce((s,c)=>s+(c.enemyPlaced?0:val(c)),0);
@@ -2505,6 +2506,7 @@ function closeCheck(fi, closedByEnemy){
       if(f.baseCombo){ f.comboMult=f.result.mult; }  // 役が付いた旗＝スーパーコンボの対象。得点は役の倍率のみ（追加の倍率なし）
       addScore(f.result.base);
       f.sheetSum = f.result.sum;
+      { const yg=YAKU_GOLD[f.result.name]||0; if(yg>0){ gold+=yg; setTimeout(()=>hint(`${f.result.name}！ +${yg}G`), 250); } }
     }
     justClosed.push({fi, result:f.result, played:false});
     dlog('flag_closed',{flag:fi+1, cards:f.cards.map(dbgCardStr), 役名:f.result.name, 役倍率mult:f.result.mult, 合計sum:f.result.sum, 役前得点:f.result.preCombo!==undefined?f.result.preCombo:f.result.base, 得点base:f.result.base, 基本コンボ:!!f.baseCombo, 敵に奪われ:!!closedByEnemy, 象徴色:f.symbolColor, scoreAfter:score});
