@@ -1755,7 +1755,7 @@ FINAL_BOSSES.forEach(([nm,ref],k)=>{ const r=WAVES[ref], m=1.5;
 WAVES.forEach((w,i)=>{ if((!w.boss&&i<=25)||w.name==='火星人'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 最初のラスボスと、それ以下の順位（下位23体）は強さ1/2
 WAVES.forEach(w=>{ w.baseId=w.name; w.id=w.name; });   // 名前は表示用（「別の」が付くことがある）、idは種類の判定用
 function applyEnemyNames(){
-  ACC_SLOTS=(CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3;
+  ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+(accSlotBonus||0);
   const nec=!!(CHARACTER&&CHARACTER.mon===HUMAN_MON);   // 元の身体（人間）に戻っている時は、敵の人間枠がネクロマンサーに変わる
   WAVES.forEach((w,i)=>{ let id=w.baseId; if(i===HUMAN_IDX&&nec) id='ネクロマンサー'; w.id=id; w.name=(CHARACTER&&CHARACTER.mon===id?'別の':'')+dispName(id); });   // 自分と同じモンスターは「別の」〇〇
 }
@@ -5671,9 +5671,10 @@ const ACC_DEFS=buildAccDefs();
 const accDef=id=>ACC_DEFS.find(d=>d.id===id);
 let accOwned=[], accEq=[], accSeq=1, deletedUids=new Set(), sealedCards=[], accStat=blankBattleStat(), gold=0, soldIds=new Set(), shopStock=[], inPrep=false;
 var sunUsed=false, _streakDone=false;
-var ACC_SLOTS=3;   // ミジンコ・ミジンコリーダーの体はアクセサリーを付けられない（0枠）
+var accSlotBonus=0, shopOnce={};
+var ACC_SLOTS=3+accSlotBonus;   // ミジンコ・ミジンコリーダーの体はアクセサリーを付けられない（0枠）
 function resetAccessories(){
-  sunUsed=false; _streakDone=false;
+  sunUsed=false; _streakDone=false; accSlotBonus=0; shopOnce={};
   accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; hpGlassSave=null; hpBonus=0; specBonusK={}; specPlusBought=0; accStat=blankBattleStat(); gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
   GAME_COLORS.length=0; ALL_GAME_COLORS.forEach(c=>GAME_COLORS.push(c));
 }
@@ -6137,6 +6138,10 @@ function renderShop(){
       apply:()=>{ deckOffer.chUsed=true; const n=applyColorChange3(deckOffer.from,deckOffer.to); hint(n>0?`${CNAME[deckOffer.from]}のカード${n}枚が${CNAME[deckOffer.to]}に変わった！`:`${CNAME[deckOffer.from]}のカードが無かった…`); }});
     items.push({key:'drink',icon:'🧃',name:'栄養ドリンク',desc:'最大体力が+50（ずっと続く）',price:125,multi:true,
       apply:()=>{ hpBonus+=50; recalcHpMax(); hint('栄養ドリンクを飲んだ！最大体力+50'); }});
+    items.push({key:'handplus',icon:'🖐',name:'手札+1',desc:'手札の上限が1枚増える（ずっと続く・1回だけ）',price:600,sold:!!shopOnce.hand,
+      apply:()=>{ shopOnce.hand=true; handSlotBonus++; hint('手札の上限が1枚増えた！'); }});
+    items.push({key:'slotplus',icon:'💍',name:'アクセサリー枠+1',desc:'アクセサリーを付けられる数が1つ増える（ずっと続く・1回だけ）',price:600,sold:!!shopOnce.slot,
+      apply:()=>{ shopOnce.slot=true; accSlotBonus++; ACC_SLOTS++; hint('アクセサリーの装備枠が1つ増えた！'); }});
     spTargets().forEach(t=>{ const own=!!t.acc;
       items.push({key:'spplus_'+(own?t.acc.aid:'d'+t.k),icon:'✨',name:`特殊技+1（${t.label}）`,desc:own?`このアクセサリーが与える技の回数が毎戦+1回（このアクセサリーに付く。外すと効果も外れる）`:`持ち技の回数が毎戦+1回（ずっと続く）`,price:spPlusPrice(),
         apply:()=>{ if(own) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[t.k]=(specBonusK[t.k]||0)+1; specPlusBought++; hint(`特殊技+1！（${t.label}）`); }}); });
@@ -6383,7 +6388,7 @@ function saveGame(){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, acc:{hb:hpBonus,spk:specBonusK,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -6421,7 +6426,7 @@ function resumeGame(){
   waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0;
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
-  { const ac=st.acc||{}; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
+  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
