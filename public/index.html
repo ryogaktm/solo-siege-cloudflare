@@ -6123,7 +6123,7 @@ function renderShop(){
       sb.textContent=sellSel.length?`売る（${sellSel.length}個 / +${tot}G）`:'売る'; sb.onclick=()=>confirmSell(cand); body.appendChild(sb);
     }
     cand.forEach(o=>{ const d=accDef(o.id), on=sellSel.includes(o.aid);
-      row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name+(accEq.includes(o.aid)?' 【装備中】':''),d.desc,`${accSell(d)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
+      row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name+(accEq.includes(o.aid)?' <span style="display:inline-block;background:#d93a2e;color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:4px;vertical-align:middle">装備中</span>':''),d.desc,`${accSell(d)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
     return;
   }
   // ---- 買う（チェックボックス式）----
