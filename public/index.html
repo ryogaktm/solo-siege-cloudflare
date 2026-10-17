@@ -894,22 +894,26 @@
   .modal-bg:has(.topback){ padding-top:calc(54px + env(safe-area-inset-top,0px)); }
   #shopModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; height:min(94vh,820px); max-height:none; }
   #shopModal #shopBody{ flex:1 1 auto; min-height:0; overflow-y:auto; }
-  #shopDeckMini{ flex:none; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; max-height:27vh; overflow-y:auto; text-align:left; }
-  #shopDeckMini .sdm-head{ font-size:11px; color:var(--gold); font-weight:800; margin-bottom:4px; cursor:pointer; }
-  #shopDeckMini .sdm-grid{ display:flex; flex-wrap:wrap; gap:2px; }
-  #shopDeckMini .sdm-c{ min-width:19px; height:24px; padding:0 3px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.25); }
-  #shopDeckMini .sdm-c.sp{ background:#3a3f52; font-size:9px; font-weight:700; }
-  #shopDeckMini .sdm-c.pur{ box-shadow:inset 0 0 0 1px #ffd76a; }
+  #shopDeckMini,#accDeckMini{ flex:1 1 44%; min-height:0; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
+  #shopModal #shopBody{ flex:1 1 50%; }
+  #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
+  #accModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; }
+  #accModal.inprep .reward-box{ height:min(94vh,820px); }
+  #accUpper{ flex:1 1 50%; min-height:0; overflow-y:auto; }
+  #accModal:not(.inprep) #accDeckMini{ display:none; }
+  .sdm-head{ font-size:11px; color:var(--gold); font-weight:800; margin-bottom:4px; cursor:pointer; }
+  #shopDeckMini .sdm-grid,#accDeckMini .sdm-grid{ display:flex; flex-wrap:wrap; gap:2px; }
+  #shopDeckMini .sdm-c,#accDeckMini .sdm-c{ min-width:22px; height:28px; padding:0 4px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.25); }
+  #shopDeckMini .sdm-c.sp,#accDeckMini .sdm-c.sp{ background:#3a3f52; font-size:9px; font-weight:700; }
+  #shopDeckMini .sdm-c.pur,#accDeckMini .sdm-c.pur{ box-shadow:inset 0 0 0 1px #ffd76a; }
   .shop-tabs{ display:flex; gap:6px; margin:2px 0 6px; }
   .shop-tabs button{ flex:1; padding:9px 4px; border-radius:10px; border:1px solid var(--gold-3); background:rgba(0,0,0,.35); color:var(--cream-2); font-family:inherit; font-weight:800; font-size:14px; cursor:pointer; }
   .shop-tabs button.on{ background:linear-gradient(180deg,#f0d27a,#c9a04a); color:#2a1d08; }
   .prep-shops{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
-  .prep-shops.one{ grid-template-columns:1fr; }
-  .prep-shops.one .prep-tile{ aspect-ratio:auto; height:118px; }
   .prep-tile{ aspect-ratio:1/1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:14px; border:2px solid var(--gold-3); background:linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.06)); color:var(--gold); font-family:inherit; font-weight:800; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
   .prep-tile:active{ transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .prep-tile .pt-ico{ font-size:44px; line-height:1; }
-  .prep-tile .pt-name{ font-size:15px; letter-spacing:.04em; }
+  .prep-tile .pt-name{ font-size:14px; text-align:center; line-height:1.3; letter-spacing:.04em; }
   .prep-head{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
   .prep-mid{ flex:1 1 auto; text-align:center; min-width:0; }
   .prep-char{ flex:0 0 76px; display:flex; align-items:flex-end; justify-content:center; --cyc:.8s; }
@@ -1203,23 +1207,28 @@
   <div class="reward-box" style="position:relative">
     <button id="prepDeckView" class="prep-deckview" aria-label="山札確認">📚 山札確認</button>
     <div class="prep-head"><div class="prep-char" id="prepChar"></div><div class="prep-mid"><div class="reward-title">次の戦いの準備</div><div class="reward-sub" id="prepInfo"></div></div><div class="prep-home">🏕</div></div>
-    <div class="prep-shops one">
-      <button class="prep-tile" id="prepShop"><span class="pt-ico">🏪</span><span class="pt-name">お店</span></button>
+    <div class="prep-shops">
+      <button class="prep-tile" id="prepBuyAcc"><span class="pt-ico">💎</span><span class="pt-name">アクセサリーを買う</span></button>
+      <button class="prep-tile" id="prepBuyDeck"><span class="pt-ico">🃏</span><span class="pt-name">デッキを買う</span></button>
+      <button class="prep-tile" id="prepSell"><span class="pt-ico">💰</span><span class="pt-name">売る</span></button>
+      <button class="prep-tile" id="prepAcc"><span class="pt-ico">🎒</span><span class="pt-name">装備する</span></button>
     </div>
-    <div class="reward-options" style="flex-direction:column;margin-top:10px">
-      <button class="btn" id="prepAcc">🎒 アクセサリーを装備する</button>
-      <button class="btn" id="prepGo" style="margin-top:8px">▶ 次の戦闘へ</button>
+    <div class="reward-options" style="flex-direction:column;margin-top:26px">
+      <button class="btn" id="prepGo">⚔ 戦う</button>
     </div>
   </div>
 </div>
 <div class="modal-bg" id="accModal" style="display:none;">
   <div class="reward-box">
     <button class="topback" id="accClose">◀ 戻る</button>
+    <div id="accUpper">
     <div class="reward-title">🎒 アクセサリー</div>
     <div class="reward-sub" id="accSlotInfo"></div>
     <div class="acc-slots" id="accSlots"></div>
     <div class="reward-options" id="accList" style="flex-direction:column;margin-top:10px"></div>
     <button class="btn" id="accCond" style="margin-top:12px">取得条件一覧</button>
+    </div>
+    <div id="accDeckMini"></div>
   </div>
 </div>
 <div class="modal-bg" id="pickModal" style="display:none;">
@@ -6057,13 +6066,13 @@ function sellAccessory(o){
   accOwned=accOwned.filter(x=>x!==o); soldIds.add(o.id); gold+=accSell(d);
   hint(`${d.name}を${accSell(d)}Gで売った。`);
 }
-function openShop(){
+function openShop(mode){
   let m=document.getElementById('shopModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='shopModal'; m.style.display='none';
     m.innerHTML='<div class="reward-box"><button class="topback" id="shopClose">◀ 準備に戻る</button><div class="reward-title" id="shopTitle"></div><div class="reward-sub" id="shopGold"></div><div class="reward-options" id="shopBody" style="flex-direction:column;margin-top:8px"></div><div id="shopDeckMini"></div></div>';
-    document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ if(m.dataset.mode&&m.dataset.mode!=='menu'){ m.dataset.mode='menu'; renderShop(); } else { m.style.display='none'; refreshPrep(); render(); } }; }
+    document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ m.style.display='none'; refreshPrep(); render(); }; }
   if(!shopBought && !shopStock.some(id=>accDef(id)&&!accOwned.some(o=>o.id===id))) rollAccStock();  // 品切れのまま開かない：何かは必ず売っている
-  sellSel=[]; m.dataset.kind='deck'; m.dataset.mode='menu'; renderShop(); m.style.display='flex';
+  sellSel=[]; buySel=[]; buyQty={}; m.dataset.mode=mode||'buydeck'; renderShop(); m.style.display='flex';
 }
 let sellSel=[];
 function confirmSell(cand){
@@ -6075,8 +6084,8 @@ function confirmSell(cand){
   bg.querySelector('#csNo').onclick=()=>bg.remove();
   bg.querySelector('#csYes').onclick=()=>{ items.forEach(o=>sellAccessory(o)); sellSel=[]; bg.remove(); renderShop(); refreshPrep(); };
 }
-function renderShopMini(m){
-  const box=m.querySelector('#shopDeckMini'); if(!box) return;
+function renderShopMini(m,sel){
+  const box=m.querySelector(sel||'#shopDeckMini'); if(!box) return;
   let cards=[]; try{ cards=allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased); }catch(e){}
   const kindOrder=c=> c.kind==='troop'?0 : c.kind==='monster'?1 : 2;
   cards.sort((a,b)=>{ if(kindOrder(a)!==kindOrder(b)) return kindOrder(a)-kindOrder(b); if(a.kind==='troop'){ if(a.color!==b.color) return COLORS.indexOf(a.color)-COLORS.indexOf(b.color); return a.value-b.value; } return String(a.type||a.name||'')>String(b.type||b.name||'')?1:-1; });
@@ -6090,18 +6099,12 @@ function renderShopMini(m){
   box.querySelector('.sdm-head').onclick=()=>{ const cl=document.getElementById('cardListModal'); cl.style.zIndex=10000; try{ showCardListModal('いまの山札', cards); }catch(e){} };
 }
 function renderShop(){
-  const m=document.getElementById('shopModal'), kind=m.dataset.kind, body=m.querySelector('#shopBody'); body.innerHTML='';
-  m.querySelector('#shopTitle').textContent='🏪 お店';
+  const m=document.getElementById('shopModal'), mode=m.dataset.mode||'buydeck', kind=mode==='buyacc'?'acc':'deck', body=m.querySelector('#shopBody'); body.innerHTML='';
+  m.querySelector('#shopTitle').textContent={buyacc:'💎 アクセサリーを買う',buydeck:'🃏 デッキを買う',sell:'💰 売る'}[mode]||'';
   m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`;
   renderShopMini(m);
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
-  const mode=m.dataset.mode||'menu';
-  m.querySelector('#shopClose').textContent=mode==='menu'?'◀ 準備に戻る':'◀ 戻る';
-  if(mode==='menu'){
-    buySel=[]; buyQty={};
-    [['buy','🛒 買う'],['sell','💰 売る']].forEach(([k,t])=>{ const b=document.createElement('button'); b.className='btn'; b.style.cssText='width:100%;margin:6px 0;padding:14px;font-size:17px'; b.textContent=t; b.onclick=()=>{ sellSel=[]; m.dataset.mode=k; renderShop(); }; body.appendChild(b); });
-    return;
-  }
+  m.querySelector('#shopClose').textContent='◀ 戻る';
   const row=(icon,name,desc,btnTxt,fn,disabled)=>{
     const el=document.createElement('button'); el.className='reward-option acc-opt'; if(disabled) el.disabled=true;
     el.innerHTML=`<div class="acc-ico">${icon}</div><div class="acc-txt"><div class="reward-name">${name}<span class="acc-tag">${btnTxt}</span></div><div class="acc-desc">${desc}</div></div>`;
@@ -6153,8 +6156,7 @@ function renderShop(){
   items.forEach(x=>{ x.max=x.sold?0:((x.special||x.multi)?99:1); });
   { const spSel=items.find(y=>y.key.startsWith('spplus_')&&buyQty[y.key]>0); if(spSel) items.forEach(y=>{ if(y.key.startsWith('spplus_')&&y!==spSel) y.max=0; }); }   // 値段が上がっていくので、1回の買い物では1つだけ
   Object.keys(buyQty).forEach(k=>{ const x=items.find(y=>y.key===k); if(!x||buyQty[k]<=0||buyQty[k]>x.max) delete buyQty[k]; });
-  const chosen=items.filter(x=>buyQty[x.key]>0).map(x=>({...x,qty:buyQty[x.key]})), n=chosen.reduce((t,x)=>t+x.qty,0), tot=chosen.reduce((t,x)=>t+x.price*x.qty,0), short=tot>gold;
-  { const tb=document.createElement('div'); tb.className='shop-tabs'; [['deck','🃏 デッキ'],['acc','💎 アクセサリー']].forEach(([k,t])=>{ const b=document.createElement('button'); b.textContent=t; if(k===kind) b.className='on'; b.onclick=()=>{ m.dataset.kind=k; renderShop(); }; tb.appendChild(b); }); body.appendChild(tb); }
+  const chosen=items.filter(x=>x.tab===kind&&buyQty[x.key]>0).map(x=>({...x,qty:buyQty[x.key]})), n=chosen.reduce((t,x)=>t+x.qty,0), tot=chosen.reduce((t,x)=>t+x.price*x.qty,0), short=tot>gold;
   if(items.length){
     const bb=document.createElement('button'); bb.className='btn'; bb.style.cssText='width:100%;margin:4px 0 8px'; bb.disabled=!chosen.length||short;
     bb.textContent=!chosen.length?'買う（＋で個数を選ぶ）':short?`お金が足りません（${tot}G / 所持金 ${gold}G）`:`買う（${n}個 / −${tot}G）`;
@@ -6327,11 +6329,14 @@ function renderAccModal(){
     list.appendChild(el);
   });
   document.getElementById('accSlotInfo').textContent=`装備枠 ${accEq.length}/${ACC_SLOTS}`;
+  { const am=document.getElementById('accModal'); am.classList.toggle('inprep',!!inPrep); if(inPrep) renderShopMini(am,'#accDeckMini'); }
 }
 document.getElementById('accBtn').onclick=openAccModal;
 document.getElementById('prepAcc').onclick=openAccModal;
 document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){ showCardListModal('山札', activeDeck.concat(hand,graveyard)); } };
-document.getElementById('prepShop').onclick=()=>openShop();
+document.getElementById('prepBuyAcc').onclick=()=>openShop('buyacc');
+document.getElementById('prepBuyDeck').onclick=()=>openShop('buydeck');
+document.getElementById('prepSell').onclick=()=>openShop('sell');
 document.getElementById('rankBtn').onclick=()=>openRanking(true,{view:true});
 function openRanking(first,opts){
   opts=opts||{}; const pre=!!opts.pre;
