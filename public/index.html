@@ -4910,7 +4910,7 @@ let dbgGrab='';
 function attachDrag(el){
   let sx,sy,dragging=false,ghost=null,startRect=null,hoverFlag=null,hoverGrave=null,idx=-1;
   el.addEventListener('pointerdown',e=>{
-    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='replace_select'&&pending.type!=='fusion')) return;
+    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow')) return;
     idx=hand.findIndex(c=>c.uid===el.dataset.uid); if(idx<0) return;
     try{ dbgGrab=((el.querySelector('.corner')||{}).textContent||'?')+'→'+dbgCardStr(hand[idx])+'(#'+idx+')'; }catch(_){}
     document.querySelectorAll('.dragcard').forEach(g=>g.remove());
