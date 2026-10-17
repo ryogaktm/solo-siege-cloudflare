@@ -889,6 +889,11 @@
   .reward-box{ width:100%; max-width:420px; max-height:96vh; overflow-y:auto; text-align:center; background:var(--panel); border:1px solid rgba(226,192,106,.3); border-radius:16px; padding:20px 16px; }
   .prep-deckview{ position:absolute; top:8px; right:8px; z-index:2; padding:4px 10px; font-size:11.5px; line-height:1.3; border-radius:999px; border:1px solid var(--gold-3); background:rgba(0,0,0,.4); color:var(--gold); cursor:pointer; }
   #prepModal .prep-head{ padding-top:16px; }
+  .prep-shops{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .prep-tile{ aspect-ratio:1/1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:14px; border:2px solid var(--gold-3); background:linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.06)); color:var(--gold); font-family:inherit; font-weight:800; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
+  .prep-tile:active{ transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
+  .prep-tile .pt-ico{ font-size:44px; line-height:1; }
+  .prep-tile .pt-name{ font-size:15px; letter-spacing:.04em; }
   .prep-head{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
   .prep-mid{ flex:1 1 auto; text-align:center; min-width:0; }
   .prep-char{ flex:0 0 76px; display:flex; align-items:flex-end; justify-content:center; --cyc:.8s; }
@@ -1181,10 +1186,12 @@
   <div class="reward-box" style="position:relative">
     <button id="prepDeckView" class="prep-deckview" aria-label="山札確認">📚 山札確認</button>
     <div class="prep-head"><div class="prep-char" id="prepChar"></div><div class="prep-mid"><div class="reward-title">次の戦いの準備</div><div class="reward-sub" id="prepInfo"></div></div><div class="prep-home">🏕</div></div>
+    <div class="prep-shops">
+      <button class="prep-tile" id="prepDeck"><span class="pt-ico">🃏</span><span class="pt-name">デッキ屋</span></button>
+      <button class="prep-tile" id="prepShop"><span class="pt-ico">💎</span><span class="pt-name">アクセサリー屋</span></button>
+    </div>
     <div class="reward-options" style="flex-direction:column;margin-top:10px">
       <button class="btn" id="prepAcc">🎒 アクセサリーを装備する</button>
-      <button class="btn" id="prepDeck">🃏 デッキ屋</button>
-      <button class="btn" id="prepShop">💎 アクセサリー屋</button>
       <button class="btn" id="prepGo" style="margin-top:8px">▶ 次の戦闘へ</button>
     </div>
   </div>
@@ -6035,9 +6042,9 @@ function openShop(kind){
   let m=document.getElementById('shopModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='shopModal'; m.style.display='none';
     m.innerHTML='<div class="reward-box"><div class="reward-title" id="shopTitle"></div><div class="reward-sub" id="shopGold"></div><div class="reward-options" id="shopBody" style="flex-direction:column;margin-top:8px"></div><button class="btn" id="shopClose" style="margin-top:12px">準備に戻る</button></div>';
-    document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ if(m.dataset.mode&&m.dataset.mode!=='menu'&&!(m.dataset.kind==='deck'&&m.dataset.mode==='buy')){ m.dataset.mode='menu'; renderShop(); } else { m.style.display='none'; refreshPrep(); render(); } }; }
+    document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ if(m.dataset.mode&&m.dataset.mode!=='menu'){ m.dataset.mode='menu'; renderShop(); } else { m.style.display='none'; refreshPrep(); render(); } }; }
   if(kind!=='deck' && !shopBought && !shopStock.some(id=>accDef(id)&&!accOwned.some(o=>o.id===id))) rollAccStock();  // 品切れのまま開かない：何かは必ず売っている
-  sellSel=[]; m.dataset.kind=kind; m.dataset.mode=kind==='deck'?'buy':'menu'; renderShop(); m.style.display='flex';
+  sellSel=[]; m.dataset.kind=kind; m.dataset.mode='menu'; renderShop(); m.style.display='flex';
 }
 let sellSel=[];
 function confirmSell(cand){
@@ -6057,7 +6064,7 @@ function renderShop(){
   m.querySelector('#shopDeckView').onclick=()=>{ const cl=document.getElementById('cardListModal'); cl.style.zIndex=10000; try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){} };
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
   const mode=m.dataset.mode||'menu';
-  m.querySelector('#shopClose').textContent=(mode==='menu'||(kind==='deck'&&mode==='buy'))?'準備に戻る':'戻る';
+  m.querySelector('#shopClose').textContent=mode==='menu'?'準備に戻る':'戻る';
   if(mode==='menu'){
     buySel=[]; buyQty={};
     [['buy','🛒 買う'],['sell','💰 売る']].forEach(([k,t])=>{ const b=document.createElement('button'); b.className='btn'; b.style.cssText='width:100%;margin:6px 0;padding:14px;font-size:17px'; b.textContent=t; b.onclick=()=>{ sellSel=[]; m.dataset.mode=k; renderShop(); }; body.appendChild(b); });
