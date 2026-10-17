@@ -897,6 +897,7 @@
   #shopDeckMini,#accDeckMini{ flex:1 1 44%; min-height:0; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
   #shopModal #shopBody{ flex:1 1 50%; }
   #shopModal #shopBody{ flex-wrap:nowrap; }
+  .shop-act{ position:sticky; top:0; z-index:5; background:#0a120d; padding:2px 0 8px; margin-top:-2px; }
   #shopModal #shopBody>*{ flex-shrink:0; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
   #accModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; }
@@ -6121,7 +6122,7 @@ function renderShop(){
     else {
       const tot=sellSel.reduce((t,a)=>{ const o=cand.find(x=>x.aid===a); return t+accSell(accDef(o.id)); },0);
       const sb=document.createElement('button'); sb.className='btn'; sb.style.cssText='width:100%;margin:4px 0 8px'; sb.disabled=!sellSel.length;
-      sb.textContent=sellSel.length?`売る（${sellSel.length}個 / +${tot}G）`:'売る'; sb.onclick=()=>confirmSell(cand); body.appendChild(sb);
+      sb.textContent=sellSel.length?`売る（${sellSel.length}個 / +${tot}G）`:'売る'; sb.onclick=()=>confirmSell(cand); sb.style.margin='0'; const sw=document.createElement('div'); sw.className='shop-act'; sw.appendChild(sb); body.appendChild(sw);
     }
     cand.forEach(o=>{ const d=accDef(o.id), on=sellSel.includes(o.aid);
       row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name+(accEq.includes(o.aid)?' <span style="display:inline-block;background:#d93a2e;color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:4px;vertical-align:middle">装備中</span>':''),d.desc,`${accSell(d)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
@@ -6168,7 +6169,7 @@ function renderShop(){
   if(items.length){
     const bb=document.createElement('button'); bb.className='btn'; bb.style.cssText='width:100%;margin:4px 0 8px'; bb.disabled=!chosen.length||short;
     bb.textContent=!chosen.length?'買う（＋で個数を選ぶ）':short?`お金が足りません（${tot}G / 所持金 ${gold}G）`:`買う（${n}個 / −${tot}G）`;
-    bb.onclick=()=>confirmBuy(chosen,tot); body.appendChild(bb);
+    bb.onclick=()=>confirmBuy(chosen,tot); bb.style.margin='0'; const bw=document.createElement('div'); bw.className='shop-act'; bw.appendChild(bb); body.appendChild(bw);
   }
   if(kind==='acc'&&accEmpty){ head('売っているアクセサリー'); const e=document.createElement('div'); e.className='reward-sub'; e.textContent='品切れ'; body.appendChild(e); }
   items.filter(x=>x.tab===kind).forEach(x=>{ if(x.head) head(x.head); const q=buyQty[x.key]||0;
