@@ -892,7 +892,7 @@
   .topback{ position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); left:calc(10px + env(safe-area-inset-left,0px)); z-index:400; display:block; width:fit-content; margin:0; padding:6px 14px; font-size:13px; font-weight:800; line-height:1.3; text-align:left; border-radius:999px; border:1px solid var(--gold-3); background:rgba(10,18,14,.92); color:var(--gold); font-family:inherit; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .topback:active{ transform:translateY(1px); }
   .modal-bg:has(.topback){ padding-top:calc(54px + env(safe-area-inset-top,0px)); }
-  #shopModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; height:min(94vh,820px); height:min(94dvh,820px); max-height:none; }
+  #shopModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; height:min(94vh,820px); height:min(94svh,820px); max-height:none; }
   #shopModal #shopBody{ flex:1 1 auto; min-height:0; overflow-y:auto; }
   #shopDeckMini,#accDeckMini{ flex:1 1 44%; min-height:0; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
   #shopModal #shopBody{ flex:1 1 50%; }
@@ -902,12 +902,12 @@
   #shopModal .reward-title, #accModal.inprep .reward-title{ font-size:17px; margin:0; line-height:1.2; }
   #shopModal .reward-sub, #accModal.inprep .reward-sub{ margin-bottom:4px; line-height:1.2; }
   #shopModal #shopBody{ margin-top:2px !important; }
-  #shopModal .reward-box, #accModal.inprep .reward-box{ height:min(94vh,860px); height:min(100dvh - 54px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px),860px); }
+  #shopModal .reward-box, #accModal.inprep .reward-box{ height:min(94vh,860px); height:min(100svh - 54px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px),860px); }
   .shop-act{ position:sticky; top:0; z-index:5; background:#0a120d; padding:2px 0 8px; margin-top:-2px; }
   #shopModal #shopBody>*{ flex:0 0 auto; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
   #accModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; }
-  #accModal.inprep .reward-box{ height:min(94vh,820px); height:min(94dvh,820px); }
+  #accModal.inprep .reward-box{ height:min(94vh,820px); height:min(94svh,820px); }
   #accUpper{ flex:1 1 50%; min-height:0; overflow-y:auto; }
   #accModal:not(.inprep) #accDeckMini{ display:none; }
   .sdm-head{ font-size:13px; color:var(--gold); font-weight:800; margin-bottom:4px; cursor:pointer; }
