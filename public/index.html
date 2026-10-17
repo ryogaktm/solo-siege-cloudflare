@@ -6084,9 +6084,9 @@ function openShop(mode){
 let sellSel=[];
 function confirmSell(cand){
   const items=sellSel.map(a=>cand.find(o=>o.aid===a)).filter(Boolean); if(!items.length) return;
-  const tot=items.reduce((t,o)=>t+accSell(accDef(o.id)),0);
+  const tot=items.reduce((t,o)=>t+accSell(accDef(o.id)),0), eq=items.filter(o=>accEq.includes(o.aid));
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
-  bg.innerHTML=`<div class="reward-box"><div class="reward-title">売却の確認</div><div class="reward-sub" style="text-align:left;margin-top:8px">${items.map(o=>`・${accDef(o.id).name}（${accSell(accDef(o.id))}G）`).join('<br>')}</div><div class="reward-sub" style="margin-top:8px"><b>合計 +${tot}G</b><br>一度売ると、もう手に入りません。本当に売りますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="csNo" style="flex:1">やめる</button><button class="btn" id="csYes" style="flex:1">売る</button></div></div>`;
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">売却の確認</div><div class="reward-sub" style="text-align:left;margin-top:8px">${items.map(o=>`・${accDef(o.id).name}（${accSell(accDef(o.id))}G）`).join('<br>')}</div>${eq.length?`<div style="margin-top:10px;padding:8px 10px;border:2px solid #e0584a;border-radius:10px;background:rgba(224,88,74,.16);color:#ffb4aa;font-weight:800;font-size:13px;text-align:left">⚠ 装備中のアクセサリーが含まれています<br>${eq.map(o=>accDef(o.id).name).join('、')}<br>売ると装備が外れます</div>`:''}<div class="reward-sub" style="margin-top:8px"><b>合計 +${tot}G</b><br>一度売ると、もう手に入りません。本当に売りますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="csNo" style="flex:1">やめる</button><button class="btn" id="csYes" style="flex:1">売る</button></div></div>`;
   document.body.appendChild(bg);
   bg.querySelector('#csNo').onclick=()=>bg.remove();
   bg.querySelector('#csYes').onclick=()=>{ items.forEach(o=>sellAccessory(o)); sellSel=[]; bg.remove(); renderShop(); refreshPrep(); };
@@ -6114,16 +6114,16 @@ function renderShop(){
     if(!disabled) el.onclick=fn; body.appendChild(el); };
   if(mode==='sell'){
     head('売るアクセサリーをタップして選ぶ（一度売ると、もう手に入らない）');
-    const cand=accOwned.filter(o=>!accEq.includes(o.aid));
+    const cand=accOwned.slice();
     sellSel=sellSel.filter(a=>cand.some(o=>o.aid===a));
-    if(!cand.length){ const e=document.createElement('div'); e.className='reward-sub'; e.textContent='売れるアクセサリーはありません（装備中のものは売れません）'; body.appendChild(e); }
+    if(!cand.length){ const e=document.createElement('div'); e.className='reward-sub'; e.textContent='売れるアクセサリーはありません'; body.appendChild(e); }
     else {
       const tot=sellSel.reduce((t,a)=>{ const o=cand.find(x=>x.aid===a); return t+accSell(accDef(o.id)); },0);
       const sb=document.createElement('button'); sb.className='btn'; sb.style.cssText='width:100%;margin:4px 0 8px'; sb.disabled=!sellSel.length;
       sb.textContent=sellSel.length?`売る（${sellSel.length}個 / +${tot}G）`:'売る'; sb.onclick=()=>confirmSell(cand); body.appendChild(sb);
     }
     cand.forEach(o=>{ const d=accDef(o.id), on=sellSel.includes(o.aid);
-      row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name,d.desc,`${accSell(d)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
+      row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name+(accEq.includes(o.aid)?' 【装備中】':''),d.desc,`${accSell(d)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
     return;
   }
   // ---- 買う（チェックボックス式）----
