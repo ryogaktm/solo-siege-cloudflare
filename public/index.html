@@ -1493,14 +1493,14 @@ const MON_SP_KINDS=['punch','guard','cure','beg','bullet','shuffle'];
 const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'🙏命乞い',bullet:'⏱バレットタイム',shuffle:'🔄シャッフル'};
 const MON_SKILL={   // モンスターが自分のキャラになった時の特殊技（kind 無し＝毎ターン働く常時効果）
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
-  'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せます。（処理不能のカードも飲み込めます）'},
+  'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを手札に1枚加えます。'},
   'スライム':{kind:'shuffle'},
   'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、体力が1回復します。'},
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'毎ターン、敵のHPが2減ります。（敵のHPが1より下がることはありません）'},
-  '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復します。（なんでも食べられます）'},
+  '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{name:'コガネモチ',icon:'💰',desc:'敵を倒すと50Gを手に入れます。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを手札に1枚生み出します。'}
@@ -3255,7 +3255,7 @@ function resolveFusion(){
   hint(hintMsg);
 }
 function cancelPending(){
-  if(!pending || pending.type==='discard' || pending.type==='rehire') return;
+  if(!pending || pending.type==='discard' || pending.type==='rehire' || pending.type==='spitdiscard') return;
   if(pending.type==='replace_select' && pending.used){ hand.splice(Math.min(pending.handIdx,hand.length),0,pending.used); }
   pending=null; picked=null; busy=false;
   render(); layoutHand(false);
@@ -3839,6 +3839,10 @@ function render(){
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
   { const mb=document.getElementById('specMon'); if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.name||'')); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
+  { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
+    if(mb&&ms&&ms.kind==='swallow'&&stomach.length&&specEnabled('mon')){ if(!chip){ chip=document.createElement('div'); chip.id='stomachChip'; chip.style.cssText='position:fixed;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#8ff0c4;text-shadow:0 1px 3px #000'; document.body.appendChild(chip); }
+      chip.innerHTML='<span>飲み込み中</span>'; chip.appendChild(cardEl(stomach[0],true)); const r=mb.getBoundingClientRect(); chip.style.left=(r.left+r.width/2)+'px'; chip.style.transform='translateX(-50%)'; chip.style.bottom=(innerHeight-r.top+4)+'px'; }
+    else if(chip) chip.remove(); }
   { const fb=document.getElementById('freeShuffleBtn'), inf=(CHARACTER.startShuffles===Infinity);
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
@@ -4130,6 +4134,7 @@ function nowText(){
   if(pending&&pending.type==='guidance') return pending.step===0 ? '移動元の旗をタップしよう。' : '移動先の旗をタップ（または山札・墓地アイコンで捨てる）。';
   if(pending&&pending.type==='eat') return '食べるカードをタップしよう。';
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
+  if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
@@ -4143,7 +4148,7 @@ function updateTelops(){
     if(pending && ['discard','replace_select','guidance','duplicate','fusion'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
     else if(pendHintTxt){ if(he.textContent===pendHintTxt) he.textContent=''; pendHintTxt=''; }
   }
-  document.getElementById('cancelPendingBtn').style.display = (pending && pending.type!=='discard' && pending.type!=='rehire') ? '' : 'none';
+  document.getElementById('cancelPendingBtn').style.display = (pending && pending.type!=='discard' && pending.type!=='rehire' && pending.type!=='spitdiscard') ? '' : 'none';
   document.getElementById('confirmPendingBtn').style.display = (pending && (pending.type==='replace_select' || (pending.type==='discard' && pending.chosen.length===2))) ? '' : 'none';
 }
 
@@ -4802,6 +4807,7 @@ function tapHand(idx){
   if(pending&&pending.type==='discard'){ discardTap(idx); return; }
   if(pending&&pending.type==='eat'){ eatTap(idx); return; }
   if(pending&&pending.type==='swallow'){ swallowTap(idx); return; }
+  if(pending&&pending.type==='spitdiscard'){ spitDiscardTap(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
   if(pending&&pending.type==='replace_select'){ replaceTap(idx); return; }
@@ -4910,7 +4916,7 @@ let dbgGrab='';
 function attachDrag(el){
   let sx,sy,dragging=false,ghost=null,startRect=null,hoverFlag=null,hoverGrave=null,idx=-1;
   el.addEventListener('pointerdown',e=>{
-    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow')) return;
+    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard')) return;
     idx=hand.findIndex(c=>c.uid===el.dataset.uid); if(idx<0) return;
     try{ dbgGrab=((el.querySelector('.corner')||{}).textContent||'?')+'→'+dbgCardStr(hand[idx])+'(#'+idx+')'; }catch(_){}
     document.querySelectorAll('.dragcard').forEach(g=>g.remove());
@@ -5091,8 +5097,7 @@ function monSkillUse(){
   }
   else if(m.kind==='swallow'){
     if(stomach.length){
-      if(hand.length>=currentHandMax()){ hint('手札がいっぱいで吐き出せません。',true); return; }
-      hand.push(...stomach.splice(0)); hint('吐き出した！カードが手札に戻った。'); playSfx('shuffle'); dlog('action',{name:'monskill_spit'}); render(); layoutHand(false); return;
+      hand.push(...stomach.splice(0)); pending={type:'spitdiscard'}; hint('吐き出した！手札から捨てるカードを1枚タップしてください。（吐き出したカードも選べます）'); playSfx('shuffle'); dlog('action',{name:'monskill_spit'}); render(); layoutHand(false); return;
     }
     if(!hand.length){ hint('飲み込めるカードがありません。',true); return; }
     pending={type:'swallow'}; render(); hint('飲み込むカードをタップしてください。'); return;
@@ -5103,6 +5108,11 @@ function monSkillUse(){
   }
   dlog('action',{name:'monskill_'+m.kind}); render();
 }
+function spitDiscardTap(idx){
+  const c=hand[idx]; if(!c) return;
+  hand.splice(idx,1); graveyard.push(c); pending=null;
+  hint('カードを1枚捨てた。'); playSfx('shuffle'); render(); layoutHand(false);
+}
 function swallowTap(idx){
   const c=hand[idx]; if(!c) return;
   hand.splice(idx,1); stomach.push(c); spec.mon++; pending=null;
@@ -5111,7 +5121,8 @@ function swallowTap(idx){
 function eatTap(idx){
   const c=hand[idx]; if(!c) return;
   hand.splice(idx,1); graveyard.push(c); healPlayer(50); spec.mon++; pending=null;
-  hint('悪食！カードを食べて体力が50回復した。'); playSfx('shuffle'); render(); layoutHand(false);
+  const nc=drawFromPools(); if(nc) hand.push(nc);   // 食べた分、新しいカードを1枚引く
+  hint('悪食！カードを食べて体力が50回復し、新しいカードを引いた。'); playSfx('shuffle'); render(); layoutHand(false);
 }
 function bindSpecTap(id,kind){ const el=document.getElementById(id); if(!el) return; let t=0;
   const go=()=>{ if(Date.now()-t<500) return; t=Date.now(); openSpecModal(kind); };   // 画面を触った時（click が来ない端末でも動くように touchend でも受ける）
@@ -5138,7 +5149,7 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出します。（回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
