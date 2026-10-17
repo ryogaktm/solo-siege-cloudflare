@@ -6085,7 +6085,7 @@ function renderShop(){
       apply:()=>{ deckOffer.chUsed=true; const n=applyColorChange3(deckOffer.from,deckOffer.to); hint(n>0?`${CNAME[deckOffer.from]}のカード${n}枚が${CNAME[deckOffer.to]}に変わった！`:`${CNAME[deckOffer.from]}のカードが無かった…`); }});
     items.push({key:'drink',icon:'🧃',name:'栄養ドリンク',desc:'最大体力が+50（ずっと続く）',price:125,multi:true,
       apply:()=>{ hpBonus+=50; recalcHpMax(); hint('栄養ドリンクを飲んだ！最大体力+50'); }});
-    items.push({key:'spplus',icon:'✨',name:'特殊技+1',desc:'特殊技の使える回数が、毎戦+1回（ずっと続く）',price:125,multi:true,
+    items.push({key:'spplus',icon:'✨',name:'特殊技+1',desc:'特殊技の使える回数が、毎戦+1回（ずっと続く）',price:250,multi:true,
       apply:()=>{ specBonus+=1; hint('特殊技の回数が+1された！'); }});
     if(!deckOffer.cards) deckOffer.cards=rollDeckCards();
     deckOffer.cards.forEach((cc,ci)=>{
