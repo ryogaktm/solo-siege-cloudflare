@@ -2538,7 +2538,7 @@ function closeCheck(fi, closedByEnemy){
       if(f.baseCombo){ f.comboMult=f.result.mult; }  // 役が付いた旗＝スーパーコンボの対象。得点は役の倍率のみ（追加の倍率なし）
       addScore(f.result.base);
       f.sheetSum = f.result.sum;
-      { const yg=YAKU_GOLD[f.result.name]||0; if(yg>0){ gold+=yg; setTimeout(()=>hint(`${f.result.name}！ +${yg}G`), 250); } }
+      { const yn=f.result.name, yg=YAKU_GOLD[yn]||0; if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
     }
     justClosed.push({fi, result:f.result, played:false});
     dlog('flag_closed',{flag:fi+1, cards:f.cards.map(dbgCardStr), 役名:f.result.name, 役倍率mult:f.result.mult, 合計sum:f.result.sum, 役前得点:f.result.preCombo!==undefined?f.result.preCombo:f.result.base, 得点base:f.result.base, 基本コンボ:!!f.baseCombo, 敵に奪われ:!!closedByEnemy, 象徴色:f.symbolColor, scoreAfter:score});
@@ -5957,8 +5957,9 @@ function unapplyAcc(o){
 }
 function syncSeal(){
   const want=hasAcc('purple_out'), has=!GAME_COLORS.includes('purple');
-  if(want===has) return;
   const isP=c=>c && (c.kind==='troop'||c.kind==='monster') && !c.mixed && c.color==='purple';
+  if(want===has){ if(want){ [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(isP(arr[i])) sealedCards.push(arr.splice(i,1)[0]); }); }   // 封印中に別のアクセサリー（削除の解除など）で紫が戻ってきても、その場で封印し直す
+    return; }
   if(want){
     GAME_COLORS.splice(GAME_COLORS.indexOf('purple'),1);
     [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(isP(arr[i])) sealedCards.push(arr.splice(i,1)[0]); });
@@ -5995,11 +5996,12 @@ function accPriceBase(d){
 const ACC_SELL_MULT=1.5;  // 売値倍率（元の値段の半分に対して）
 const accSell=d=>d.special?500:Math.floor(accPriceBase(d)/2*ACC_SELL_MULT);  // 売値は倍率をかけない元の値段の半分
 const introNoAcc=()=>isWeakBody() || introOn && WAVES[stageIndex] && WAVES[stageIndex].id!=='ミジンコキング';   // ミジンコの最初の段階では、ミジンコキング以外からアクセサリーは出ない
+let chestWhy={};   // 宝箱に出すアクセサリーごとの「手に入った理由」
 function acquireNew(final=true){
-  const got=[]; if(introNoAcc()) return got;
+  const got=[]; chestWhy={}; if(introNoAcc()) return got;
   ACC_DEFS.forEach(d=>{
     if(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id)) return;
-    if(battleGoals.includes(d.id) && goalMet(d.id,final)){ accOwned.push({aid:accSeq++,id:d.id}); got.push(d); }
+    if(battleGoals.includes(d.id) && goalMet(d.id,final)){ accOwned.push({aid:accSeq++,id:d.id}); got.push(d); try{ chestWhy[d.id]='達成した条件：'+goalDef(d).text; }catch(e){} }
   });
   return got;
 }
@@ -6007,7 +6009,7 @@ function acquireNew(final=true){
 function giveCopperRing(got){
   if(introNoAcc()) return;
   if(got.some(d=>d.id==='gold_s')) return;
-  const cu=accDef('gold_s'); if(cu){ accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); }
+  const cu=accDef('gold_s'); if(cu){ accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); chestWhy.gold_s='戦闘のごほうび（必ずもらえる）'; }
 }
 function grantStageReward(){
   inPrep=true;
@@ -6034,7 +6036,7 @@ function openChest(got,income){
   const box=document.getElementById('chestOptions'); box.innerHTML='';
   got.forEach(d=>{
     const el=document.createElement('div'); el.className='reward-option acc-opt'; el.style.cursor='default';
-    el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div></div>`;
+    el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div>${chestWhy[d.id]?`<div class="acc-desc" style="margin-top:4px;color:var(--gold);font-weight:700">${chestWhy[d.id]}</div>`:''}</div>`;
     box.appendChild(el);
   });
   const b=document.createElement('button'); b.className='btn'; b.textContent='準備へ'; b.onclick=finishChest; box.appendChild(b);
@@ -6061,6 +6063,7 @@ function restoreAllMods(){   // 鼓舞などの一時的な数字の増減を、
 }
 function showPrep(keepStock){
   try{ restoreAllMods(); }catch(e){}
+  try{ flags.forEach(f=>{ graveyard.push(...f.cards.filter(Boolean)); f.cards=[]; }); graveyard.push(...stomach.filter(Boolean)); stomach=[]; flags=freshFlags(); }catch(e){}   // 勝利直後に盤面へ残ったカードを墓地へ（アクセサリーの封印・削除の対象から漏れて、準備画面と実戦の山札がズレるのを防ぐ）
   inPrep=true;
   if(!keepStock) rollShopStock();
   refreshPrep();
