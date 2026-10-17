@@ -892,7 +892,7 @@
   .topback{ position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); left:calc(10px + env(safe-area-inset-left,0px)); z-index:400; display:block; width:fit-content; margin:0; padding:6px 14px; font-size:13px; font-weight:800; line-height:1.3; text-align:left; border-radius:999px; border:1px solid var(--gold-3); background:rgba(10,18,14,.92); color:var(--gold); font-family:inherit; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .topback:active{ transform:translateY(1px); }
   .modal-bg:has(.topback){ padding-top:calc(54px + env(safe-area-inset-top,0px)); }
-  #shopModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; height:min(94vh,820px); max-height:none; }
+  #shopModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; height:min(94vh,820px); height:min(94dvh,820px); max-height:none; }
   #shopModal #shopBody{ flex:1 1 auto; min-height:0; overflow-y:auto; }
   #shopDeckMini,#accDeckMini{ flex:1 1 44%; min-height:0; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
   #shopModal #shopBody{ flex:1 1 50%; }
@@ -901,7 +901,7 @@
   #shopModal #shopBody>*{ flex:0 0 auto; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
   #accModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; }
-  #accModal.inprep .reward-box{ height:min(94vh,820px); }
+  #accModal.inprep .reward-box{ height:min(94vh,820px); height:min(94dvh,820px); }
   #accUpper{ flex:1 1 50%; min-height:0; overflow-y:auto; }
   #accModal:not(.inprep) #accDeckMini{ display:none; }
   .sdm-head{ font-size:13px; color:var(--gold); font-weight:800; margin-bottom:4px; cursor:pointer; }
@@ -6096,7 +6096,8 @@ function installScrollbars(){
     const bar=document.createElement('div'); bar.className='sbar'; bar.innerHTML='<i></i>';
     const host=el.offsetParent||el.parentElement; (el.parentElement).appendChild(bar);
     const upd=()=>{ const ch=el.clientHeight, sh=el.scrollHeight;
-      if(!ch||sh<=ch+1){ bar.style.display='none'; return; }
+      if(!ch||sh<=ch+14){ bar.style.display='none'; if(ch&&el.scrollTop===0) el.style.overflowY='hidden'; return; }
+      el.style.overflowY='auto';
       bar.style.display='block'; const th=Math.max(34,Math.round(ch*ch/sh)), maxT=sh-ch, mv=ch-th;
       bar.style.left=(el.offsetLeft+el.offsetWidth-8)+'px'; bar.style.top=(el.offsetTop+2)+'px'; bar.style.height=(ch-4)+'px';
       const i=bar.firstChild; i.style.height=th+'px'; i.style.top=Math.round(maxT>0?el.scrollTop/maxT*(mv-4):0)+'px'; };
