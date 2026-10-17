@@ -1493,6 +1493,7 @@ const MON_SP_KINDS=['punch','guard','cure','beg','bullet','shuffle'];
 const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'🙏命乞い',bullet:'⏱バレットタイム',shuffle:'🔄シャッフル'};
 const MON_SKILL={   // モンスターが自分のキャラになった時の特殊技（kind 無し＝毎ターン働く常時効果）
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
+  'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せます。（処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを手札に1枚加えます。'},
   'スライム':{kind:'shuffle'},
   'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
@@ -1818,7 +1819,7 @@ let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0;
 const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
-let monAtkMult=1, buzzTurns=0;
+let monAtkMult=1, buzzTurns=0, stomach=[];   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
 let enemyFreeze=0, enemyPoisonPer=0, hpBonus=0;   // 反射の手鏡：敵の停止ターン数／敵が受ける毒（毎ターンの減少量）／栄養ドリンクの体力加算
@@ -2131,7 +2132,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); resetBattleRound();
+  stomach=[]; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -2171,7 +2172,7 @@ function drawFromGrandDeck(n){
 /* ===== 山札構築（1ゲーム通して同じ山札。大山札から入れ替え） ===== */
 function allCardsUnique(){
   const seen=new Set(), out=[];
-  [activeDeck,grandDeck,hand,graveyard,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>arr.forEach(c=>{
+  [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>arr.forEach(c=>{
     if(c && !isCurse(c) && !seen.has(c.uid)){ seen.add(c.uid); c.inDeck=deckUids.has(c.uid); out.push(c); }
   }));
   return out;
@@ -3837,7 +3838,7 @@ function render(){
   document.getElementById('deckCount').textContent=activeDeck.length;
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
-  { const mb=document.getElementById('specMon'); if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; document.getElementById('specMonL').textContent=ms.name||''; document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0; } } }
+  { const mb=document.getElementById('specMon'); if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.name||'')); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
   { const fb=document.getElementById('freeShuffleBtn'), inf=(CHARACTER.startShuffles===Infinity);
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
@@ -4128,6 +4129,7 @@ function nowText(){
   if(pending&&pending.type==='discard') return `手札から捨てる2枚をタップしよう（${pending.chosen.length}/2）。選び終えたら確定。`;
   if(pending&&pending.type==='guidance') return pending.step===0 ? '移動元の旗をタップしよう。' : '移動先の旗をタップ（または山札・墓地アイコンで捨てる）。';
   if(pending&&pending.type==='eat') return '食べるカードをタップしよう。';
+  if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
@@ -4675,7 +4677,7 @@ function advanceWaveAttempt(){
   clearKO();
   waveAttempt++;
   score=0; displayedScore=0; resetBattleRound();
-  flags.forEach(f=>{ graveyard.push(...f.cards); });
+  flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
   purgeDeleted();
   activeDeck=cleanMods(activeDeck); graveyard=cleanMods(graveyard); hand=cleanMods(hand);
@@ -4714,9 +4716,9 @@ function advanceToNextStage(){
     bossHp=finalHp;
   }
   score=0; displayedScore=0; carryMap={}; hostCarry=0; guardOn=false; resetBattleRound();
-  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0;  // 毎戦、体力は全回復
+  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
-  flags.forEach(f=>{ graveyard.push(...f.cards); });
+  flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
   purgeDeleted();
   activeDeck=cleanMods(activeDeck); graveyard=cleanMods(graveyard); hand=cleanMods(hand);
@@ -4799,6 +4801,7 @@ function tapHand(idx){
   if(busy||gameEnded) return;
   if(pending&&pending.type==='discard'){ discardTap(idx); return; }
   if(pending&&pending.type==='eat'){ eatTap(idx); return; }
+  if(pending&&pending.type==='swallow'){ swallowTap(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
   if(pending&&pending.type==='replace_select'){ replaceTap(idx); return; }
@@ -5031,6 +5034,7 @@ document.getElementById('menuToTitleBtn').onclick=()=>{
 };
 function specUse(kind){
   if(gameEnded||busy||pending||waveAdvancing) return;
+  if(kind==='mon'&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='swallow'&&stomach.length){ monSkillUse(); return; }   // 吐き出すのは回数を使わない
   if(specRemain(kind)<=0) return;
   if(kind==='mon'){ monSkillUse(); return; }
   if(kind==='beg'){
@@ -5085,11 +5089,24 @@ function monSkillUse(){
     if(hand.length>=currentHandMax()){ hint('手札がいっぱいです。',true); return; }
     hand.push({kind:'troop',color:'purple',value:6,uid:uid(),temp:true}); spec.mon++; hint('毒の牙！紫6が手札に加わった。'); playSfx('shuffle');
   }
+  else if(m.kind==='swallow'){
+    if(stomach.length){
+      if(hand.length>=currentHandMax()){ hint('手札がいっぱいで吐き出せません。',true); return; }
+      hand.push(...stomach.splice(0)); hint('吐き出した！カードが手札に戻った。'); playSfx('shuffle'); dlog('action',{name:'monskill_spit'}); render(); layoutHand(false); return;
+    }
+    if(!hand.length){ hint('飲み込めるカードがありません。',true); return; }
+    pending={type:'swallow'}; render(); hint('飲み込むカードをタップしてください。'); return;
+  }
   else if(m.kind==='eat'){
     if(!hand.length){ hint('食べられるカードがありません。',true); return; }
     pending={type:'eat'}; render(); hint('食べるカードをタップしてください。'); return;
   }
   dlog('action',{name:'monskill_'+m.kind}); render();
+}
+function swallowTap(idx){
+  const c=hand[idx]; if(!c) return;
+  hand.splice(idx,1); stomach.push(c); spec.mon++; pending=null;
+  hint('丸のみ！カードを飲み込んだ。もう一度押すと吐き出せる。'); playSfx('shuffle'); render(); layoutHand(false);
 }
 function eatTap(idx){
   const c=hand[idx]; if(!c) return;
@@ -5121,7 +5138,7 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出します。（回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
@@ -6292,7 +6309,7 @@ function saveGame(){
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, acc:{hb:hpBonus,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
-      activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
+      activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
 }
@@ -6331,7 +6348,7 @@ function resumeGame(){
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
-  activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; pendingRewardCards=st.pendingRewardCards||[];
+  activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
   picked=null; pending=null; gameEnded=false; busy=false; waveAdvancing=false; infoIdx=null; justClosed=[]; frozenMults={}; frozenHost={}; stageBgIdx=-1;
   FLAG_COUNT=st.FLAG_COUNT||CHARACTER.flags;
