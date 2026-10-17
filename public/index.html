@@ -3544,7 +3544,7 @@ function useInspire(handIdx){
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
   hand.forEach(c=>{
-    if(c.kind==='troop' || (c.kind==='monster' && (c.sub==='number'||c.sub==='combined'))){
+    if(c.kind==='troop'){
       if(c.origValue===undefined) c.origValue=c.value;
       c.value=Math.min(10, c.value+3);
     }
