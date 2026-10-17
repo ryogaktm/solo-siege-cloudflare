@@ -6423,6 +6423,8 @@ function saveGame(){
   }catch(e){}
 }
 function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} refreshResumeBtn(); }
+window.addEventListener('pagehide',()=>{ saveGame(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') saveGame(); });
 function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
 function refreshResumeBtn(){ const b=document.getElementById('titleResumeBtn'), st=document.getElementById('titleStartBtn'); const h=hasSave(); if(b) b.style.display=h?'':'none'; if(st) st.style.display=h?'none':''; }  // セーブがある時は「つづきから」だけ
 function resumeGame(){
