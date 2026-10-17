@@ -4633,7 +4633,7 @@ function cleanMods(cards){
 function colorPool(color, needRoom){
   const out=[];
   [grandDeck,activeDeck,hand,graveyard,pendingRewardCards].forEach(arr=>arr.forEach(c=>{
-    if(c && c.kind==='troop' && !c.mixed && c.color===color && !c.temp && (!needRoom || c.value<10)) out.push(c);
+    if(c && c.kind==='troop' && !c.mixed && c.color===color && !c.temp && deckUids.has(c.uid) && (!needRoom || c.value<10)) out.push(c);
   }));
   return out;
 }
@@ -5992,6 +5992,8 @@ function renderShop(){
   const m=document.getElementById('shopModal'), kind=m.dataset.kind, body=m.querySelector('#shopBody'); body.innerHTML='';
   m.querySelector('#shopTitle').textContent=kind==='deck'?'🃏 デッキ屋':'💎 アクセサリー屋';
   m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`;
+  m.querySelector('#shopGold').insertAdjacentHTML('beforeend',' <button class="btn" id="shopDeckView" style="float:right;width:auto;padding:4px 10px;font-size:12px;margin:-4px 0 0">📚 山札確認</button>');
+  m.querySelector('#shopDeckView').onclick=()=>{ const cl=document.getElementById('cardListModal'); cl.style.zIndex=10000; try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){} };
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
   const mode=m.dataset.mode||'menu';
   m.querySelector('#shopClose').textContent=mode==='menu'?'準備に戻る':'戻る';
@@ -6166,7 +6168,7 @@ function renderPicker(){
   const ok=document.getElementById('pickOk'); ok.disabled=pk.sel.length<need; ok.textContent=pk.okText;
 }
 document.getElementById('pickCancel').onclick=()=>{ pk=null; document.getElementById('pickModal').style.display='none'; };
-document.getElementById('pickDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(deckEligible).filter(c=>c.inDeck)); }catch(e){} };
+document.getElementById('pickDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){} };
 document.getElementById('pickOk').onclick=()=>{
   if(!pk) return; const need=Math.min(pk.count, pk.need||pk.count); if(pk.sel.length<need) return;
   const f=pk.done, sel=pk.sel.slice(); pk=null;
@@ -6221,7 +6223,7 @@ function renderAccModal(){
 document.getElementById('accBtn').onclick=openAccModal;
 document.getElementById('prepAcc').onclick=openAccModal;
 document.getElementById('prepDeck').onclick=()=>openShop('deck');
-document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(deckEligible).filter(c=>c.inDeck)); }catch(e){ showCardListModal('山札', activeDeck.concat(hand,graveyard)); } };
+document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){ showCardListModal('山札', activeDeck.concat(hand,graveyard)); } };
 document.getElementById('prepShop').onclick=()=>openShop('acc');
 document.getElementById('rankBtn').onclick=()=>openRanking(true);
 function openRanking(first,opts){
