@@ -311,6 +311,9 @@
   .pred-seg.boss{ background:rgba(255,235,150,.95); }
   @keyframes predblink{ from{ opacity:.15; } to{ opacity:1; } }
   .phpbar{ flex:1; height:9px; background:rgba(0,0,0,.45); border:1px solid rgba(255,106,122,.4); border-radius:7px; overflow:hidden; }
+  .fighter.pl.buzz{ animation:buzzglow .35s ease-in-out infinite alternate; filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 14px #7fe4ff); }
+  @keyframes buzzglow{ from{ opacity:.5; } to{ opacity:1; } }
+  .phpfill.over{ background:linear-gradient(90deg,#ffc94a,#ff9a6a); }
   .phpfill{ height:100%; width:100%; background:linear-gradient(90deg,#d8344f,#ff8a7a); transition:width .5s ease; }
   .hp-num{ font-size:11px; color:var(--cream-2); flex:0 0 auto; min-width:64px; text-align:right; }
   .hp-num b{ color:#ff9aa8; font-family:'Cinzel',serif; font-size:12.5px; }
@@ -762,7 +765,8 @@
   }
 
   /* ---------- hint (transient warnings only) ---------- */
-  .hint{ position:fixed; left:0; right:0; bottom:146px; z-index:6; pointer-events:none; text-align:center; font-size:12px; color:var(--cream-2); min-height:16px; letter-spacing:.02em; text-shadow:0 1px 3px rgba(0,0,0,.9); padding:0 12px; }
+  .hint{ position:fixed; left:50%; right:auto; top:50%; bottom:auto; transform:translate(-50%,-50%); width:max-content; max-width:94vw; box-sizing:border-box; z-index:6; pointer-events:none; text-align:center; font-size:13px; font-weight:700; color:#fff; line-height:1.5; letter-spacing:.02em; padding:7px 14px; background:rgba(0,0,0,.88); border:1px solid rgba(255,255,255,.35); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.6); }
+  .hint:empty{ display:none; }
   .npc-bubble{
     position:fixed; left:50%; bottom:calc(132px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(8px); z-index:6;
     max-width:88%; background:#fff8ec; color:#2a1a10; font-size:12.5px; font-weight:700; line-height:1.4;
@@ -774,7 +778,7 @@
     border-width:7px 7px 0; border-style:solid; border-color:#fff8ec transparent transparent;
   }
   .npc-bubble.show{ opacity:.92; transform:translateX(-50%) translateY(0); }
-  .hint.warn{ color:var(--danger); }
+  .hint.warn{ color:#ffe0e0; border-color:rgba(255,120,120,.8); }
 
   /* ---------- hand ---------- */
   .handbar{
@@ -883,6 +887,8 @@
 
   .cardinfo{ width:100%; max-width:300px; text-align:center; }
   .reward-box{ width:100%; max-width:420px; max-height:96vh; overflow-y:auto; text-align:center; background:var(--panel); border:1px solid rgba(226,192,106,.3); border-radius:16px; padding:20px 16px; }
+  .prep-deckview{ position:absolute; top:8px; right:8px; z-index:2; padding:4px 10px; font-size:11.5px; line-height:1.3; border-radius:999px; border:1px solid var(--gold-3); background:rgba(0,0,0,.4); color:var(--gold); cursor:pointer; }
+  #prepModal .prep-head{ padding-top:16px; }
   .prep-head{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
   .prep-mid{ flex:1 1 auto; text-align:center; min-width:0; }
   .prep-char{ flex:0 0 76px; display:flex; align-items:flex-end; justify-content:center; --cyc:.8s; }
@@ -1134,6 +1140,7 @@
       <button class="spec-btn" id="specGuard"><span class="si">🛡</span><span class="sl">防御</span><b id="specGuardN">1</b></button>
       <button class="spec-btn" id="specCure"><span class="si">🧪</span><span class="sl">薬</span><b id="specCureN">1</b></button>
       <button class="spec-btn" id="specBullet"><span class="si">⏱</span><span class="sl">バレットタイム</span><b id="specBulletN">1</b></button>
+      <button class="spec-btn" id="specMon" style="display:none"><span class="si" id="specMonI">✨</span><span class="sl" id="specMonL"></span><b id="specMonN">1</b></button>
       <span class="spec-ph"></span><span class="spec-ph"></span><span class="spec-ph"></span>
   </div>
 <div class="nextbar"><div class="next-main" id="nextMain"><div class="upcoming-label">Next</div><div class="upcoming-row" id="nextRow"></div></div></div>
@@ -1171,12 +1178,12 @@
   </div>
 </div>
 <div class="modal-bg" id="prepModal" style="display:none;">
-  <div class="reward-box">
+  <div class="reward-box" style="position:relative">
+    <button id="prepDeckView" class="prep-deckview" aria-label="山札確認">📚 山札確認</button>
     <div class="prep-head"><div class="prep-char" id="prepChar"></div><div class="prep-mid"><div class="reward-title">次の戦いの準備</div><div class="reward-sub" id="prepInfo"></div></div><div class="prep-home">🏕</div></div>
     <div class="reward-options" style="flex-direction:column;margin-top:10px">
       <button class="btn" id="prepAcc">🎒 アクセサリーを装備する</button>
       <button class="btn" id="prepDeck">🃏 デッキ屋</button>
-      <button class="btn" id="prepDeckView">📚 いまの山札を見る</button>
       <button class="btn" id="prepShop">💎 アクセサリー屋</button>
       <button class="btn" id="prepGo" style="margin-top:8px">▶ 次の戦闘へ</button>
     </div>
@@ -1482,6 +1489,21 @@ let CHARACTER = CHARACTERS[2];
 /* ===== モンスターキャラ：倒したモンスターは次回からキャラ選択で選べる（固有の特殊技つき） ===== */
 const MON_SP_KINDS=['punch','guard','cure','beg','bullet','shuffle'];
 const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'🙏命乞い',bullet:'⏱バレットタイム',shuffle:'🔄シャッフル'};
+const MON_SKILL={   // モンスターが自分のキャラになった時の特殊技（kind 無し＝毎ターン働く常時効果）
+  'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
+  '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを手札に1枚加えます。'},
+  'スライム':{kind:'shuffle'},
+  'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
+  'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
+  'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、体力が1回復します。'},
+  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'毎ターン、敵のHPが2減ります。（敵のHPが1より下がることはありません）'},
+  '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復します。（なんでも食べられます）'},
+  '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
+  'コガネムシ':{name:'コガネモチ',icon:'💰',desc:'敵を倒すと50Gを手に入れます。'},
+  '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを手札に1枚生み出します。'}
+};
+function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
+function monSpLabel(ch){ const m=ch.monSkill; if(m&&m.name) return (m.icon||'')+m.name; return ch.sp.length?MON_SP_LABEL[ch.sp[0]]:'なし'; }
 const MON_KEY='soloSiegeMons';
 function unlockedMons(){ try{ return JSON.parse(lsGet(MON_KEY)||'[]').map(n=>(n==='生え抜きの将軍'||n==='元の体')?HUMAN_MON:n); }catch(e){ return []; } }
 function unlockMonAndBelow(wave){ try{ unlockMon(wave.id); if(wave.boss) return; const i=WAVES.indexOf(wave); if(i>0&&WAVES[i-1]&&!WAVES[i-1].boss) unlockMon(WAVES[i-1].id); }catch(e){} }   // 倒した敵と、その1つ下の順位（弱い方）の敵を使えるようにする
@@ -1491,6 +1513,7 @@ function makeMonChar(idx,id){
   id=id||WAVES[idx].baseId;
   const HB={'駆け出し兵隊長':'novice','元の身体':'general','歴戦の英雄':'hero','ミジンコ':'novice','ミジンコリーダー':'general','ミジンコキング':'hero'}, base=CHARACTERS.find(c=>c.id===(HB[id]||(idx===0?'novice':'hero')));
   const ch=Object.assign({},base,{name:dispName(id),rank:'モンスター',mon:id,monIdx:idx,sp:[monSpKind(id==='ネクロマンサー'?idx+1:idx)]});
+  { const ms=MON_SKILL[dispName(id)]; if(ms){ ch.monSkill=ms; ch.sp=ms.kind?(MON_SP_KINDS.includes(ms.kind)?[ms.kind]:['mon']):[]; } }
   if(id==='ミジンコ') ch.combo=true;   // 基本ルールを覚えるため、ミジンコからスーパーコンボが使える
   if(id==='ミジンコ'||id==='ミジンコリーダー'||id==='ミジンコキング'){ ch.sp=[]; ch.startShuffles=0; ch.maxShuffles=0; }   // ミジンコ3種は特殊技なし（シャッフルも無し）
   return ch;
@@ -1662,6 +1685,9 @@ const WAVES=(()=>{
   { const a=out[0], b=out[1], g=(x,y,t)=>x*Math.pow(y/x,t);   // 最下層：ミジンコ＜ミジンコリーダー＜ミジンコキング＜ハエの群れ
     const mk=(nm,t)=>({...a,name:nm,hp:Math.round(g(a.hp,b.hp,t)),atk:Math.round(g(a.atk,b.atk,t)),grow:Math.round(g(a.grow,b.grow,t)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
     out.splice(1,0,mk('ミジンコリーダー',1/3),mk('ミジンコキング',2/3)); }
+  { const iF=out.findIndex(w=>w.name==='ハエの群れ'), a=out[iF], b=out[iF+1], g=(x,y)=>Math.sqrt(x*y);   // 蚊：ハエとカエルの間に1体足す（その分、吸血コウモリを外して総数は同じ）
+    out.splice(iF+1,0,{...a,name:'蚊',hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
+    const iB=out.findIndex(w=>w.name==='吸血コウモリの大群'); if(iB>=0) out.splice(iB,1); }
   out.forEach(w=>{ w.hp=Math.round(w.hp*ENEMY_SCALE); w.atk=Math.round(w.atk*ENEMY_SCALE); w.grow=Math.round(w.grow*ENEMY_SCALE*10)/10; });  // 全体の強さ調整（0.9＝10%弱く）
   out.forEach((w,i)=>{ w.lv=i+1; w.rank=out.length-i; w.threshold=w.hp; });
   return out;
@@ -1683,9 +1709,13 @@ const bossIdxFor=lv=>{ let k=(lv<=25?0:lv<=37?1:lv<=49?2:lv<=60?3:4); while(k>0&
 const BASE_IDX=WAVES.map((w,i)=>(w.isNew||w.boss)?-1:i).filter(i=>i>=0);
 const MAX_BATTLES=4;
 const rk=v=>v>0?`${LADDER_N+1-v}位`:'―';  // 保存値（強さの段）→ 順位表示（1位が最強）
+let foughtIdx=new Set();   // この挑戦で戦った敵（段）
 function pickDrop(){
-  // 負けたら、必ず2段階下の敵へ（最下位より下はない）
-  return Math.max(0,stageIndex-2);
+  // 負けたら2段下へ。そこが戦闘済みなら1段下（=上の敵）へ。そこも戦闘済みなら、負けた敵にもう一度挑む
+  const s=stageIndex, c1=Math.max(0,s-2), c2=Math.max(0,s-1);
+  if(!foughtIdx.has(c1)) return c1;
+  if(!foughtIdx.has(c2)) return c2;
+  return s;
 }
 function pickJump(over){
   // オーバーキル量（とどめの攻撃が敵HPを超えた分）より「ちょっと強い」敵＝HPがそれを上回る最初の敵
@@ -1773,6 +1803,8 @@ let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0;
 const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
+let monAtkMult=1, buzzTurns=0;
+function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
 let enemyFreeze=0, enemyPoisonPer=0, hpBonus=0;   // 反射の手鏡：敵の停止ターン数／敵が受ける毒（毎ターンの減少量）／栄養ドリンクの体力加算
 const EVENT_INFO={
@@ -1826,7 +1858,7 @@ function enemyAtkAt(t){
   let mult=1;
   for(let k=1;k<=t;k++) if(enemySched[k]==='rage') mult*=BALANCE.rageMultiplier;
   const fk=FLAG_COUNT/BALANCE.flagCountAtkBase;
-  return Math.round((w.atk + w.grow*t)*fk*mult);
+  return Math.round((w.atk + w.grow*t)*fk*mult*monAtkMult);
 }
 function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
@@ -1933,7 +1965,7 @@ async function dbgShare(){
 let prevSnap0=null;
 let carryMap={}, frozenMults={};  // carryMap: 色→前のwaveまでに続いているスーパーコンボの直近の倍数（役のあった色は全部持ち越し。次のwaveでその色の役が無いと消える）
 const carryTxt=()=>Object.keys(carryMap).map(c=>c[0]+'×'+carryMap[c]).join(',')||'-';
-let spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0}, guardOn=false; // spec = 使用済み回数
+let spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}, guardOn=false; // spec = 使用済み回数
 // スーパーコンボ＝象徴の色が同じ「役の旗」が2つ以上つながったとき、その旗を「閉じた順」に ×2, ×3, ×4… と掛ける。
 // 前の攻撃から続いている場合は carryCount（これまでにつながった旗の数）の続きから数える（例：2つ決めた後は次の旗が×4）。
 let closeSeqCounter=0;
@@ -2082,9 +2114,9 @@ function init(){
   applyEnemyNames();
   score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   // ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
   bestTotal=loadHighScore(CHARACTER.id);
-  bossHp=WAVES[stageIndex].threshold;
+  bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0}; guardOn=false; dbgReset(); resetBattleRound();
+  clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -2112,7 +2144,7 @@ function init(){
   document.getElementById('topCharBest').textContent=rk(bestTotal);
   pickHowTip();
   render(); layoutHand(true);
-  { showDeckBuild(0,'最初の山札',()=>{ render(); layoutHand(true); openRanking(true); }); dbPhase=2; renderDeckBuild(); } // 最初は山札を見せるだけ（入れ替えなし）
+  { const openStartDeck=()=>{ showDeckBuild(0,'最初の山札',()=>{ render(); layoutHand(true); openRanking(true,{onBack:openStartDeck}); }); dbPhase=2; renderDeckBuild(); }; openStartDeck(); } // 最初は山札を見せるだけ（入れ替えなし）。ランキングから戻るとここへ戻る
 }
 let deckUids=new Set(); // 山札メンバーのuid（盤面に置くとカードがコピーされるためフラグでなくuidで管理）
 function drawFromGrandDeck(n){
@@ -2383,10 +2415,12 @@ let prevSnap=null;
 function advanceTurn(usedCard){
   if(usedCard&&usedCard.kind==='tactics'&&!isCurse(usedCard)) { accStat.tac=(accStat.tac||0)+1; checkGoalAnnounce(false); }
   prevSnap={t:enemyTurn,pp:poisonPenalty};
-  turnCounter++;
+  turnCounter++; if(buzzTurns>0) buzzTurns--;
   flags.forEach(f=>{ if(f.lockedUntil && f.lockedUntil<=turnCounter) f.lockedUntil=0; });
   let stepped=!hasAcc('glass') || turnCounter%2===0;   // 背水のピアス：敵は2ターンに1回しか動かない
   if(enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
+  if(CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(1);
+  { const mp=(CHARACTER&&monDisp()==='毒キノコ')?2:0; if(mp>0&&enemyPoisonPer<=0&&bossHp>1){ bossHp=Math.max(1,bossHp-mp); animateBossHp(bossHp,350); } }
   if(enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
   let ev=null;
   if(stepped){
@@ -2780,7 +2814,7 @@ function checkWaveOutcome(){
   const hpBefore=bossHp;
   bossHp=Math.max(0, bossHp-dealt);
   lastDealt=Math.max(0,dealt-hpBefore);
-  const takenReal=Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult);
+  const takenReal=buzzGate(Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult));
   playerHp=Math.max(0, playerHp-takenReal);
   totalWaves++;
   const defeated = bossHp<=0;
@@ -2788,7 +2822,7 @@ function checkWaveOutcome(){
   const wave=WAVES[stageIndex];
   waveAdvancing=true; busy=true; window._atkAt=performance.now();
   const sealedCount=flags.filter(f=>isLocked(f)).length;
-  const sealPenalty = sealedCount>0 ? Math.max(1,Math.round(eAtk*BALANCE.sealPenaltyRate*(guardOn?0.5:1))) : 0;
+  const sealPenalty = sealedCount>0 ? buzzGate(Math.max(1,Math.round(eAtk*BALANCE.sealPenaltyRate*(guardOn?0.5:1)))) : 0;
   if(guardOn && (taken>0||sealPenalty>0)) guardOn=false;
   if(sealPenalty>0){ playerHp=Math.max(0, playerHp-sealPenalty); }
   if(playerHp<=0 && hasAcc('endure') && playerHpMax>1 && dbgP0>=playerHpMax*0.8){ playerHp=1; hint('ふんばるピアスが光った！体力1で踏みとどまった！',true); }
@@ -2840,8 +2874,11 @@ function weakBodyFinale(wave){   // 弱い体は、1回敵を倒すと調子に�
   try{ playSfx('warn'); }catch(e){}
   ov.querySelector('#finaleGo').onclick=()=>{ ov.remove(); nextStageIdx=top; battleNo=MAX_BATTLES-1; advanceToNextStage(); };   // 本当に1位と戦う（負ければそのままゲームオーバー）
 }
+function healPlayer(n){ n=Number(n)||0; if(n>0) playerHp+=n; }   // 回復は最大値を超えてよい。超過分は戦闘が終わると消える
 function finishWaveOutcome(defeated, wave){
+  if(playerHp>playerHpMax) playerHp=playerHpMax;
   if(defeated){
+    if(CHARACTER&&monDisp()==='コガネムシ'&&!wave.boss){ gold+=50; hint('コガネモチ！50G手に入れた。'); }
     unlockMonAndBelow(wave);
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
     if(wave.boss){
@@ -3409,7 +3446,7 @@ function confirmReplace(){
 }
 function penaltyDamage(){ return Math.max(1, Math.round(currentEnemyAtk()/5)); }
 function takePenalty(msg){
-  const d=penaltyDamage(), preHp=playerHp;
+  const d=buzzGate(penaltyDamage()), preHp=playerHp;
   playerHp=Math.max(0, playerHp-d);
   screenShake();
   hint(`${msg}敵の攻撃力の1/5（${d}）のダメージ！`,true);
@@ -3727,8 +3764,9 @@ function predictAttackRange(pA){
 }
 function renderBattle(){
   updateBarrier();
-  const pct=Math.max(0,playerHp/playerHpMax*100);
-  const f=document.getElementById('playerHpFill'); if(f) f.style.width=pct+'%';
+  const pct=Math.min(100,Math.max(0,playerHp/playerHpMax*100));
+  const f=document.getElementById('playerHpFill'); if(f){ f.style.width=pct+'%'; f.classList.toggle('over',playerHp>playerHpMax); }
+  { const fp=document.getElementById('fighterPl'); if(fp) fp.classList.toggle('buzz',buzzTurns>0); }
   document.getElementById('playerHpNum').textContent=Math.round(playerHp);
   document.getElementById('playerHpMax').textContent=playerHpMax;
   // 最後の旗を埋めた（=これから攻撃が確定する）局面では、実際の攻撃計算と同じ「直前の一手の時点」の値を表示する
@@ -3783,6 +3821,7 @@ function render(){
   document.getElementById('deckCount').textContent=activeDeck.length;
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
+  { const mb=document.getElementById('specMon'); if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; document.getElementById('specMonL').textContent=ms.name||''; document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0; } } }
   { const fb=document.getElementById('freeShuffleBtn'), inf=(CHARACTER.startShuffles===Infinity);
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
@@ -4042,6 +4081,7 @@ function hint(msg,warn){
   const el=document.getElementById('hint');
   el.classList.toggle('warn',!!warn);
   el.textContent=msg||'';
+  if(msg){ try{ const row=document.getElementById('waveTitle').parentElement, r=row.getBoundingClientRect(); if(r.height>0) el.style.top=(r.top+r.height/2)+'px'; }catch(e){} }   // 戦闘情報の行（第〇戦・敵の名前）の上に重ねる。盤面や手札は隠さない
   if(msg){ setTimeout(()=>{ if(el.textContent===msg){ el.textContent=(pending&&pendHintTxt)?pendHintTxt:''; el.classList.remove('warn'); } }, warn?1700:2200); }
 }
 
@@ -4071,6 +4111,7 @@ function nowText(){
   if(gameEnded) return '戦役は終結。結果を確認しよう。';
   if(pending&&pending.type==='discard') return `手札から捨てる2枚をタップしよう（${pending.chosen.length}/2）。選び終えたら確定。`;
   if(pending&&pending.type==='guidance') return pending.step===0 ? '移動元の旗をタップしよう。' : '移動先の旗をタップ（または山札・墓地アイコンで捨てる）。';
+  if(pending&&pending.type==='eat') return '食べるカードをタップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
@@ -4639,8 +4680,8 @@ function advanceWaveAttempt(){
 function advanceToNextStage(){
   dlog('stage_advance',{from:stageIndex+1});
   clearKO();
-  stageIndex=(nextStageIdx>=0)?nextStageIdx:Math.min(stageIndex+1, LADDER_N-1);
-  spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
+  stageIndex=(nextStageIdx>=0)?nextStageIdx:Math.min(stageIndex+1, LADDER_N-1); foughtIdx.add(stageIndex);
+  spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
   introAdv=false; battleNo++;   // ミジンコの最初の2戦も「第〇戦」に数える（4戦で終わる）
   nextStageIdx=-1;
   waveAttempt=1;
@@ -4657,7 +4698,7 @@ function advanceToNextStage(){
     bossHp=finalHp;
   }
   score=0; displayedScore=0; carryMap={}; hostCarry=0; guardOn=false; resetBattleRound();
-  playerHp=playerHpMax;  // 毎戦、体力は全回復
+  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0;  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
   flags.forEach(f=>{ graveyard.push(...f.cards); });
   flags=freshFlags();
@@ -4741,6 +4782,7 @@ function tapFlag(i){
 function tapHand(idx){
   if(busy||gameEnded) return;
   if(pending&&pending.type==='discard'){ discardTap(idx); return; }
+  if(pending&&pending.type==='eat'){ eatTap(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
   if(pending&&pending.type==='replace_select'){ replaceTap(idx); return; }
@@ -4974,6 +5016,7 @@ document.getElementById('menuToTitleBtn').onclick=()=>{
 function specUse(kind){
   if(gameEnded||busy||pending||waveAdvancing) return;
   if(specRemain(kind)<=0) return;
+  if(kind==='mon'){ monSkillUse(); return; }
   if(kind==='beg'){
     const ks=Object.keys(enemySched).map(Number).filter(t=>t>enemyTurn).sort((a,b)=>a-b);
     if(!ks.length){ hint('この先に特殊攻撃はない。',true); return; }
@@ -4993,25 +5036,56 @@ function specUse(kind){
     guardOn=true; spec.guard++;
     hint('防御！次に受けるHPのダメージが半分になる。'); playSfx('place');
   } else if(kind==='punch'){
-    spec.punch++; busy=true;
-    lastDealt=Math.max(0,50-bossHp); bossHp=Math.max(0,bossHp-50);
-    hint('物理で殴った！敵に50ダメージ。'); playSfx('equipment');
-    dlog('action',{name:'punch',eHpAfter:bossHp});
-    const killed=bossHp<=0;
-    triggerBossAttackFX(50,()=>{ animateBossHp(bossHp,500).then(()=>{
-      if(killed){ waveAdvancing=true; fighterKO('monster'); setTimeout(()=>finishWaveOutcome(true,WAVES[stageIndex]),950); }
-      else { busy=false; render(); }
-    }); });
-    render(); return;
+    spec.punch++; const D=(CHARACTER.monSkill&&CHARACTER.monSkill.dmg)||50;
+    strikeBoss(Math.min(D,bossHp), `物理で殴った！敵に${D}ダメージ。`, 'punch'); return;
   }
   dlog('action',{name:'spec_'+kind});
   render();
 }
+function strikeBoss(dmg,text,name){
+  busy=true; lastDealt=Math.max(0,dmg-Math.max(0,bossHp-dmg)); bossHp=Math.max(0,bossHp-dmg);
+  hint(text); playSfx('equipment');
+  dlog('action',{name:name,eHpAfter:bossHp});
+  const killed=bossHp<=0;
+  triggerBossAttackFX(dmg,()=>{ animateBossHp(bossHp,500).then(()=>{
+    if(killed){ waveAdvancing=true; fighterKO('monster'); setTimeout(()=>finishWaveOutcome(true,WAVES[stageIndex]),950); }
+    else { busy=false; render(); }
+  }); });
+  render();
+}
+function monSkillUse(){
+  const m=CHARACTER.monSkill; if(!m) return;
+  if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); monAtkMult*=2; spec.mon++; hint('エサになった…体力が半分になり、敵の攻撃力が2倍になった！',true); playSfx('warn'); }
+  else if(m.kind==='spider'){
+    if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
+    spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
+  }
+  else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
+  else if(m.kind==='sting'){
+    if(hand.length>=currentHandMax()){ hint('手札がいっぱいです。',true); return; }
+    hand.push({kind:'troop',color:'red',value:1,uid:uid(),temp:true}); spec.mon++; hint('一刺し！赤1が手札に加わった。'); playSfx('shuffle');
+  }
+  else if(m.kind==='fang'){
+    if(hand.length>=currentHandMax()){ hint('手札がいっぱいです。',true); return; }
+    hand.push({kind:'troop',color:'purple',value:6,uid:uid(),temp:true}); spec.mon++; hint('毒の牙！紫6が手札に加わった。'); playSfx('shuffle');
+  }
+  else if(m.kind==='eat'){
+    if(!hand.length){ hint('食べられるカードがありません。',true); return; }
+    pending={type:'eat'}; render(); hint('食べるカードをタップしてください。'); return;
+  }
+  dlog('action',{name:'monskill_'+m.kind}); render();
+}
+function eatTap(idx){
+  const c=hand[idx]; if(!c) return;
+  hand.splice(idx,1); graveyard.push(c); healPlayer(50); spec.mon++; pending=null;
+  hint('悪食！カードを食べて体力が50回復した。'); playSfx('shuffle'); render(); layoutHand(false);
+}
 function bindSpecTap(id,kind){ const el=document.getElementById(id); if(!el) return; let t=0;
   const go=()=>{ if(Date.now()-t<500) return; t=Date.now(); openSpecModal(kind); };   // 画面を触った時（click が来ない端末でも動くように touchend でも受ける）
   el.addEventListener('click',go);
-  el.addEventListener('touchend',e=>{ if(el.disabled) return; e.preventDefault(); go(); },{passive:false}); }
-bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet');
+  let sx=0,sy=0; el.addEventListener('touchstart',e=>{ const q=e.touches[0]; if(q){ sx=q.clientX; sy=q.clientY; } },{passive:true});
+  el.addEventListener('touchend',e=>{ if(el.disabled) return; e.preventDefault(); const q=e.changedTouches[0]; if(q){ const r=el.getBoundingClientRect(); if(Math.abs(q.clientX-sx)>12||Math.abs(q.clientY-sy)>12||q.clientX<r.left||q.clientX>r.right||q.clientY<r.top||q.clientY>r.bottom) return; } go(); },{passive:false}); }   // ボタンの外で指を離した時（境目など）は押したことにしない
+bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet'); bindSpecTap('specMon','mon');
 function doShuffle(){
   if(gameEnded||busy||pending) return;
   if(!(CHARACTER.startShuffles===Infinity)){
@@ -5031,20 +5105,22 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-let specModalKind=null;
+function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
   if(gameEnded||busy||pending||waveAdvancing){ try{ dlog('action',{name:'spec_blocked',kind:k,gameEnded:!!gameEnded,busy:!!busy,pending:!!pending,waveAdvancing:!!waveAdvancing}); }catch(e){} return; }
-  specModalKind=k;
-  document.getElementById('specModalTitle').textContent=SPEC_INFO[k].title;
-  document.getElementById('specModalDesc').textContent=SPEC_INFO[k].desc+(k==='guard'&&guardOn?'（今すでに発動中です）':'');
+  specModalKind=k; specOpenedAt=Date.now();
+  const si=specInfoFor(k);
+  document.getElementById('specModalTitle').textContent=si.title;
+  document.getElementById('specModalDesc').textContent=si.desc+(k==='guard'&&guardOn?'（今すでに発動中です）':'');
   document.getElementById('specModalLeft').textContent=specLeft(k);
   document.getElementById('specModal').style.display='flex';
 }
 function closeSpecModal(){ document.getElementById('specModal').style.display='none'; specModalKind=null; }
-document.getElementById('specModalGo').onclick=()=>{ const k=specModalKind; closeSpecModal(); if(!k) return; if(k==='shuffle') doShuffle(); else specUse(k); };
-document.getElementById('specModalCancel').onclick=closeSpecModal;
-document.getElementById('specModal').addEventListener('click',e=>{ if(e.target.id==='specModal') closeSpecModal(); });
+document.getElementById('specModalGo').onclick=()=>{ if(Date.now()-specOpenedAt<350) return; const k=specModalKind; closeSpecModal(); if(!k) return; if(k==='shuffle') doShuffle(); else specUse(k); };
+document.getElementById('specModalCancel').onclick=()=>{ if(Date.now()-specOpenedAt<350) return; closeSpecModal(); };
+document.getElementById('specModal').addEventListener('click',e=>{ if(e.target.id==='specModal'&&Date.now()-specOpenedAt>600) closeSpecModal(); });   // 開いた直後の指の離し（幽霊クリック）で閉じてしまわないように
 document.getElementById('freeShuffleBtn').onclick=()=>openSpecModal('shuffle');
 document.getElementById('helpBtn').onclick=()=>{
   try{ buildHowtoPage(); }catch(e){ console.error('buildHowtoPage error:',e); }
@@ -5088,6 +5164,7 @@ const SPR_PAL={".": null, "K": "#1b1424", "W": "#ffffff", "w": "#e6e9f2", "g": "
 const SPR={novice:["................", ".....KKKKKK.....", "....KNNNNNNK....", "...KNNNNNNNNK...", "...KNNNNNNNNK...", "..KKSSSSSSSSKK..", "...KSKSSSSKSK...", "...KSSSSSSSSK...", "....KSSmmSSK....", ".....KKKKKK.....", "..KKKKEEEEKKw...", ".KNNNKEEeEEKwg..", ".KNnNKEEEEEKNg..", ".KNNNKEEEEEK.N..", "..KKK.KnnKnK....", "......KKKKKK...."],general:["................", "......KRRK......", ".....KRRRRK.....", "....KggggggK....", "...KgwwggwwgK...", "...KgGGGGGGgK...", "...KgSKSSKSgK...", "...KgSSSSSSgK...", "....KgSmmSgK....", "..KKKKggggKKKK..", ".KBBKgGYYGgKwKK.", ".KBbKgGGGGgKwgK.", ".KBBKggggggKNgK.", "..KKKKGGGGKKNKK.", "....KGGK.KGGK...", "....KKK...KKK..."],hero:["..K..........K..", ".KwK..KYYK..KwK.", ".KwKKKYYYYKKKwK.", "..KKYYYYYYYYKK..", "...KYyyyyyyYK...", "...KYSKSSKSYK...", "...KYSSSSSSYK...", "....KYSmmSYK....", "..KKKKYYYYKKKK..", ".KPPKYyWWyYKwKK.", ".KPpKYyYYyYKwgK.", ".KPPKYYYYYYKYgK.", "..KKKKyYYyKKYKK.", "....KYYK.KYYK...", "....KyyK.KyyK...", "....KKK...KKK..."],slime:["................", "................", "................", "......KKKK......", ".....KLLEEK.....", "....KLLEEEEK....", "...KLEEEEEEEK...", "...KEWKEEWKEK...", "..KKEWKEEWKEKK..", ".KLEEEEEEEEEEEK.", ".KEEEEEmmEEEEEK.", "KLKKKEEEEEEKKKLK", "KEWKLKeeeeeKLKEK", "KeEKEEKKKKKKEEeK", ".KKKKKKKKKKKKKK.", "................"],bat:["................", "..KK........KK..", ".KppK..KK..KppK.", "KppPK.KppK.KPppK", "KpppKKKppKKKpppK", ".KKKKKpPPpKKKKK.", "......KpppK.....", "..KK.KpWppWK.KK.", ".KppKKpRppRKKppK", "KppppKpppppKpppp", "KpPPpKKWWppKpPPp", ".KKKKK.KWWK.KKKK", "......KKpppKK...", ".......KKKK.....", "................", "................"],goblin:["................", "..KK........KK..", ".KEEK..KK..KEEK.", "KEEEEKKEEKKEEEEK", ".KEEEKEEEEKEEEK.", "..KKEEWKEEWKEKK.", "....KEEEEEEEK...", "....KEEmmmEEK...", ".....KKEEEKK....", "...KKKNNNNKKwK..", "..KNNKNnNNKwgK..", "..KEEKNNNNKNK...", "...KK.KNNK.K....", "....KNNK.KNNK...", "....KKK...KKK...", "................"],skeleton:["................", ".....KKKKKK.....", "....KwwwwwwK....", "...KwwwwwwwwK...", "...KwKKwwKKwK...", "...KwKKwwKKwK...", "....KwwKKwwK....", "....KwKwwKwK....", ".....KKKKKK.....", "...KKKgwwgKKKw..", "..KgGKwgwgKwKg..", "..KggKgwwgKwgK..", "..KGGKwgwgKwK...", "...KK.KgwK.K....", "....KwwK.KwwK...", "....KKK...KKK..."],orc:["................", "....KKKKKKKK....", "...KOOOOOOOOK...", "..KOOKOOOOKOOK..", "..KOOOOOOOOOOK..", "..KOOWOOOOWOOK..", "..KOOWKKKKWOOK..", "...KKKOOOOKKK...", "..KGGKKKKKKGGK..", ".KGgGKOOOOKGgGK.", ".KGGGKooooKGGGK.", "KNKKGKOOOOKGKKNK", "KNwKKKooooKKKwNK", "KNK.KGGKKGGK.KNK", "....KGGK.KGGK...", "....KKK...KKK..."],darkknight:["......KRRK......", ".....KRRRRK.....", "....KDDddDDK....", "...KDddddddDK...", "...KDKKKKKKDK...", "...KDRRDDRRDK...", "...KDddDDddDK...", "....KDDDDDDK....", "..KKKKddddKKKK..", ".KdDdKDRRDKdDdK.", ".KDDDKDddDKDDDK.", ".KddDKDDDDKDddK.", "..KKKKDDDDKKKK..", "....KDDK.KDDK...", "....KddK.KddK...", "....KKK...KKK..."],dragon:["K....K....K....K", "KK..KrK..KrK..KK", "KrK.KrrKKrrK.KrK", "KrrKKRRRRRRKKrrK", "KrrrKRYRRYRKrrrK", "KrrrKRRRRRRKrrK.", ".KrrKRRKKRRKrrK.", ".KrrKRRRRRRKrK..", "..KrKRRWKWRKrK..", "...KKRRRRRRKK...", "....KRRyyRRK....", "...KRRryyrRRK...", "..KRRRryyrRRRK..", "..KrKKRRRRKKrK..", "...KKK.KK.KKK...", "................"],giant:["................", "....KKKKKKKK....", "...KHHHHHHHHK...", "..KHHhHHHHhHHK..", "..KHSSSSSSSSHK..", "..KSKKSSSSKKSK..", "..KSSSSSSSSSSK..", "..KHHSSmmSSHHK..", ".KKHHHHHHHHHHKK.", "KSSKSSSSSSSSKSSK", "KSsKSSSSSSSSKSNK", "KSSKSSSSSSSSKNNK", "KKKKKnnnnnnKKNNK", "....KnNNNNnK.KK.", "....KSSKKSSK....", "....KKKK.KKKK..."],demon:["KK............KK", "KwK..KKKKKK..KwK", "KwwK.KppppK.KwwK", ".KwwKKPPPPKKwwK.", "..KwKKppppKKwK..", "..KKKPPPPPPKKK..", "..KDKPRRPPRRPKDK", ".KDdKPRRPPRRPKdD", ".KDdKPPPPPPPPKdK", ".KDdKPPWWWWPPKdK", ".KDDKKPWPPWPKKDK", "KDdDKKpPPPPpKKDd", "KDddKKppppppKKdD", "KDDDKKKppppKKKDD", ".KKKK.KppK.KKKK.", "......KKKKKK...."],immortal:[".F...F.YYYY.F..F", "FfF.FfKYyyYKfF.F", ".FfFKKYYYYYYKKfF", "..KKKwKKYYKKwKK.", "F.KKKKpppppKKKK.", "fFKPPPPPPPPPPKFf", "FfKPPKFFPPFFKPKf", "FFKPPKFFPPFFKPKF", ".FKPPPPPPPPPPKF.", "fFKPPPWRWWRWPKFf", ".FKKKKPPPPKKKKF.", "FfKpPpKPFFPKpPpK", "FFKppPKpPPpKPppK", ".fKKKKKppppKKKKf", "FfFKppKFFFFKppKF", ".FfFKKKFfffFKKKF"]};
 const WAVE_SPR=['slime','bat','goblin','skeleton','orc','darkknight','dragon','giant','demon','immortal'];
 const MON_ARCH={"fly": ["................", "................", "..CC........CC..", ".CWWC......CWWC.", ".CWWCKKKKKKCWWC.", "..CC.KGGGGK.CC..", "....KGRGGRGK....", "....KGGGGGGK....", ".....KGGGGK.....", "....KKGGGGKK....", "...K.KGGGGK.K...", "..K..KKGGKK..K..", ".....K.KK.K.....", "....K..K.K..K...", "................", "................"], "frog": ["................", "................", "................", "...KKK....KKK...", "..KEEEK..KEEEK..", "..KEWKEKKEKWEK..", "..KEEEEEEEEEEK..", ".KEEEEEEEEEEEEK.", ".KEEmmmmmmmmEEK.", ".KEEEEEEEEEEEEK.", ".KeEEEEEEEEEEeK.", "KEeKEEEEEEEEKeEK", "KEEKeEEEEEEeKEEK", ".KK.KKKKKKKK.KK.", "................", "................"], "worm": ["................", "................", "................", "................", ".....KKKK.......", "....KssssK......", "...KsWKsWKsKKK..", "...KssssssKssK..", "....KmmssKKssK..", ".....KKKKsssK...", "....KKKKKsssK...", "...KssssssssK...", "...KsssKKKKK....", "....KKK.........", "................", "................"], "ant": ["................", "................", "..K..........K..", "...K........K...", "....KK....KK....", "...KNNK..KNNK...", "...KNNKKKKNNK...", "....KKNNNNKK....", ".....KNnnNK.....", "....KKNNNNKK....", "...K.KNNNNK.K...", "..K..KNnnNK..K..", ".K...KNNNNK...K.", "......KKKK......", "................", "................"], "beetle": ["................", "................", "....K......K....", "....KK....KK....", "....KYKKKKYK....", "....KYYYYYYK....", "...KYYWYYWYYK...", "..KYYYYKKYYYYK..", "..KYYYYKKYYYYK..", "..KEEEEKKEEEEK..", "..KEeEEKKEEeEK..", "..KEEEEKKEEEEK..", "...KKEEKKEEKK...", "..K.KKKKKKKK.K..", "................", "................"], "rat": ["................", "................", "................", "...KK.KK........", "..KssKssK.......", "..KsRKsRK.......", "..KKssssKKKK....", "...KssssssssK...", "..KmKgggggggK...", "..KKgggggGgggK..", "...KgggggggggK..", "...KgGgggGgggK.K", "...KKKgggKKKKKK.", "...KsKKK.KsK..K.", "....KK....KK..K.", "................"], "mushroom": ["................", "................", "....KKKKKKKK....", "...KRRRRRRRRK...", "..KRRWWRRRWWRK..", "..KRRWWRRRRRRK..", "..KRRRRRWWRRRK..", "..KKKKKKKKKKKK..", "....KwwwwwwK....", "....KwKwwKwK....", "....KwwwwwwK....", "....KwwmmwwK....", "....KwwwwwwK....", ".....KKKKKK.....", "................", "................"], "spider": ["................", "................", "K...K......K...K", ".K..K.KKKK.K..K.", "..K.KKPPPPKK.K..", "...KKPPRPPRPKK..", "....KPPPPPPK....", "KKKKKPPppPPKKKKK", "...KKPPppPPKK...", "..K.KPPppPPK.K..", ".K..KKPPPPKK..K.", "K....KKKKKK....K", "................", "................", "................", "................"], "snake": ["................", "................", "................", "......KKKK......", ".....KEEEEK.....", "....KEWKEEWK....", "....KEEEEEEK....", "....KEmmmEK.....", "....KKEEEKK.....", "...KEEEEEK......", "..KEeEEEEKKKK...", "..KEEEEEEEEEEK..", "...KKKEeEEEEEK..", "......KKKKKKK...", "................", "................"], "centipede": ["................", "................", "................", "..K..K..K..K....", "..KNNKNNKNNK....", ".KNNNNNNNNNNK...", ".KNRNNnnNNNNNK..", "K.KKNNNNNNNNNNK.", ".K.KKNNKKNNNNK..", "..K..KKNNNNNK...", "....K.KKNNNNNK..", ".....K..KKNNNK..", "..........KKK...", "................", "................", "................"], "lizardman": ["................", ".....KKKK.......", "....KEEEEKK.....", "...KEWKEEEEK....", "...KEEEEEEEEK...", "...KEmmmEEK.....", "....KKKEEEK.....", "..KKKEEEEEEKK...", ".KgGKEeEEEEKgGK.", ".KgGKEEEEEEKgGK.", "..KKKEEEEEEKKK..", "....KEEKKEEK....", "....KEEK.KEEK...", "...KKEK...KEKK..", "....KKK....KKK..", "................"], "ghost": ["................", "....KKKKKKK.....", "...KwwwwwwwK....", "..KwwwwwwwwwK...", "..KwWKwwwKWwK...", "..KwKKwwwKKwK...", "..KwwwwwwwwwK...", "..KwwwKKKwwwK...", "..KwwwwwwwwwK...", "..KwwwwwwwwwwK..", "..KwwwwwwwwwK...", "..KwKwwKwwKwK...", "..KK.KwK.KK.K...", "................", "................", "................"], "zombie": ["................", "....KKKKKK......", "...KOOOOOOK.....", "..KOOWKOOWKK....", "..KOOOOOOOOK....", "..KOOmmmmOK.....", "...KKKOOKK......", "..KOOOKKOOOOOK..", ".KOOoKGGKoOOOOK.", ".KOOoKGGKKKKKK..", ".KOOoKGGKOOK....", "..KKKKGGKOOK....", "....KGGKKGGK....", "....KGGK.KGGK...", "...KKKK..KKKK...", "................"], "armor": ["......KKKK......", "....KKggggKK....", "...KgGggggGgK...", "...KgKKKKKKgK...", "...KgGRRRRGgK...", "...KgGGGGGGgK...", "....KKKggKKK....", "..KKKgggggGKKK..", ".KGgKgGGGGgKgGK.", ".KGgKggggggKgGK.", ".KGgKgGGGGgKgGK.", "..KKKggKKggKKK..", "....KggK.KggK...", "....KGGK.KGGK...", "...KKKKK.KKKKK..", "................"], "bull": ["................", "KK..........KK..", "KwK........KwK..", ".KwKKKKKKKKwK...", "..KKNNNNNNNKK...", "...KNRNNNRNK....", "...KNNNNNNNKKKK.", "...KNNmmNNNNNNK.", "...KNNNNNNNNNNK.", "....KKNNNNNNnNK.", "....KNNNNNNNNNK.", "....KNNKKNNKNNK.", "....KNNK.KNNK.K.", "....KnnK.KnnK...", "....KKKK.KKKK...", "................"], "troll": ["................", "....KKKKKK......", "...KEEEEEEK.....", "..KEEWKEWEEK....", "..KEEEEEEEEK....", "..KEEEmmEEEK....", "...KKEEEEKK.....", ".KKEEEEEEEEKK...", "KEEKEEeEEEKEEK..", "KEEKEEEEEEKEEK..", "KEEKEEEEEEKEEK..", ".KKKEEEEEEKKK...", "...KEEK.KEEK....", "...KEEK.KEEK....", "..KKKKK.KKKKK...", "................"], "mage": ["......KP........", ".....KPPK.......", "....KPPPPK......", "...KPPPPPPK.....", "..KKKKKKKKKK....", "....KSKSSKSK....", "....KSSSSSSK....", "....KSssssSK....", "...KKPPPPPPKK...", "..KPPPKPPKPPPK..", ".KSKPPPPPPPPKSKY", "..KKPPPpPPPPKKY.", "...KPPPPPPPPKKY.", "...KPPPPPPPPK.Y.", "...KKKKKKKKKK.Y.", "................"], "wyvern": ["................", "...K........K...", "..KKK......KKK..", ".KRRK..KK..KRRK.", ".KRRRKKRRKKRRRK.", "KRRRRKRRRRKRRRRK", "KRRKRKRWRWKRKRRK", "KRK.KRRRRRRK.KRK", ".K..KRRRRRRK..K.", "....KKRrrRRK....", "....KRRrrrRK....", ".....KRRRRK.....", "....KRRKKRRK....", "...KRRK..KRRK...", "...KKK....KKK...", "................"], "hound": ["................", "...K.KK.........", "..KDKDDK........", ".KDDWDDDK.......", ".KDDDDDDKKKKK...", "..KKRDDDDDDDDK..", "...KDmmDDDDDDK..", "...KKDDDDDDDDDK.", "....KDDDDDDDDDK.", ".....KDDDDDDDDK.", ".....KDdKKKDdDK.", ".....KDK..KDK.K.", ".....KDK..KDK...", ".....KKK..KKK...", "................", "................"], "imp": ["K..........K....", "KK........KK....", "KRK..KK..KRK....", ".KRKKRRKKRK.....", "..KKRRRRKK......", "...KRWRRWRK.....", "...KRRRRRRK.....", "....KRmmRK......", "..KKKKRRKKKK....", ".KRRKRRRRKRRK...", "KRRK.KRRK.KRRK..", "KRK..KRRK..KRK..", "K....KRRK...K...", ".....KrrK.......", "....KKKKKK..K...", "................"], "shadow": ["................", "................", "....KKKKKKK.....", "...KDDDDDDDK....", "..KDDDDDDDDDK...", "..KDWWDDDWWDK...", "..KDWRDDDWRDK...", "..KDDDDDDDDDK...", "..KDDDKKKDDDK...", "..KDDKDDDKDDK...", ".KDDDDDDDDDDDK..", ".KDdDDKDKDDdDK..", ".KDK.KDDDK.KDK..", "..K...KDK...K...", "................", "................"], "orb": ["................", "......KKKK......", "....KKYYYYKK....", "...KYYYYYYYYK...", "..KYYWWWWWWYYK..", "..KYWWKKKKWWYK..", ".KYYWKRRRRKWYYK.", ".KYYWKRKKRKWYYK.", ".KYYWKRRRRKWYYK.", "..KYWWKKKKWWYK..", "..KYYWWWWWWYYK..", "...KYYYYYYYYK...", "....KKYYYYKK....", "......KKKK......", "................", "................"], "bandit": ["................", "....KKKKKK......", "...KNNNNNNK.....", "...KNNNNNNK.....", "..KKSSSSSSKK....", "..KSKKKKKKSK....", "..KDDDDDDDDK....", "...KDDRDDRDK....", "..KKDDDDDDDKK...", ".KNKDDDDDDDKwK..", ".KNKDDDDDDDKwgK.", "..KKDDKKKDDKK.K.", "....KDDK.KDDK...", "....KNNK.KNNK...", "...KKKKK.KKKKK..", "................"], "twin": ["................", "K..K.......K..K.", "KrKKK.....KKKrK.", "KRRKKK...KKKRRK.", "KRWKRKK.KKRKWRK.", "KRRRRKK.KKRRRRK.", ".KRRRKKKKKRRRK..", "..KKRRRRRRRRKK..", "...KRRRRRRRRK...", "...KRRRRRRRRK...", "...KRRWRRWRRK...", "....KRRRRRRK....", "....KRKKKKRK....", "...KRRK..KRRK...", "...KKK....KKK...", "................"]};
+MON_ARCH.mosquito=["................", "................", "......CC.CC.....", ".....CWWCWWC....", "....CWWWCWWWC...", ".....CCWWWCC....", ".K....KGGGK.....", "..K..KGgGGGK....", "...KKKGGRRGK....", "...K..KGRRGK....", "......KGGGK.K...", ".......KGK..K...", "......K.K.K.K...", "......K..K..K...", "................", "................"];
 Object.assign(SPR,MON_ARCH);
 Object.assign(SPR,{daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
 SPR.general_halo=SPR.general.map((r,i)=>i===0?'....yYYYYYYy....':r);   // 輪っか付き（元の身体）
@@ -5099,7 +5176,7 @@ Object.assign(SPR,{"alien_mars": ["..Y..........Y..", "...K........K...", "....K
 // 各モンスターの見た目：[元の絵, 色の置き換え]
 const MON_SPR={
 'ミジンコ':['daphnia'],'ミジンコリーダー':['daphnia_leader'],'ミジンコキング':['daphnia_king'],'駆け出し兵隊長':['novice'],'元の身体':['general_halo'],'ネクロマンサー':['mage',{P:'T',p:'t'}],'歴戦の英雄':['hero'],
-'ハエの群れ':['fly'],'カエルの群れ':['frog'],'ミミズの群れ':['worm'],'アリの行列':['ant'],'コガネムシの群れ':['beetle'],
+'ハエの群れ':['fly'],'蚊':['mosquito'],'カエルの群れ':['frog'],'ミミズの群れ':['worm'],'アリの行列':['ant'],'コガネムシの群れ':['beetle'],
 '何匹かのスライム':['slime'],
 '野ネズミの群れ':['rat'],'毒キノコの群れ':['mushroom'],'大グモの巣':['spider'],'コボルトの一団':['goblin',{E:'h',e:'H'}],'洞窟のヘビ':['snake',{E:'T',e:'t'}],
 'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['goblin',{E:'T',e:'t'}],'野盗の一団':['bandit'],'巨大ムカデ':['centipede'],'沼のリザードマン':['lizardman'],
@@ -5271,7 +5348,7 @@ function buildCharList(){
     const go=()=>{ lsSet(SEL_KEY,d.id); possess(el,()=>startAs(ch),()=>{ if(haloOn){ lsSet('soloSiegeBodyBack','1'); const sp=el.querySelector('.mon-spr'); if(sp) sp.innerHTML=spriteSVG('general',wide?40:48,''); } }); };   // 乗り移ると輪っかが消える
     el.onclick=wide?(()=>{
       if(d.locked) return;
-      if(d.id===curMonId()) return;   // 使用中のキャラは選べない（矢印が同じキャラ同士になるため）
+      if(d.id===curMonId()){ document.getElementById('charCancel').onclick(); return; }   // 使用中のキャラを押したら、キャンセルと同じ扱い
       const sel=()=>{ grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); picked={id:d.id,i,ch,haloOn}; renderCurPanel(picked); };
       if(isWeakId(d.id)) monConfirm('チュートリアル用です。',sel); else sel();
     }):(hasLeader&&d.id===prevId?(()=>{}):go);   // ミジンコのボスが解放済みなら、今の個体（そこらへんのミジンコ）には憑依できない
@@ -5302,9 +5379,14 @@ function monIconHtml(ch,id,i,px){ const haloOn=(ch.mon===HUMAN_MON&&!bodyBack())
 function monStatHtml(ch){
   return `<div><span>体力</span>${ch.hp}</div>`;
 }
-function monDesc(id,i){
-  return id==='ミジンコキング'?'ここからが本当のスタート！<br>身の程を知って堅実に生きよう！':`${WAVES[i].rank?WAVES[i].rank+'位':''}の敵として立ちはだかったモンスター。倒した力を、今度は自分のものにできる。`;
+function monSkillText(ch,id){
+  const m=ch&&ch.monSkill;
+  if(m&&m.desc) return `${m.icon||''}${m.name}：${m.desc}`;
+  const k=ch&&ch.sp&&ch.sp[0];
+  if(k&&SPEC_INFO[k]) return `${SPEC_INFO[k].title}：${SPEC_INFO[k].desc}`;
+  return id==='ミジンコキング'?'ここからが本当のスタート！<br>身の程を知って堅実に生きよう！':'特殊技はありません。';
 }
+function monDesc(id,i){ return monSkillText(makeMonChar(i,id),id); }
 function renderCurPanel(sel){
   const cid=curMonId(), ci=monIdxOf(cid), cc=curMonChar(), el=document.getElementById('curPanel');
   if(!sel){ el.innerHTML=`<div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${monIconHtml(cc,cid,ci,64)}</div><div class="cp-st"><b>${cc.name}</b>${monStatHtml(cc)}</div></div><div class="cp-desc">${monDesc(cid,ci)}</div></div>`; return; }
@@ -5324,11 +5406,11 @@ function monConfirm(msg,onYes){
 }
 function monPopup(ch,d,sprHtml,go){
   const w=WAVES[d.i], king=d.id==='ミジンコキング';
-  const desc=king?'ここからが本当のスタート！<br>身の程を知って堅実に生きよう！':`${w.rank?w.rank+'位':''}の敵として立ちはだかったモンスター。倒した力を、今度は自分のものにできる。`;
+  const desc=monSkillText(ch,d.id);
   const cards=['数字'].concat(ch.equipment?['装備']:[],ch.tactics?['戦術']:[],ch.combo?['コンボ']:[]).join('・');
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.zIndex=300;
   bg.innerHTML=`<div class="modal" style="text-align:center"><div>${sprHtml.replace(/width="\d+" height="\d+"/,'width="72" height="72"')}</div><h2 style="margin-top:6px">${ch.name}</h2><div style="font-size:13px;line-height:1.7">${desc}</div>
-  <div class="mon-pop-st"><div><span>体力</span>${ch.hp}</div><div><span>使えるカード</span>${cards}</div><div><span>特殊技</span>${ch.sp.length?MON_SP_LABEL[ch.sp[0]]:'なし'}</div><div><span>シャッフル</span>${ch.maxShuffles?'あり':'なし'}</div></div>
+  <div class="mon-pop-st"><div><span>体力</span>${ch.hp}</div><div><span>使えるカード</span>${cards}</div><div><span>特殊技</span>${monSpLabel(ch)}</div><div><span>シャッフル</span>${ch.maxShuffles?'あり':'なし'}</div></div>
   <button class="btn primary" id="monUse" style="width:100%">このモンスターを使う</button><button class="btn ghost" id="monCancel" style="width:100%;margin-top:8px">やめる</button></div>`;
   const close=()=>bg.remove();
   bg.querySelector('#monCancel').onclick=close; bg.onclick=e=>{ if(e.target===bg) close(); };
@@ -5873,11 +5955,12 @@ function showPrep(keepStock){
 function refreshPrep(){
   try{ document.getElementById('prepChar').innerHTML=charSpr(CHARACTER,72,true); }catch(e){}
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
-  document.getElementById('prepInfo').innerHTML=`次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
+  const nb=battleNo+1, nbTxt=nb>MAX_BATTLES?'ラスボス戦':`第${nb}戦 ／ 全${MAX_BATTLES}戦`;
+  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
 }
 function prepGo(){
   document.getElementById('prepModal').style.display='none';
-  inPrep=false; advanceToNextStage(); openRanking(true);
+  openRanking(false,{pre:true, onGo:()=>{ inPrep=false; advanceToNextStage(); }, onBack:()=>{ document.getElementById('prepModal').style.display='flex'; }});   // 戦闘前のランキングから、準備画面へ戻れる
 }
 /* ----- ショップ ----- */
 function sellAccessory(o){
@@ -6138,17 +6221,21 @@ document.getElementById('prepDeck').onclick=()=>openShop('deck');
 document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(deckEligible).filter(c=>c.inDeck)); }catch(e){ showCardListModal('山札', activeDeck.concat(hand,graveyard)); } };
 document.getElementById('prepShop').onclick=()=>openShop('acc');
 document.getElementById('rankBtn').onclick=()=>openRanking(true);
-function openRanking(first){
+function openRanking(first,opts){
+  opts=opts||{}; const pre=!!opts.pre;
   let m=document.getElementById('rankModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='rankModal'; m.style.display='none';
-    m.innerHTML='<div class="reward-box"><div class="reward-title">📊 敵ランキング</div><div class="reward-sub" id="rankSub"></div><div id="rankList" style="display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:60vh;overflow-y:auto;text-align:left"></div><button class="btn" id="rankClose" style="margin-top:12px">とじる</button></div>';
-    document.body.appendChild(m); m.querySelector('#rankClose').onclick=()=>{ m.style.display='none'; }; }
+    m.innerHTML='<div class="reward-box"><div class="reward-title">📊 敵ランキング</div><div class="reward-sub" id="rankSub"></div><div id="rankList" style="display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:60vh;overflow-y:auto;text-align:left"></div><button class="btn" id="rankClose" style="margin-top:12px">とじる</button><button class="btn ghost" id="rankBack" style="margin-top:8px;display:none">戻る</button></div>';
+    document.body.appendChild(m); }
   const inBoss=!first&&nextStageIdx<0&&WAVES[stageIndex]&&WAVES[stageIndex].boss;
-  const nxIdx=first?stageIndex:(nextStageIdx>=0?nextStageIdx:(inBoss?stageIndex:Math.min(stageIndex+1,LADDER_N-1))), lbl=(first||inBoss)?'今回の敵':'次の敵';
+  const nxIdx=first?stageIndex:(nextStageIdx>=0?nextStageIdx:(inBoss?stageIndex:Math.min(stageIndex+1,LADDER_N-1))), lbl=(first||inBoss||pre)?'今回の敵':'次の敵';
   const isBoss=!!WAVES[nxIdx].boss;
   m.querySelector('.reward-title').textContent=isBoss?'👑 ラスボスランキング':'📊 敵ランキング';
   m.querySelector('#rankSub').innerHTML=(isBoss?`<div style="display:flex;justify-content:center;margin:4px 0">${spriteSVG(monSprKey(WAVES[nxIdx]),96,'')}</div>`:'')+`${lbl}：<b>${WAVES[nxIdx].name}</b>${isBoss?'':`（${WAVES[nxIdx].rank}位／${LADDER_N}）`}`;
-  m.querySelector('#rankClose').textContent=first?'戦闘開始':'とじる';
+  { const cb=m.querySelector('#rankClose'), bb=m.querySelector('#rankBack');
+    cb.textContent=(first||pre)?'戦闘開始':'とじる';
+    cb.onclick=()=>{ m.style.display='none'; if(opts.onGo) opts.onGo(); };
+    if(opts.onBack){ bb.style.display=''; bb.onclick=()=>{ m.style.display='none'; opts.onBack(); }; } else bb.style.display='none'; }
   const L=m.querySelector('#rankList'); L.innerHTML='';
   const idxs=[]; if(isBoss){ for(let i=WAVES.length-1;i>=LADDER_N;i--) if(!HIDDEN_BOSSES.includes(WAVES[i].id)) idxs.push(i); } else { for(let i=LADDER_N-1;i>=0;i--) idxs.push(i); }
   let bn=0;
@@ -6173,7 +6260,7 @@ function saveGame(){
     const open=id=>{ const e=document.getElementById(id); return e && e.style.display==='flex'; };
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
-    const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, acc:{hb:hpBonus,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -6208,11 +6295,12 @@ function resumeGame(){
     const Zf=f=>{ stageIndex=f(stageIndex); lastDefeatedIdx=lastDefeatedIdx>=0?f(lastDefeatedIdx):-1; nextStageIdx=nextStageIdx>=0?f(nextStageIdx):-1; };   // 最下層にミジンコ系2体を足した分のずれ
     if(st.lad===7) Zf(i=>i>=1?i+2:i); else if(st.lad>=2&&st.lad<=6) Zf(i=>i>=N?i:(i>=1?i+2:i));
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
-  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax;
+  foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
+  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0;
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
-  spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
+  spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
   picked=null; pending=null; gameEnded=false; busy=false; waveAdvancing=false; infoIdx=null; justClosed=[]; frozenMults={}; frozenHost={}; stageBgIdx=-1;
