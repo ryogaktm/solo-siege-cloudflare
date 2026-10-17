@@ -896,6 +896,8 @@
   #shopModal #shopBody{ flex:1 1 auto; min-height:0; overflow-y:auto; }
   #shopDeckMini,#accDeckMini{ flex:1 1 44%; min-height:0; margin-top:8px; padding:6px 6px 4px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
   #shopModal #shopBody{ flex:1 1 50%; }
+  #shopModal #shopBody{ flex-wrap:nowrap; }
+  #shopModal #shopBody>*{ flex-shrink:0; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
   #accModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; }
   #accModal.inprep .reward-box{ height:min(94vh,820px); }
