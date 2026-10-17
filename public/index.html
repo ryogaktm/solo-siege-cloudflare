@@ -905,9 +905,14 @@
   #accModal:not(.inprep) #accDeckMini{ display:none; }
   .sdm-head{ font-size:13px; color:var(--gold); font-weight:800; margin-bottom:4px; cursor:pointer; }
   #shopDeckMini .sdm-grid,#accDeckMini .sdm-grid{ display:flex; flex-wrap:wrap; gap:3px; }
-  #shopDeckMini .sdm-c,#accDeckMini .sdm-c{ min-width:29px; height:38px; padding:0 5px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:800; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.25); }
-  #shopDeckMini .sdm-c.sp,#accDeckMini .sdm-c.sp{ background:#3a3f52; font-size:12px; font-weight:700; }
-  #shopDeckMini .sdm-c.pur,#accDeckMini .sdm-c.pur{ box-shadow:inset 0 0 0 1px #ffd76a; }
+  .sdm-grid .upcoming-chip{ opacity:1; padding:5px 8px; font-size:14px; }
+  .sdm-grid .upcoming-chip .mini-mark{ width:15px; height:15px; }
+  .sdm-grid .upcoming-chip.pur{ border-color:#ffd76a; }
+  #shopBody,#accUpper,#shopDeckMini,#accDeckMini{ padding-right:4px; }
+  #shopBody::-webkit-scrollbar,#accUpper::-webkit-scrollbar,#shopDeckMini::-webkit-scrollbar,#accDeckMini::-webkit-scrollbar{ width:8px; }
+  #shopBody::-webkit-scrollbar-track,#accUpper::-webkit-scrollbar-track,#shopDeckMini::-webkit-scrollbar-track,#accDeckMini::-webkit-scrollbar-track{ background:rgba(255,255,255,.12); border-radius:4px; }
+  #shopBody::-webkit-scrollbar-thumb,#accUpper::-webkit-scrollbar-thumb,#shopDeckMini::-webkit-scrollbar-thumb,#accDeckMini::-webkit-scrollbar-thumb{ background:#e2c06a; border-radius:4px; min-height:36px; }
+  @supports not selector(::-webkit-scrollbar){ #shopBody,#accUpper,#shopDeckMini,#accDeckMini{ scrollbar-width:thin; scrollbar-color:#e2c06a rgba(255,255,255,.12); } }
   .shop-tabs{ display:flex; gap:6px; margin:2px 0 6px; }
   .shop-tabs button{ flex:1; padding:9px 4px; border-radius:10px; border:1px solid var(--gold-3); background:rgba(0,0,0,.35); color:var(--cream-2); font-family:inherit; font-weight:800; font-size:14px; cursor:pointer; }
   .shop-tabs button.on{ background:linear-gradient(180deg,#f0d27a,#c9a04a); color:#2a1d08; }
@@ -6093,11 +6098,7 @@ function renderShopMini(m,sel){
   cards.sort((a,b)=>{ if(kindOrder(a)!==kindOrder(b)) return kindOrder(a)-kindOrder(b); if(a.kind==='troop'){ if(a.color!==b.color) return COLORS.indexOf(a.color)-COLORS.indexOf(b.color); return a.value-b.value; } return String(a.type||a.name||'')>String(b.type||b.name||'')?1:-1; });
   box.innerHTML=`<div class="sdm-head">山札 ${cards.length}枚</div><div class="sdm-grid"></div>`;
   const g=box.querySelector('.sdm-grid');
-  cards.forEach(c=>{ const e=document.createElement('div');
-    if(c.kind==='troop'){ e.className='sdm-c'; e.style.background=CFILL[c.color]||'#555'; e.textContent=c.value; }
-    else { e.className='sdm-c sp'; let n=''; try{ n=cardDisplayName(c); }catch(_){ n=c.name||''; } e.textContent=String(n).replace(/[（(].*$/,'').slice(0,3); }
-    if(c.purchased) e.classList.add('pur');
-    g.appendChild(e); });
+  cards.forEach(c=>{ const e=document.createElement('div'); e.className='upcoming-chip'+(c.purchased?' pur':''); try{ e.innerHTML=upcomingChipLabel(c); }catch(_){ e.textContent=c.name||''; } g.appendChild(e); });
   box.querySelector('.sdm-head').onclick=()=>{ const cl=document.getElementById('cardListModal'); cl.style.zIndex=10000; try{ showCardListModal('いまの山札', cards); }catch(e){} };
 }
 function renderShop(){
