@@ -889,6 +889,9 @@
   .reward-box{ width:100%; max-width:420px; max-height:96vh; overflow-y:auto; text-align:center; background:var(--panel); border:1px solid rgba(226,192,106,.3); border-radius:16px; padding:20px 16px; }
   .prep-deckview{ position:absolute; top:8px; right:8px; z-index:2; padding:4px 10px; font-size:11.5px; line-height:1.3; border-radius:999px; border:1px solid var(--gold-3); background:rgba(0,0,0,.4); color:var(--gold); cursor:pointer; }
   #prepModal .prep-head{ padding-top:16px; }
+  .topback{ position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); left:calc(10px + env(safe-area-inset-left,0px)); z-index:400; display:block; width:fit-content; margin:0; padding:6px 14px; font-size:13px; font-weight:800; line-height:1.3; text-align:left; border-radius:999px; border:1px solid var(--gold-3); background:rgba(10,18,14,.92); color:var(--gold); font-family:inherit; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
+  .topback:active{ transform:translateY(1px); }
+  .modal-bg:has(.topback){ padding-top:calc(54px + env(safe-area-inset-top,0px)); }
   .prep-shops{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
   .prep-tile{ aspect-ratio:1/1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:14px; border:2px solid var(--gold-3); background:linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.06)); color:var(--gold); font-family:inherit; font-weight:800; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
   .prep-tile:active{ transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
@@ -1030,6 +1033,7 @@
   </div>
 </div>
 <div class="title-screen char-screen" id="charScreen" style="display:none;">
+  <button class="topback" id="charBackBtn">◀ タイトルへ</button>
   <div class="char-inner">
     <div class="char-story" id="charStory">乗り移る身体を選んでね</div>
     <div class="char-hint" id="charHint" style="display:none"></div>
@@ -1038,7 +1042,7 @@
     <div class="char-list" id="charList"></div>
     <div class="char-prompt" id="monLabel" style="margin-top:16px;display:none">モンスター</div>
     <div class="mon-grid" id="monGrid"></div>
-    <button class="btn ghost title-howtobtn" id="charBackBtn" style="margin-top:14px;">タイトルへ戻る</button>
+    
   </div>
   <div class="char-foot" id="charFoot" style="display:none"><button class="btn ghost" id="charCancel">キャンセル</button><button class="btn primary" id="charDecide">決定</button></div>
 </div>
@@ -1198,16 +1202,17 @@
 </div>
 <div class="modal-bg" id="accModal" style="display:none;">
   <div class="reward-box">
+    <button class="topback" id="accClose">◀ 戻る</button>
     <div class="reward-title">🎒 アクセサリー</div>
     <div class="reward-sub" id="accSlotInfo"></div>
     <div class="acc-slots" id="accSlots"></div>
     <div class="reward-options" id="accList" style="flex-direction:column;margin-top:10px"></div>
     <button class="btn" id="accCond" style="margin-top:12px">取得条件一覧</button>
-    <button class="btn" id="accClose" style="margin-top:8px">とじる</button>
   </div>
 </div>
 <div class="modal-bg" id="pickModal" style="display:none;">
   <div class="modal db-modal">
+    <button class="topback" id="pickCancel">◀ 戻る</button>
     <button class="btn" id="pickDeckView" style="position:absolute;top:10px;right:10px;padding:6px 10px;font-size:12px;width:auto">📚 山札確認</button>
     <h2 id="pickTitle" style="margin-top:30px"></h2>
     <div class="db-sec" id="pickSub"></div>
@@ -1215,7 +1220,7 @@
     <div class="cardgrid db-grid" id="pickGrid"></div>
     <div class="db-sec" id="pickSelLabel" style="display:none">選んだカード（タップで外す）</div>
     <div class="cardgrid db-grid" id="pickSel"></div>
-    <div style="display:flex;gap:10px"><button class="btn" id="pickCancel" style="flex:0 0 32%">キャンセル</button><button class="btn" id="pickOk" style="flex:1">OK</button></div>
+    <div style="display:flex;gap:10px"><button class="btn" id="pickOk" style="flex:1">OK</button></div>
   </div>
 </div>
 <div class="urgency-vignette" id="urgencyVignette"></div>
@@ -1236,13 +1241,13 @@
 </div>
 <div class="modal-bg" id="dbgModal" style="display:none;">
   <div class="reward-box" style="max-width:420px;">
+    <button class="topback" id="dbgCloseBtn">◀ 戻る</button>
     <div class="reward-title">🐞 デバッグログ</div>
     <div class="reward-sub" style="margin-bottom:8px;">攻撃ごとの計算の要約。全ログ（置いたカード・役・得点・HP・敵の攻撃力の推移）は下のボタンで出力できます。</div>
     <textarea id="dbgSummary" readonly style="width:100%;height:190px;font-size:11px;line-height:1.35;background:#0b1512;color:#cfe8d8;border:1px solid rgba(226,192,106,.4);border-radius:8px;padding:8px;resize:none;"></textarea>
     <button class="btn" id="dbgDownloadBtn" style="margin-top:10px;">ファイルで保存／共有</button>
     <button class="btn ghost" id="dbgCopyBtn" style="margin-top:8px;">全ログをコピー</button>
     <button class="btn ghost" id="dbgClearBtn" style="margin-top:8px;">ログを消去</button>
-    <button class="btn ghost" id="dbgCloseBtn" style="margin-top:8px;">閉じる</button>
   </div>
 </div>
 
@@ -1257,6 +1262,7 @@
 
 <div class="modal-bg" id="goalModal" style="display:none;">
   <div class="modal">
+    <button class="topback" id="goalClose">◀ 戻る</button>
     <h2>GOAL</h2>
     <p style="font-size:12.5px; line-height:1.8; color:var(--cream-2);">
       6つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた<b style="color:#f0a8d0">戦力</b>を稼ごう。敵の攻撃力を上回る戦力をためて一斉攻撃し、自分のHPが尽きる前に魔王を倒せ。
@@ -1303,36 +1309,35 @@
       <div class="subpage" data-subpage="tips" id="howtoTips" style="display:none;"></div>
     </div>
 
-    <button class="btn" id="goalClose">とじる</button>
   </div>
 </div>
 
 <div class="modal-bg" id="cardListModal" style="display:none;">
   <div class="modal">
+    <button class="topback" id="cardListClose">◀ 戻る</button>
     <h2 id="cardListTitle">山札</h2>
     <div id="cardListBody"></div>
-    <button class="btn ghost" id="cardListClose">とじる</button>
   </div>
 </div>
 
 <div class="modal-bg" id="deckBuildModal" style="display:none;">
   <div class="modal db-modal">
-    <h2 id="dbTitle">山札構築</h2>
+    <button class="topback" id="dbBack" style="display:none">◀ タイトルへ</button>
+    <h2 id="dbTitle" style="margin-top:34px">山札構築</h2>
     <div class="db-sec" id="dbSec">入れ替えるカードを選択 <b id="dbCountOut">0/0</b></div>
     <div class="cardgrid db-grid" id="dbDeck"></div>
     <div id="dbRemWrap" style="display:none"><div class="db-sec">外したカード</div><div class="cardgrid db-rem" id="dbRem"></div></div>
     <button class="btn ghost" id="dbReroll" style="display:none"></button>
     <button class="btn" id="dbOk">このまま進む</button>
-    <button class="btn ghost" id="dbBack" style="display:none;margin-top:8px">◀ タイトルへ戻る</button>
   </div>
 </div>
 
 <div class="modal-bg" id="rehireModal" style="display:none;">
   <div class="modal">
+    <button class="topback" id="rehireCancel">◀ 戻る</button>
     <h2>再雇用</h2>
     <p style="text-align:center; font-size:12px; color:var(--cream-2); margin-top:-6px;">墓地から手札に戻すカードを1枚選んでください。</p>
     <div id="rehireBody"></div>
-    <button class="btn ghost" id="rehireCancel">キャンセル</button>
   </div>
 </div>
 
@@ -5801,7 +5806,7 @@ function recordRunResult(reason){
 function openCondModal(){
   let m=document.getElementById('condModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='condModal'; m.style.display='none';
-    m.innerHTML='<div class="reward-box"><div class="reward-title">📋 取得条件一覧</div><div class="reward-sub" id="condSub"></div><div class="reward-options" id="condList" style="flex-direction:column;margin-top:10px"></div><button class="btn" id="condClose" style="margin-top:12px">とじる</button></div>';
+    m.innerHTML='<div class="reward-box"><button class="topback" id="condClose">◀ 戻る</button><div class="reward-title">📋 取得条件一覧</div><div class="reward-sub" id="condSub"></div><div class="reward-options" id="condList" style="flex-direction:column;margin-top:10px"></div></div>';
     document.body.appendChild(m); m.querySelector('#condClose').onclick=()=>{ m.style.display='none'; }; }
   const L=m.querySelector('#condList'); L.innerHTML='';
   m.querySelector('#condSub').textContent=`${WAVES[stageIndex].name}との戦いで手に入るアクセサリー`;
@@ -6041,7 +6046,7 @@ function sellAccessory(o){
 function openShop(kind){
   let m=document.getElementById('shopModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='shopModal'; m.style.display='none';
-    m.innerHTML='<div class="reward-box"><div class="reward-title" id="shopTitle"></div><div class="reward-sub" id="shopGold"></div><div class="reward-options" id="shopBody" style="flex-direction:column;margin-top:8px"></div><button class="btn" id="shopClose" style="margin-top:12px">準備に戻る</button></div>';
+    m.innerHTML='<div class="reward-box"><button class="topback" id="shopClose">◀ 準備に戻る</button><div class="reward-title" id="shopTitle"></div><div class="reward-sub" id="shopGold"></div><div class="reward-options" id="shopBody" style="flex-direction:column;margin-top:8px"></div></div>';
     document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ if(m.dataset.mode&&m.dataset.mode!=='menu'){ m.dataset.mode='menu'; renderShop(); } else { m.style.display='none'; refreshPrep(); render(); } }; }
   if(kind!=='deck' && !shopBought && !shopStock.some(id=>accDef(id)&&!accOwned.some(o=>o.id===id))) rollAccStock();  // 品切れのまま開かない：何かは必ず売っている
   sellSel=[]; m.dataset.kind=kind; m.dataset.mode='menu'; renderShop(); m.style.display='flex';
@@ -6064,7 +6069,7 @@ function renderShop(){
   m.querySelector('#shopDeckView').onclick=()=>{ const cl=document.getElementById('cardListModal'); cl.style.zIndex=10000; try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){} };
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
   const mode=m.dataset.mode||'menu';
-  m.querySelector('#shopClose').textContent=mode==='menu'?'準備に戻る':'戻る';
+  m.querySelector('#shopClose').textContent=mode==='menu'?'◀ 準備に戻る':'◀ 戻る';
   if(mode==='menu'){
     buySel=[]; buyQty={};
     [['buy','🛒 買う'],['sell','💰 売る']].forEach(([k,t])=>{ const b=document.createElement('button'); b.className='btn'; b.style.cssText='width:100%;margin:6px 0;padding:14px;font-size:17px'; b.textContent=t; b.onclick=()=>{ sellSel=[]; m.dataset.mode=k; renderShop(); }; body.appendChild(b); });
@@ -6302,7 +6307,7 @@ function openRanking(first,opts){
   opts=opts||{}; const pre=!!opts.pre;
   let m=document.getElementById('rankModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='rankModal'; m.style.display='none';
-    m.innerHTML='<div class="reward-box"><div class="reward-title">📊 敵ランキング</div><div class="reward-sub" id="rankSub"></div><div id="rankList" style="display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:60vh;overflow-y:auto;text-align:left"></div><button class="btn" id="rankClose" style="margin-top:12px">とじる</button><button class="btn ghost" id="rankBack" style="margin-top:8px;display:none">戻る</button></div>';
+    m.innerHTML='<div class="reward-box"><button class="topback" id="rankTop" style="display:none">◀ 戻る</button><div class="reward-title">📊 敵ランキング</div><div class="reward-sub" id="rankSub"></div><div id="rankList" style="display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:60vh;overflow-y:auto;text-align:left"></div><button class="btn" id="rankClose" style="margin-top:12px">とじる</button><button class="btn ghost" id="rankBack" style="margin-top:8px;display:none">戻る</button></div>';
     document.body.appendChild(m); }
   const inBoss=!first&&nextStageIdx<0&&WAVES[stageIndex]&&WAVES[stageIndex].boss;
   const nxIdx=first?stageIndex:(nextStageIdx>=0?nextStageIdx:(inBoss?stageIndex:Math.min(stageIndex+1,LADDER_N-1))), lbl=(first||inBoss||pre)?'今回の敵':'次の敵';
@@ -6310,9 +6315,11 @@ function openRanking(first,opts){
   m.querySelector('.reward-title').textContent=isBoss?'👑 ラスボスランキング':'📊 敵ランキング';
   m.querySelector('#rankSub').innerHTML=(isBoss?`<div style="display:flex;justify-content:center;margin:4px 0">${spriteSVG(monSprKey(WAVES[nxIdx]),96,'')}</div>`:'')+`${lbl}：<b>${WAVES[nxIdx].name}</b>${isBoss?'':`（${WAVES[nxIdx].rank}位／${LADDER_N}）`}`;
   { const cb=m.querySelector('#rankClose'), bb=m.querySelector('#rankBack');
-    cb.textContent=((first||pre)&&!opts.view)?'戦闘開始':'とじる';
+    const goMode=((first||pre)&&!opts.view), tb=m.querySelector('#rankTop');
+    cb.textContent=goMode?'戦闘開始':'とじる'; cb.style.display=goMode?'':'none';
     cb.onclick=()=>{ m.style.display='none'; if(opts.onGo) opts.onGo(); };
-    if(opts.onBack){ bb.style.display=''; bb.onclick=()=>{ m.style.display='none'; opts.onBack(); }; } else bb.style.display='none'; }
+    bb.style.display='none';
+    if(opts.onBack){ tb.style.display=''; tb.onclick=()=>{ m.style.display='none'; opts.onBack(); }; } else if(!goMode){ tb.style.display=''; tb.onclick=cb.onclick; } else tb.style.display='none'; }
   const L=m.querySelector('#rankList'); L.innerHTML='';
   const idxs=[]; if(isBoss){ for(let i=WAVES.length-1;i>=LADDER_N;i--) if(!HIDDEN_BOSSES.includes(WAVES[i].id)) idxs.push(i); } else { for(let i=LADDER_N-1;i>=0;i--) idxs.push(i); }
   let bn=0;
@@ -6431,7 +6438,7 @@ function resumeGame(){
   function open(){
     const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
     const m=document.createElement('div'); m.className='modal';
-    m.innerHTML='<h2>データ引き継ぎ</h2><div style="font-size:12px;opacity:.8;text-align:center">このコードを控えておくと、アプリを作り直しても復元できます</div><div id="xferMy" style="font-size:22px;font-weight:800;letter-spacing:.08em;text-align:center;margin:12px 0;user-select:all"></div><div style="font-size:12px;opacity:.8;text-align:center;margin-top:14px">復元するコード</div><input id="xferIn" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" style="width:100%;box-sizing:border-box;margin:6px 0;padding:10px;font-size:18px;text-align:center;letter-spacing:.08em;border-radius:8px;border:1px solid #5a7a68;background:#0b1510;color:#fff"><div id="xferMsg" style="min-height:18px;font-size:12px;text-align:center;color:#ffb3a6"></div><button class="btn" id="xferGo">復元する</button><button class="btn ghost" id="xferClose">とじる</button>';
+    m.innerHTML='<button class="topback" id="xferClose">◀ 戻る</button><h2>データ引き継ぎ</h2><div style="font-size:12px;opacity:.8;text-align:center">このコードを控えておくと、アプリを作り直しても復元できます</div><div id="xferMy" style="font-size:22px;font-weight:800;letter-spacing:.08em;text-align:center;margin:12px 0;user-select:all"></div><div style="font-size:12px;opacity:.8;text-align:center;margin-top:14px">復元するコード</div><input id="xferIn" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" style="width:100%;box-sizing:border-box;margin:6px 0;padding:10px;font-size:18px;text-align:center;letter-spacing:.08em;border-radius:8px;border:1px solid #5a7a68;background:#0b1510;color:#fff"><div id="xferMsg" style="min-height:18px;font-size:12px;text-align:center;color:#ffb3a6"></div><button class="btn" id="xferGo">復元する</button>';
     bg.appendChild(m); document.body.appendChild(bg);
     m.querySelector('#xferMy').textContent=fmt(getCode());
     const msg=m.querySelector('#xferMsg'); m.querySelector('#xferClose').onclick=()=>bg.remove();
