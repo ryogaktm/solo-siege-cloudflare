@@ -909,14 +909,11 @@
   .sdm-grid .upcoming-chip{ opacity:1; padding:5px 8px; font-size:14px; }
   .sdm-grid .upcoming-chip .mini-mark{ width:15px; height:15px; }
   .sdm-grid .upcoming-chip.pur{ border-color:#ffd76a; }
-  #shopBody,#accUpper,#shopDeckMini,#accDeckMini{ padding-right:4px; }
-  #shopBody::-webkit-scrollbar,#accUpper::-webkit-scrollbar,#shopDeckMini::-webkit-scrollbar,#accDeckMini::-webkit-scrollbar{ width:8px; }
-  #shopBody::-webkit-scrollbar-track,#accUpper::-webkit-scrollbar-track,#shopDeckMini::-webkit-scrollbar-track,#accDeckMini::-webkit-scrollbar-track{ background:rgba(255,255,255,.12); border-radius:4px; }
-  #shopBody::-webkit-scrollbar-thumb,#accUpper::-webkit-scrollbar-thumb,#shopDeckMini::-webkit-scrollbar-thumb,#accDeckMini::-webkit-scrollbar-thumb{ background:#e2c06a; border-radius:4px; min-height:36px; }
-  @supports not selector(::-webkit-scrollbar){ #shopBody,#accUpper,#shopDeckMini,#accDeckMini{ scrollbar-width:thin; scrollbar-color:#e2c06a rgba(255,255,255,.12); } }
-  .shop-tabs{ display:flex; gap:6px; margin:2px 0 6px; }
-  .shop-tabs button{ flex:1; padding:9px 4px; border-radius:10px; border:1px solid var(--gold-3); background:rgba(0,0,0,.35); color:var(--cream-2); font-family:inherit; font-weight:800; font-size:14px; cursor:pointer; }
-  .shop-tabs button.on{ background:linear-gradient(180deg,#f0d27a,#c9a04a); color:#2a1d08; }
+  #shopBody,#accUpper,#shopDeckMini,#accDeckMini{ padding-right:12px; scrollbar-width:none; }
+  #shopBody::-webkit-scrollbar,#accUpper::-webkit-scrollbar,#shopDeckMini::-webkit-scrollbar,#accDeckMini::-webkit-scrollbar{ display:none; }
+  #shopModal .reward-box,#accModal .reward-box{ position:relative; }
+  .sbar{ position:absolute; width:6px; border-radius:3px; background:rgba(255,255,255,.16); pointer-events:none; z-index:30; display:none; }
+  .sbar i{ position:absolute; left:0; right:0; top:0; border-radius:3px; background:#e2c06a; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
   .prep-shops{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
   .prep-tile{ aspect-ratio:1/1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:14px; border:2px solid var(--gold-3); background:linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.06)); color:var(--gold); font-family:inherit; font-weight:800; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
   .prep-tile:active{ transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
@@ -6079,7 +6076,7 @@ function openShop(mode){
   let m=document.getElementById('shopModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='shopModal'; m.style.display='none';
     m.innerHTML='<div class="reward-box"><button class="topback" id="shopClose">◀ 準備に戻る</button><div class="reward-title" id="shopTitle"></div><div class="reward-sub" id="shopGold"></div><div class="reward-options" id="shopBody" style="flex-direction:column;margin-top:8px"></div><div id="shopDeckMini"></div></div>';
-    document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ m.style.display='none'; refreshPrep(); render(); }; }
+    document.body.appendChild(m); m.querySelector('#shopClose').onclick=()=>{ m.style.display='none'; refreshPrep(); render(); }; installScrollbars(); }
   if(!shopBought && !shopStock.some(id=>accDef(id)&&!accOwned.some(o=>o.id===id))) rollAccStock();  // 品切れのまま開かない：何かは必ず売っている
   sellSel=[]; buySel=[]; buyQty={}; m.dataset.mode=mode||'buydeck'; renderShop(); m.style.display='flex';
 }
@@ -6092,6 +6089,21 @@ function confirmSell(cand){
   document.body.appendChild(bg);
   bg.querySelector('#csNo').onclick=()=>bg.remove();
   bg.querySelector('#csYes').onclick=()=>{ items.forEach(o=>sellAccessory(o)); sellSel=[]; bg.remove(); renderShop(); refreshPrep(); };
+}
+function installScrollbars(){
+  ['shopBody','shopDeckMini','accUpper','accDeckMini'].forEach(id=>{
+    const el=document.getElementById(id); if(!el||el._sb) return; el._sb=1;
+    const bar=document.createElement('div'); bar.className='sbar'; bar.innerHTML='<i></i>';
+    const host=el.offsetParent||el.parentElement; (el.parentElement).appendChild(bar);
+    const upd=()=>{ const ch=el.clientHeight, sh=el.scrollHeight;
+      if(!ch||sh<=ch+1){ bar.style.display='none'; return; }
+      bar.style.display='block'; const th=Math.max(34,Math.round(ch*ch/sh)), maxT=sh-ch, mv=ch-th;
+      bar.style.left=(el.offsetLeft+el.offsetWidth-8)+'px'; bar.style.top=(el.offsetTop+2)+'px'; bar.style.height=(ch-4)+'px';
+      const i=bar.firstChild; i.style.height=th+'px'; i.style.top=Math.round(maxT>0?el.scrollTop/maxT*(mv-4):0)+'px'; };
+    el.addEventListener('scroll',upd,{passive:true});
+    try{ new ResizeObserver(upd).observe(el); }catch(_){}
+    try{ new MutationObserver(upd).observe(el,{childList:true,subtree:true}); }catch(_){}
+    window.addEventListener('resize',upd); el._sbUpd=upd; upd(); });
 }
 function renderShopMini(m,sel){
   const box=m.querySelector(sel||'#shopDeckMini'); if(!box) return;
@@ -6108,6 +6120,7 @@ function renderShop(){
   m.querySelector('#shopTitle').textContent={buyacc:'💎 アクセサリーを買う',buydeck:'🃏 デッキを買う',sell:'💰 売る'}[mode]||'';
   m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`;
   renderShopMini(m);
+  installScrollbars();
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
   m.querySelector('#shopClose').textContent='◀ 戻る';
   const row=(icon,name,desc,btnTxt,fn,disabled)=>{
@@ -6316,6 +6329,7 @@ function startAddCards(o,cont){
 /* ----- 🎒 装備画面 ----- */
 function accEditable(){ return inPrep; }
 function openAccModal(){
+  try{ installScrollbars(); }catch(e){}
   if(typeof gameEnded!=='undefined' && gameEnded) return;
   renderAccModal(); document.getElementById('accModal').style.display='flex';
 }
