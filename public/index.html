@@ -2438,8 +2438,7 @@ function targetsFor(card){
       else if(f.cards.length<3 && fitsFormation(card,f)) out.push(i);
     }
     else if(isDariusCard(card)){
-      if(mon){ if(satisfiesMonster(card,f) && fitsFormation(card,f)) out.push(i); }
-      else if(f.cards.length===2 && fitsFormation(card,f)) out.push(i);
+      if(f.cards.filter(c=>c&&c.kind!=='monster').length===2 && (!mon||satisfiesMonster(card,f)) && fitsFormation(card,f)) out.push(i);   // 赤♾️は装備の有無にかかわらず「3枚目」にしか置けない
     }
     else if(card.kind==='monster' && card.sub==='mark'){
       if(!mon && f.cards.some(c=>c.kind==='troop')) out.push(i);
@@ -3349,7 +3348,10 @@ function guidanceTargets(step){
   if(!card) return [];
   return flags.map((f,i)=>i).filter(i=>{
     if(i===from || flags[i].closed || isLocked(flags[i])) return false;
-    if(flagMonster(flags[i])) return true;
+    const dm=flagMonster(flags[i]);
+    if(card.kind==='monster') return !dm && flags[i].cards.length<3;   // 装備は、装備のない旗にだけ動かせる
+    if(isDariusCard(card)) return flags[i].cards.filter(c=>c&&c.kind!=='monster').length===2 && (!dm||satisfiesMonster(card,flags[i]));
+    if(dm) return satisfiesMonster(card,flags[i]);
     return flags[i].cards.length<3 && fitsFormation(card, flags[i]);
   });
 }
@@ -4225,11 +4227,8 @@ function cardInfoContent(c){
     if(c.sub==='necro'){
       return `<p><b>鍛治職人</b></p><p>発動すると、墓地にある装備が全て山札に戻ります（獲得済みの得点はそのまま）。</p>`;
     }
-    if(c.sub==='combined'){
-      return `<p><b>${CNAME[c.color]}・${c.value}以上の装備</b></p><p>旗に置くと、その旗には<b>${CNAME[c.color]}の色</b>かつ<b>強さ${c.value}以上</b>の両方を満たすカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。換装ボーナス <b>+${monsterBonusFor(c)}</b>（これまで重ねた分の合計）。</p>`;
-    }
     if(c.sub==='number'){
-      return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。換装ボーナス <b>+${monsterBonusFor(c)}</b>。別の<b>数の装備</b>（今の数字以上）か<b>色の装備</b>を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。<b style="color:var(--gold)">色の装備は1回だけ重ねられます</b>（色の条件を含む装備にはさらに重ねられません）。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
+      return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。換装ボーナス <b>+${monsterBonusFor(c)}</b>。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
     }
     return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードの<b>マークがすべて${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。同色の役を作りたいときに使いましょう。装備のある旗には使えません。</p>`;
   }
@@ -6454,7 +6453,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18k';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
