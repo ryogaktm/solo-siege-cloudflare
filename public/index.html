@@ -6659,7 +6659,7 @@ function openRanking(first,opts){
     bb.style.display='none';
     if(opts.onBack){ tb.style.display=''; tb.onclick=()=>{ m.style.display='none'; opts.onBack(); }; } else if(!goMode){ tb.style.display=''; tb.onclick=cb.onclick; } else tb.style.display='none'; }
   const L=m.querySelector('#rankList'); L.innerHTML='';
-  const idxs=[]; if(isBoss){ for(let i=WAVES.length-1;i>=LADDER_N;i--) if(!HIDDEN_BOSSES.includes(WAVES[i].id)) idxs.push(i); } else { for(let i=LADDER_N-1;i>=0;i--) idxs.push(i); }
+  const idxs=[]; if(isBoss){ for(let i=MOON_IDX-1;i>=LADDER_N;i--) if(!HIDDEN_BOSSES.includes(WAVES[i].id)) idxs.push(i); idxs.push(MOON_IDX); }   // 強い順：太陽神→…→火星人、いちばん弱い月の民が最後 else { for(let i=LADDER_N-1;i>=0;i--) idxs.push(i); }
   let bn=0;
   for(const i of idxs){ const w=WAVES[i], nx=i===nxIdx, last=i===lastDefeatedIdx; bn++;
     const el=document.createElement('div'); el.dataset.i=i;
@@ -6676,7 +6676,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
