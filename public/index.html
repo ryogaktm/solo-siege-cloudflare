@@ -4714,36 +4714,18 @@ function colorPool(color, needRoom){
   return out;
 }
 function pickRandom(arr,n){ const a=arr.slice(); shuffle(a); return a.slice(0,n); }
-function troopSetAll(){   // 全部隊カード（山札の外も含む）。同じ色・数字が山札に2枚できないよう、入れ替え相手を探すのに使う
-  const out=[], seen=new Set();
-  [grandDeck,activeDeck,hand,graveyard,stomach,pendingRewardCards,sealedCards].forEach(arr=>(arr||[]).forEach(c=>{ if(c&&c.kind==='troop'&&!c.mixed&&!c.temp&&!seen.has(c.uid)){ seen.add(c.uid); out.push(c); } }));
-  return out;
+function logShopDeck(kind,n){ try{ const cs=allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased); const col={}, ten={}; cs.forEach(c=>{ if(c.kind==='troop'){ col[c.color]=(col[c.color]||0)+1; if(c.value===10) ten[c.color]=(ten[c.color]||0)+1; } }); dlog('shop_deck',{kind,changed:n,deck:cs.length,colors:col,tens:ten}); }catch(e){} }
+function applyColorPlus3(color){
+  const targets=pickRandom(colorPool(color,true),3);
+  targets.forEach(c=>{ c.value=Math.min(10,c.value+1); if(c.origValue!==undefined) c.origValue=Math.min(10,c.origValue+1); });
+  logShopDeck('plus',targets.length);
+  return targets.length;
 }
-function swapFree(o){ return !o || (!deckUids.has(o.uid) && !o.purchased); }   // 入れ替え相手が山札の外にいるか（いなければ重複になるので不可）
-function applyColorPlus3(color){   // 山札の同色カード3枚の数字を+1。同じ数字の相手カード（山札の外）と数字を入れ替えるので、山札にも全体にも同じカードが増えない
-  let n=0; const touched=new Set();
-  for(let k=0;k<3;k++){
-    const all=troopSetAll();
-    const cands=all.filter(c=>c.color===color && deckUids.has(c.uid) && !c.purchased && !touched.has(c.uid) && c.value<10 && swapFree(all.find(x=>x!==c&&x.color===color&&x.value===c.value+1)));
-    if(!cands.length) break;
-    const c=pickRandom(cands,1)[0], o=all.find(x=>x!==c&&x.color===color&&x.value===c.value+1), v=c.value;
-    if(o){ o.value=v; }
-    c.value=v+1; if(c.origValue!==undefined) c.origValue=Math.min(10,c.origValue+1);
-    touched.add(c.uid); n++;
-  }
-  return n;
-}
-function applyColorChange3(from,to){   // 山札の「from」色カード3枚を「to」色に。同じ数字の「to」色カード（山札の外）と色を入れ替えるので、重複は増えない
-  let n=0;
-  for(let k=0;k<3;k++){
-    const all=troopSetAll();
-    const cands=all.filter(c=>c.color===from && deckUids.has(c.uid) && !c.purchased && swapFree(all.find(x=>x!==c&&x.color===to&&x.value===c.value)));
-    if(!cands.length) break;
-    const c=pickRandom(cands,1)[0], o=all.find(x=>x!==c&&x.color===to&&x.value===c.value);
-    if(o){ o.color=from; }
-    c.color=to; n++;
-  }
-  return n;
+function applyColorChange3(from,to){
+  const targets=pickRandom(colorPool(from,false),3);
+  targets.forEach(c=>{ c.color=to; });
+  logShopDeck('change',targets.length);
+  return targets.length;
 }
 function decayModifiedCards(cards){
   cards.forEach(c=>{
@@ -6459,7 +6441,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18e';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
