@@ -2474,7 +2474,8 @@ function targetsFor(card){
       else if(f.cards.length===2 && fitsFormation(card,f)) out.push(i);
     }
     else if(card.kind==='monster' && card.sub==='mark'){
-      if(!mon && f.cards.some(c=>c.kind==='troop')) out.push(i);
+      // 数字カードが置いてあれば使える。力の装備（武器）が乗っていても染められる。色指定の装備がある旗には、同じ色の装備だけ
+      if(f.cards.some(c=>c.kind==='troop') && (!mon || mon.sub==='number' || mon.color===card.color)) out.push(i);
     }
     else if(card.kind==='monster' && card.sub!=='necro'){
       if(mon){
@@ -3119,7 +3120,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       if(existingMon && card.sub==='number' && (existingMon.sub==='number'||existingMon.sub==='combined') && card.value<existingMon.value){
         hint(`重ねるなら${existingMon.value}以上の力の装備が必要です。`,true);
       } else if(card.sub==='mark'){
-        hint('色の装備は、カードが置いてある旗にだけ使えます（装備のある旗には使えません）。',true);
+        hint('色の装備は、数字カードが置いてある旗にだけ使えます（色指定の装備がある旗には、同じ色だけ）。',true);
       } else if(!existingMon && f.cards.length<3 && !equipmentReachable(card, f)){
         hint('既に置かれているカードと条件が矛盾するため、この旗には置けません。',true);
       }
@@ -6631,7 +6632,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18ze';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18zf';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
