@@ -2206,7 +2206,7 @@ function rerollStartDeck(){
 }
 function init(){
   applyEnemyNames();
-  score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   // ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
+  score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   /* ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） */ lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
@@ -5821,6 +5821,7 @@ var accSlotBonus=0, shopOnce={};
 var ACC_SLOTS=3+accSlotBonus;   // ミジンコ・ミジンコリーダーの体はアクセサリーを付けられない（0枠）
 function resetAccessories(){
   sunUsed=false; _streakDone=false; accSlotBonus=0; shopOnce={};
+  ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3);   // 買った装備枠を持ち越さない
   accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; hpGlassSave=null; hpBonus=0; specBonusK={}; specProg={}; specPlusBought=0; accStat=blankBattleStat(); gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
   GAME_COLORS.length=0; ALL_GAME_COLORS.forEach(c=>GAME_COLORS.push(c));
 }
@@ -6592,7 +6593,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18v';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18w';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
