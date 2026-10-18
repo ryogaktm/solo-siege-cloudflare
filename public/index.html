@@ -6265,7 +6265,13 @@ function refreshPrep(){
   try{ document.getElementById('prepChar').innerHTML=charSpr(CHARACTER,72,true); }catch(e){}
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
   const nb=battleNo+1, nbTxt=nb>MAX_BATTLES?'ラスボス戦':`第${nb}戦 ／ 全${MAX_BATTLES}戦`;
-  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
+  // 次の戦いに引き継ぐスーパーコンボ（マークごとの連続数と、次の1旗目にかかる倍数）
+  const fmtM=x=>String(Math.round(x*100)/100);
+  const cks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]);
+  const carryHtml=cks.length
+    ? '<div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.06);text-align:left"><b style="color:var(--gold)">🔗 引き継ぎ中のスーパーコンボ</b>'+cks.map(c=>`<div style="margin-top:3px"><span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${CFILL[c]};margin-right:5px"></span><b>${CNAME[c].replace('旗','')}マーク ×${carryMap[c]}</b><div style="font-size:.85em;opacity:.85;margin-left:1.3em">1旗目から ×${fmtM(superMultFor(c,carryMap[c]+1))}</div></div>`).join('')+'<div style="margin-top:4px;font-size:.85em;opacity:.7">そのマークの役で攻撃すると続きます。</div></div>'
+    : '<div style="margin-top:6px;opacity:.7">🔗 引き継ぎ中のスーパーコンボ：なし</div>';
+  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}${carryHtml}`;
 }
 function prepGo(){
   document.getElementById('prepModal').style.display='none';
@@ -6632,7 +6638,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18zf';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18zg';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
