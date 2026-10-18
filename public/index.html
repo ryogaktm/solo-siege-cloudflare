@@ -1974,7 +1974,7 @@ function dlog(type, data){
     if(type!=='attack_calc'&&type!=='info') e.state=dbgSnap();
     dbgLog.push(e);
     if(dbgLog.length>6000) dbgLog.splice(0,1000);
-    if(type==='attack_calc'||type==='stage_advance'||dbgSeq%25===0) dbgSave();
+    if(type==='stage_advance'||dbgSeq%25===0) dbgSave();
   }catch(err){ console.error('dlog',err); }
 }
 function dbgSave(){ try{ localStorage.setItem(DBG_KEY, JSON.stringify(dbgLog.slice(-2500))); }catch(e){} }
@@ -1983,7 +1983,7 @@ function dbgReset(){
   // 新しくゲームを始めても過去のログは消さない（「クリア」ボタンでだけ消える）
   try{
     dbgLog.push({seq:++dbgSeq,type:'game_start',time:new Date().toISOString(),character:(typeof CHARACTER!=='undefined'&&CHARACTER)?CHARACTER.id:'?',
-      balance:JSON.parse(JSON.stringify(BALANCE)),flagCount:FLAG_COUNT,ua:navigator.userAgent});
+      balance:JSON.parse(JSON.stringify(BALANCE)),flagCount:FLAG_COUNT,ua:navigator.userAgent,build:(typeof BUILD_ID!=='undefined'?BUILD_ID:'?')});
     dbgSave();
   }catch(e){}
 }
@@ -2852,7 +2852,7 @@ function checkWaveOutcome(){
   }
   const dbgP0=playerHp, dbgB0=bossHp, dbgScore0=score, dbgFlags0=flags.map(dbgFlagStr);
   let dbgSyn=null;
-  let synergyBonus=0;
+  let synergyBonus=0, synFx=null;
   try{
     const synergy=computeMarkSynergyBonus();
     dbgSyn=synergy;
@@ -2861,8 +2861,7 @@ function checkWaveOutcome(){
       frozenMults=Object.assign({},superMults()); frozenHost=Object.assign({},hostMults());
       addScore(synergy.bonus);
       synergyBonus=synergy.bonus;
-      triggerSynergyFX(synergy);
-      playSfx('combo');
+      synFx=()=>{ triggerSynergyFX(synergy); playSfx('combo'); };
     }
   } catch(err){
     console.error('synergy bonus error:', err);
@@ -2898,6 +2897,8 @@ function checkWaveOutcome(){
   accStat.minHp=Math.min(accStat.minHp,playerHp/playerHpMax);
   if(defeated){ if(dbgP0<=playerHpMax*0.3) accStat.lowHpWin=(accStat.lowHpWin||0)+1; if(dealt>=hpBefore*2) accStat.overkill=(accStat.overkill||0)+1; }
   checkGoalAnnounce(defeated);
+  if(defeated){ try{ saveGame(true); }catch(e){} }   // 敵を倒した瞬間に保存（演出中にアプリが落ちても、勝利の続きから再開できる）
+  if(synFx){ try{ synFx(); }catch(e){} }
   dlog('attack_calc',{stage:stageIndex+1, wave:waveAttempt, flags:dbgFlags0, scoreBefore:dbgScore0, superBonus:synergyBonus, superDetail:dbgSyn?dbgSyn.details:[], superMultUsed:dbgSyn&&dbgSyn.bonus>0?[].concat.apply([],dbgSyn.details.map(d=>d.mults)):null, superCarryAfter:carryTxt(), poison:atkPoison, atkTurn:atkTurn, enemyTurnNow:enemyTurn, pAtk:pAtk, eAtk:eAtk, eAtkNow:currentEnemyAtk(), diff:diff, dealt:dealt, taken:taken, dmgMult:damageMult(), takenReal:takenReal, rolesAllDone:allRolesDone(), sealPenalty:sealPenalty, pHpBefore:dbgP0, pHpAfter:playerHp, eHpBefore:dbgB0, eHpAfter:bossHp, defeated:defeated});
   hint(`攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
   if(!defeated && playerHp<=0){
@@ -5126,6 +5127,7 @@ function strikeBoss(dmg,text,name){
   hint(text); playSfx('equipment');
   dlog('action',{name:name,eHpAfter:bossHp});
   const killed=bossHp<=0;
+  if(killed){ try{ saveGame(true); }catch(e){} }
   triggerBossAttackFX(dmg,()=>{ animateBossHp(bossHp,500).then(()=>{
     if(killed){ waveAdvancing=true; fighterKO('monster'); setTimeout(()=>finishWaveOutcome(true,WAVES[stageIndex]),950); }
     else { busy=false; render(); }
@@ -6436,14 +6438,15 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-function saveGame(){
+const BUILD_ID='2026-10-18c';   // 遊んだ記録（デバッグログ）に残す版番号
+function saveGame(force){
   try{
-    if(gameEnded||(!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
+    if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
     const open=id=>{ const e=document.getElementById(id); return e && e.style.display==='flex'; };
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:force?1:0, lastDealt, acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -6487,6 +6490,7 @@ function resumeGame(){
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
+  lastDealt=st.lastDealt||0;
   picked=null; pending=null; gameEnded=false; busy=false; waveAdvancing=false; infoIdx=null; justClosed=[]; frozenMults={}; frozenHost={}; stageBgIdx=-1;
   FLAG_COUNT=st.FLAG_COUNT||CHARACTER.flags;
   bestTotal=loadHighScore(CHARACTER.id);
@@ -6495,13 +6499,17 @@ function resumeGame(){
   document.getElementById('topCharName').textContent=CHARACTER.name;
   document.getElementById('topCharSpr').innerHTML=charSpr(CHARACTER,50,true);
   document.getElementById('topCharBest').textContent=rk(bestTotal);
-  try{ dlog('info',{msg:'セーブから再開'}); }catch(e){}
+  try{ dlog('info',{msg:'セーブから再開',build:BUILD_ID,win:st.win?1:0,prep:st.prep?1:0}); }catch(e){}
   pickHowTip();
   inPrep=!!st.prep;
   if(!battleGoals.length && !inPrep) rollGoals();
   else if(!inPrep) battleGoals.forEach(id=>{ const d=accDef(id),g=d&&goalDef(d); if(g&&goalMet(id,false)) goalAnnounced.add(id); });
   render(); layoutHand(true);
   if(inPrep) showPrep(true);
+  else if(st.win && bossHp<=0){   // 敵を倒した瞬間の保存：演出をやり直さず、勝利の続き（宝箱・準備）へ進む
+    busy=true; waveAdvancing=true; window._atkAt=performance.now();
+    setTimeout(()=>{ try{ finishWaveOutcome(true, WAVES[stageIndex]); }catch(e){ busy=false; waveAdvancing=false; } },700);
+  }
   if(bgmEnabled) startBgm();
 }
 (function(){
