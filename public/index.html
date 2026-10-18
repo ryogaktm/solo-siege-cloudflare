@@ -2903,6 +2903,8 @@ function checkWaveOutcome(){
   } else carryMap={};
   hostCarry=hostNx;
   flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name) accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; });
+  try{ const nm={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
+    accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
   const pAtk=Math.max(0, score-atkPoison), eAtk=enemyAtkAt(atkTurn);
   const diff=pAtk-eAtk;
@@ -2924,7 +2926,7 @@ function checkWaveOutcome(){
   if(playerHp<=0 && hasAcc('endure') && playerHpMax>1 && dbgP0>=playerHpMax*0.8){ playerHp=1; hint('ふんばるピアスが光った！体力1で踏みとどまった！',true); }
   if(dealt>accStat.maxDealt) accStat.maxDealt=dealt;
   accStat.minHp=Math.min(accStat.minHp,playerHp/playerHpMax);
-  if(defeated){ if(dbgP0<=playerHpMax*0.3) accStat.lowHpWin=(accStat.lowHpWin||0)+1; if(dealt>=hpBefore*2) accStat.overkill=(accStat.overkill||0)+1; }
+  if(defeated){ if(dbgP0<=playerHpMax*0.3) accStat.lowHpWin=(accStat.lowHpWin||0)+1; if(dealt>=hpBefore*2) accStat.overkill=(accStat.overkill||0)+1; if(hpBefore>0) accStat.overMax=Math.max(accStat.overMax||0,dealt/hpBefore); }
   checkGoalAnnounce(defeated);
   if(defeated){ try{ saveGame(true); }catch(e){} }   // 敵を倒した瞬間に保存（演出中にアプリが落ちても、勝利の続きから再開できる）
   if(synFx){ try{ synFx(); }catch(e){} }
@@ -5779,7 +5781,40 @@ function buildAccDefs(){
   return L;
 }
 const ACC_DEFS=buildAccDefs();
-const accDef=id=>ACC_DEFS.find(d=>d.id===id);
+const cashName=n=>n<=60?'小さな換金袋':n<=150?'換金のお守り':n<=300?'換金の宝飾':'換金の金塊';
+const cashDef=n=>({id:'cash_'+n,name:`${cashName(n)}（${n}G）`,icon:'💰',desc:`役に立たないが、売ると${n}Gになる`,cashVal:n});
+/* ★換金用アクセサリーの条件：ここを書き換える。cash＝売るともらえる金額、tier＝easy(かんたん)/mid/hard、final＝敵を倒した時に判定、avail＝出す条件 */
+const BONUS_GOALS=[
+  {id:'bn_role1',tier:'easy',cash:25,text:'役のある旗（ホスト以外）を1回完成させる',def:S=>({done:()=>Object.keys(S.roles).some(k=>k!=='ホスト'&&S.roles[k]>0)})},
+  {id:'bn_role3',tier:'easy',cash:40,text:'役のある旗（ホスト以外）を3回完成させる',def:S=>({done:()=>Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0)>=3,prog:`${Math.min(3,Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0))} / 3回`})},
+  {id:'bn_tac2',tier:'easy',cash:25,text:'軍師カードを2枚使う',avail:()=>CHARACTER.tactics,def:S=>({done:()=>S.tac>=2,prog:`${Math.min(2,S.tac)} / 2枚`})},
+  {id:'bn_tac5',tier:'mid',cash:60,text:'軍師カードを5枚使う',avail:()=>CHARACTER.tactics,def:S=>({done:()=>S.tac>=5,prog:`${Math.min(5,S.tac)} / 5枚`})},
+  {id:'bn_super2',tier:'easy',cash:50,text:'どれかの色でスーパーコンボを×2まで決める',avail:()=>CHARACTER.combo,def:S=>({done:()=>Math.max(0,...Object.values(S.super))>=2})},
+  {id:'bn_long1',tier:'easy',cash:40,text:'4回以上の攻撃をかけて倒す（長期戦）',def:S=>({final:true,done:()=>totalWaves-S.w0>=4,prog:`${totalWaves-S.w0} 回目`})},
+  {id:'bn_long2',tier:'mid',cash:120,text:'8回以上の攻撃をかけて倒す（大長期戦）',def:S=>({final:true,done:()=>totalWaves-S.w0>=8,prog:`${totalWaves-S.w0} 回目`})},
+  {id:'bn_fast2',tier:'mid',cash:100,text:'2回以内の攻撃で倒す',def:S=>({final:true,done:()=>totalWaves-S.w0<=2})},
+  {id:'bn_fast1',tier:'hard',cash:200,text:'最初の攻撃で倒す（1撃で決める）',def:S=>({final:true,done:()=>totalWaves-S.w0<=1})},
+  {id:'bn_turns',tier:'hard',cash:250,text:'短いターン数で倒す',txt:()=>`${FLAG_COUNT*3+3}ターン以内に倒す`,def:S=>({final:true,done:()=>turnCounter-S.turn0<=FLAG_COUNT*3+3,prog:`${turnCounter-S.turn0}ターン`})},
+  {id:'bn_kinds3',tier:'mid',cash:120,text:'1回の攻撃で3種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=3})},
+  {id:'bn_kinds4',tier:'hard',cash:250,text:'1回の攻撃で4種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=4})},
+  {id:'bn_same3',tier:'mid',cash:100,text:'同じ役の旗を3つ以上そろえて攻撃する',def:S=>({done:()=>S.maxSame>=3})},
+  {id:'bn_nohost',tier:'mid',cash:100,text:'役なし（ホスト）の旗を1つも出さずに倒す',def:S=>({final:true,done:()=>(S.roles['ホスト']||0)===0&&Object.keys(S.roles).length>0})},
+  {id:'bn_notac',tier:'mid',cash:80,text:'軍師カードを1枚も使わずに倒す',avail:()=>CHARACTER.tactics,def:S=>({final:true,done:()=>S.tac===0})},
+  {id:'bn_nodmg',tier:'hard',cash:200,text:'ダメージを受けずに敵を倒す',def:S=>({final:true,done:()=>S.minHp>=1})},
+  {id:'bn_over3',tier:'hard',cash:250,text:'敵の残り体力の3倍以上のダメージでとどめを刺す',def:S=>({final:true,done:()=>(S.overMax||0)>=3})},
+];
+const accDef=id=>ACC_DEFS.find(d=>d.id===id)||dynAccDef(id);
+function dynAccDef(id){
+  const m=/^cash_(\d+)$/.exec(id); if(m) return cashDef(+m[1]);
+  const b=BONUS_GOALS.find(x=>x.id===id); if(b) return {id:b.id,name:`${cashName(b.cash)}（${b.cash}G）`,icon:'💰',desc:'条件を達成すると手に入る換金用アクセサリー（売るとお金になる）',bonus:true,cashVal:b.cash};
+  return undefined;
+}
+const isRepeatGoal=id=>{ const d=ACC_DEFS.find(x=>x.id===id); return !!d && id!=='gold_s' && (accOwned.some(o=>o.id===id)||soldIds.has(id)); };
+function goalShow(id){   // 画面に出す名前・説明（もう持っている／売った物の条件を達成し直したときは、換金用アクセサリーとして見せる）
+  const d=accDef(id); if(!d) return null;
+  if(isRepeatGoal(id)){ const c=cashDef(accSell(d)); return Object.assign({},c,{desc:`「${d.name}」の条件をもう一度達成すると手に入る換金用アクセサリー`}); }
+  return d;
+}
 let accOwned=[], accEq=[], accSeq=1, deletedUids=new Set(), sealedCards=[], accStat=blankBattleStat(), gold=0, soldIds=new Set(), shopStock=[], inPrep=false;
 var sunUsed=false, _streakDone=false;
 var accSlotBonus=0, shopOnce={};
@@ -5818,11 +5853,12 @@ function spPlusPrice(){ return specPlusBought<=0?125:specPlusBought===1?250:350;
 function specRemain(k){ if(!specEnabled(k)) return 0; if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) return 99; return Math.max(0,specMax(k)-(spec[k]||0)); }
 /* ----- 取得条件（戦闘ごとのチェックリスト） ----- */
 let battleGoals=[];
-function blankBattleStat(){ return {super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1}; }
+function blankBattleStat(){ return {super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0}; }
 const BOSS_DROP=Object.fromEntries(Object.entries({sp_beg:2,sp_cure:3,sp_guard:4,add3_weapon:1,add3_armor:5,purple_out:5,super_unlimited:6,sp_double:7}).map(([k,v])=>[k,BASE_IDX[v]]));
 function goalDef(d){
   const id=d.id, S=accStat, thr=WAVES[stageIndex].threshold, cn=d.color?SHORTC(d.color):'';
   const R=(role,n)=>({tier:'easy',text:`${ROLE_P[role]||role}旗を${n}回完成させる`,done:()=>(S.roles[role]||0)>=n,prog:`${Math.min(n,S.roles[role]||0)} / ${n}回`});
+  { const bg=BONUS_GOALS.find(x=>x.id===id); if(bg){ const r=bg.def(S); return Object.assign({tier:bg.tier,text:bg.txt?bg.txt():bg.text},r); } }
   if(BOSS_DROP[id]!==undefined) return {tier:'easy',boss:BOSS_DROP[id],text:`${WAVES[BOSS_DROP[id]].name}を倒す`,done:()=>false,final:true};
   if(id.startsWith('super15_')) return {tier:'mid',text:`${cn}旗のスーパーコンボを×3まで決める`,done:()=>(S.super[d.color]||0)>=3,prog:`×${Math.min(3,S.super[d.color]||0)} / ×3`};
   if(id.startsWith('super2_')) return {tier:'hard',text:`${cn}旗のスーパーコンボを×5まで決める`,done:()=>(S.super[d.color]||0)>=5,prog:`×${Math.min(5,S.super[d.color]||0)} / ×5`};
@@ -5866,6 +5902,14 @@ function rollGoals(){
   const easyTarget=Math.min(3,pick.length+easy.length), needEasy=Math.max(0,easyTarget-pick.length);
   easy.slice(0,needEasy).forEach(x=>pick.push(x));
   hard.slice(0,Math.max(0,6-pick.length)).forEach(x=>pick.push(x));
+  if(!introNoAcc()){
+    // もう持っている／売った物の条件は、達成し直すと換金用アクセサリーになる（毎回2つまで）
+    const rep=ACC_DEFS.filter(d=>d.id!=='gold_s'&&(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id))&&(!d.color||GAME_COLORS.includes(d.color))).map(d=>({d,g:goalDef(d)})).filter(x=>x.g&&x.g.boss===undefined);
+    shuffle(rep).slice(0,2).forEach(x=>pick.push(x));
+    // 換金用アクセサリー専用の条件（かんたん1つ＋それ以外1つ）
+    const bs=BONUS_GOALS.filter(b=>!b.avail||b.avail());
+    shuffle(bs.filter(b=>b.tier==='easy')).slice(0,1).concat(shuffle(bs.filter(b=>b.tier!=='easy')).slice(0,1)).forEach(b=>pick.push({d:{id:b.id},g:null}));
+  }
   battleGoals=introNoAcc()?[]:pick.map(x=>x.d.id); goalAnnounced=new Set(); goalToastQ=[];
 }
 let goalAnnounced=new Set(), goalToastQ=[], goalToastBusy=false;
@@ -5875,7 +5919,7 @@ function checkGoalAnnounce(final){
     if(goalAnnounced.has(id)) return;
     const d=accDef(id), g=d&&goalDef(d); if(!g) return;
     const ok=goalMet(id,!!final);
-    if(ok){ goalAnnounced.add(id); goalToastQ.push(`条件「${g.text}」を達成！\n戦闘賞品に「${d.name}」が追加されます`); }
+    if(ok){ goalAnnounced.add(id); const v=goalShow(id)||d; goalToastQ.push(`条件「${g.text}」を達成！\n戦闘賞品に「${v.name}」が追加されます`); }
   });
   runGoalToast();
 }
@@ -5888,7 +5932,7 @@ function runGoalToast(){
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
 }
-function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; rollGoals(); grantStreakAcc(); }
+function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); }
 function grantSpecialAcc(id,msg){
   const d=accDef(id); if(!d||accOwned.some(o=>o.id===id)) return false;
   accOwned.push({aid:accSeq++,id:id}); goalToastQ.push(msg.replace('{n}',d.name)); runGoalToast(); return true;
@@ -5956,8 +6000,9 @@ function openCondModal(){
   battleGoals.forEach(id=>{
     const d=accDef(id); if(!d) return; const g=goalDef(d); if(!g) return;
     const ok=!g.final?goalMet(id,false):(g.boss===undefined&&g.done());
+    const dv=goalShow(id)||d;
     const el=document.createElement('div'); el.className='reward-option acc-opt'+(ok?' acc-on':''); el.style.cursor='default';
-    el.innerHTML=`<div class="acc-ico" style="font-size:22px">${ok?'☑':'☐'}</div><div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div><div class="acc-desc" style="color:var(--gold)">条件：${g.text}${g.prog?`（${g.prog}）`:''}</div></div>`;
+    el.innerHTML=`<div class="acc-ico" style="font-size:22px">${ok?'☑':'☐'}</div><div class="acc-ico">${accIconHtml(dv)}</div><div class="acc-txt"><div class="reward-name">${dv.name}</div><div class="acc-desc">${dv.desc}</div><div class="acc-desc" style="color:var(--gold)">条件：${g.text}${g.prog?`（${g.prog}）`:''}</div></div>`;
     L.appendChild(el);
   });
   m.style.display='flex';
@@ -6100,15 +6145,20 @@ function accPriceBase(d){
   return 60;
 }
 const ACC_SELL_MULT=1.5;  // 売値倍率（元の値段の半分に対して）
-const accSell=d=>d.special?500:Math.floor(accPriceBase(d)/2*ACC_SELL_MULT);  // 売値は倍率をかけない元の値段の半分
+const accSell=d=>d.cashVal?d.cashVal:d.special?500:Math.floor(accPriceBase(d)/2*ACC_SELL_MULT);  // 売値は倍率をかけない元の値段の半分
 const introNoAcc=()=>isWeakBody() || introOn && WAVES[stageIndex] && WAVES[stageIndex].id!=='ミジンコキング';   // ミジンコの最初の段階では、ミジンコキング以外からアクセサリーは出ない
 let chestWhy={};   // 宝箱に出すアクセサリーごとの「手に入った理由」
 function acquireNew(final=true){
   const got=[]; chestWhy={}; if(introNoAcc()) return got;
+  const giveCash=(n,why)=>{ const c=cashDef(n); accOwned.push({aid:accSeq++,id:c.id}); got.push(c); chestWhy[c.id]=chestWhy[c.id]?chestWhy[c.id]+' ／ '+why:why; };
   ACC_DEFS.forEach(d=>{
-    if(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id)) return;
+    if(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id)){
+      if(d.id!=='gold_s' && battleGoals.includes(d.id) && goalMet(d.id,final)){ try{ giveCash(accSell(d),'達成した条件：'+goalDef(d).text+'（「'+d.name+'」の条件をもう一度達成）'); }catch(e){} }
+      return;
+    }
     if(battleGoals.includes(d.id) && goalMet(d.id,final)){ accOwned.push({aid:accSeq++,id:d.id}); got.push(d); try{ chestWhy[d.id]='達成した条件：'+goalDef(d).text; }catch(e){} }
   });
+  BONUS_GOALS.forEach(b=>{ if(battleGoals.includes(b.id) && goalMet(b.id,final)){ try{ giveCash(b.cash,'達成した条件：'+goalDef(accDef(b.id)).text); }catch(e){} } });
   return got;
 }
 // 勝っても負けても、条件に関係なく必ず「銅の指輪」が手に入る（売ったあとでも、持っていても1個もらえる）
@@ -6537,7 +6587,24 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18q';   // 遊んだ記録（デバッグログ）に残す版番号
+/* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
+(function(){
+  let sig='', since=Date.now(), lastFix=0;
+  setInterval(()=>{ try{
+    if(document.visibilityState!=='visible'||typeof busy==='undefined'||gameEnded) { since=Date.now(); return; }
+    const vis=[...document.querySelectorAll('.modal-bg')].some(m=>getComputedStyle(m).display!=='none');
+    const cur=[busy,waveAdvancing,!!pending,inPrep,vis,bossHp,playerHp,turnCounter,hand.length,flags.filter(f=>f.closed).length].join('|');
+    if(cur!==sig){ sig=cur; since=Date.now(); return; }
+    if(!(busy||waveAdvancing)||vis) return;
+    if(Date.now()-since<20000||Date.now()-lastFix<60000||(WAVES[stageIndex]&&WAVES[stageIndex].boss)) return;
+    lastFix=Date.now();
+    try{ dlog('freeze_detected',{busy,waveAdvancing,pending:pending&&pending.type,inPrep,bossHp,playerHp,stage:stageIndex+1,closed:flags.filter(f=>f.closed).length,turnCounter}); }catch(e){}
+    if(bossHp<=0&&!inPrep){ finishWaveOutcome(true, WAVES[stageIndex]); }
+    else if(playerHp<=0&&!inPrep){ playerLost(0); }
+    else { busy=false; waveAdvancing=false; pending=null; render(); layoutHand(false); endCheck(); }
+  }catch(e){} }, 2000);
+})();
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
@@ -6545,7 +6612,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:force?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:force?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -6585,7 +6652,7 @@ function resumeGame(){
   waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0;
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
-  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
+  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
@@ -6602,6 +6669,7 @@ function resumeGame(){
   try{ dlog('info',{msg:'セーブから再開',build:BUILD_ID,win:st.win?1:0,prep:st.prep?1:0}); }catch(e){}
   pickHowTip();
   inPrep=!!st.prep;
+  if(!(st.acc&&st.acc.ast)){ accStat.w0=totalWaves; accStat.turn0=turnCounter; }   // 古いセーブは、再開した時点から数え直す
   if(!battleGoals.length && !inPrep) rollGoals();
   else if(!inPrep) battleGoals.forEach(id=>{ const d=accDef(id),g=d&&goalDef(d); if(g&&goalMet(id,false)) goalAnnounced.add(id); });
   render(); layoutHand(true);
