@@ -2998,8 +2998,20 @@ function finishWaveOutcome(defeated, wave){
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
     if(wave.boss){
       const wasRes=comboRestricted(); alienBeatAdd(wave.id);
-      hint(wasRes&&!comboRestricted()?`${wave.name}を倒した！ コンボの制限と引き継ぎ無しが解除された！`:`${wave.name}を倒した！`,true);
-      setTimeout(()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); }, 900);
+      const endIt=()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); };
+      if(wasRes&&!comboRestricted()){
+        hint(`${wave.name}を倒した！`,true);
+        setTimeout(()=>{
+          const ov=document.createElement('div'); ov.className='modal-bg'; ov.style.cssText='display:flex;z-index:99999;background:rgba(8,8,14,.96);flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px';
+          ov.innerHTML=`<div style="display:flex;justify-content:center">${spriteSVG(monSprKey(wave),96,'')}</div><div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">「キミ、見込みあるね。<br>よし、特別にキミの身体のリミットを外してあげよう。」</div><div style="font-size:12.5px;opacity:.85;line-height:1.6">コンボの制限と引き継ぎ無しが解除された！</div><button class="btn" id="moonOk" style="min-width:160px">…勝手に改造された</button>`;
+          document.body.appendChild(ov);
+          try{ playSfx('combo'); }catch(e){}
+          document.getElementById('moonOk').onclick=()=>{ ov.remove(); endIt(); };
+        }, 900);
+        return;
+      }
+      hint(`${wave.name}を倒した！`,true);
+      setTimeout(endIt, 900);
       return;
     }
     lastDefeatedIdx=stageIndex; totalScore=WAVES[stageIndex].lv;
@@ -6646,7 +6658,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
