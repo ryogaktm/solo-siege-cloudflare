@@ -918,6 +918,10 @@
   #shopBody,#accUpper,#shopDeckMini,#accDeckMini{ padding-right:12px; scrollbar-width:none; }
   #shopBody::-webkit-scrollbar,#accUpper::-webkit-scrollbar,#shopDeckMini::-webkit-scrollbar,#accDeckMini::-webkit-scrollbar{ display:none; }
   #shopModal .reward-box,#accModal .reward-box{ position:relative; }
+  #cardListModal .modal{ position:relative; display:flex; flex-direction:column; overflow:hidden; max-height:min(88vh,820px); max-height:min(88svh,820px); padding:14px 16px; }
+  #cardListModal .modal h2{ flex:0 0 auto; }
+  #cardListBody .cardgrid{ max-height:none; overflow:visible; }
+  #cardListBody{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:10px; }
   .sbar{ position:absolute; width:6px; border-radius:3px; background:rgba(255,255,255,.16); pointer-events:none; z-index:30; display:none; }
   .sbar i{ position:absolute; left:0; right:0; top:0; border-radius:3px; background:#e2c06a; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
   .prep-shops{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
@@ -4280,6 +4284,7 @@ function showCardListModal(title, cards, dim){
   });
   body.appendChild(grid);
   document.getElementById('cardListModal').style.display='flex';
+  try{ body.scrollTop=0; installScrollbars(); updBarsSoon(); }catch(e){}
 }
 function useRehire(handIdx){
   if(graveyard.length===0) return hint('墓地にカードがありません。',true);
@@ -6105,7 +6110,7 @@ function confirmSell(cand){
   bg.querySelector('#csYes').onclick=()=>{ items.forEach(o=>sellAccessory(o)); sellSel=[]; bg.remove(); renderShop(); refreshPrep(); };
 }
 function installScrollbars(){
-  ['shopBody','shopDeckMini','accUpper','accDeckMini'].forEach(id=>{
+  ['shopBody','shopDeckMini','accUpper','accDeckMini','cardListBody'].forEach(id=>{
     const el=document.getElementById(id); if(!el||el._sb) return; el._sb=1;
     const bar=document.createElement('div'); bar.className='sbar'; bar.innerHTML='<i></i>';
     const host=el.offsetParent||el.parentElement; (el.parentElement).appendChild(bar);
@@ -6121,7 +6126,7 @@ function installScrollbars(){
     window.addEventListener('resize',upd); el._sbUpd=upd; upd(); });
   try{ document.fonts&&document.fonts.ready.then(()=>updAllBars()); }catch(_){}
 }
-function updAllBars(){ ['shopBody','shopDeckMini','accUpper','accDeckMini'].forEach(id=>{ const e=document.getElementById(id); if(e&&e._sbUpd) e._sbUpd(); }); }
+function updAllBars(){ ['shopBody','shopDeckMini','accUpper','accDeckMini','cardListBody'].forEach(id=>{ const e=document.getElementById(id); if(e&&e._sbUpd) e._sbUpd(); }); }
 function updBarsSoon(){ updAllBars(); requestAnimationFrame(updAllBars); setTimeout(updAllBars,150); setTimeout(updAllBars,500); }
 function renderShopMini(m,sel){
   const box=m.querySelector(sel||'#shopDeckMini'); if(!box) return;
