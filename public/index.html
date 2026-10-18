@@ -5295,10 +5295,13 @@ function monSkillUse(){
   }
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
-  else if(m.kind==='sting'||m.kind==='fang'){   // 手札を経由せず、旗に直接カードを置く（手札の枚数は変わらない）
+  else if(m.kind==='sting'||m.kind==='fang'){   // 手札に1枚加える（手札の上限を超えてもよい）
     const nc=m.kind==='sting'?{kind:'troop',color:'red',value:1,uid:uid(),temp:true}:{kind:'troop',color:'purple',value:6,uid:uid(),temp:true};
-    if(!targetsFor(nc).length){ hint('置ける旗がありません。',true); return; }
-    pending={type:'skillplace',card:nc,mk:m.kind}; picked=null; render(); hint((m.kind==='sting'?'一刺し！赤1':'毒の牙！紫6')+'を置く旗をタップしてください。'); return;
+    hand.push(nc); spec.mon++; playSfx('combo');
+    hint(m.kind==='sting'?'一刺し！赤の1が手札に加わった。':'毒の牙！紫の6が手札に加わった。',true);
+    render(); try{ layoutHand(false, nc.uid, null); }catch(_){}
+    try{ saveGame(); }catch(_){}
+    return;
   }
   else if(m.kind==='swallow'){
     if(stomach.length){
@@ -6658,7 +6661,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
