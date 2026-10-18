@@ -4306,6 +4306,7 @@ function nowText(){
   if(pending&&pending.type==='eat') return '食べるカードをタップしよう。';
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
+  if(pending&&pending.type==='addcard') return '手札から捨てるカードを1枚タップしよう（'+pending.nm+'が加わる）。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='split') return '分裂させる部隊カードをタップしよう。';
   if(pending&&pending.type==='skillplace') return '置く旗をタップしよう。';
@@ -5011,6 +5012,7 @@ function tapHand(idx){
   if(pending&&pending.type==='eat'){ eatTap(idx); return; }
   if(pending&&pending.type==='swallow'){ swallowTap(idx); return; }
   if(pending&&pending.type==='spitdiscard'){ spitDiscardTap(idx); return; }
+  if(pending&&pending.type==='addcard'){ addCardTap(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
   if(pending&&pending.type==='split'){ resolveSplit(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
@@ -5120,7 +5122,7 @@ let dbgGrab='';
 function attachDrag(el){
   let sx,sy,dragging=false,ghost=null,startRect=null,hoverFlag=null,hoverGrave=null,idx=-1;
   el.addEventListener('pointerdown',e=>{
-    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='split'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard')) return;
+    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='split'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard'&&pending.type!=='addcard')) return;
     idx=hand.findIndex(c=>c.uid===el.dataset.uid); if(idx<0) return;
     try{ dbgGrab=((el.querySelector('.corner')||{}).textContent||'?')+'→'+dbgCardStr(hand[idx])+'(#'+idx+')'; }catch(_){}
     document.querySelectorAll('.dragcard').forEach(g=>g.remove());
@@ -5297,8 +5299,12 @@ function monSkillUse(){
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
   else if(m.kind==='sting'||m.kind==='fang'){   // 手札に1枚加える（手札の上限を超えてもよい）
     const nc=m.kind==='sting'?{kind:'troop',color:'red',value:1,uid:uid(),temp:true}:{kind:'troop',color:'purple',value:6,uid:uid(),temp:true};
+    const nm=m.kind==='sting'?'一刺し！赤の1':'毒の牙！紫の6';
+    if(hand.length>=currentHandMax()){   // 手札がいっぱい：1枚捨ててから加える（上限は絶対に超えない）
+      pending={type:'addcard',card:nc,nm}; picked=null; render(); hint(nm+'を加えるため、手札から捨てるカードを1枚タップしてください。',true); return;
+    }
     hand.push(nc); spec.mon++; playSfx('combo');
-    hint(m.kind==='sting'?'一刺し！赤の1が手札に加わった。':'毒の牙！紫の6が手札に加わった。',true);
+    hint(nm+'が手札に加わった。',true);
     render(); try{ layoutHand(false, nc.uid, null); }catch(_){}
     try{ saveGame(); }catch(_){}
     return;
@@ -5315,6 +5321,13 @@ function monSkillUse(){
     pending={type:'eat'}; render(); hint('食べるカードをタップしてください。'); return;
   }
   dlog('action',{name:'monskill_'+m.kind}); render();
+}
+function addCardTap(idx){
+  const c=hand[idx]; if(!c||!pending||pending.type!=='addcard') return;
+  const nc=pending.card, nm=pending.nm;
+  hand.splice(idx,1); graveyard.push(c); hand.push(nc); spec.mon++; pending=null;
+  hint(nm+'が手札に加わった。'); playSfx('combo'); render(); try{ layoutHand(false, nc.uid, null); }catch(_){}
+  try{ saveGame(); }catch(_){}
 }
 function spitDiscardTap(idx){
   const c=hand[idx]; if(!c) return;
@@ -6661,7 +6674,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
