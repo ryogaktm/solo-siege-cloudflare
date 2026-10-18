@@ -787,7 +787,7 @@
     pointer-events:none;
   }
   .float-btn-row{
-    position:absolute; left:50%; top:-52px; transform:translateX(-50%); z-index:9;
+    position:fixed; left:50%; bottom:calc(192px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:90;
     display:flex; gap:10px; pointer-events:none;
   }
   .float-btn-row button{ pointer-events:auto; }
@@ -1168,12 +1168,12 @@
 </div>
 
 <div class="npc-bubble" id="npcBubble"></div>
-<div class="handbar">
-  <div class="rail"></div>
   <div class="float-btn-row" id="floatBtnRow">
     <button id="cancelPendingBtn" class="cancelbtn-float" style="display:none;">✕ キャンセル</button>
     <button id="confirmPendingBtn" class="confirmbtn-float" style="display:none;">確定</button>
   </div>
+<div class="handbar">
+  <div class="rail"></div>
     <div class="specrow">
       <button class="spec-btn" id="freeShuffleBtn"><span class="si">🔄</span><span class="sl">シャッフル</span><b id="freeShuffleCount">1</b></button>
       <button class="spec-btn" id="specBeg"><span class="si">🙏</span><span class="sl">命乞い</span><b id="specBegN">1</b></button>
@@ -6587,7 +6587,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18t';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18u';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
