@@ -6587,7 +6587,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18q';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18r';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -6612,7 +6612,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:force?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -6672,9 +6672,11 @@ function resumeGame(){
   if(!(st.acc&&st.acc.ast)){ accStat.w0=totalWaves; accStat.turn0=turnCounter; }   // 古いセーブは、再開した時点から数え直す
   if(!battleGoals.length && !inPrep) rollGoals();
   else if(!inPrep) battleGoals.forEach(id=>{ const d=accDef(id),g=d&&goalDef(d); if(g&&goalMet(id,false)) goalAnnounced.add(id); });
+  const winResume=!inPrep && bossHp<=0 && (st.win || true);   // 敵を倒した後の保存は、必ず勝利の続きへ進める
+  if(winResume){ busy=true; waveAdvancing=true; }   // 再開の描画で「勝利の保存」を上書きしないよう、先に操作不能にしておく
   render(); layoutHand(true);
   if(inPrep) showPrep(true);
-  else if(st.win && bossHp<=0){   // 敵を倒した瞬間の保存：演出をやり直さず、勝利の続き（宝箱・準備）へ進む
+  else if(winResume){   // 敵を倒した瞬間の保存：演出をやり直さず、勝利の続き（宝箱・準備）へ進む
     busy=true; waveAdvancing=true; window._atkAt=performance.now();
     setTimeout(()=>{ try{ finishWaveOutcome(true, WAVES[stageIndex]); }catch(e){ busy=false; waveAdvancing=false; } },700);
   }
