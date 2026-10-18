@@ -924,6 +924,9 @@
   #cardListBody{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:10px; }
   .sbar{ position:absolute; width:6px; border-radius:3px; background:rgba(255,255,255,.16); pointer-events:none; z-index:30; display:none; }
   .sbar i{ position:absolute; left:0; right:0; top:0; border-radius:3px; background:#e2c06a; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+  .prep-carry{ align-items:center; justify-content:center; gap:8px; margin:10px auto 0; padding:3px 12px; width:max-content; max-width:100%; border-radius:12px; background:rgba(40,12,34,.88); border:1px solid #f2a0cc; color:#f7c4e0; font-weight:800; font-size:13px; box-shadow:0 0 10px rgba(242,160,204,.35); }
+  .prep-carry .pc-t{ font-size:10px; font-weight:700; opacity:.85; }
+  .prep-carry .pc-i{ display:inline-flex; align-items:center; gap:2px; }
   .prep-shops{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
   .prep-tile{ aspect-ratio:1/1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:14px; border:2px solid var(--gold-3); background:linear-gradient(180deg, rgba(226,192,106,.2), rgba(226,192,106,.06)); color:var(--gold); font-family:inherit; font-weight:800; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
   .prep-tile:active{ transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
@@ -1222,6 +1225,7 @@
   <div class="reward-box" style="position:relative">
     <button id="prepDeckView" class="prep-deckview" aria-label="山札確認">📚 山札確認</button>
     <div class="prep-head"><div class="prep-char" id="prepChar"></div><div class="prep-mid"><div class="reward-title">次の戦いの準備</div><div class="reward-sub" id="prepInfo"></div></div><div class="prep-home">🏕</div></div>
+    <div class="prep-carry" id="prepCarry" style="display:none"></div>
     <div class="prep-shops">
       <button class="prep-tile" id="prepBuyAcc"><span class="pt-ico">💎</span><span class="pt-name">アクセサリーを買う</span></button>
       <button class="prep-tile" id="prepBuyDeck"><span class="pt-ico">🃏</span><span class="pt-name">デッキを買う</span></button>
@@ -6265,13 +6269,8 @@ function refreshPrep(){
   try{ document.getElementById('prepChar').innerHTML=charSpr(CHARACTER,72,true); }catch(e){}
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
   const nb=battleNo+1, nbTxt=nb>MAX_BATTLES?'ラスボス戦':`第${nb}戦 ／ 全${MAX_BATTLES}戦`;
-  // 次の戦いに引き継ぐスーパーコンボ（マークごとの連続数と、次の1旗目にかかる倍数）
-  const fmtM=x=>String(Math.round(x*100)/100);
-  const cks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]);
-  const carryHtml=cks.length
-    ? '<div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.06);text-align:left"><b style="color:var(--gold)">🔗 引き継ぎ中のスーパーコンボ</b>'+cks.map(c=>`<div style="margin-top:3px"><span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${CFILL[c]};margin-right:5px"></span><b>${CNAME[c].replace('旗','')}マーク ×${carryMap[c]}</b><div style="font-size:.85em;opacity:.85;margin-left:1.3em">1旗目から ×${fmtM(superMultFor(c,carryMap[c]+1))}</div></div>`).join('')+'<div style="margin-top:4px;font-size:.85em;opacity:.7">そのマークの役で攻撃すると続きます。</div></div>'
-    : '<div style="margin-top:6px;opacity:.7">🔗 引き継ぎ中のスーパーコンボ：なし</div>';
-  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}${carryHtml}`;
+  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
+  try{ const pc=document.getElementById('prepCarry'); if(pc){ const ks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]); if(ks.length){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">引き継ぎ</span>'+ks.map(c=>`<span class="pc-i">${miniIcon(EMBLEM[c],CFILL[c])}×${carryMap[c]}</span>`).join(''); } else pc.style.display='none'; } }catch(e){}
 }
 function prepGo(){
   document.getElementById('prepModal').style.display='none';
@@ -6638,7 +6637,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18zg';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18zh';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
