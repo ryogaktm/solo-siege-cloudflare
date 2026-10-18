@@ -6675,7 +6675,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -6968,7 +6968,7 @@ function lgImport(x){
 (function(){
   try{
     const ts=document.getElementById('titleScreen');
-    if(ts){ const c=document.createElement('div'); c.textContent='© OMG GAMES'; c.style.cssText='position:absolute;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;letter-spacing:.12em;opacity:.85;color:var(--cream,#f5e9c8);text-shadow:0 1px 3px #000,0 0 6px #000;z-index:5;font-family:Arial,sans-serif'; let n=0,t0=0; c.onclick=()=>{ const now=Date.now(); n=(now-t0<1500)?n+1:1; t0=now; if(n>=5){ n=0; try{ const on=localStorage.getItem('ssDebugMode')==='1'; if(on) localStorage.removeItem('ssDebugMode'); else localStorage.setItem('ssDebugMode','1'); }catch(e){} location.reload(); } };   // ホーム画面のアプリ用：© を5回すばやくタップでデバッグモードの入／切
+    if(ts){ const c=document.createElement('div'); c.textContent='© OMG GAMES'; c.style.cssText='position:absolute;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;letter-spacing:.12em;opacity:.85;color:var(--cream,#f5e9c8);text-shadow:0 1px 3px #000,0 0 6px #000;z-index:5;font-family:Arial,sans-serif'; let n=0,t0=0; c.onclick=()=>{ const now=Date.now(); n=(now-t0<1500)?n+1:1; t0=now; if(n>=3){ n=0; try{ const on=localStorage.getItem('ssDebugMode')==='1'; if(on) localStorage.removeItem('ssDebugMode'); else localStorage.setItem('ssDebugMode','1'); }catch(e){} location.reload(); } };   // ホーム画面のアプリ用：© を3回すばやくタップでデバッグモードの入／切
     c.style.padding='10px 24px'; c.style.bottom='calc(0px + env(safe-area-inset-bottom,0px))'; c.style.left='25%'; c.style.right='25%'; c.style.cursor='default'; ts.appendChild(c); }
   }catch(e){}
   if(!window.__SSDEBUG) return;
