@@ -3301,7 +3301,7 @@ function resolveFusion(){
   graveyard.push(used);
   pending=null;
   advanceTurn(used);
-  const refilled=autoRefill(1);
+  const refilled=autoRefill(Math.max(1,currentHandMax()-hand.length));   // 手札は常に上限まで補充
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
   busy=false; endCheck(); render();
   hint(hintMsg);
@@ -3922,6 +3922,7 @@ function render(){
 
   let targets=[];
   if(pending&&pending.type==='guidance') targets=guidanceTargets(pending.step);
+  else if(pending&&pending.type==='skillplace') targets=targetsFor(pending.card);
   else if(picked!==null && !pending) targets=targetsFor(hand[picked]);
   const highlighting=targets.length>0;
 
@@ -4188,6 +4189,7 @@ function nowText(){
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
+  if(pending&&pending.type==='skillplace') return '置く旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
@@ -4856,6 +4858,17 @@ function tapFlag(i){
     resolveGuidance(i);
     return;
   }
+  if(pending&&pending.type==='skillplace'){
+    const nc=pending.card, f=flags[i];
+    if(!targetsFor(nc).includes(i)){ hint('その旗には置けません。',true); return; }
+    const mon=flagMonster(f);
+    if(mon) f.cards[f.cards.indexOf(mon)]=nc; else f.cards.push(nc);
+    spec.mon++; const mk=pending.mk; pending=null; lastFi=i;
+    playSfx('place'); if(!mon) closeCheck(i,false);
+    let defeat=null; if(mon){ defeat=resolveMonsterDefeatByRef(mon,false,i); closeCheck(i,false); }
+    hint((mk==='sting'?'一刺し！赤1':'毒の牙！紫6')+'を旗に置いた。'); render(); endCheck(); render();
+    if(defeat) triggerMonsterDefeatFX(i,defeat); return;
+  }
   if(pending) return;
   if(picked===null) return;
   const el=document.querySelector(`.hand [data-uid="${hand[picked].uid}"]`);
@@ -5147,11 +5160,10 @@ function monSkillUse(){
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
   }
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
-  else if(m.kind==='sting'){   // 手札がいっぱいでも1枚増える（手札は上限を1枚超えて、使うと元に戻る）
-    hand.push({kind:'troop',color:'red',value:1,uid:uid(),temp:true}); spec.mon++; hint('一刺し！赤1が手札に加わった。'); playSfx('shuffle');
-  }
-  else if(m.kind==='fang'){
-    hand.push({kind:'troop',color:'purple',value:6,uid:uid(),temp:true}); spec.mon++; hint('毒の牙！紫6が手札に加わった。'); playSfx('shuffle');
+  else if(m.kind==='sting'||m.kind==='fang'){   // 手札を経由せず、旗に直接カードを置く（手札の枚数は変わらない）
+    const nc=m.kind==='sting'?{kind:'troop',color:'red',value:1,uid:uid(),temp:true}:{kind:'troop',color:'purple',value:6,uid:uid(),temp:true};
+    if(!targetsFor(nc).length){ hint('置ける旗がありません。',true); return; }
+    pending={type:'skillplace',card:nc,mk:m.kind}; picked=null; render(); hint((m.kind==='sting'?'一刺し！赤1':'毒の牙！紫6')+'を置く旗をタップしてください。'); return;
   }
   else if(m.kind==='swallow'){
     if(stomach.length){
@@ -6442,7 +6454,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18j';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
