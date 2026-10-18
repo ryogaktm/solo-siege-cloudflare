@@ -1450,7 +1450,7 @@ const TACTICS = [
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
   {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする（最大10）',count:3},
   {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚複製する',count:2},
-  {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて「10−その数字」にする（7なら3）',count:2,isNew:true},
+  {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
   {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
 ];
@@ -1801,7 +1801,7 @@ const TACTIC_EXTRA = {
   curse_poison:'使うと毒をあびて、毎ターン戦力が減っていきます。<b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。',
   curse_seal:'使うと好きな旗を1つ選んで封鎖できます。<b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。',
   conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
-  revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて「10−その数字」に入れ替わります（7なら3、2なら8。10は1になります）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
+  revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて反転します（1↔10、2↔9、3↔8、4↔7、5↔6。7なら4、2なら9）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
   split:'発動後、手札の部隊カードを1枚タップ。そのカードがランダムに2枚へ分裂します（合計は変わりません。8なら2と6、3と5など）。数字が2以上のカードだけ選べます。増えた1枚は、その戦いの間だけ使えます。',
   inspire:'発動すると、このカードを除く今の手札にある部隊・力の装備の数字がすべて+3されます（最大10まで）。強い役や換装条件を狙いやすくなります。',
   duplicate:'発動後、複製したい手札のカードをタップ。そのカードのコピーが手札に加わります（複製もとのカードはそのまま残ります）。コピーはこの戦いの間だけ有効です。',
@@ -3296,13 +3296,13 @@ function useRevolution(handIdx){
   hand.forEach(c=>{
     if(c.kind==='troop'){
       if(c.origValue===undefined) c.origValue=c.value;
-      c.value=Math.max(1,10-c.value);
+      c.value=Math.min(10,Math.max(1,11-c.value));
     }
   });
   advanceTurn(used);
   const refilled=autoRefill(1);
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-  busy=false; hint('大革命：手札の数字がすべて「10−その数字」になった！'); endCheck(); render();
+  busy=false; hint('大革命：手札の数字がすべて反転した！（1↔10、2↔9、3↔8、4↔7、5↔6）'); endCheck(); render();
 }
 function useSplit(handIdx){
   if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop'&&c.value>=2)) return hint('分裂できる部隊カード（2以上）が手札にありません。',true);
@@ -6628,7 +6628,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18z';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18za';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
