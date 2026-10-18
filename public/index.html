@@ -6109,23 +6109,40 @@ function confirmSell(cand){
   bg.querySelector('#csNo').onclick=()=>bg.remove();
   bg.querySelector('#csYes').onclick=()=>{ items.forEach(o=>sellAccessory(o)); sellSel=[]; bg.remove(); renderShop(); refreshPrep(); };
 }
+function attachBar(el,toggle){
+  if(!el||el._sb) return; el._sb=1;
+  const bar=document.createElement('div'); bar.className='sbar'; bar.innerHTML='<i></i>';
+  const par=el.parentElement; if(!par) return;
+  try{ if(getComputedStyle(par).position==='static') par.style.position='relative'; }catch(_){}
+  par.appendChild(bar);
+  const upd=()=>{ const ch=el.clientHeight, sh=el.scrollHeight;
+    if(!ch||sh<=ch+14){ bar.style.display='none'; if(toggle&&ch&&el.scrollTop===0) el.style.overflowY='hidden'; return; }
+    if(toggle) el.style.overflowY='auto';
+    bar.style.display='block'; const th=Math.max(34,Math.round(ch*ch/sh)), maxT=sh-ch, mv=ch-th;
+    bar.style.left=(el.offsetLeft+el.offsetWidth-8)+'px'; bar.style.top=(el.offsetTop+2)+'px'; bar.style.height=(ch-4)+'px';
+    const i=bar.firstChild; i.style.height=th+'px'; i.style.top=Math.round(maxT>0?el.scrollTop/maxT*(mv-4):0)+'px'; };
+  el.addEventListener('scroll',upd,{passive:true});
+  try{ new ResizeObserver(upd).observe(el); }catch(_){}
+  try{ new MutationObserver(upd).observe(el,{childList:true,subtree:true}); }catch(_){}
+  window.addEventListener('resize',upd); el._sbUpd=upd; upd();
+}
 function installScrollbars(){
-  ['shopBody','shopDeckMini','accUpper','accDeckMini','cardListBody'].forEach(id=>{
-    const el=document.getElementById(id); if(!el||el._sb) return; el._sb=1;
-    const bar=document.createElement('div'); bar.className='sbar'; bar.innerHTML='<i></i>';
-    const host=el.offsetParent||el.parentElement; (el.parentElement).appendChild(bar);
-    const upd=()=>{ const ch=el.clientHeight, sh=el.scrollHeight;
-      if(!ch||sh<=ch+14){ bar.style.display='none'; if(ch&&el.scrollTop===0) el.style.overflowY='hidden'; return; }
-      el.style.overflowY='auto';
-      bar.style.display='block'; const th=Math.max(34,Math.round(ch*ch/sh)), maxT=sh-ch, mv=ch-th;
-      bar.style.left=(el.offsetLeft+el.offsetWidth-8)+'px'; bar.style.top=(el.offsetTop+2)+'px'; bar.style.height=(ch-4)+'px';
-      const i=bar.firstChild; i.style.height=th+'px'; i.style.top=Math.round(maxT>0?el.scrollTop/maxT*(mv-4):0)+'px'; };
-    el.addEventListener('scroll',upd,{passive:true});
-    try{ new ResizeObserver(upd).observe(el); }catch(_){}
-    try{ new MutationObserver(upd).observe(el,{childList:true,subtree:true}); }catch(_){}
-    window.addEventListener('resize',upd); el._sbUpd=upd; upd(); });
+  ['shopBody','shopDeckMini','accUpper','accDeckMini','cardListBody'].forEach(id=>attachBar(document.getElementById(id),true));
   try{ document.fonts&&document.fonts.ready.then(()=>updAllBars()); }catch(_){}
 }
+/* どの画面でも、中身がはみ出してスクロールできる場所には必ず金色のバーを付ける（iPhoneは標準のバーが出ないため、隠れたカードに気づけない） */
+function autoBars(){
+  try{
+    const shown=[...document.querySelectorAll('.modal-bg,.title-screen,.char-screen')].filter(m=>m.style.display==='flex'||m.style.display==='block'); if(!shown.length) return;
+    shown.forEach(m=>m.querySelectorAll('*').forEach(e=>{
+      if(e._sb||e.classList.contains('sbar')||e.clientHeight<40) return;
+      if(e.scrollHeight<=e.clientHeight+14) return;
+      const oy=getComputedStyle(e).overflowY; if(oy!=='auto'&&oy!=='scroll') return;
+      attachBar(e,false);
+    }));
+  }catch(_){}
+}
+setInterval(autoBars,700);
 function updAllBars(){ ['shopBody','shopDeckMini','accUpper','accDeckMini','cardListBody'].forEach(id=>{ const e=document.getElementById(id); if(e&&e._sbUpd) e._sbUpd(); }); }
 function updBarsSoon(){ updAllBars(); requestAnimationFrame(updAllBars); setTimeout(updAllBars,150); setTimeout(updAllBars,500); }
 function renderShopMini(m,sel){
