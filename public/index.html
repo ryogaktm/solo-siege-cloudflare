@@ -4428,7 +4428,7 @@ function fillPage(id, html){
 }
 function buildHowtoPage(){
   fillPage('howtoBasic', `<div class="howto-section" id="howtoBasicSec">
-    <p>6つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた戦力で<b style="color:var(--danger)">ボスにダメージ</b>を与えよう。役が揃うと、役ごとの倍率（×3〜×10）が掛かる。<b style="color:#f2a0cc">スーパーコンボ</b>は、象徴の色が同じ「役の旗」が2つ以上同じマークのつながりごとに、先に閉じた旗から順に<b style="color:#f2a0cc">×2、×3、×4…</b>と倍率が上がっていく。攻撃のあとも連続は続き、次のシートでは続きの倍率（例：2つ決めたあとは×4から）になる。攻撃して旗が空になっても連続は持ち越せる。スーパーコンボが決まらない攻撃をするか、次の敵に進むとリセットされる。役のない旗はスーパーコンボの対象外</p>
+    <p>6つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた戦力で<b style="color:var(--danger)">ボスにダメージ</b>を与えよう。役が揃うと、役ごとの倍率（×3〜×10）が掛かる。<b style="color:#f2a0cc">スーパーコンボ</b>は、象徴の色が同じ「役の旗」が2つ以上同じマークのつながりごとに、先に閉じた旗から順に<b style="color:#f2a0cc">×2、×3、×4…</b>と倍率が上がっていく。攻撃のあとも連続は続き、次のシートでは続きの倍率（例：2つ決めたあとは×4から）になる。敵を倒して次の敵に進んでも連続は持ち越せる。倍率に上限はない。スーパーコンボが決まらない攻撃をするとリセットされる。役のない旗はスーパーコンボの対象外</p>
     <p style="margin-top:8px;">6旗すべてが封鎖されると<b style="color:var(--gold)">一斉攻撃</b>！ <b style="color:var(--gold)">自分の戦力と敵の攻撃力がぶつかり合い、その差分だけ</b>が相手のHPを削る。自分が上回れば敵に、下回れば自分にダメージ。旗は空に戻り、敵の攻撃力もリセットされる。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">ボスのHPが残っていれば同じステージのままWAVEだけ進み、次の戦いが始まる</b>（鼓舞・複製・融合の効果は次の戦いには持ち越されない）。<b style="color:var(--gold)">ボスを倒すと次のステージへ進み、そこで初めて手札も一新</b>される。</p>
     <p style="margin-top:8px;">敵の攻撃力は<b style="color:var(--danger)">カードを1枚使うごとに増えていく</b>。戦力・敵の攻撃力・その差分は、カードを1枚置くたびにリアルタイムで更新される。ためすぎは禁物、頃合いを見て旗を全部そろえて攻撃しよう。</p>
@@ -4863,7 +4863,7 @@ function advanceToNextStage(){
     if(finalHp<=0) chainedKill=true;
     bossHp=finalHp;
   }
-  score=0; displayedScore=0; carryMap={}; hostCarry=0; guardOn=false; resetBattleRound();
+  score=0; displayedScore=0; hostCarry=0; guardOn=false; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す
   playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
@@ -5837,7 +5837,7 @@ function accVal(c){
   return v;
 }
 function superMultFor(sym,raw){
-  let m=(!hasAcc('super_unlimited') && raw>5)?5:raw;   // 上限×5（6連続目以降も×5のまま維持。無限のチェーンネックレス装備中は上限なし）
+  let m=raw;   // 倍率の上限なし
   if(sym && hasAcc('super15_'+sym)) m*=(1+0.25*accX()); if(sym && hasAcc('super2_'+sym)) m*=(1+0.5*accX());
   return m;
 }
@@ -6587,7 +6587,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18t';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
