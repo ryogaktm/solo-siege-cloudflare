@@ -1450,9 +1450,11 @@ const TACTICS = [
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
   {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする（最大10）',count:3},
   {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚複製する',count:2},
+  {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて「10−その数字」にする（7なら3）',count:2,isNew:true},
+  {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
 ];
-const GLOBAL_TACTIC_TYPES=['scout','shuffle','inspire','rehire','conscript'];
+const GLOBAL_TACTIC_TYPES=['scout','shuffle','inspire','rehire','conscript','revolution'];
 const HAND_MAX_BASE = 6, LOCK_TURNS = 5, WAVE_DRAW = 40;
 let FLAG_COUNT = 6;
 /* =====================================================================
@@ -1799,6 +1801,8 @@ const TACTIC_EXTRA = {
   curse_poison:'使うと毒をあびて、毎ターン戦力が減っていきます。<b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。',
   curse_seal:'使うとランダムな旗が1つ封鎖されます。<b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。',
   conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
+  revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて「10−その数字」に入れ替わります（7なら3、2なら8。10は1になります）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
+  split:'発動後、手札の部隊カードを1枚タップ。そのカードがランダムに2枚へ分裂します（合計は変わりません。8なら2と6、3と5など）。数字が2以上のカードだけ選べます。増えた1枚は、その戦いの間だけ使えます。',
   inspire:'発動すると、このカードを除く今の手札にある部隊・力の装備の数字がすべて+3されます（最大10まで）。強い役や換装条件を狙いやすくなります。',
   duplicate:'発動後、複製したい手札のカードをタップ。そのカードのコピーが手札に加わります（複製もとのカードはそのまま残ります）。コピーはこの戦いの間だけ有効です。',
   fusion:'発動後、手札の部隊カードを2枚タップして選択。合計値を保ったまま、高い方は必ず10になり、低い方はその余り（合計−10）になります（例：4と8→2と10、6と8→4と10）。合計が10以下の場合は、合計値のカード1枚だけにまとまります（例：2と8→10、6と2→8が1枚）。分裂して2枚になるときは、それぞれ元のカードのマーク（色）のままです。1枚にまとまるときは、数字が高い方のカードのマーク（色）になります（同じ数字なら、手札で左にある方）。',
@@ -2165,7 +2169,32 @@ function randomizeStartDeck(){ // 初期山札は完全ランダム（大山札�
   all.forEach(c=>{ c.inDeck=false; });
   deckUids=new Set();
   shuffle(all);
-  activeDeck=all.slice(0,WAVE_DRAW); grandDeck=all.slice(WAVE_DRAW);
+  { // 数字・装備・軍師の割合は、新しいカードを足しても変わらないように、元のカード構成の割合に固定する（新カードは軍師の枠の中で入れ替わる）
+    const cat=c=>c.kind==='troop'?'n':c.kind==='monster'?'e':'t';
+    const base={n:GAME_COLORS.length*10,e:0,t:0};
+    if(CHARACTER.equipment) MONSTERS.filter(m=>!(m.sub==='mark'&&!GAME_COLORS.includes(m.color))).forEach(m=>{ base.e+=m.count; });
+    TACTICS.forEach(t=>{
+      if(t.isNew) return;
+      if(t.type==='alexander'&&!CHARACTER.blueInf) return;
+      if(t.type==='darius'&&!CHARACTER.redInf) return;
+      if(t.type==='conscript'){ if(CHARACTER.id==='novice') return; }
+      else if(t.type!=='alexander'&&t.type!=='darius'&&!CHARACTER.tactics) return;
+      base.t+=t.count;
+    });
+    const pool={n:[],e:[],t:[]}; all.forEach(c=>pool[cat(c)].push(c));
+    const total=Math.min(WAVE_DRAW,all.length), bs=base.n+base.e+base.t;
+    if(bs>0 && all.length>=WAVE_DRAW){
+      const q={}, rem=[]; let used=0;
+      ['n','e','t'].forEach(k=>{ const x=total*base[k]/bs; q[k]=Math.min(Math.floor(x),pool[k].length); used+=q[k]; rem.push([k,x-Math.floor(x)]); });
+      rem.sort((a,b)=>b[1]-a[1]);
+      for(let i=0;used<total&&i<12;i++){ const k=rem[i%3][0]; if(q[k]<pool[k].length&&base[k]>0){ q[k]++; used++; } }
+      const pick=[]; ['n','e','t'].forEach(k=>{ pick.push(...pool[k].slice(0,q[k])); });
+      if(pick.length<total){ const have=new Set(pick.map(c=>c.uid)); for(const c of all){ if(pick.length>=total) break; if(!have.has(c.uid)) pick.push(c); } }
+      shuffle(pick);
+      const ps=new Set(pick.map(c=>c.uid));
+      activeDeck=pick; grandDeck=all.filter(c=>!ps.has(c.uid));
+    } else { activeDeck=all.slice(0,WAVE_DRAW); grandDeck=all.slice(WAVE_DRAW); }
+  }
   activeDeck.forEach(c=>{ c.inDeck=true; deckUids.add(c.uid); });
   hand=[];
   for(let i=0;i<currentHandMax();i++){ const c=drawFromPools(); if(c) hand.push(c); }
@@ -2460,7 +2489,7 @@ function targetsFor(card){
   return out;
 }
 function canPlayAnything(){
-  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
+  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||(c.type==='split'&&hand.some(x=>x.kind==='troop'&&x.value>=2))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
 }
 
 /* ================= AUTO REFILL ================= */
@@ -3255,6 +3284,49 @@ function useDuplicate(handIdx){
   pending={type:'duplicate', handIdx};
   render();
   hint('複製したい手札のカードをタップしてください。');
+}
+function useRevolution(handIdx){
+  if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop')) return hint('手札に数字カードがありません。',true);
+  busy=true;
+  const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
+  hand.forEach(c=>{
+    if(c.kind==='troop'){
+      if(c.origValue===undefined) c.origValue=c.value;
+      c.value=Math.max(1,10-c.value);
+    }
+  });
+  advanceTurn(used);
+  const refilled=autoRefill(1);
+  render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+  busy=false; hint('大革命：手札の数字がすべて「10−その数字」になった！'); endCheck(); render();
+}
+function useSplit(handIdx){
+  if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop'&&c.value>=2)) return hint('分裂できる部隊カード（2以上）が手札にありません。',true);
+  busy=false;
+  pending={type:'split', handIdx};
+  render();
+  hint('分裂させる部隊カードをタップしてください。');
+}
+function resolveSplit(idx){
+  const src=hand[idx];
+  if(idx===pending.handIdx||!src||src.kind!=='troop') return;
+  if(src.value<2) return hint('数字が1のカードは分裂できません。',true);
+  busy=true;
+  const usedIdx=pending.handIdx, used=hand[usedIdx];
+  const a=1+Math.floor(Math.random()*(src.value-1)), b=src.value-a;
+  if(src.origValue===undefined) src.origValue=src.value;
+  const total=src.value;
+  src.value=a;
+  const clone={kind:'troop',color:src.color,altColor:src.altColor,mixed:src.mixed,value:b,uid:uid(),temp:true};
+  const fromRect=rectOfUid(src.uid);
+  hand.splice(usedIdx,1); graveyard.push(used);
+  hand.push(clone);
+  pending=null;
+  advanceTurn(used);
+  const refilled=autoRefill(Math.max(0,currentHandMax()-hand.length));   // 使った1枚が減り、分裂で1枚増えるので、手札は上限のまま
+  render(); layoutHand(false, clone.uid, fromRect);
+  busy=false; endCheck(); render();
+  hint(`分裂！${total}が${a}と${b}に分かれた。`);
 }
 function useFusion(handIdx){
   const troopCount=hand.filter(c=>c.kind==='troop').length;
@@ -4191,6 +4263,7 @@ function nowText(){
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
+  if(pending&&pending.type==='split') return '分裂させる部隊カードをタップしよう。';
   if(pending&&pending.type==='skillplace') return '置く旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
@@ -4201,7 +4274,7 @@ function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
-    if(pending && ['discard','replace_select','guidance','duplicate','fusion'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
+    if(pending && ['discard','replace_select','guidance','duplicate','fusion','split'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
     else if(pendHintTxt){ if(he.textContent===pendHintTxt) he.textContent=''; pendHintTxt=''; }
   }
   document.getElementById('cancelPendingBtn').style.display = (pending && pending.type!=='discard' && pending.type!=='rehire' && pending.type!=='spitdiscard') ? '' : 'none';
@@ -4251,7 +4324,7 @@ function showCardInfo(idx){
   else if(c.sub==='necro'){ primary.style.display=''; primary.textContent='発動する'; }
   else if(c.type==='guidance'){ primary.style.display=''; primary.textContent='発動する'; }
   else if(c.type==='duplicate'){ primary.style.display=''; primary.textContent='発動する'; }
-  else if(c.type==='fusion'){ primary.style.display=''; primary.textContent='発動する'; }
+  else if(c.type==='fusion'||c.type==='split'){ primary.style.display=''; primary.textContent='発動する'; }
   else { primary.style.display='none'; }
   document.getElementById('cardInfoBg').style.display='flex';
 }
@@ -4888,6 +4961,7 @@ function tapHand(idx){
   if(pending&&pending.type==='swallow'){ swallowTap(idx); return; }
   if(pending&&pending.type==='spitdiscard'){ spitDiscardTap(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
+  if(pending&&pending.type==='split'){ resolveSplit(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
   if(pending&&pending.type==='replace_select'){ replaceTap(idx); return; }
   if(pending) return;
@@ -4995,7 +5069,7 @@ let dbgGrab='';
 function attachDrag(el){
   let sx,sy,dragging=false,ghost=null,startRect=null,hoverFlag=null,hoverGrave=null,idx=-1;
   el.addEventListener('pointerdown',e=>{
-    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard')) return;
+    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='split'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard')) return;
     idx=hand.findIndex(c=>c.uid===el.dataset.uid); if(idx<0) return;
     try{ dbgGrab=((el.querySelector('.corner')||{}).textContent||'?')+'→'+dbgCardStr(hand[idx])+'(#'+idx+')'; }catch(_){}
     document.querySelectorAll('.dragcard').forEach(g=>g.remove());
@@ -5072,6 +5146,8 @@ document.getElementById('ciPrimary').onclick=()=>{
   else if(c.type==='rehire'){ useRehire(idx); }
   else if(c.type==='guidance'){ useGuidance(idx); }
   else if(c.type==='inspire'){ useInspire(idx); }
+  else if(c.type==='revolution'){ useRevolution(idx); }
+  else if(c.type==='split'){ useSplit(idx); }
   else if(c.type==='conscript'){ useConscript(idx); }
   else if(isCurse(c)){ useCurse(idx); }
   else if(c.type==='blank'){ discardDraw(idx); }
@@ -5594,7 +5670,7 @@ document.getElementById('menuBtn').onclick=(e)=>{
 };
 document.getElementById('menuPanel').addEventListener('click', e=>e.stopPropagation());
 /* debug: 戦術カード/操作の記録 */
-['useScout','confirmReplace','useRehire','resolveRehire','resolveGuidance','useInspire','useConscript','resolveDuplicate','resolveFusion','useNecromancer','discardDraw','useFusion','useGuidance','useDuplicate','useShuffle','confirmDiscard','performFreeShuffle'].forEach(n=>{
+['useScout','confirmReplace','useRehire','resolveRehire','resolveGuidance','useInspire','useConscript','resolveDuplicate','resolveFusion','useRevolution','resolveSplit','useNecromancer','discardDraw','useFusion','useGuidance','useDuplicate','useShuffle','confirmDiscard','performFreeShuffle'].forEach(n=>{
   try{
     const o=window[n]; if(typeof o!=='function') return;
     window[n]=function(){
@@ -6302,7 +6378,7 @@ function offerEquip(list){
 }
 const DECK_PRICE_MULT=2.5;  // デッキ屋の値段倍率
 const SWAP_PRICE=Math.round(30*DECK_PRICE_MULT), UP_PRICE=Math.round(50*DECK_PRICE_MULT), CH_PRICE=Math.round(50*DECK_PRICE_MULT);
-const CARD_PRICE={scout:40,shuffle:40,wipe:60,rehire:60,guidance:50,conscript:80,inspire:60,duplicate:70,fusion:70,alexander:90,darius:90};
+const CARD_PRICE={scout:40,shuffle:40,wipe:60,rehire:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
 const cardPrice=t=>Math.round((CARD_PRICE[t.type]||60)*DECK_PRICE_MULT);
 function startSwap(){
   const cards=allCardsUnique().filter(deckEligible).filter(c=>c.inDeck).sort(deckSortCmp);
@@ -6461,7 +6537,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18p';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
@@ -6647,7 +6723,7 @@ function lgImport(x){
   wrap('unapplyAcc',o=>'acc解除:'+((accDef(o&&o.id)||{}).name||''));
   wrap('syncSeal',()=>'acc:紫の封印/解除');
   wrap('resolveFusion',()=>'融合'); wrap('resolveDuplicate',()=>'複製'); wrap('resolveRehire',()=>'再雇用');
-  wrap('useInspire',()=>'鼓舞'); wrap('useWeaken',()=>'弱体化');
+  wrap('useInspire',()=>'鼓舞'); wrap('useRevolution',()=>'大革命'); wrap('resolveSplit',()=>'分裂'); wrap('useWeaken',()=>'弱体化');
   const around=(name,pre,post)=>{ const f=window[name]; if(typeof f!=='function') return; window[name]=function(){ if(pre) pre.apply(this,arguments); const r=f.apply(this,arguments); if(post) post.apply(this,arguments); return r; }; };
   around('init',()=>{ LG.last=null; LG.exp.clear(); LG.mods=new Map(); });
   around('advanceToNextStage',()=>lgCheck('prep_out'),()=>lgCheck('battle_start'));
