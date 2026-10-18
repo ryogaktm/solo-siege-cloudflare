@@ -5856,20 +5856,20 @@ const BONUS_GOALS=[
   {id:'bn_role1',tier:'easy',cash:20,text:'役のある旗（ホスト以外）を1回完成させる',def:S=>({done:()=>Object.keys(S.roles).some(k=>k!=='ホスト'&&S.roles[k]>0)})},
   {id:'bn_role3',tier:'easy',cash:30,text:'役のある旗（ホスト以外）を3回完成させる',def:S=>({done:()=>Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0)>=3,prog:`${Math.min(3,Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0))} / 3回`})},
   {id:'bn_tac2',tier:'easy',cash:20,text:'軍師カードを2枚使う',avail:()=>CHARACTER.tactics,def:S=>({done:()=>S.tac>=2,prog:`${Math.min(2,S.tac)} / 2枚`})},
-  {id:'bn_tac5',tier:'mid',cash:40,text:'軍師カードを5枚使う',avail:()=>CHARACTER.tactics,def:S=>({done:()=>S.tac>=5,prog:`${Math.min(5,S.tac)} / 5枚`})},
-  {id:'bn_super2',tier:'easy',cash:35,text:'どれかの色でスーパーコンボを×2まで決める',avail:()=>CHARACTER.combo,def:S=>({done:()=>Math.max(0,...Object.values(S.super))>=2})},
+  {id:'bn_tac5',tier:'mid',cash:50,text:'軍師カードを5枚使う',avail:()=>CHARACTER.tactics,def:S=>({done:()=>S.tac>=5,prog:`${Math.min(5,S.tac)} / 5枚`})},
+  {id:'bn_super2',tier:'easy',cash:40,text:'どれかの色でスーパーコンボを×2まで決める',avail:()=>CHARACTER.combo,def:S=>({done:()=>Math.max(0,...Object.values(S.super))>=2})},
   {id:'bn_long1',tier:'easy',cash:30,text:'4回以上の攻撃をかけて倒す（長期戦）',def:S=>({final:true,done:()=>totalWaves-S.w0>=4,prog:`${totalWaves-S.w0} 回目`})},
-  {id:'bn_long2',tier:'mid',cash:85,text:'8回以上の攻撃をかけて倒す（大長期戦）',def:S=>({final:true,done:()=>totalWaves-S.w0>=8,prog:`${totalWaves-S.w0} 回目`})},
-  {id:'bn_fast2',tier:'mid',cash:70,text:'2回以内の攻撃で倒す',def:S=>({final:true,done:()=>totalWaves-S.w0<=2})},
-  {id:'bn_fast1',tier:'hard',cash:140,text:'最初の攻撃で倒す（1撃で決める）',def:S=>({final:true,done:()=>totalWaves-S.w0<=1})},
-  {id:'bn_turns',tier:'hard',cash:175,text:'短いターン数で倒す',txt:()=>`${FLAG_COUNT*3+3}ターン以内に倒す`,def:S=>({final:true,done:()=>turnCounter-S.turn0<=FLAG_COUNT*3+3,prog:`${turnCounter-S.turn0}ターン`})},
-  {id:'bn_kinds3',tier:'mid',cash:85,text:'1回の攻撃で3種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=3})},
-  {id:'bn_kinds4',tier:'hard',cash:175,text:'1回の攻撃で4種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=4})},
-  {id:'bn_same3',tier:'mid',cash:70,text:'同じ役の旗を3つ以上そろえて攻撃する',def:S=>({done:()=>S.maxSame>=3})},
-  {id:'bn_nohost',tier:'mid',cash:70,text:'役なし（ホスト）の旗を1つも出さずに倒す',def:S=>({final:true,done:()=>(S.roles['ホスト']||0)===0&&Object.keys(S.roles).length>0})},
-  {id:'bn_notac',tier:'mid',cash:55,text:'軍師カードを1枚も使わずに倒す',avail:()=>CHARACTER.tactics,def:S=>({final:true,done:()=>S.tac===0})},
-  {id:'bn_nodmg',tier:'hard',cash:140,text:'ダメージを受けずに敵を倒す',def:S=>({final:true,done:()=>S.minHp>=1})},
-  {id:'bn_over3',tier:'hard',cash:175,text:'敵の残り体力の3倍以上のダメージでとどめを刺す',def:S=>({final:true,done:()=>(S.overMax||0)>=3})},
+  {id:'bn_long2',tier:'mid',cash:95,text:'8回以上の攻撃をかけて倒す（大長期戦）',def:S=>({final:true,done:()=>totalWaves-S.w0>=8,prog:`${totalWaves-S.w0} 回目`})},
+  {id:'bn_fast2',tier:'mid',cash:80,text:'2回以内の攻撃で倒す',def:S=>({final:true,done:()=>totalWaves-S.w0<=2})},
+  {id:'bn_fast1',tier:'hard',cash:160,text:'最初の攻撃で倒す（1撃で決める）',def:S=>({final:true,done:()=>totalWaves-S.w0<=1})},
+  {id:'bn_turns',tier:'hard',cash:200,text:'短いターン数で倒す',txt:()=>`${FLAG_COUNT*3+3}ターン以内に倒す`,def:S=>({final:true,done:()=>turnCounter-S.turn0<=FLAG_COUNT*3+3,prog:`${turnCounter-S.turn0}ターン`})},
+  {id:'bn_kinds3',tier:'mid',cash:95,text:'1回の攻撃で3種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=3})},
+  {id:'bn_kinds4',tier:'hard',cash:200,text:'1回の攻撃で4種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=4})},
+  {id:'bn_same3',tier:'mid',cash:80,text:'同じ役の旗を3つ以上そろえて攻撃する',def:S=>({done:()=>S.maxSame>=3})},
+  {id:'bn_nohost',tier:'mid',cash:80,text:'役なし（ホスト）の旗を1つも出さずに倒す',def:S=>({final:true,done:()=>(S.roles['ホスト']||0)===0&&Object.keys(S.roles).length>0})},
+  {id:'bn_notac',tier:'mid',cash:65,text:'軍師カードを1枚も使わずに倒す',avail:()=>CHARACTER.tactics,def:S=>({final:true,done:()=>S.tac===0})},
+  {id:'bn_nodmg',tier:'hard',cash:160,text:'ダメージを受けずに敵を倒す',def:S=>({final:true,done:()=>S.minHp>=1})},
+  {id:'bn_over3',tier:'hard',cash:200,text:'敵の残り体力の3倍以上のダメージでとどめを刺す',def:S=>({final:true,done:()=>(S.overMax||0)>=3})},
 ];
 const accDef=id=>ACC_DEFS.find(d=>d.id===id)||dynAccDef(id);
 function dynAccDef(id){
@@ -6676,7 +6676,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
