@@ -6433,8 +6433,8 @@ function renderShop_(){
     items.push({key:'slotplus',icon:'💍',name:'アクセサリー枠+1',desc:'アクセサリーを付けられる数が1つ増える（ずっと続く・1回だけ）',price:300,sold:!!shopOnce.slot,
       apply:()=>{ shopOnce.slot=true; accSlotBonus++; ACC_SLOTS++; hint('アクセサリーの装備枠が1つ増えた！'); }});
     spTargets().forEach(t=>{ const own=!!t.acc;
-      items.push({key:'spplus_'+(own?t.acc.aid:'d'+t.k),icon:'✨',name:`特殊技+1（${t.label}）`,desc:own?`このアクセサリーが与える技の回数が毎戦+1回（このアクセサリーに付く。外すと効果も外れる）`:`持ち技の回数が毎戦+1回（ずっと続く）`,price:spPlusPrice(),
-        apply:()=>{ if(own) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[t.k]=(specBonusK[t.k]||0)+1; specPlusBought++; hint(`特殊技+1！（${t.label}）`); }}); });
+      items.push({key:'spplus_'+(own?t.acc.aid:'d'+t.k),icon:'✨',name:`特殊技+1（${t.label}）`,desc:own?`このアクセサリーが与える技の回数が毎戦+1回（1回だけ買える。このアクセサリーに付く。外すと効果も外れる）`:`持ち技の回数が毎戦+1回（ずっと続く・1回だけ）`,price:spPlusPrice(),sold:own?((t.acc.spb||0)>=1):((specBonusK[t.k]||0)>=1),   // 1つの技につき、ゲーム全体で1回だけ
+        apply:()=>{ if(own?((t.acc.spb||0)>=1):((specBonusK[t.k]||0)>=1)) return; if(own) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[t.k]=(specBonusK[t.k]||0)+1; specPlusBought++; hint(`特殊技+1！（${t.label}）`); }}); });
     if(!deckOffer.cards) deckOffer.cards=rollDeckCards();
     deckOffer.cards.forEach((cc,ci)=>{
       const t=TACTICS.find(x=>x.type===cc.type); if(!t) return;
@@ -6676,7 +6676,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
