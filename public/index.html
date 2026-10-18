@@ -1451,7 +1451,7 @@ const TACTICS = [
   {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする（最大10）',count:3},
   {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚複製する',count:2},
   {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
-  {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など）',count:2,isNew:true},
+  {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など。1は1と1の2枚）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
 ];
 const GLOBAL_TACTIC_TYPES=['scout','shuffle','inspire','rehire','conscript','revolution'];
@@ -1802,7 +1802,7 @@ const TACTIC_EXTRA = {
   curse_seal:'使うと好きな旗を1つ選んで封鎖できます。<b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。',
   conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
   revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて反転します（1↔10、2↔9、3↔8、4↔7、5↔6。7なら4、2なら9）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
-  split:'発動後、手札の部隊カードを1枚タップ。そのカードがランダムに2枚へ分裂します（合計は変わりません。8なら2と6、3と5など）。数字が2以上のカードだけ選べます。増えた1枚は、その戦いの間だけ使えます。',
+  split:'発動後、手札の部隊カードを1枚タップ。そのカードがランダムに2枚へ分裂します（合計は変わりません。8なら2と6、3と5など。1だけは1と1の2枚になります）。増えた1枚は、その戦いの間だけ使えます。',
   inspire:'発動すると、このカードを除く今の手札にある部隊・力の装備の数字がすべて+3されます（最大10まで）。強い役や換装条件を狙いやすくなります。',
   duplicate:'発動後、複製したい手札のカードをタップ。そのカードのコピーが手札に加わります（複製もとのカードはそのまま残ります）。コピーはこの戦いの間だけ有効です。',
   fusion:'発動後、手札の部隊カードを2枚タップして選択。合計値を保ったまま、高い方は必ず10になり、低い方はその余り（合計−10）になります（例：4と8→2と10、6と8→4と10）。合計が10以下の場合は、合計値のカード1枚だけにまとまります（例：2と8→10、6と2→8が1枚）。分裂して2枚になるときは、それぞれ元のカードのマーク（色）のままです。1枚にまとまるときは、数字が高い方のカードのマーク（色）になります（同じ数字なら、手札で左にある方）。',
@@ -2492,7 +2492,7 @@ function targetsFor(card){
   return out;
 }
 function canPlayAnything(){
-  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||(c.type==='split'&&hand.some(x=>x.kind==='troop'&&x.value>=2))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
+  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||(c.type==='split'&&hand.some(x=>x.kind==='troop'))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
 }
 
 /* ================= AUTO REFILL ================= */
@@ -3305,7 +3305,7 @@ function useRevolution(handIdx){
   busy=false; hint('大革命：手札の数字がすべて反転した！（1↔10、2↔9、3↔8、4↔7、5↔6）'); endCheck(); render();
 }
 function useSplit(handIdx){
-  if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop'&&c.value>=2)) return hint('分裂できる部隊カード（2以上）が手札にありません。',true);
+  if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop')) return hint('分裂できる部隊カードが手札にありません。',true);
   busy=false;
   pending={type:'split', handIdx};
   render();
@@ -3314,10 +3314,9 @@ function useSplit(handIdx){
 function resolveSplit(idx){
   const src=hand[idx];
   if(idx===pending.handIdx||!src||src.kind!=='troop') return;
-  if(src.value<2) return hint('数字が1のカードは分裂できません。',true);
   busy=true;
   const usedIdx=pending.handIdx, used=hand[usedIdx];
-  const a=1+Math.floor(Math.random()*(src.value-1)), b=src.value-a;
+  const a=src.value<2?1:1+Math.floor(Math.random()*(src.value-1)), b=src.value<2?1:src.value-a;   // 1は1と1の2枚になる
   if(src.origValue===undefined) src.origValue=src.value;
   const total=src.value;
   src.value=a;
@@ -3330,7 +3329,7 @@ function resolveSplit(idx){
   const refilled=autoRefill(Math.max(0,currentHandMax()-hand.length));   // 使った1枚が減り、分裂で1枚増えるので、手札は上限のまま
   render(); layoutHand(false, clone.uid, fromRect);
   busy=false; endCheck(); render();
-  hint(`分裂！${total}が${a}と${b}に分かれた。`);
+  hint(total<2?'分裂！1が1と1の2枚になった。':`分裂！${total}が${a}と${b}に分かれた。`);
 }
 function useFusion(handIdx){
   const troopCount=hand.filter(c=>c.kind==='troop').length;
@@ -6628,7 +6627,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18za';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18zb';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
