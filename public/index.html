@@ -1552,7 +1552,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'毎ターン、敵のHPが2減ります。（敵のHPが1より下がることはありません）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
-  'コガネムシ':{name:'コガネモチ',icon:'💰',desc:'敵を倒すと50Gを手に入れます。'},
+  'コガネムシ':{kind:'gold',name:'金箔集め',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを手札に1枚生み出します。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
@@ -2981,7 +2981,6 @@ function healPlayer(n){ n=Number(n)||0; if(n>0) playerHp+=n; }   // 回復は最
 function finishWaveOutcome(defeated, wave){
   if(playerHp>playerHpMax) playerHp=playerHpMax;
   if(defeated){
-    if(CHARACTER&&monDisp()==='コガネムシ'&&!wave.boss){ gold+=50; hint('コガネモチ！50G手に入れた。'); }
     unlockMonAndBelow(wave);
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
     if(wave.boss){
@@ -5268,6 +5267,7 @@ function monSkillUse(){
     if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
   }
+  else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('金箔集め！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
   else if(m.kind==='sting'||m.kind==='fang'){   // 手札を経由せず、旗に直接カードを置く（手札の枚数は変わらない）
     const nc=m.kind==='sting'?{kind:'troop',color:'red',value:1,uid:uid(),temp:true}:{kind:'troop',color:'purple',value:6,uid:uid(),temp:true};
@@ -6627,7 +6627,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18zb';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18zc';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
