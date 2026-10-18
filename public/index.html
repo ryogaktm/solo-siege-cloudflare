@@ -6149,15 +6149,16 @@ const ACC_SELL_MULT=1.5;  // 売値倍率（元の値段の半分に対して）
 const accSell=d=>d.cashVal?d.cashVal:d.special?500:Math.floor(accPriceBase(d)/2*ACC_SELL_MULT);  // 売値は倍率をかけない元の値段の半分
 const introNoAcc=()=>isWeakBody() || introOn && WAVES[stageIndex] && WAVES[stageIndex].id!=='ミジンコキング';   // ミジンコの最初の段階では、ミジンコキング以外からアクセサリーは出ない
 let chestWhy={};   // 宝箱に出すアクセサリーごとの「手に入った理由」
+let chestAids=[];   // 今回の宝箱で手に入った換金用アクセサリーのaid
 function acquireNew(final=true){
-  const got=[]; chestWhy={}; if(introNoAcc()) return got;
-  const giveCash=(n,why)=>{ const c=cashDef(n); accOwned.push({aid:accSeq++,id:c.id}); got.push(c); chestWhy[c.id]=chestWhy[c.id]?chestWhy[c.id]+' ／ '+why:why; };
+  const got=[]; chestWhy={}; chestAids=[]; if(introNoAcc()) return got;
+  const giveCash=(n,why)=>{ const c=cashDef(n); chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:c.id}); got.push(c); chestWhy[c.id]=chestWhy[c.id]?chestWhy[c.id]+' ／ '+why:why; };
   ACC_DEFS.forEach(d=>{
     if(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id)){
       if(d.id!=='gold_s' && battleGoals.includes(d.id) && goalMet(d.id,final)){ try{ giveCash(accSell(d),'達成した条件：'+goalDef(d).text+'（「'+d.name+'」の条件をもう一度達成）'); }catch(e){} }
       return;
     }
-    if(battleGoals.includes(d.id) && goalMet(d.id,final)){ accOwned.push({aid:accSeq++,id:d.id}); got.push(d); try{ chestWhy[d.id]='達成した条件：'+goalDef(d).text; }catch(e){} }
+    if(battleGoals.includes(d.id) && goalMet(d.id,final)){ if(d.id.startsWith('gold_')) chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:d.id}); got.push(d); try{ chestWhy[d.id]='達成した条件：'+goalDef(d).text; }catch(e){} }
   });
   BONUS_GOALS.forEach(b=>{ if(battleGoals.includes(b.id) && goalMet(b.id,final)){ try{ giveCash(b.cash,'達成した条件：'+goalDef(accDef(b.id)).text); }catch(e){} } });
   return got;
@@ -6166,7 +6167,7 @@ function acquireNew(final=true){
 function giveCopperRing(got){
   if(introNoAcc()) return;
   if(got.some(d=>d.id==='gold_s')) return;
-  const cu=accDef('gold_s'); if(cu){ accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); chestWhy.gold_s='戦闘のごほうび（必ずもらえる）'; }
+  const cu=accDef('gold_s'); if(cu){ chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); chestWhy.gold_s='戦闘のごほうび（必ずもらえる）'; }
 }
 function grantStageReward(){
   inPrep=true;
@@ -6196,6 +6197,15 @@ function openChest(got,income){
     el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div>${chestWhy[d.id]?`<div class="acc-desc" style="margin-top:4px;color:var(--gold);font-weight:700">${chestWhy[d.id]}</div>`:''}</div>`;
     box.appendChild(el);
   });
+  const cashO=chestAids.map(a=>accOwned.find(o=>o.aid===a)).filter(Boolean);
+  if(cashO.length){
+    const tot=cashO.reduce((t,o)=>t+accSell(accDef(o.id)),0);
+    const pn=document.createElement('div'); pn.className='reward-option'; pn.style.cssText='cursor:default;flex-direction:column;align-items:stretch;gap:8px;text-align:center';
+    pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">換金用アクセサリー${cashO.length}個をまとめて売りますか？（+${tot}G）</div><div style="display:flex;gap:8px"><button class="btn" id="bulkYes" style="flex:1;margin:0">まとめて売る</button><button class="btn" id="bulkNo" style="flex:1;margin:0;opacity:.8">売らない</button></div>`;
+    box.appendChild(pn);
+    pn.querySelector('#bulkYes').onclick=()=>{ let sum=0; cashO.forEach(o=>{ const d=accDef(o.id); if(!d||!accOwned.includes(o)) return; sum+=accSell(d); accOwned=accOwned.filter(x=>x!==o); accEq=accEq.filter(a=>a!==o.aid); soldIds.add(o.id); }); gold+=sum; chestAids=[]; try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">売却しました（+${sum}G ／ 所持金 ${gold}G）</div>`; };
+    pn.querySelector('#bulkNo').onclick=()=>{ pn.remove(); };
+  }
   const b=document.createElement('button'); b.className='btn'; b.textContent='準備へ'; b.onclick=finishChest; box.appendChild(b);
   
   setTimeout(()=>{ em.style.display='none'; },350);
@@ -6593,7 +6603,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18w';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18x';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
