@@ -1417,8 +1417,8 @@ function cardShortLabel(c){
   if(c.kind==='troop') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}</span>`;
   if(c.kind==='wild') return `<span class="cl-item">${miniIcon(EMBLEM.wild,wildColor(c))}8</span>`;
   if(c.kind==='monster'){
-    if(c.sub==='combined') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}+</span>`;
-    if(c.sub==='number') return `<span class="cl-item">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+</span>`;
+    if(c.sub==='combined') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}超</span>`;
+    if(c.sub==='number') return `<span class="cl-item">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}超</span>`;
     if(c.sub==='mark') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}</span>`;
     return `<span class="cl-item">${miniIcon(EMBLEM.necro,'#caa6e0')}職</span>`;
   }
@@ -1821,8 +1821,8 @@ const MONSTERS = [
 ];
 function monsterName(m){
   if(m.sub==='necro') return '鍛治職人';
-  if(m.sub==='combined') return `${CNAME[m.color]}・${m.value}以上の装備`;
-  if(m.sub==='number') return `${m.value}以上の力の装備`;
+  if(m.sub==='combined') return `${CNAME[m.color]}・${m.value}超の装備`;
+  if(m.sub==='number') return `${m.value}超の力の装備`;
   return `${CNAME[m.color]}の装備`;
 }
 function monsterBonusFor(m){
@@ -2376,8 +2376,8 @@ function wildColor(c){
 function satisfiesMonster(card, f){
   const m=flagMonster(f); if(!m) return true;
   if(isWildCard(card)) return true;
-  if(m.sub==='combined') return val(card)>=m.value && card.color===m.color;
-  if(m.sub==='number') return val(card)>=m.value;
+  if(m.sub==='combined') return val(card)>m.value && card.color===m.color;
+  if(m.sub==='number') return val(card)>m.value;
   if(m.sub==='mark') return card.color===m.color;
   return true;
 }
@@ -2409,8 +2409,8 @@ function fitsFormationOld(card, f){
   });
 }
 function cardSatisfiesEquipment(card, eq){
-  if(eq.sub==='combined') return card.value>=eq.value && card.color===eq.color;
-  if(eq.sub==='number') return card.value>=eq.value;
+  if(eq.sub==='combined') return card.value>eq.value && card.color===eq.color;
+  if(eq.sub==='number') return card.value>eq.value;
   if(eq.sub==='mark') return card.color===eq.color;
   return true;
 }
@@ -3160,7 +3160,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       const midx=f.cards.indexOf(existingMon);
       f.cards[midx]=placed;
       delete existingMon.accumulatedBonus; graveyard.push(existingMon);
-      if(CHARACTER.id==='general' && card.sub==='number') showComment(`え！？更に${card.value}以上！？`);
+      if(CHARACTER.id==='general' && card.sub==='number') showComment(`え！？更に${card.value}超！？`);
       advanceTurn(placed);
       const refilled=autoRefill(1);
       render(); layoutHand(false);
@@ -3173,7 +3173,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const placed={kind:'monster', sub:card.sub, value:card.value, color:card.color, uid:card.uid};
     f.cards.push(placed);
     if(CHARACTER.id==='general'){
-      if(card.sub==='number') showComment(`おおっと！${card.value}以上置かないといけないぞ！大丈夫か！？`);
+      if(card.sub==='number') showComment(`おおっと！${card.value}より大きい数を置かないといけないぞ！大丈夫か！？`);
       else if(card.sub==='mark') showComment(`お！${CNAME[card.color]}マークを置くのか！`);
     }
     playSfx('equipment');
@@ -3620,10 +3620,10 @@ function paintCard(d, c, mini){
       d.innerHTML=`<div class="ttitle">鍛治</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#caa6e0">${EMBLEM.necro}</svg></div>`;
     } else if(c.sub==='combined'){
       d.className='pcard monster mark'+(mini?' mini':'');
-      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+</div><div class="emblem"><svg viewBox="0 0 100 100" fill="${CFILL[c.color]}" stroke="${CFILL[c.color]}">${EMBLEM[c.color]}</svg></div><div class="name">${CNAME[c.color]}・${c.value}+</div>`;
+      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}超</div><div class="emblem"><svg viewBox="0 0 100 100" fill="${CFILL[c.color]}" stroke="${CFILL[c.color]}">${EMBLEM[c.color]}</svg></div><div class="name">${CNAME[c.color]}・${c.value}超</div>`;
     } else if(c.sub==='number'){
       d.className='pcard monster'+(mini?' mini':'');
-      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#e07a9a" stroke="#e07a9a">${EMBLEM.sword}</svg></div>`;
+      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}超</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#e07a9a" stroke="#e07a9a">${EMBLEM.sword}</svg></div>`;
     } else {
       d.className='pcard monster mark'+(mini?' mini':'');
       d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.armor,CFILL[c.color])}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="${CFILL[c.color]}" stroke="${CFILL[c.color]}">${EMBLEM[c.color]}</svg></div>`;
@@ -3644,8 +3644,8 @@ function upcomingChipLabel(c){
   if(c.kind==='troop') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}${val(c)}`;
   if(c.kind==='wild'||isAlexanderCard(c)||isDariusCard(c)) return `${miniIcon(EMBLEM.wild,wildColor(c))}8`;
   if(c.kind==='monster'){
-    if(c.sub==='combined') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}+`;
-    if(c.sub==='number') return `${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+`;
+    if(c.sub==='combined') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}超`;
+    if(c.sub==='number') return `${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}超`;
     if(c.sub==='mark') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}`;
     return `${miniIcon(EMBLEM.necro,'#caa6e0')}`;
   }
@@ -4164,7 +4164,7 @@ function hint(msg,warn){
 /* ---- always-on NOW telop ---- */
 const HOW_TIPS = {
   beginner: '敵の攻撃力は毎ターン増える。役を揃えて戦力で上回り、全旗そろえて攻撃！',
-  equip: '数の装備をシートに置くと、それ以上の数のカードを置かなければいけない。色の装備は、カードが置いてある旗に使うと、そのカードのマークが装備の色にすべて変わる。',
+  equip: '数の装備をシートに置くと、それより大きい数のカードを置かなければいけない。色の装備は、カードが置いてある旗に使うと、そのカードのマークが装備の色にすべて変わる。',
   combo: '役を揃えて、3枚目のマークも他の旗と揃えるとさらに2倍',
   tactics: '軍師カードには様々な効果があるぞ'
 };
@@ -4228,7 +4228,7 @@ function cardInfoContent(c){
       return `<p><b>鍛治職人</b></p><p>発動すると、墓地にある装備が全て山札に戻ります（獲得済みの得点はそのまま）。</p>`;
     }
     if(c.sub==='number'){
-      return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。換装ボーナス <b>+${monsterBonusFor(c)}</b>。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
+      return `<p><b>${c.value}超の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}より大きいカード（${c.value}以下は置けません）しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。換装ボーナス <b>+${monsterBonusFor(c)}</b>。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
     }
     return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードの<b>マークがすべて${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。同色の役を作りたいときに使いましょう。装備のある旗には使えません。</p>`;
   }
@@ -4452,7 +4452,7 @@ function buildMonsterList(){
   const wrap=document.getElementById('monsterList'); if(wrap.childElementCount) return;
   const entries=[
     {card:{kind:'monster',sub:'number',value:7,uid:'mon-num'},
-     name:'力の装備', desc:'旗に置かれると、その旗には「表示された数字以上」の部隊しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、装備だけが墓地へ送られます（置いたカードはそのまま残る）。その後は制限なく普通に置けるようになります。ボーナス得点が入ります（数字が大きいほど高得点）。'},
+     name:'力の装備', desc:'旗に置かれると、その旗には「表示された数字より大きい」部隊しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、装備だけが墓地へ送られます（置いたカードはそのまま残る）。その後は制限なく普通に置けるようになります。ボーナス得点が入ります（数字が大きいほど高得点）。'},
     {card:{kind:'monster',sub:'mark',color:'blue',uid:'mon-mark'},
      name:'色の装備', desc:'カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードのマークがすべて装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままなので、同色の役を作りたいときに。'}
   ];
@@ -6453,7 +6453,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18m';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
