@@ -1763,10 +1763,11 @@ const WAVES=(()=>{
   return out;
 })();
 const LADDER_N=WAVES.length;  // 通常の敵の数（ラスボスはこの外）
-const FINAL_BOSSES=[['火星人',25,'alien_mars'],['水星人',49,'alien_mercury'],['金星人',49,'alien_venus'],['土星人',60,'alien_saturn'],['太陽神',71,'alien_sun']];  // [名前, 基準にする敵の段(0始まり), 絵]（人間ラスボス案は一旦保留）
+const FINAL_BOSSES=[['火星人',25,'alien_mars'],['水星人',49,'alien_mercury'],['金星人',49,'alien_venus'],['土星人',60,'alien_saturn'],['太陽神',71,'alien_sun'],['月の民',12,'alien_moon']];  // [名前, 基準にする敵の段(0始まり), 絵]（人間ラスボス案は一旦保留）
 FINAL_BOSSES.forEach(([nm,ref],k)=>{ const r=WAVES[ref], m=1.5;
   WAVES.push({...r,name:nm,hp:Math.round(r.hp*m),atk:Math.round(r.atk*m),grow:Math.round(r.grow*m*10)/10,isNew:true,immortal:false,boss:true,lv:0,rank:0,threshold:Math.round(r.hp*m)}); });
-WAVES.forEach((w,i)=>{ if((!w.boss&&i<=25)||w.name==='火星人'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 最初のラスボスと、それ以下の順位（下位23体）は強さ1/2
+WAVES.forEach((w,i)=>{ if((!w.boss&&i<=25)||w.name==='火星人'||w.name==='月の民'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 最初のラスボスと、それ以下の順位（下位23体）は強さ1/2
+{ const mo=WAVES.find(w=>w.name==='月の民'), sp=WAVES.find(w=>w.name==='大グモ'&&!w.boss); if(mo&&sp){ mo.hp=sp.hp; mo.atk=sp.atk; mo.grow=sp.grow; mo.threshold=sp.hp; } }   // 月の民の強さは大グモと同じ
 WAVES.forEach(w=>{ w.baseId=w.name; w.id=w.name; });   // 名前は表示用（「別の」が付くことがある）、idは種類の判定用
 function applyEnemyNames(){
   ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+(accSlotBonus||0);
@@ -1778,7 +1779,11 @@ const HIDDEN_BOSSES=['土星人'];  // 一時的に出さないラスボス（�
 const alienBeatList=()=>{ try{ return JSON.parse(lsGet('soloSiegeAlienBeat')||'[]'); }catch(e){ return []; } };
 const alienBeatAdd=id=>{ try{ const a=alienBeatList(); if(!a.includes(id)){ a.push(id); lsSet('soloSiegeAlienBeat',JSON.stringify(a)); } }catch(e){} };
 /* 宇宙人の出現条件：①範囲の敵を最後に倒した ②ひとつ前の宇宙人を倒したことがある（火星人は範囲だけ）。満たさないときは一つ前の宇宙人。太陽神だけは、4戦目で最後の敵（lv72）を倒したときのみ */
-const bossIdxFor=lv=>{ if(lv>=72) return LADDER_N+4; let k=(lv<=25?0:lv<=37?1:lv<=49?2:3); const beat=alienBeatList(); while(k>0&&(HIDDEN_BOSSES.includes(WAVES[LADDER_N+k].id)||!beat.includes(WAVES[LADDER_N+k-1].id))) k--; return LADDER_N+k; };
+const MOON_IDX=LADDER_N+5;
+const moonUnlocked=()=>{ const b=alienBeatList(); return b.includes('月の民')||b.includes('火星人'); };   // 月の民（最初の宇宙人）を倒すと、コンボの制限と引き継ぎ無しが解除（火星人を倒した記録がある人は最初から解除）
+const comboRestricted=()=>!moonUnlocked();
+const COMBO_CAP=5;
+const bossIdxFor=lv=>{ if(lv>=72) return LADDER_N+4; if(!moonUnlocked()) return MOON_IDX; let k=(lv<=25?0:lv<=37?1:lv<=49?2:3); const beat=alienBeatList(); while(k>0&&(HIDDEN_BOSSES.includes(WAVES[LADDER_N+k].id)||!beat.includes(WAVES[LADDER_N+k-1].id))) k--; return LADDER_N+k; };
 const BASE_IDX=WAVES.map((w,i)=>(w.isNew||w.boss)?-1:i).filter(i=>i>=0);
 const MAX_BATTLES=4;
 const rk=v=>v>0?`${LADDER_N+1-v}位`:'―';  // 保存値（強さの段）→ 順位表示（1位が最強）
@@ -2079,7 +2084,7 @@ function hostNext(){ const h=hostIdxs().length; if(!h) return 0; return (!hostCa
 function carryNext(){
   const cnt={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
   const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?1:(cr||1)+cnt[c]; });
-  return nm;
+  return comboRestricted()?{}:nm;
 }
 // コンボバリアの指輪：コンボが続いている間、受けるダメージが半分（倍の腕輪で1/4）
 function barrierMult(){
@@ -2910,9 +2915,9 @@ function checkWaveOutcome(){
   if(CHARACTER.combo){  // 役のあった色は全部、次のwaveへ持ち越し（役の無かった色は消える）
     const cnt={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
     const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?1:(cr||1)+cnt[c]; });
-    carryMap=nm;
+    carryMap=comboRestricted()?{}:nm;
   } else carryMap={};
-  hostCarry=hostNx;
+  hostCarry=comboRestricted()?0:hostNx;
   flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name) accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; });
   try{ const nm={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
@@ -2992,8 +2997,8 @@ function finishWaveOutcome(defeated, wave){
     unlockMonAndBelow(wave);
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
     if(wave.boss){
-      alienBeatAdd(wave.id);
-      hint(`${wave.name}を倒した！`,true);
+      const wasRes=comboRestricted(); alienBeatAdd(wave.id);
+      hint(wasRes&&!comboRestricted()?`${wave.name}を倒した！ コンボの制限と引き継ぎ無しが解除された！`:`${wave.name}を倒した！`,true);
       setTimeout(()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); }, 900);
       return;
     }
@@ -5409,7 +5414,7 @@ const WAVE_SPR=['slime','bat','goblin','skeleton','orc','darkknight','dragon','g
 const MON_ARCH={"fly": ["................", "................", "..CC........CC..", ".CWWC......CWWC.", ".CWWCKKKKKKCWWC.", "..CC.KGGGGK.CC..", "....KGRGGRGK....", "....KGGGGGGK....", ".....KGGGGK.....", "....KKGGGGKK....", "...K.KGGGGK.K...", "..K..KKGGKK..K..", ".....K.KK.K.....", "....K..K.K..K...", "................", "................"], "frog": ["................", "................", "................", "...KKK....KKK...", "..KEEEK..KEEEK..", "..KEWKEKKEKWEK..", "..KEEEEEEEEEEK..", ".KEEEEEEEEEEEEK.", ".KEEmmmmmmmmEEK.", ".KEEEEEEEEEEEEK.", ".KeEEEEEEEEEEeK.", "KEeKEEEEEEEEKeEK", "KEEKeEEEEEEeKEEK", ".KK.KKKKKKKK.KK.", "................", "................"], "worm": ["................", "................", "................", "................", ".....KKKK.......", "....KssssK......", "...KsWKsWKsKKK..", "...KssssssKssK..", "....KmmssKKssK..", ".....KKKKsssK...", "....KKKKKsssK...", "...KssssssssK...", "...KsssKKKKK....", "....KKK.........", "................", "................"], "ant": ["................", "................", "..K..........K..", "...K........K...", "....KK....KK....", "...KNNK..KNNK...", "...KNNKKKKNNK...", "....KKNNNNKK....", ".....KNnnNK.....", "....KKNNNNKK....", "...K.KNNNNK.K...", "..K..KNnnNK..K..", ".K...KNNNNK...K.", "......KKKK......", "................", "................"], "beetle": ["................", "................", "....K......K....", "....KK....KK....", "....KYKKKKYK....", "....KYYYYYYK....", "...KYYWYYWYYK...", "..KYYYYKKYYYYK..", "..KYYYYKKYYYYK..", "..KEEEEKKEEEEK..", "..KEeEEKKEEeEK..", "..KEEEEKKEEEEK..", "...KKEEKKEEKK...", "..K.KKKKKKKK.K..", "................", "................"], "rat": ["................", "................", "................", "...KK.KK........", "..KssKssK.......", "..KsRKsRK.......", "..KKssssKKKK....", "...KssssssssK...", "..KmKgggggggK...", "..KKgggggGgggK..", "...KgggggggggK..", "...KgGgggGgggK.K", "...KKKgggKKKKKK.", "...KsKKK.KsK..K.", "....KK....KK..K.", "................"], "mushroom": ["................", "................", "....KKKKKKKK....", "...KRRRRRRRRK...", "..KRRWWRRRWWRK..", "..KRRWWRRRRRRK..", "..KRRRRRWWRRRK..", "..KKKKKKKKKKKK..", "....KwwwwwwK....", "....KwKwwKwK....", "....KwwwwwwK....", "....KwwmmwwK....", "....KwwwwwwK....", ".....KKKKKK.....", "................", "................"], "spider": ["................", "................", "K...K......K...K", ".K..K.KKKK.K..K.", "..K.KKPPPPKK.K..", "...KKPPRPPRPKK..", "....KPPPPPPK....", "KKKKKPPppPPKKKKK", "...KKPPppPPKK...", "..K.KPPppPPK.K..", ".K..KKPPPPKK..K.", "K....KKKKKK....K", "................", "................", "................", "................"], "snake": ["................", "................", "................", "......KKKK......", ".....KEEEEK.....", "....KEWKEEWK....", "....KEEEEEEK....", "....KEmmmEK.....", "....KKEEEKK.....", "...KEEEEEK......", "..KEeEEEEKKKK...", "..KEEEEEEEEEEK..", "...KKKEeEEEEEK..", "......KKKKKKK...", "................", "................"], "centipede": ["................", "................", "................", "..K..K..K..K....", "..KNNKNNKNNK....", ".KNNNNNNNNNNK...", ".KNRNNnnNNNNNK..", "K.KKNNNNNNNNNNK.", ".K.KKNNKKNNNNK..", "..K..KKNNNNNK...", "....K.KKNNNNNK..", ".....K..KKNNNK..", "..........KKK...", "................", "................", "................"], "lizardman": ["................", ".....KKKK.......", "....KEEEEKK.....", "...KEWKEEEEK....", "...KEEEEEEEEK...", "...KEmmmEEK.....", "....KKKEEEK.....", "..KKKEEEEEEKK...", ".KgGKEeEEEEKgGK.", ".KgGKEEEEEEKgGK.", "..KKKEEEEEEKKK..", "....KEEKKEEK....", "....KEEK.KEEK...", "...KKEK...KEKK..", "....KKK....KKK..", "................"], "ghost": ["................", "....KKKKKKK.....", "...KwwwwwwwK....", "..KwwwwwwwwwK...", "..KwWKwwwKWwK...", "..KwKKwwwKKwK...", "..KwwwwwwwwwK...", "..KwwwKKKwwwK...", "..KwwwwwwwwwK...", "..KwwwwwwwwwwK..", "..KwwwwwwwwwK...", "..KwKwwKwwKwK...", "..KK.KwK.KK.K...", "................", "................", "................"], "zombie": ["................", "....KKKKKK......", "...KOOOOOOK.....", "..KOOWKOOWKK....", "..KOOOOOOOOK....", "..KOOmmmmOK.....", "...KKKOOKK......", "..KOOOKKOOOOOK..", ".KOOoKGGKoOOOOK.", ".KOOoKGGKKKKKK..", ".KOOoKGGKOOK....", "..KKKKGGKOOK....", "....KGGKKGGK....", "....KGGK.KGGK...", "...KKKK..KKKK...", "................"], "armor": ["......KKKK......", "....KKggggKK....", "...KgGggggGgK...", "...KgKKKKKKgK...", "...KgGRRRRGgK...", "...KgGGGGGGgK...", "....KKKggKKK....", "..KKKgggggGKKK..", ".KGgKgGGGGgKgGK.", ".KGgKggggggKgGK.", ".KGgKgGGGGgKgGK.", "..KKKggKKggKKK..", "....KggK.KggK...", "....KGGK.KGGK...", "...KKKKK.KKKKK..", "................"], "bull": ["................", "KK..........KK..", "KwK........KwK..", ".KwKKKKKKKKwK...", "..KKNNNNNNNKK...", "...KNRNNNRNK....", "...KNNNNNNNKKKK.", "...KNNmmNNNNNNK.", "...KNNNNNNNNNNK.", "....KKNNNNNNnNK.", "....KNNNNNNNNNK.", "....KNNKKNNKNNK.", "....KNNK.KNNK.K.", "....KnnK.KnnK...", "....KKKK.KKKK...", "................"], "troll": ["................", "....KKKKKK......", "...KEEEEEEK.....", "..KEEWKEWEEK....", "..KEEEEEEEEK....", "..KEEEmmEEEK....", "...KKEEEEKK.....", ".KKEEEEEEEEKK...", "KEEKEEeEEEKEEK..", "KEEKEEEEEEKEEK..", "KEEKEEEEEEKEEK..", ".KKKEEEEEEKKK...", "...KEEK.KEEK....", "...KEEK.KEEK....", "..KKKKK.KKKKK...", "................"], "mage": ["......KP........", ".....KPPK.......", "....KPPPPK......", "...KPPPPPPK.....", "..KKKKKKKKKK....", "....KSKSSKSK....", "....KSSSSSSK....", "....KSssssSK....", "...KKPPPPPPKK...", "..KPPPKPPKPPPK..", ".KSKPPPPPPPPKSKY", "..KKPPPpPPPPKKY.", "...KPPPPPPPPKKY.", "...KPPPPPPPPK.Y.", "...KKKKKKKKKK.Y.", "................"], "wyvern": ["................", "...K........K...", "..KKK......KKK..", ".KRRK..KK..KRRK.", ".KRRRKKRRKKRRRK.", "KRRRRKRRRRKRRRRK", "KRRKRKRWRWKRKRRK", "KRK.KRRRRRRK.KRK", ".K..KRRRRRRK..K.", "....KKRrrRRK....", "....KRRrrrRK....", ".....KRRRRK.....", "....KRRKKRRK....", "...KRRK..KRRK...", "...KKK....KKK...", "................"], "hound": ["................", "...K.KK.........", "..KDKDDK........", ".KDDWDDDK.......", ".KDDDDDDKKKKK...", "..KKRDDDDDDDDK..", "...KDmmDDDDDDK..", "...KKDDDDDDDDDK.", "....KDDDDDDDDDK.", ".....KDDDDDDDDK.", ".....KDdKKKDdDK.", ".....KDK..KDK.K.", ".....KDK..KDK...", ".....KKK..KKK...", "................", "................"], "imp": ["K..........K....", "KK........KK....", "KRK..KK..KRK....", ".KRKKRRKKRK.....", "..KKRRRRKK......", "...KRWRRWRK.....", "...KRRRRRRK.....", "....KRmmRK......", "..KKKKRRKKKK....", ".KRRKRRRRKRRK...", "KRRK.KRRK.KRRK..", "KRK..KRRK..KRK..", "K....KRRK...K...", ".....KrrK.......", "....KKKKKK..K...", "................"], "shadow": ["................", "................", "....KKKKKKK.....", "...KDDDDDDDK....", "..KDDDDDDDDDK...", "..KDWWDDDWWDK...", "..KDWRDDDWRDK...", "..KDDDDDDDDDK...", "..KDDDKKKDDDK...", "..KDDKDDDKDDK...", ".KDDDDDDDDDDDK..", ".KDdDDKDKDDdDK..", ".KDK.KDDDK.KDK..", "..K...KDK...K...", "................", "................"], "orb": ["................", "......KKKK......", "....KKYYYYKK....", "...KYYYYYYYYK...", "..KYYWWWWWWYYK..", "..KYWWKKKKWWYK..", ".KYYWKRRRRKWYYK.", ".KYYWKRKKRKWYYK.", ".KYYWKRRRRKWYYK.", "..KYWWKKKKWWYK..", "..KYYWWWWWWYYK..", "...KYYYYYYYYK...", "....KKYYYYKK....", "......KKKK......", "................", "................"], "bandit": ["................", "....KKKKKK......", "...KNNNNNNK.....", "...KNNNNNNK.....", "..KKSSSSSSKK....", "..KSKKKKKKSK....", "..KDDDDDDDDK....", "...KDDRDDRDK....", "..KKDDDDDDDKK...", ".KNKDDDDDDDKwK..", ".KNKDDDDDDDKwgK.", "..KKDDKKKDDKK.K.", "....KDDK.KDDK...", "....KNNK.KNNK...", "...KKKKK.KKKKK..", "................"], "twin": ["................", "K..K.......K..K.", "KrKKK.....KKKrK.", "KRRKKK...KKKRRK.", "KRWKRKK.KKRKWRK.", "KRRRRKK.KKRRRRK.", ".KRRRKKKKKRRRK..", "..KKRRRRRRRRKK..", "...KRRRRRRRRK...", "...KRRRRRRRRK...", "...KRRWRRWRRK...", "....KRRRRRRK....", "....KRKKKKRK....", "...KRRK..KRRK...", "...KKK....KKK...", "................"]};
 MON_ARCH.mosquito=["................", "................", "......CC.CC.....", ".....CWWCWWC....", "....CWWWCWWWC...", ".....CCWWWCC....", ".K....KGGGK.....", "..K..KGgGGGK....", "...KKKGGRRGK....", "...K..KGRRGK....", "......KGGGK.K...", ".......KGK..K...", "......K.K.K.K...", "......K..K..K...", "................", "................"];
 Object.assign(SPR,MON_ARCH);
-Object.assign(SPR,{daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
+Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
 SPR.general_halo=SPR.general.map((r,i)=>i===0?'....yYYYYYYy....':r);   // 輪っか付き（元の身体）
 SPR.daphnia_leader=SPR.daphnia.map(r=>r.split('').map(c=>c==='C'?'E':c==='y'?'R':c).join(''));   // 緑のリーダー
 SPR.daphnia_king=SPR.daphnia.map((r,i)=>{ r=r.split('').map(c=>c==='C'?'P':c==='y'?'Y':c); if(i===2){ r[6]='Y'; r[8]='Y'; r[10]='Y'; } if(i===1){ r[6]='Y'; r[8]='Y'; r[10]='Y'; } return r.join(''); });   // 紫の王様（冠つき）
@@ -5431,7 +5436,7 @@ const MON_SPR={
 '地平線いっぱいの巨人族':['giant'],'嵐の巨人族':['giant',{H:'B',S:'g'}],'炎の巨人王':['giant',{H:'F',S:'R'}],'悪魔の斥候':['imp'],'地獄の番犬':['hound'],'悪魔の軍団':['demon',{P:'R',p:'r'}],
 '全ての邪悪を背負った魔王':['demon'],'魔王の側近':['demon',{P:'B',p:'b'}],'魔王の親衛隊':['darkknight',{D:'T',d:'t'}],'暗黒の四天王':['demon',{P:'E',p:'e'}],'魔王の影':['shadow'],'魔王の化身':['immortal',{P:'T',p:'t'}],
 '不死身の魔王':['immortal'],
-'火星人':['alien_mars'],'水星人':['alien_mercury'],'金星人':['alien_venus'],'土星人':['alien_saturn'],'太陽神':['alien_sun'],
+'月の民':['alien_moon'],'火星人':['alien_mars'],'水星人':['alien_mercury'],'金星人':['alien_venus'],'土星人':['alien_saturn'],'太陽神':['alien_sun'],
 '深淵の魔王':['demon',{P:'D',p:'d',R:'C'}],'終焉の魔王':['immortal',{P:'B',p:'b'}],'滅びの化身':['shadow',{D:'p',d:'P'}],'星を喰らうもの':['orb'],'次元を砕く者':['orb',{Y:'P',R:'C'}],'時の支配者':['mage',{P:'Y',p:'y'}],'世界の終わり':['shadow',{D:'R',d:'r',R:'F'}],'全てを無に帰すもの':['orb',{Y:'D',W:'g',R:'W'}]
 };
 function monSprKey(w){
@@ -5871,7 +5876,7 @@ function accVal(c){
   return v;
 }
 function superMultFor(sym,raw){
-  let m=raw;   // 倍率の上限なし
+  let m=comboRestricted()?Math.min(raw,COMBO_CAP):raw;   // 倍率の上限なし（月の民を倒すまでは×5まで）
   if(sym && hasAcc('super15_'+sym)) m*=(1+0.25*accX()); if(sym && hasAcc('super2_'+sym)) m*=(1+0.5*accX());
   return m;
 }
@@ -6274,7 +6279,7 @@ function refreshPrep(){
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
   const nb=battleNo+1, nbTxt=nb>MAX_BATTLES?'ラスボス戦':`第${nb}戦 ／ 全${MAX_BATTLES}戦`;
   document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
-  try{ const pc=document.getElementById('prepCarry'); if(pc){ const ks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]); if(ks.length){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">引き継ぎ</span>'+ks.map(c=>`<span class="pc-i">${miniIcon(EMBLEM[c],CFILL[c])}×${carryMap[c]}</span>`).join(''); } else pc.style.display='none'; } }catch(e){}
+  try{ const pc=document.getElementById('prepCarry'); if(pc&&comboRestricted()){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">コンボ制限中：倍率×'+COMBO_CAP+'まで・引き継ぎ無し（月の民を倒すと解除）</span>'; } else if(pc){ const ks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]); if(ks.length){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">引き継ぎ</span>'+ks.map(c=>`<span class="pc-i">${miniIcon(EMBLEM[c],CFILL[c])}×${carryMap[c]}</span>`).join(''); } else pc.style.display='none'; } }catch(e){}
 }
 function prepGo(){
   document.getElementById('prepModal').style.display='none';
@@ -6641,7 +6646,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18zi';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
