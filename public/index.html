@@ -27,6 +27,7 @@
 <meta name="twitter:image" content="https://solo-siege-deploy.vercel.app/ogp-1200x630.png">
 <!-- Google Analytics (GA4) — 測定IDは同じフォルダの ga-config.js で管理 -->
 <script src="ga-config.js"></script>
+<script>window.__SSDEBUG=/(^|[?&#])(debug|debag)\b/i.test((location.search||'')+(location.hash||''));</script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -6674,7 +6675,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -6891,9 +6892,9 @@ function lgImport(x){
 <script>
 /* ===== セーブデータの自動バックアップ（公開サイト用。引き継ぎコードで別の端末・作り直したアプリに復元できる） ===== */
 (function(){
-  if(window.claude||!/^https?:$/.test(location.protocol)) return;
+  if(window.__SSDEBUG||window.claude||!/^https?:$/.test(location.protocol)) return;
   const URL_='/api/save', FRESH=['soloSiegeMons','soloSiegeHighScore2','soloSiegeSave1','soloSiegeSel','soloSiegeAlienSeen','soloSiegeWinStreak'];
-  const SKIP={soloSiegeDebugLog:1,soloSiegeCode:1,soloSiegePid:1,soloSiegeNoLog:1};
+  const SKIP={soloSiegeDbgBackup:1,soloSiegeDebugLog:1,soloSiegeCode:1,soloSiegePid:1,soloSiegeNoLog:1};
   const keys=()=>{ try{ return Object.keys(localStorage).filter(k=>k.indexOf('soloSiege')===0&&!SKIP[k]); }catch(e){ return []; } };
   const snap=()=>{ const o={}; keys().forEach(k=>{ try{ o[k]=localStorage.getItem(k); }catch(e){} }); return o; };
   const hasData=()=>keys().some(k=>FRESH.some(f=>k.indexOf(f)===0));
@@ -6933,7 +6934,7 @@ function lgImport(x){
 <script>
 /* ===== セーブデータのバックアップ（Claudeのアーティファクトで開いた時だけ有効。端末のデータが消えても復元できる） ===== */
 (function(){
-  if(!(window.claude&&claude.use)) return;
+  if(window.__SSDEBUG||!(window.claude&&claude.use)) return;
   const FRESH_KEYS=['soloSiegeMons','soloSiegeHighScore2','soloSiegeSave1','soloSiegeSel','soloSiegeAlienSeen','soloSiegeWinStreak'];
   const keys=()=>{ try{ return Object.keys(localStorage).filter(k=>k.indexOf('soloSiege')===0&&k!=='soloSiegeDebugLog'); }catch(e){ return []; } };
   const snap=()=>{ const o={}; keys().forEach(k=>{ try{ o[k]=localStorage.getItem(k); }catch(e){} }); return o; };
@@ -6960,6 +6961,63 @@ function lgImport(x){
       setInterval(logTick,10000); logTick();
     }catch(e){}
   })();
+})();
+</script>
+<script>
+/* ===== OMG GAMES コピーライト／デバッグモード（URLの後ろに ?debug か #debug を付けると出る） ===== */
+(function(){
+  try{
+    const ts=document.getElementById('titleScreen');
+    if(ts){ const c=document.createElement('div'); c.textContent='© OMG GAMES'; c.style.cssText='position:absolute;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;letter-spacing:.12em;opacity:.85;color:var(--cream,#f5e9c8);text-shadow:0 1px 3px #000,0 0 6px #000;pointer-events:none;z-index:5;font-family:Arial,sans-serif'; ts.appendChild(c); }
+  }catch(e){}
+  if(!window.__SSDEBUG) return;
+  const KEEP={soloSiegeCode:1,soloSiegePid:1,soloSiegeNoLog:1,soloSiegeDebugLog:1,soloSiegeDbgBackup:1};
+  const sk=()=>{ try{ return Object.keys(localStorage).filter(k=>k.indexOf('soloSiege')===0); }catch(e){ return []; } };
+  const wid=()=>WAVES.map(w=>w.id);
+  const MINI=['ミジンコ','ミジンコリーダー','ミジンコキング'];
+  const CP=[
+    {k:'new', t:'① 初めから（セーブデータを全部消す）', beat:[], mons:[], clearAll:true},
+    {k:'tut', t:'② ミジンコから（チュートリアル終了時）', beat:[], mons:MINI},
+    {k:'moon',t:'③ 月の民を倒した後（コンボ制限解除）', beat:['月の民'], mons:()=>wid().slice(0,13).concat(['月の民'])},
+    {k:'mars',t:'④ 火星人を倒した後', beat:['月の民','火星人'], mons:()=>wid().slice(0,26).concat(['月の民','火星人'])},
+    {k:'merc',t:'⑤ 水星人を倒した後', beat:['月の民','火星人','水星人'], mons:()=>wid().slice(0,50).concat(['月の民','火星人','水星人'])}
+  ];
+  function apply(cp,monMode){
+    try{
+      const cur={}; sk().forEach(k=>{ if(!KEEP[k]) cur[k]=localStorage.getItem(k); });
+      if(!localStorage.getItem('soloSiegeDbgBackup')) localStorage.setItem('soloSiegeDbgBackup',JSON.stringify(cur));
+      const keepMons=localStorage.getItem('soloSiegeMons');
+      const drop=cp.clearAll?sk().filter(k=>!KEEP[k]):['soloSiegeSave1','soloSiegeAlienSeen','soloSiegeWinStreak','soloSiegeStreakPend','soloSiegeAlienBeat'];
+      drop.forEach(k=>localStorage.removeItem(k));
+      if(cp.beat.length) localStorage.setItem('soloSiegeAlienBeat',JSON.stringify(cp.beat));
+      let mons=typeof cp.mons==='function'?cp.mons():cp.mons.slice();
+      if(monMode==='all') mons=wid().concat([HUMAN_MON]);
+      else if(monMode==='none') mons=[];
+      else if(monMode==='mini') mons=MINI.slice();
+      if(monMode==='keep'){ if(keepMons!==null) localStorage.setItem('soloSiegeMons',keepMons); else localStorage.removeItem('soloSiegeMons'); }
+      else localStorage.setItem('soloSiegeMons',JSON.stringify(Array.from(new Set(mons))));
+      if(cp.clearAll||monMode!=='keep') localStorage.setItem('soloSiegeSel','ミジンコキング');
+      localStorage.removeItem('soloSiegeWeakOk');
+      location.reload();
+    }catch(e){ alert('失敗: '+e); }
+  }
+  function open(){
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:99998';
+    const m=document.createElement('div'); m.className='modal'; m.style.cssText='max-height:90vh;overflow:auto';
+    m.innerHTML='<button class="topback" id="dbgX">◀ 戻る</button><h2>🛠 デバッグ</h2><div style="font-size:11.5px;opacity:.8;line-height:1.6;margin-bottom:8px">チェックポイントを選ぶと、このブラウザの保存データを書き換えて再読み込みします。（デバッグ中は、公開サイトへの自動バックアップを止めています）</div>'
+      +'<div style="font-size:12px;font-weight:900;margin:6px 0 2px">モンスターの解放</div><select id="dbgMon" style="width:100%;padding:8px;font-size:14px;margin-bottom:10px"><option value="std">チェックポイントに合わせる（標準）</option><option value="all">全モンスター解放</option><option value="mini">ミジンコ系のみ</option><option value="none">解放なし（0体）</option><option value="keep">今のまま（変更しない）</option></select>'
+      +'<div id="dbgCps" style="display:flex;flex-direction:column;gap:8px"></div>'
+      +'<button class="btn ghost" id="dbgRestore" style="margin-top:12px;width:100%">元のデータに戻す（デバッグ前）</button><div id="dbgNote" style="font-size:11px;opacity:.7;margin-top:6px;text-align:center"></div>';
+    bg.appendChild(m); document.body.appendChild(bg);
+    const box=m.querySelector('#dbgCps');
+    CP.forEach(cp=>{ const b=document.createElement('button'); b.className='btn'; b.textContent=cp.t; b.style.width='100%'; b.onclick=()=>apply(cp,m.querySelector('#dbgMon').value==='std'?'std':m.querySelector('#dbgMon').value); box.appendChild(b); });
+    m.querySelector('#dbgX').onclick=()=>bg.remove();
+    const has=!!localStorage.getItem('soloSiegeDbgBackup'); const rb=m.querySelector('#dbgRestore'); rb.disabled=!has;
+    m.querySelector('#dbgNote').textContent=has?'':'（まだデバッグで書き換えていません）';
+    rb.onclick=()=>{ try{ const o=JSON.parse(localStorage.getItem('soloSiegeDbgBackup')||'{}'); sk().filter(k=>!KEEP[k]).forEach(k=>localStorage.removeItem(k)); Object.keys(o).forEach(k=>localStorage.setItem(k,o[k])); localStorage.removeItem('soloSiegeDbgBackup'); location.reload(); }catch(e){ alert('失敗: '+e); } };
+  }
+  const anchor=document.getElementById('titleDbgBtn');
+  if(anchor&&anchor.parentNode){ const b=document.createElement('button'); b.className='btn ghost title-howtobtn'; b.id='titleDebugModeBtn'; b.textContent='🛠 デバッグ（チェックポイント）'; b.style.borderColor='#8ff0c4'; b.onclick=open; anchor.parentNode.insertBefore(b,anchor); }
 })();
 </script>
 </body>
