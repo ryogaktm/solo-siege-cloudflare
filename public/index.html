@@ -1935,7 +1935,7 @@ function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
 function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
-  flags.forEach(f=>{ if(!f.closed) f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')) v+=val(c); }); });
+  flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=val(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
   return Math.max(0, v-poisonPenalty);
 }
 /* ================= DEBUG LOG ================= */
@@ -2329,7 +2329,7 @@ const val=c=>c.kind==='wild'?8:(c.kind==='monster'?((c.sub==='number'||c.sub==='
 const YAKU_GOLD={'スカーミッシュ':8,'バタリオン':8,'ファランクス':12,'ウェッジ':20,'ロイヤルファランクス':40,'ホスト':0};   // 役を作った時に入るお金
 function evaluate(f){
   const cs=f.cards; if(cs.length<3) return null;
-  const sum=cs.reduce((s,c)=>s+(c.enemyPlaced?0:val(c)),0);
+  const sum=cs.reduce((s,c)=>s+(c.enemyPlaced?0:val(c)),0)+(f.eqBonus||0);   // 装備の数字（換装で旗に溜まった分）は普通の数字と同じ扱い：役の倍率もスーパーコンボも掛かる
   // ♾️（万能）は役を成立させる側に自由に化ける（点数は強さ8のまま）
   const reals=cs.filter(c=>!isWildCard(c));
   const rv=reals.map(val).sort((a,b)=>a-b);
@@ -3026,7 +3026,6 @@ function finishWaveOutcome(defeated, wave){
 }
 function resolveMonsterDefeatByRef(mon, enemy, fi){
   const bonus=monsterBonusFor(mon);
-  if(!enemy) addScore(bonus);
   if(!enemy){ const hf=flags[fi]; if(hf) hf.eqBonus=(hf.eqBonus||0)+bonus; }
   delete mon.accumulatedBonus;
   graveyard.push(mon);
@@ -3785,19 +3784,20 @@ function predictFlag(f){
   const cs=f.cards.filter(c=>c&&c.kind!=='monster');
   if(cs.length<1||cs.length>2) return null;
   if(!cs.every(c=>c.kind==='troop'&&!c.mixed&&!c.enemyPlaced)) return null;
-  const key=cs.map(c=>c.color+c.value).join('|')+(mon?'#'+mon.sub+(mon.color||'')+(mon.value||''):'');
+  const eqb=(f.eqBonus||0)+(mon?monsterBonusFor(mon):0);
+  const key=cs.map(c=>c.color+c.value).join('|')+(mon?'#'+mon.sub+(mon.color||'')+(mon.value||''):'')+'+'+eqb;
   if(_predCache[key]!==undefined) return _predCache[key];
   const U=[]; GAME_COLORS.forEach(col=>{ for(let v=1;v<=10;v++) U.push({kind:'troop',color:col,value:v}); });
   const okMon=c=>!mon||satisfiesMonster(c,{cards:[mon]});
   const roles={}, cands=[]; let worst=null;
   const test=add=>{
     if(mon && !add.some(okMon)) return;
-    const r=evaluate({cards:cs.concat(add)}); if(!r) return;
-    { const bn0=mon?monsterBonusFor(mon):0; if(!worst||r.base+bn0<worst.base+worst.bn) worst={sym:r.mult>1?null:null,base:r.base,bn:bn0}; }   // 最悪ケース（役なしも含めて一番低い値）
+    const r=evaluate({cards:cs.concat(add),eqBonus:eqb}); if(!r) return;
+    { if(!worst||r.base<worst.base) worst={sym:null,base:r.base,bn:0}; }   // 最悪ケース（役なしも含めて一番低い値）
     if(r.mult<=1) return;
     const o=roles[r.name+r.mult]||(roles[r.name+r.mult]={name:r.name,mult:r.mult,min:Infinity,max:-Infinity});
-    const bn=mon?monsterBonusFor(mon):0;
-    o.min=Math.min(o.min,r.base+bn); o.max=Math.max(o.max,r.base+bn);
+    const bn=0;
+    o.min=Math.min(o.min,r.base); o.max=Math.max(o.max,r.base);
     cands.push({k:r.name+r.mult,base:r.base,bn,cols:[...new Set(cs.concat(add).map(c=>c.color))]});
   };
   if(cs.length===2){ U.forEach(a=>test([a])); }
@@ -3873,7 +3873,7 @@ function flagGainRange(f){
   const exist=[]; flags.forEach(g=>{ if(g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor) exist.push({sym:g.symbolColor,base:g.result.base||0,seq:g.closeSeq||0}); });
   const old=synergyOf(exist.map(x=>({...x})));
   const maxSeq=exist.reduce((m,x)=>Math.max(m,x.seq),0);
-  const raw=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:val(c)),0);
+  const raw=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:val(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0);
   let lo=Infinity, hi=-Infinity;
   pr.opts.forEach(o=>{
     const g=o.base+o.bn-raw+synergyOf(exist.map(x=>({...x})).concat([{sym:o.sym,base:o.base,seq:maxSeq+1}]))-old;
@@ -3886,7 +3886,7 @@ function predictAttackRange(pA){
   const exist=[]; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) exist.push({sym:f.symbolColor,base:f.result.base||0,seq:f.closeSeq||0}); });
   const old=synergyOf(exist.map(x=>({...x})));
   const preds=[], worsts=[]; let rawSum=0;
-  flags.forEach(f=>{ try{ const pr=predictFlag(f); if(pr&&!pr.none&&pr.opts&&pr.opts.length){ preds.push(pr.opts); worsts.push(pr.worst||pr.opts[0]); rawSum+=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:val(c)),0); } }catch(e){} });
+  flags.forEach(f=>{ try{ const pr=predictFlag(f); if(pr&&!pr.none&&pr.opts&&pr.opts.length){ preds.push(pr.opts); worsts.push(pr.worst||pr.opts[0]); rawSum+=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:val(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0); } }catch(e){} });
   if(!preds.length) return null;
   let lo=Infinity, hi=-Infinity;
   const maxSeq=exist.reduce((m,x)=>Math.max(m,x.seq),0);
@@ -4303,7 +4303,7 @@ function cardInfoContent(c){
       return `<p><b>鍛治職人</b></p><p>発動すると、墓地にある装備が全て山札に戻ります（獲得済みの得点はそのまま）。</p>`;
     }
     if(c.sub==='number'){
-      return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。換装ボーナス <b>+${monsterBonusFor(c)}</b>。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
+      return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。旗の数字に<b>+${monsterBonusFor(c)}</b>が加算（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
     }
     return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードの<b>マークがすべて${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。同色の役を作りたいときに使いましょう。装備のある旗には使えません。</p>`;
   }
@@ -4527,7 +4527,7 @@ function buildMonsterList(){
   const wrap=document.getElementById('monsterList'); if(wrap.childElementCount) return;
   const entries=[
     {card:{kind:'monster',sub:'number',value:7,uid:'mon-num'},
-     name:'力の装備', desc:'旗に置かれると、その旗には「表示された数字以上」の部隊しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、装備だけが墓地へ送られます（置いたカードはそのまま残る）。その後は制限なく普通に置けるようになります。ボーナス得点が入ります（数字が大きいほど高得点）。'},
+     name:'力の装備', desc:'旗に置かれると、その旗には「表示された数字以上」の部隊しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、装備だけが墓地へ送られます（置いたカードはそのまま残る）。その後は制限なく普通に置けるようになります。その旗の数字に、装備の数字が足されます（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。'},
     {card:{kind:'monster',sub:'mark',color:'blue',uid:'mon-mark'},
      name:'色の装備', desc:'カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードのマークがすべて装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままなので、同色の役を作りたいときに。'}
   ];
@@ -6603,7 +6603,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18x';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18y';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
