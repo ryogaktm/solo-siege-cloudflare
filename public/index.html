@@ -1971,7 +1971,7 @@ function dbgSnap(){
 function dlog(type, data){
   try{
     const e=Object.assign({seq:++dbgSeq, t:Math.round(performance.now()/100)/10, type:type}, data||{});
-    if(type!=='attack_calc'&&type!=='info') e.state=dbgSnap();
+    if(type!=='attack_calc'&&type!=='info'&&type.indexOf('card_')!==0) e.state=dbgSnap();
     dbgLog.push(e);
     if(dbgLog.length>6000) dbgLog.splice(0,1000);
     if(type==='stage_advance'||dbgSeq%25===0) dbgSave();
@@ -1996,8 +1996,8 @@ function dbgText(){
   return lines.join('\n');
 }
 function dbgSummary(){
-  const atk=dbgLog.filter(e=>e.type==='attack_calc'||e.type==='game_start');
-  return atk.map(a=>a.type==='game_start'?`—— ゲーム開始 ${a.time||''} ——`:`#${a.seq} S${a.stage}-W${a.wave} 戦力${a.pAtk}(素点${a.scoreBefore}+超${a.superBonus}-毒${a.poison}) vs 敵${a.eAtk}(T${a.atkTurn}) 差${a.diff} → 敵HP ${a.eHpBefore}→${a.eHpAfter} / 自HP ${a.pHpBefore}→${a.pHpAfter}${a.dmgMult>1?' (×'+a.dmgMult+')':''}`).join('\n') || '（攻撃の記録はまだありません）';
+  const atk=dbgLog.filter(e=>e.type==='attack_calc'||e.type==='game_start'||e.type==='card_audit'||e.type==='card_change');
+  return atk.map(a=>a.type==='game_start'?`—— ゲーム開始 ${a.time||''} ——`:a.type==='card_audit'?`#${a.seq} 〔${a.tag}〕カード照合：${a.ok?'異常なし':'異常'+a.anom.length+'件 → '+a.anom.join(' / ')}`:a.type==='card_change'?`#${a.seq} カード変化（${a.cause}）：${(a.changes||[]).join(' ')}${(a.temp&&a.temp.length)?' 一時:'+a.temp.join(' '):''}`:`#${a.seq} S${a.stage}-W${a.wave} 戦力${a.pAtk}(素点${a.scoreBefore}+超${a.superBonus}-毒${a.poison}) vs 敵${a.eAtk}(T${a.atkTurn}) 差${a.diff} → 敵HP ${a.eHpBefore}→${a.eHpAfter} / 自HP ${a.pHpBefore}→${a.pHpAfter}${a.dmgMult>1?' (×'+a.dmgMult+')':''}`).join('\n') || '（攻撃の記録はまだありません）';
 }
 function openDbgModal(){
   document.getElementById('dbgSummary').value=dbgSummary();
@@ -2209,7 +2209,7 @@ function init(){
   document.getElementById('topCharBest').textContent=rk(bestTotal);
   pickHowTip();
   render(); layoutHand(true);
-  { const openStartDeck=()=>{ showDeckBuild(0,'最初の山札',()=>{ render(); layoutHand(true); openRanking(true,{onBack:openStartDeck}); }); dbPhase=2; renderDeckBuild(); }; openStartDeck(); } // 最初は山札を見せるだけ（入れ替えなし）。ランキングから戻るとここへ戻る
+  { const openStartDeck=()=>{ showDeckBuild(0,'最初の山札',()=>{ try{ lgCheck('start'); }catch(e){} render(); layoutHand(true); openRanking(true,{onBack:openStartDeck}); }); dbPhase=2; renderDeckBuild(); }; openStartDeck(); } // 最初は山札を見せるだけ（入れ替えなし）。ランキングから戻るとここへ戻る
 }
 let deckUids=new Set(); // 山札メンバーのuid（盤面に置くとカードがコピーされるためフラグでなくuidで管理）
 function drawFromGrandDeck(n){
@@ -3109,7 +3109,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   busy=true; picked=null; lastFi=fi;
   if(card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)){
-    const placed=card.kind==='troop'?{kind:'troop',color:card.color,altColor:card.altColor,mixed:card.mixed,value:card.value,uid:card.uid,purchased:card.purchased,temp:card.temp,origValue:card.origValue}:{kind:'wild',color:'wild',label:card.short,uid:card.uid,purchased:card.purchased};
+    const placed=card.kind==='troop'?{kind:'troop',color:card.color,altColor:card.altColor,mixed:card.mixed,value:card.value,uid:card.uid,purchased:card.purchased,temp:card.temp,origValue:card.origValue,origColor:card.origColor,origAlt:card.origAlt,origMixed:card.origMixed}:{kind:'wild',color:'wild',label:card.short,uid:card.uid,purchased:card.purchased};
     hand.splice(handIdx,1);
     const mon=flagMonster(f);
     const posBefore=f.cards.filter(c=>c.kind==='troop').length;
@@ -3132,7 +3132,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   if(card.kind==='monster' && card.sub==='mark'){
     hand.splice(handIdx,1);
-    f.cards.forEach(c=>{ if(c.kind==='troop'){ c.color=card.color; c.altColor=undefined; c.mixed=undefined; } });
+    f.cards.forEach(c=>{ if(c.kind==='troop'){ if(c.origColor===undefined){ c.origColor=c.color; c.origAlt=c.altColor; c.origMixed=c.mixed; } c.color=card.color; c.altColor=undefined; c.mixed=undefined; } });   // 色の装備で染めた色は、その戦いの間だけ（戦いが終わると元の色に戻す）
     graveyard.push(card);
     playSfx('equipment');
     if(CHARACTER.id==='general') showComment(`お！${CNAME[card.color]}マークに染まったぞ！`);
@@ -3283,12 +3283,12 @@ function resolveFusion(){
   const lo = cardA.value<=cardB.value ? cardA : cardB;
   const hi = cardA.value<=cardB.value ? cardB : cardA;
   const overflow = lo.value + hi.value - 10;
-  const newHi={kind:'troop', color:hi.color, altColor:hi.altColor, mixed:hi.mixed, value:Math.min(10,lo.value+hi.value), uid:hi.uid, temp:hi.temp, origValue: hi.origValue!==undefined?hi.origValue:hi.value};
+  const newHi={kind:'troop', color:hi.color, altColor:hi.altColor, mixed:hi.mixed, value:Math.min(10,lo.value+hi.value), uid:hi.uid, temp:hi.temp, origValue: hi.origValue!==undefined?hi.origValue:hi.value, origColor:hi.origColor, origAlt:hi.origAlt, origMixed:hi.origMixed};
   const idxHi=hand.indexOf(hi);
   hand[idxHi]=newHi;
   let hintMsg;
   if(overflow>=1){
-    const newLo={kind:'troop', color:lo.color, altColor:lo.altColor, mixed:lo.mixed, value:overflow, uid:lo.uid, temp:lo.temp, origValue: lo.origValue!==undefined?lo.origValue:lo.value};
+    const newLo={kind:'troop', color:lo.color, altColor:lo.altColor, mixed:lo.mixed, value:overflow, uid:lo.uid, temp:lo.temp, origValue: lo.origValue!==undefined?lo.origValue:lo.value, origColor:lo.origColor, origAlt:lo.origAlt, origMixed:lo.origMixed};
     const idxLo=hand.indexOf(lo);
     hand[idxLo]=newLo;
     hintMsg=`融合！${CNAME[lo.color]}${overflow}と${CNAME[hi.color]}10に分裂した。`;
@@ -4702,6 +4702,7 @@ function cleanMods(cards){
   cards.forEach(c=>{
     if(!c||c.temp) return;
     if(c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; }
+    if(c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; }
     keep.push(c);
   });
   return keep;
@@ -6069,7 +6070,7 @@ function rollShopStock(){
   rollAccStock();
 }
 function restoreAllMods(){   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
-  [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } }); });
+  [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } if(c&&c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; } }); });
 }
 function showPrep(keepStock){
   try{ restoreAllMods(); }catch(e){}
@@ -6441,7 +6442,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18f';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
@@ -6449,7 +6450,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:force?1:0, lastDealt, acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:force?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -6494,6 +6495,7 @@ function resumeGame(){
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
   lastDealt=st.lastDealt||0;
+  try{ lgImport(st.lg); }catch(e){}
   picked=null; pending=null; gameEnded=false; busy=false; waveAdvancing=false; infoIdx=null; justClosed=[]; frozenMults={}; frozenHost={}; stageBgIdx=-1;
   FLAG_COUNT=st.FLAG_COUNT||CHARACTER.flags;
   bestTotal=loadHighScore(CHARACTER.id);
@@ -6523,6 +6525,115 @@ function resumeGame(){
   document.getElementById('titleResumeBtn').onclick=resumeGame;
   const bk=document.getElementById('charBackBtn'); if(bk){ const o=bk.onclick; bk.onclick=function(){ if(o) o.apply(this,arguments); refreshResumeBtn(); }; }
   refreshResumeBtn();
+})();
+
+/* ===== カード台帳（デバッグ用）：どのカードがどの効果でどう変わったか／戻りすぎ・消えたまま・勝手な増減を検出。画面には出さず、ログ(card_snap/card_change/card_audit)にだけ残す ===== */
+const LG={last:null, exp:new Map(), mods:new Map()};
+const LG_LOC={D:'山札',G:'大山札',H:'手札',Y:'墓地',F:'盤面',S:'胃袋',P:'報酬待ち',X:'封印',A:'アクセ保管'};
+function lgDesc(c){
+  if(c.kind==='troop'){
+    const pv=c.origValue!==undefined?c.origValue:c.value, nm=k=>String(CNAME[k]||k||'?')[0];
+    const pc=c.origColor!==undefined?c.origColor:c.color, pa=c.origColor!==undefined?c.origAlt:c.altColor, pm=c.origColor!==undefined?c.origMixed:c.mixed;
+    return (pm?nm(pc)+'/'+nm(pa):nm(pc))+pv;
+  }
+  let x=c; if(c.origValue!==undefined&&c.value!==undefined) x=Object.assign({},c,{value:c.origValue});
+  let n=''; try{ n=cardDisplayName(x); }catch(e){}
+  if(!n) n=String(c.name||c.type||c.sub||c.kind);
+  return n+(c.purchased?'*':'');
+}
+function lgMap(){
+  const m=new Map();
+  const add=(arr,loc)=>(arr||[]).forEach(c=>{ if(c&&c.uid!==undefined&&!c.temp&&!c.enemyPlaced&&!isCurse(c)&&!m.has(c.uid)) m.set(c.uid,{c,loc,d:lgDesc(c),tv:c.value,pv:(c.origValue!==undefined?c.origValue:c.value),cc:(c.origColor!==undefined?String(CNAME[c.color]||c.color)[0]:''),p:!!c.purchased}); });
+  add(activeDeck,'D'); add(grandDeck,'G'); add(hand,'H'); add(graveyard,'Y'); add(stomach,'S'); add(pendingRewardCards,'P'); flags.forEach(f=>add(f.cards,'F')); add(sealedCards,'X'); accOwned.forEach(o=>add(o.held,'A'));
+  return m;
+}
+function lgOp(cause,fn){
+  let before=null; try{ before=lgMap(); }catch(e){}
+  const r=fn();
+  try{
+    if(before){
+      const after=lgMap(), ch=[], tmp=[], shop=/^shop/.test(cause);
+      after.forEach((v,u)=>{
+        const b=before.get(u);
+        if(!b){ ch.push('＋'+v.d+'#'+u); LG.exp.set(u,cause); }
+        else{
+          if(b.d!==v.d){ ch.push(b.d+'→'+v.d+'#'+u); LG.exp.set(u,cause); if(shop) LG.mods.set(u,{from:(LG.mods.get(u)||{from:b.d}).from,to:v.d,cause,stage:stageIndex+1}); else LG.mods.delete(u); }
+          if((v.tv!==v.pv && b.tv!==v.tv)||(v.cc&&b.cc!==v.cc)) tmp.push(v.d+'→('+(v.cc||'')+v.tv+')#'+u);
+        }
+      });
+      before.forEach((b,u)=>{ if(!after.has(u)){ ch.push('－'+b.d+'#'+u); LG.exp.set(u,cause); LG.mods.delete(u); } });
+      if(ch.length||tmp.length) dlog('card_change',{cause,stage:stageIndex+1,changes:ch,temp:tmp});
+    }
+  }catch(e){ try{ console.error('lgOp',e); }catch(_){} }
+  return r;
+}
+function lgCheck(tag){
+  try{
+    const cur=lgMap(), prev=LG.last, anom=[], notes=[];
+    const leak=(tag==='prep_in'||tag==='prep_out'||tag==='battle_start');
+    if(prev){
+      prev.forEach((b,u)=>{
+        const v=cur.get(u);
+        if(!v){
+          if(LG.exp.has(u)) notes.push('－'+b.d+'#'+u+'('+LG.exp.get(u)+')');
+          else if(b.p && (b.loc==='Y'||b.loc==='F'||b.loc==='S')) notes.push('使い切り:'+b.d+'#'+u);
+          else if(deletedUids.has(u)) notes.push('削除:'+b.d+'#'+u);
+          else if(!LG.mods.has(u)) anom.push('消えた:'+b.d+'#'+u+'(直前:'+(LG_LOC[b.loc]||b.loc)+')');
+        } else if(b.d!==v.d && !LG.mods.has(u)){
+          if(LG.exp.has(u)) notes.push(b.d+'→'+v.d+'#'+u+'('+LG.exp.get(u)+')');
+          else anom.push('勝手に変化:'+b.d+'→'+v.d+'#'+u+'('+(LG_LOC[v.loc]||v.loc)+')');
+        }
+      });
+      cur.forEach((v,u)=>{
+        if(prev.has(u)) return;
+        if(LG.exp.has(u)) notes.push('＋'+v.d+'#'+u+'('+LG.exp.get(u)+')');
+        else if(v.p && (v.loc==='P'||v.loc==='D'||v.loc==='H')) notes.push('入手:'+v.d+'#'+u);
+        else anom.push('勝手に増えた:'+v.d+'#'+u+'('+(LG_LOC[v.loc]||v.loc)+')');
+      });
+    }
+    // ショップで強化したカードが、いまも強化されたままか
+    const shopList=[]; let shopNG=0;
+    [...LG.mods.keys()].forEach(u=>{
+      const m=LG.mods.get(u), v=cur.get(u);
+      if(!v){ if(LG.exp.has(u)||deletedUids.has(u)||(prev&&prev.has(u)&&!cur.has(u)&&LG.exp.has(u))){ LG.mods.delete(u); return; } shopNG++; shopList.push(m.from+'→'+m.to+'#'+u+' ✗消えた'); anom.push('ショップ強化カードが消えた:'+m.to+'#'+u); return; }
+      const ok=v.d===m.to; if(!ok){ shopNG++; anom.push('ショップ強化が戻った/変わった:'+m.from+'→'+m.to+' のはずが '+v.d+'#'+u+'('+m.cause+')'); }
+      shopList.push(m.from+'→'+m.to+'#'+u+' '+(ok?'✓':'✗'+v.d)); if(!ok) LG.mods.delete(u);   // 同じ異常を毎回出さない
+    });
+    if(leak) cur.forEach((v,u)=>{ if(v.c.origValue!==undefined||v.c.origColor!==undefined) anom.push('一時的な数字・色が残ったまま:'+v.d+'(いま'+v.tv+')#'+u+'('+(LG_LOC[v.loc]||v.loc)+')'); });
+    // 山札の内訳（部隊は色別・数字順、それ以外は名前別の枚数）
+    const cols={}, oth={}; let dn=0;
+    cur.forEach((v,u)=>{
+      if(!(deckUids.has(u)||v.p)) return; dn++;
+      if(v.c.kind==='troop'){ const k=v.d.replace(/[0-9]+$/,''); (cols[k]=cols[k]||[]).push(+v.d.replace(/^\D+/,'')); }
+      else oth[v.d]=(oth[v.d]||0)+1;
+    });
+    const deckTxt=Object.keys(cols).map(k=>k+':'+cols[k].sort((a,b)=>a-b).join(',')).join(' | ');
+    const rows=[]; cur.forEach((v,u)=>rows.push('#'+u+' '+v.d+((v.tv!==v.pv||v.cc)?'('+v.cc+v.tv+')':'')+' '+v.loc+(deckUids.has(u)?'':'(外)')));
+    dlog('card_snap',{tag,stage:stageIndex+1,battle:battleNo,baseline:!prev,total:cur.size,deckN:dn,deck:deckTxt,deckOther:oth,shop:shopList,cards:(tag==='start'||tag==='prep_in'||anom.length)?rows:undefined});
+    if(prev) dlog('card_audit',{tag,stage:stageIndex+1,ok:anom.length===0,anom,notes,shopNG});
+    LG.last=cur; LG.exp.clear();
+  }catch(e){ try{ console.error('lgCheck',e); }catch(_){} }
+}
+function lgExport(){ try{ if(!LG.last) return null; const l=[]; LG.last.forEach((v,u)=>l.push([u,v.d,v.tv,v.loc,v.p?1:0,v.cc||''])); return {l,m:[...LG.mods.entries()]}; }catch(e){ return null; } }
+function lgImport(x){
+  LG.exp.clear(); LG.last=null; LG.mods=new Map();
+  try{ if(x&&x.l){ const m=new Map(); x.l.forEach(r=>m.set(r[0],{c:null,d:r[1],tv:r[2],pv:r[2],loc:r[3],p:!!r[4],cc:r[5]||''})); LG.last=m; LG.mods=new Map(x.m||[]); } }catch(e){}
+}
+(function(){
+  const wrap=(name,causeFn,after)=>{ const f=window[name]; if(typeof f!=='function') return; window[name]=function(){ let cz; try{ cz=causeFn?causeFn.apply(null,arguments):name; }catch(e){ cz=name; } return lgOp(cz,()=>f.apply(this,arguments)); }; };
+  const cn=k=>String(CNAME[k]||k||'?')[0];
+  wrap('applyColorPlus3',c=>'shop:'+cn(c)+'+1');
+  wrap('applyColorChange3',(a,b)=>'shop:'+cn(a)+'→'+cn(b));
+  wrap('applyAcc',o=>'acc装備:'+((accDef(o&&o.id)||{}).name||''));
+  wrap('unapplyAcc',o=>'acc解除:'+((accDef(o&&o.id)||{}).name||''));
+  wrap('syncSeal',()=>'acc:紫の封印/解除');
+  wrap('resolveFusion',()=>'融合'); wrap('resolveDuplicate',()=>'複製'); wrap('resolveRehire',()=>'再雇用');
+  wrap('useInspire',()=>'鼓舞'); wrap('useWeaken',()=>'弱体化');
+  const around=(name,pre,post)=>{ const f=window[name]; if(typeof f!=='function') return; window[name]=function(){ if(pre) pre.apply(this,arguments); const r=f.apply(this,arguments); if(post) post.apply(this,arguments); return r; }; };
+  around('init',()=>{ LG.last=null; LG.exp.clear(); LG.mods=new Map(); });
+  around('advanceToNextStage',()=>lgCheck('prep_out'),()=>lgCheck('battle_start'));
+  around('showPrep',null,()=>lgCheck('prep_in'));
+  around('finishWaveOutcome',(d)=>{ if(d) lgCheck('battle_end'); },null);
 })();
 </script>
 <script>
