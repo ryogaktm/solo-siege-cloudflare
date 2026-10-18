@@ -3109,7 +3109,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   busy=true; picked=null; lastFi=fi;
   if(card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)){
-    const placed=card.kind==='troop'?{kind:'troop',color:card.color,altColor:card.altColor,mixed:card.mixed,value:card.value,uid:card.uid,purchased:card.purchased,temp:card.temp,origValue:card.origValue,origColor:card.origColor,origAlt:card.origAlt,origMixed:card.origMixed}:{kind:'wild',color:'wild',label:card.short,uid:card.uid,purchased:card.purchased};
+    const placed=card.kind==='troop'?{kind:'troop',color:card.color,altColor:card.altColor,mixed:card.mixed,value:card.value,uid:card.uid,purchased:card.purchased,temp:card.temp,origValue:card.origValue,origColor:card.origColor,origAlt:card.origAlt,origMixed:card.origMixed}:{kind:'wild',color:'wild',label:card.short,uid:card.uid,purchased:card.purchased,base:card};   // base＝元のカード（戦いが終わったら元の軍師カードに戻す）
     hand.splice(handIdx,1);
     const mon=flagMonster(f);
     const posBefore=f.cards.filter(c=>c.kind==='troop').length;
@@ -4701,6 +4701,7 @@ function cleanMods(cards){
   const keep=[];
   cards.forEach(c=>{
     if(!c||c.temp) return;
+    if(c.kind==='wild'&&c.base) c=c.base;   // 盤面に置いた♾️は、元の軍師カードに戻す
     if(c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; }
     if(c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; }
     keep.push(c);
@@ -6070,7 +6071,7 @@ function rollShopStock(){
   rollAccStock();
 }
 function restoreAllMods(){   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
-  [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } if(c&&c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; } }); });
+  [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; for(let i=0;i<arr.length;i++){ if(arr[i]&&arr[i].kind==='wild'&&arr[i].base) arr[i]=arr[i].base; } arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } if(c&&c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; } }); });
 }
 function showPrep(keepStock){
   try{ restoreAllMods(); }catch(e){}
@@ -6442,7 +6443,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18g';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
