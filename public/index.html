@@ -1774,8 +1774,11 @@ function applyEnemyNames(){
   WAVES.forEach((w,i)=>{ let id=w.baseId; if(i===HUMAN_IDX&&nec) id='ネクロマンサー'; w.id=id; w.name=(CHARACTER&&CHARACTER.mon===id?'別の':'')+dispName(id); });   // 自分と同じモンスターは「別の」〇〇
 }
 applyEnemyNames();
-const HIDDEN_BOSSES=['金星人','土星人'];  // 一時的に出さないラスボス（空にすれば復活）
-const bossIdxFor=lv=>{ let k=(lv<=25?0:lv<=37?1:lv<=49?2:lv<=60?3:4); while(k>0&&HIDDEN_BOSSES.includes(WAVES[LADDER_N+k].id)) k--; return LADDER_N+k; };  // 最後に倒した敵の段（1が最弱）→ 挑戦できるラスボス
+const HIDDEN_BOSSES=['土星人'];  // 一時的に出さないラスボス（空にすれば復活）
+const alienBeatList=()=>{ try{ return JSON.parse(lsGet('soloSiegeAlienBeat')||'[]'); }catch(e){ return []; } };
+const alienBeatAdd=id=>{ try{ const a=alienBeatList(); if(!a.includes(id)){ a.push(id); lsSet('soloSiegeAlienBeat',JSON.stringify(a)); } }catch(e){} };
+/* 宇宙人の出現条件：①範囲の敵を最後に倒した ②ひとつ前の宇宙人を倒したことがある（火星人は範囲だけ）。満たさないときは一つ前の宇宙人。太陽神だけは、4戦目で最後の敵（lv72）を倒したときのみ */
+const bossIdxFor=lv=>{ if(lv>=72) return LADDER_N+4; let k=(lv<=25?0:lv<=37?1:lv<=49?2:3); const beat=alienBeatList(); while(k>0&&(HIDDEN_BOSSES.includes(WAVES[LADDER_N+k].id)||!beat.includes(WAVES[LADDER_N+k-1].id))) k--; return LADDER_N+k; };
 const BASE_IDX=WAVES.map((w,i)=>(w.isNew||w.boss)?-1:i).filter(i=>i>=0);
 const MAX_BATTLES=4;
 const rk=v=>v>0?`${LADDER_N+1-v}位`:'―';  // 保存値（強さの段）→ 順位表示（1位が最強）
@@ -2989,6 +2992,7 @@ function finishWaveOutcome(defeated, wave){
     unlockMonAndBelow(wave);
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
     if(wave.boss){
+      alienBeatAdd(wave.id);
       hint(`${wave.name}を倒した！`,true);
       setTimeout(()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); }, 900);
       return;
@@ -6637,7 +6641,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18zh';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18zi';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
