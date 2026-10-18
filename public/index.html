@@ -5176,7 +5176,8 @@ function spitDiscardTap(idx){
 function swallowTap(idx){
   const c=hand[idx]; if(!c) return;
   hand.splice(idx,1); stomach.push(c); spec.mon++; pending=null;
-  hint('丸のみ！カードを飲み込んだ。もう一度押すと吐き出せる。'); playSfx('shuffle'); render(); layoutHand(false);
+  const refilled=autoRefill(1);   // 飲み込んだ分、新しいカードを1枚引く（ほかの行動と同じ）
+  hint('丸のみ！カードを飲み込んだ。もう一度押すと吐き出せる。'); playSfx('shuffle'); render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
 }
 function eatTap(idx){
   const c=hand[idx]; if(!c) return;
@@ -6443,7 +6444,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18h';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
