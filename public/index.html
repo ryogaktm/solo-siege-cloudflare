@@ -6306,7 +6306,12 @@ function renderShopMini(m,sel){
   cards.forEach(c=>{ const e=document.createElement('div'); e.className='upcoming-chip'+(c.purchased?' pur':''); try{ e.innerHTML=upcomingChipLabel(c); }catch(_){ e.textContent=c.name||''; } g.appendChild(e); });
   box.querySelector('.sdm-head').onclick=()=>{ const cl=document.getElementById('cardListModal'); cl.style.zIndex=10000; try{ showCardListModal('いまの山札', cards); }catch(e){} };
 }
-function renderShop(){
+function renderShop(){   // 再描画してもスクロール位置を保つ（連続でチェックを入れられるように）
+  const m=document.getElementById('shopModal'), keep=[]; try{ let e=m.querySelector('#shopBody'); while(e){ keep.push([e,e.scrollTop]); if(e===m) break; e=e.parentElement; } }catch(_){}
+  renderShop_();
+  const back=()=>keep.forEach(([e,t])=>{ if(e.scrollTop!==t) e.scrollTop=t; }); back(); requestAnimationFrame(back);
+}
+function renderShop_(){
   const m=document.getElementById('shopModal'), mode=m.dataset.mode||'buydeck', kind=mode==='buyacc'?'acc':'deck', body=m.querySelector('#shopBody'); body.innerHTML='';
   m.querySelector('#shopTitle').textContent={buyacc:'💎 アクセサリーを買う',buydeck:'🃏 デッキを買う',sell:'💰 売る'}[mode]||'';
   m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`;
@@ -6587,7 +6592,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18u';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18v';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
