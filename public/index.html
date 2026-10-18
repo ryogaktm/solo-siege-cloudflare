@@ -5147,12 +5147,10 @@ function monSkillUse(){
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
   }
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
-  else if(m.kind==='sting'){
-    if(hand.length>=currentHandMax()){ hint('手札がいっぱいです。',true); return; }
+  else if(m.kind==='sting'){   // 手札がいっぱいでも1枚増える（手札は上限を1枚超えて、使うと元に戻る）
     hand.push({kind:'troop',color:'red',value:1,uid:uid(),temp:true}); spec.mon++; hint('一刺し！赤1が手札に加わった。'); playSfx('shuffle');
   }
   else if(m.kind==='fang'){
-    if(hand.length>=currentHandMax()){ hint('手札がいっぱいです。',true); return; }
     hand.push({kind:'troop',color:'purple',value:6,uid:uid(),temp:true}); spec.mon++; hint('毒の牙！紫6が手札に加わった。'); playSfx('shuffle');
   }
   else if(m.kind==='swallow'){
@@ -6444,7 +6442,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18i';   // 遊んだ記録（デバッグログ）に残す版番号
 function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
