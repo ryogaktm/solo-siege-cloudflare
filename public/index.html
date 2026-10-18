@@ -6519,7 +6519,11 @@ function renderPicker(){
     if(pk.dup && chosen) { const bd=document.createElement('div'); bd.className='pick-badge'; bd.textContent='×'+chosen; el.appendChild(bd); }
     el.onclick=()=>{
       const i=pk.sel.indexOf(it);
-      if(pk.dup){ if(pk.sel.length<need) pk.sel.push(it); }
+      if(pk.dup){
+        if(pk.sel.length<need) pk.sel.push(it);
+        else if(chosen) { const j=pk.sel.lastIndexOf(it); if(j>=0) pk.sel.splice(j,1); }   // 選び終わっている時：選んだカードをもう一度押すと取り消す
+        else pk.sel[pk.sel.length-1]=it;   // 別のカードを押すと、最後に選んだものと入れ替える
+      }
       else if(i>=0) pk.sel.splice(i,1); else if(pk.sel.length<need) pk.sel.push(it);
       renderPicker();
     };
@@ -6627,7 +6631,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-18zd';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-18ze';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
