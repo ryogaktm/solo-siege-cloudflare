@@ -1423,8 +1423,8 @@ function cardShortLabel(c){
   if(c.kind==='troop') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}</span>`;
   if(c.kind==='wild') return `<span class="cl-item">${miniIcon(EMBLEM.wild,wildColor(c))}8</span>`;
   if(c.kind==='monster'){
-    if(c.sub==='combined') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}+</span>`;
-    if(c.sub==='number') return `<span class="cl-item">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+</span>`;
+    if(c.sub==='combined') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}${eqv(c.value)}</span>`;
+    if(c.sub==='number') return `<span class="cl-item">${miniIcon(EMBLEM.sword,'#e07a9a')}${eqv(c.value)}</span>`;
     if(c.sub==='mark') return `<span class="cl-item">${miniIcon(EMBLEM[c.color],CFILL[c.color])}</span>`;
     return `<span class="cl-item">${miniIcon(EMBLEM.necro,'#caa6e0')}職</span>`;
   }
@@ -1450,7 +1450,7 @@ const TACTICS = [
   {type:'darius',name:'赤♾️',short:'赤♾️',desc:'万能・強さ8／3枚目のみ',count:1},
   {type:'scout',name:'補充',short:'補充',desc:'3枚引き2枚捨てる（墓地へ）',count:4},
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ送り、その枚数を山札から引き直す',count:3},
-  {type:'wipe',name:'全滅',short:'全滅',desc:'指定した旗のカードを全て墓地へ（封鎖済みも可）',count:2},
+  {type:'wipe',name:'全滅',short:'全滅',desc:'指定した旗のカードを全て墓地へ（閉じた旗・敵に封鎖された旗・呪いの装備も可）',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地からカードを1枚選んで手札に戻す',count:2},
   {type:'guidance',name:'誘導',short:'誘導',desc:'旗の一番上のカードを別の旗へ移動',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
@@ -1808,7 +1808,7 @@ const TACTIC_EXTRA = {
   darius:'旗の3枚目としてしか置けない万能カード（赤♾️）。色・数字の条件を完全に無視できます（装備の色・数字条件も無視）。先に2枚置いてから使いましょう。',
   scout:'発動すると部隊を3枚引き、その中から2枚を選んで捨てます（捨てたカードは墓地へ）。欲しい色や数字を探したい時に。',
   shuffle:'発動すると、このカード自身はまず墓地へ送られます。その後、残った手札から好きな枚数（0枚でも可）を選んで墓地へ送り、その枚数だけ山札から新しく引けます。手詰まりを一新したい時に。ヘッダーの「いつでもシャッフル」とは別物で、こちらは手札もカードも消費します。',
-  wipe:'指定した旗のカードをすべて墓地へ送り、その旗を空にします。封鎖済みの旗にも使え、その場合は獲得済みの戦力も取り消されて未封鎖に戻ります。',
+  wipe:'指定した旗のカードをすべて墓地へ送り、その旗を空にします。敵に封鎖された旗（封鎖も解ける）や、呪いの装備の乗った旗にも使えます。閉じた旗にも使え、その場合は獲得済みの戦力も取り消されて未封鎖に戻ります。',
   rehire:'発動すると、墓地にあるカードから1枚を選んで手札に戻せます。強かった部隊や装備をもう一度使いたい時に。',
   guidance:'発動すると、まず移動元の旗をタップ。旗に2枚ある場合はどちらを動かすか選べる（1枚しかない場合は自動でそれが選ばれる）。最後に移動先の旗をタップすれば、そのカードを別の旗へ移し替えられます。ヘッダーの山札・墓地アイコンをタップすれば、移動させずにそのまま捨てることもできます。',
   blank:'白紙のカード。何の効果もありません。手札に邪魔なら、墓地へドラッグして捨てて引き直しましょう（1ターン消費）。',
@@ -1840,7 +1840,7 @@ const MONSTERS = [
 function monsterName(m){
   if(m.sub==='necro') return '鍛治職人';
   if(m.sub==='combined') return `${CNAME[m.color]}・${m.value}以上の装備`;
-  if(m.sub==='number') return `${m.value}以上の力の装備`;
+  if(m.sub==='number') return m.value<0?`${m.value}の呪いの装備`:`${m.value}以上の力の装備`;
   return `${CNAME[m.color]}の装備`;
 }
 function monsterBonusFor(m){
@@ -1898,6 +1898,7 @@ const EVENT_INFO={
   bguard:{icon:'🛡',label:'大防御（コンボ−10）',cls:'ev-dis'},
   bomb:{icon:'💣',label:'ボムを投げ込む',cls:'ev-dis'},
   minus:{icon:'➖',label:'マイナスの武器',cls:'ev-dis'},
+  null:{icon:'🚫',label:'無効の呪い',cls:'ev-dis'},
   freeze:{icon:'❄',label:'いてつくはどう',cls:'ev-dis'},
   dark:{icon:'🌑',label:'暗闇',cls:'ev-dis'},
   colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
@@ -1908,22 +1909,26 @@ const CURSE_DEF={
   seal:{type:'curse_seal',name:'封鎖',short:'🔒封鎖',desc:'使うと好きな旗を1つ封鎖できる。捨てられない。シャッフルでのみ山札に戻せる。'},
   bomb:{type:'curse_bomb',name:'ボム',short:'💣5',fuse:5,desc:'手札に持ったまま5ターンたつと爆発して自分のHPが半分になる。使うと（1ターン使って）処理できる。捨てられない。'},
   dark:{type:'curse_dark',name:'暗闇',short:'🌑暗闇',desc:'使うと数ターンの間、攻撃の予測表示が半分に見えなくなる。捨てられない。'},
-  minus:{type:'curse_minus',name:'マイナスの武器',short:'➖武器',desc:'使って旗に置くと、その旗の得点がマイナスになる（役・コンボも付かない）。捨てられない。'}
+  minus:{type:'curse_minus',name:'マイナスの武器',short:'➖武器',desc:'（旧）'},
+  null:{type:'curse_null',name:'無効の呪い',short:'🚫無効',desc:'使うと5ターンの間、軍師カードの効果が無効になる。敵の呪い（毒・封鎖・ボム・暗闇）の効果も無効になる。捨てられない。'}
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=18;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, every:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, every:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 const DIS_TIERS=[
   [18,['guard']],
   [28,['guard','colhalf']],
   [38,['guard','bomb','colhalf']],
-  [48,['guard','bomb','colhalf','minus']],
-  [58,['bguard','bomb','colhalf','minus']],
-  [66,['bguard','bomb','colhalf','minus','dark','freeze']]
+  [48,['guard','bomb','colhalf','minus','null']],
+  [58,['bguard','bomb','colhalf','minus','null']],
+  [66,['bguard','bomb','colhalf','minus','null','dark','freeze']]
 ];
-const DIS_BOSS={'火星人':['guard','bomb','colhalf'],'水星人':['bguard','bomb','colhalf','minus'],'金星人':['bguard','bomb','colhalf','minus','dark'],'土星人':['bguard','bomb','colhalf','minus','dark','freeze'],'太陽神':['bguard','bomb','colhalf','minus','dark','freeze']};
-const DIS_NAME={guard:'防御(コンボ−1)',bguard:'大防御(コンボ−10)',bomb:'ボム',minus:'マイナスの武器',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減'};
+const DIS_BOSS={'火星人':['guard','bomb','colhalf'],'水星人':['bguard','bomb','colhalf','minus','null'],'金星人':['bguard','bomb','colhalf','minus','null','dark'],'土星人':['bguard','bomb','colhalf','minus','null','dark','freeze'],'太陽神':['bguard','bomb','colhalf','minus','null','dark','freeze']};
+const DIS_NAME={guard:'防御(コンボ−1)',bguard:'大防御(コンボ−10)',bomb:'ボム',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
+const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
+const eqv=v=>v<0?String(v):v+'+';
+function makeMinusEq(){ const r=DIS_PARAM.minusRange; return {kind:'monster',sub:'number',value:-(r[0]+Math.floor(Math.random()*(r[1]-r[0]+1))),enemyCard:true,uid:uid()}; }
 function disList(w){
   if(typeof comboRestricted==='function' && comboRestricted()) return [];
   if(w.boss) return DIS_BOSS[w.name]||[];
@@ -1931,11 +1936,12 @@ function disList(w){
   let r=[]; DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; }); return r;
 }
 let disFired=0;
-let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0};
+let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
 const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
 const disDarkOn=()=>turnCounter<dis.darkUntil;
-const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus'})[c.type]||'seal';
+const nullOn=()=>turnCounter<dis.nullUntil;
+const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus',curse_null:'null'})[c.type]||'seal';
 const minusCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.negated);
 function giveHandCard(c){
   picked=null;
@@ -1951,6 +1957,7 @@ function tickBombs(){
   hand.forEach(c=>{ if(c.type==='curse_bomb'){ c.fuse--; c.short='💣'+Math.max(0,c.fuse); if(c.fuse<=0) boom=true; } });
   if(boom){
     hand=hand.filter(c=>c.type!=='curse_bomb'||c.fuse>0);
+    if(nullOn()){ hint('🚫 ボムは無効化されて不発だった。',true); return; }
     playerHp=Math.max(1,Math.ceil(playerHp*DIS_PARAM.bombKeep));
     hint('💥 ボムが爆発した！ HPが半分になった…',true); playSfx('warn'); try{ screenShake(); }catch(e){}
   }
@@ -1958,8 +1965,8 @@ function tickBombs(){
 const isCurse=c=>!!c && c.curse===true;
 function makeCurse(sub){ return {kind:'tactics',...CURSE_DEF[sub],curse:true,sub:undefined,uid:uid()}; }
 function removeAllCurses(){
-  hand=hand.filter(c=>!isCurse(c)); activeDeck=activeDeck.filter(c=>!isCurse(c));
-  grandDeck=grandDeck.filter(c=>!isCurse(c)); graveyard=graveyard.filter(c=>!isCurse(c));
+  hand=hand.filter(c=>!isCurse(c)&&!isEnemyEq(c)); activeDeck=activeDeck.filter(c=>!isCurse(c)); 
+  grandDeck=grandDeck.filter(c=>!isCurse(c)); graveyard=graveyard.filter(c=>!isCurse(c)&&!isEnemyEq(c));
 }
 function addWaveCurses(){
   removeAllCurses();
@@ -2154,7 +2161,7 @@ function barrierMult(){
 function resetBattleRound(){
   frozenMults={}; frozenHost={};
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
-  enemyTurn=0; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
+  enemyTurn=0; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
   try{
@@ -2178,7 +2185,9 @@ function applyEnemyEvent(type,target){
   } else if(type==='bomb'){
     giveHandCard(makeCurse('bomb')); hint('💣 ボムを手札に投げ込まれた！ 使って処理しないと爆発する！',true); playSfx('warn');
   } else if(type==='minus'){
-    giveHandCard(makeCurse('minus')); hint('➖ マイナスの武器を手札に押し付けられた！',true); playSfx('warn');
+    const me=makeMinusEq(); giveHandCard(me); hint(`➖ 呪いの装備（${me.value}）を手札に押し付けられた！ 旗に置くとその旗の数字がマイナスになる。プラスの装備を重ねれば相殺できる。`,true); playSfx('warn');
+  } else if(type==='null'){
+    giveHandCard(makeCurse('null')); hint('🚫 無効の呪いを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='dark'){
     giveHandCard(makeCurse('dark')); hint('🌑 暗闇のカードを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='freeze'){
@@ -2550,7 +2559,7 @@ function targetsFor(card){
   const out=[];
   flags.forEach((f,i)=>{
     if(card.type==='wipe'){
-      if(!isLocked(f) && f.cards.length>0) out.push(i);
+      if(f.cards.length>0||isLocked(f)) out.push(i);   // 敵に封鎖された旗にも使える（封鎖も解ける）
       return;
     }
     if(f.closed||isLocked(f)) return;
@@ -2571,7 +2580,7 @@ function targetsFor(card){
       if(mon){
         if(card.sub==='number'){
           const existingNum = (mon.sub==='number'||mon.sub==='combined') ? mon.value : -Infinity;
-          if(card.value>=existingNum) out.push(i);
+          if(card.value<0||card.value>=existingNum) out.push(i);   // マイナスの装備はどの装備にも重ねられる（相殺）
         } else if(card.sub==='mark'){
           if(mon.sub==='number') out.push(i);
         }
@@ -3136,7 +3145,7 @@ function resolveMonsterDefeatByRef(mon, enemy, fi){
   const bonus=monsterBonusFor(mon);
   if(!enemy){ const hf=flags[fi]; if(hf) hf.eqBonus=(hf.eqBonus||0)+bonus; }
   delete mon.accumulatedBonus;
-  graveyard.push(mon);
+  if(!isEnemyEq(mon)) graveyard.push(mon);   // 敵に押し付けられた装備は、使い終わったら消える
   return {monster:mon, bonus, timedOut:!!enemy};
 }
 function triggerMonsterDefeatFX(fi, defeat){
@@ -3290,25 +3299,32 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       const priorBonus = monsterBonusFor(existingMon);
       const addedBonus = card.sub==='number' ? card.value : 5;
       let value=existingMon.value, color=existingMon.color;
-      if(card.sub==='number') value=card.value;
+      const mixNeg = card.sub==='number' && (card.value<0 || (existingMon.value!=null && existingMon.value<0));
+      if(card.sub==='number') value = mixNeg ? (existingMon.value!=null?existingMon.value:0)+card.value : card.value;   // マイナスが絡むときは足し算（+7に−4で+3）
       else color=card.color;
       const sub = (value!=null && color!=null) ? 'combined' : card.sub;
       const newAccumulated = priorBonus+addedBonus;
-      const placed={kind:'monster', sub, value, color, uid:card.uid, accumulatedBonus:newAccumulated};
+      const keep = (card.enemyCard && !existingMon.enemyCard) ? existingMon : card;   // 敵のカードを重ねるときは、こちらの装備のuidを残す
+      const bothEnemy = !!card.enemyCard && !!existingMon.enemyCard;
+      const placed={kind:'monster', sub, value, color, uid:keep.uid, accumulatedBonus:newAccumulated};
+      if(bothEnemy) placed.enemyCard=true;
       const midx=f.cards.indexOf(existingMon);
-      f.cards[midx]=placed;
-      delete existingMon.accumulatedBonus; graveyard.push(existingMon);
+      const cancelled = (sub==='number' && value===0);
+      if(cancelled){ f.cards.splice(midx,1); const mine=[card,existingMon].find(x=>!x.enemyCard); if(mine){ delete mine.accumulatedBonus; graveyard.push(mine); } }   // ちょうど0になったら相殺して消える
+      else f.cards[midx]=placed;
+      delete existingMon.accumulatedBonus; if(!existingMon.enemyCard && keep!==existingMon && !cancelled) graveyard.push(existingMon);
       if(CHARACTER.id==='general' && card.sub==='number') showComment(`え！？更に${card.value}以上！？`);
       advanceTurn(placed);
       const refilled=autoRefill(1);
       render(); layoutHand(false);
       flyToUid(card.uid, fromRect, ()=>{
         if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect);
-        busy=false; hint(`${monsterName(placed)}に強化された！`); endCheck(); render();
+        busy=false; hint(cancelled?'相殺！ 装備の数字がちょうど0になって消えた。':`${monsterName(placed)}${mixNeg?'になった':'に強化された'}！`); endCheck(); render();
       });
       return true;
     }
     const placed={kind:'monster', sub:card.sub, value:card.value, color:card.color, uid:card.uid};
+    if(card.enemyCard) placed.enemyCard=true;
     f.cards.push(placed);
     if(CHARACTER.id==='general'){
       if(card.sub==='number') showComment(`おおっと！${card.value}以上置かないといけないぞ！大丈夫か！？`);
@@ -3325,11 +3341,13 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     return true;
   }
   if(card.type==='wipe'){
+    if(nullOn()){ busy=false; hint(`🚫 無効の呪いで全滅の効果が無効（あと${dis.nullUntil-turnCounter}ターン）。`,true); return false; }
     const wasClosed=f.closed;
     if(wasClosed && f.result){
       score-=f.result.base;
     }
-    const cleared=f.cards.splice(0, f.cards.length);
+    const wasSealed=isLocked(f); f.lockedUntil=0;
+    const cleared=f.cards.splice(0, f.cards.length).filter(c=>!isEnemyEq(c));
     graveyard.push(...cleared);
     f.closed=false; f.result=null; f.capturedByEnemy=false; f.baseCombo=false; f.symbolColor=null; f.sheetSum=0;
     hand.splice(handIdx,1);
@@ -3338,7 +3356,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const refilled=autoRefill(1);
     render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
     busy=false;
-    hint(wasClosed?'全滅：封鎖済みの旗を未封鎖に戻した。':'全滅：旗のカードをすべて墓地へ送った。');
+    hint(wasClosed?'全滅：封鎖済みの旗を未封鎖に戻した。':wasSealed?'全滅：封鎖を解いて、旗を空にした。':'全滅：旗のカードをすべて墓地へ送った（呪いの装備も消える）。');
     endCheck(); return true;
   }
   busy=false; return false;
@@ -3353,7 +3371,7 @@ function inGraveZone(x,y){
 }
 function discardDraw(handIdx){
   const card=hand[handIdx]; if(!card||busy) return false;
-  if(isCurse(card)){ hint('呪いのカードは捨てられません。使うか、シャッフルで山札に戻しましょう。',true); return false; }
+  if(isCurse(card)||isEnemyEq(card)){ hint('呪いのカードは捨てられません。使うか、旗に置きましょう。',true); return false; }
   if(activeDeck.length===0){ hint('山札がないので、捨てて引くことはできません。',true); return false; }
   busy=true;
   hand.splice(handIdx,1);
@@ -3639,7 +3657,7 @@ function useScout(handIdx){
   setTimeout(()=>{ pending={type:'discard',chosen:[]}; busy=false; render(); hint('捨てる手札を2枚タップ（0/2）'); }, 420);
 }
 function discardTap(idx){
-  if(isCurse(hand[idx])) return hint('呪いのカードは捨てられません。',true);
+  if(isCurse(hand[idx])||isEnemyEq(hand[idx])) return hint('呪いのカードは捨てられません。',true);
   const i=pending.chosen.indexOf(idx);
   if(i>=0) pending.chosen.splice(i,1); else if(pending.chosen.length<2) pending.chosen.push(idx);
   render(); hint(`捨てる手札を2枚タップ（${pending.chosen.length}/2）。選び終えたら確定。`);
@@ -3665,7 +3683,7 @@ function useShuffle(handIdx){
   hint('墓地に送って引き直したいカードをタップ（何枚でもOK）。選び終えたら確定。');
 }
 function replaceTap(idx){
-  if(isCurse(hand[idx])) return hint('呪いのカードは捨てられません。',true);
+  if(isCurse(hand[idx])||isEnemyEq(hand[idx])) return hint('呪いのカードは捨てられません。',true);
   const i=pending.chosen.indexOf(idx);
   if(i>=0) pending.chosen.splice(i,1); else pending.chosen.push(idx);
   render();
@@ -3757,14 +3775,16 @@ function doCurse(handIdx, target){
   hand.splice(handIdx,1);          // 使った呪いは墓地に行かず消える
   advanceTurn(used);
   playSfx('place');
-  if((kind==='bomb'||kind==='dark'||kind==='minus') && hasAcc('reflect_mirror')){
+  if((kind==='bomb'||kind==='dark') && hasAcc('reflect_mirror')){
     if(kind==='bomb'){ bossHp=Math.max(1,Math.ceil(bossHp/2)); animateBossHp(bossHp,500); hint('🪞 ボムを跳ね返した！ 敵のHPが半分になった！',true); }
-    else hint(`🪞 ${kind==='dark'?'暗闇':'マイナスの武器'}を跳ね返した！ 効果は無効。`,true);
+    else hint('🪞 暗闇を跳ね返した！ 効果は無効。',true);
     playSfx('warn');
   }
   else if(kind==='bomb'){ hint('💣 ボムを処理した。',true); }
+  else if(kind==='dark'&&nullOn()){ hint('🚫 暗闇は無効化された。',true); }
   else if(kind==='dark'){ dis.darkUntil=turnCounter+DIS_PARAM.darkTurns; hint(`🌑 暗闇…！ ${DIS_PARAM.darkTurns}ターン、攻撃の予測が半分にしか見えない。`,true); playSfx('warn'); }
-  else if(kind==='minus'){ const f=flags[target]; if(f){ f.negated=true; hint(`➖ F${target+1}の旗がマイナスになった！（閉じると得点がマイナス・役なし）`,true); playSfx('warn'); } }
+  else if(kind==='null'){ dis.nullUntil=turnCounter+DIS_PARAM.nullTurns; hint(`🚫 無効の呪い！ ${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効。敵の呪いも効かない。`,true); playSfx('warn'); }
+  else if(nullOn() && (kind==='poison'||kind==='seal')){ hint(`🚫 ${kind==='poison'?'毒':'封鎖'}は無効化された。`,true); }
   else if(hasAcc('reflect_mirror')){
     if(kind==='seal'){ enemyFreeze+=3; hint('🪞 封鎖を跳ね返した！敵は3ターン動けない。',true); }
     else { enemyPoisonPer+=Math.max(1,Math.round(WAVES[stageIndex].threshold*0.01)); hint(`🪞 毒を跳ね返した！敵は毎ターン${enemyPoisonPer}ずつ弱っていく。`,true); }
@@ -3829,10 +3849,10 @@ function paintCard(d, c, mini){
       d.innerHTML=`<div class="ttitle">鍛治</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#caa6e0">${EMBLEM.necro}</svg></div>`;
     } else if(c.sub==='combined'){
       d.className='pcard monster mark'+(mini?' mini':'');
-      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+</div><div class="emblem"><svg viewBox="0 0 100 100" fill="${CFILL[c.color]}" stroke="${CFILL[c.color]}">${EMBLEM[c.color]}</svg></div><div class="name">${CNAME[c.color]}・${c.value}+</div>`;
+      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${eqv(c.value)}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="${CFILL[c.color]}" stroke="${CFILL[c.color]}">${EMBLEM[c.color]}</svg></div><div class="name">${CNAME[c.color]}・${c.value}+</div>`;
     } else if(c.sub==='number'){
       d.className='pcard monster'+(mini?' mini':'');
-      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#e07a9a" stroke="#e07a9a">${EMBLEM.sword}</svg></div>`;
+      d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.sword,'#e07a9a')}${eqv(c.value)}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#e07a9a" stroke="#e07a9a">${EMBLEM.sword}</svg></div>`;
     } else {
       d.className='pcard monster mark'+(mini?' mini':'');
       d.innerHTML=`<div class="corner">${miniIcon(EMBLEM.armor,CFILL[c.color])}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="${CFILL[c.color]}" stroke="${CFILL[c.color]}">${EMBLEM[c.color]}</svg></div>`;
@@ -3853,8 +3873,8 @@ function upcomingChipLabel(c){
   if(c.kind==='troop') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}${val(c)}`;
   if(c.kind==='wild'||isAlexanderCard(c)||isDariusCard(c)) return `${miniIcon(EMBLEM.wild,wildColor(c))}8`;
   if(c.kind==='monster'){
-    if(c.sub==='combined') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}${c.value}+`;
-    if(c.sub==='number') return `${miniIcon(EMBLEM.sword,'#e07a9a')}${c.value}+`;
+    if(c.sub==='combined') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}${eqv(c.value)}`;
+    if(c.sub==='number') return `${miniIcon(EMBLEM.sword,'#e07a9a')}${eqv(c.value)}`;
     if(c.sub==='mark') return `${miniIcon(EMBLEM[c.color],CFILL[c.color])}`;
     return `${miniIcon(EMBLEM.necro,'#caa6e0')}`;
   }
@@ -4054,7 +4074,7 @@ function renderBattle(){
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='font-size:11px;color:#e3c8ff;text-align:center;min-height:0;'; pb.appendChild(db); }
-    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}×½(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); db.textContent=a.join('  '); } }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}×½(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); db.textContent=a.join('  '); } }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
   document.getElementById('enemyAtkNum').textContent=eA;
@@ -4447,6 +4467,9 @@ function cardInfoContent(c){
   if(c.kind==='monster'){
     if(c.sub==='necro'){
       return `<p><b>鍛治職人</b></p><p>発動すると、墓地にある装備が全て山札に戻ります（獲得済みの得点はそのまま）。</p>`;
+    }
+    if(c.sub==='number'&&c.value<0){
+      return `<p><b>${c.value}の呪いの装備</b></p><p>敵に押し付けられた装備。旗に置くと、その旗の数字に<b style="color:var(--danger)">${c.value}</b>が加算される（役の倍率もコンボも掛かる）。プラスの力の装備を重ねると相殺でき（例：+7の装備に−4を置くと+3）、全滅・誘導でも取り除ける。捨てられない。</p>`;
     }
     if(c.sub==='number'){
       return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。旗の数字に<b>+${monsterBonusFor(c)}</b>が加算（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
@@ -5297,6 +5320,7 @@ document.getElementById('ciPrimary').onclick=()=>{
   if(pending || busy) return;
   const idx=infoIdx, c=hand[idx]; closeCardInfo();
   if(!c) return;
+  if(nullOn() && c.kind==='tactics' && !isCurse(c) && c.type!=='blank'){ hint(`🚫 無効の呪いで軍師カードの効果が無効（あと${dis.nullUntil-turnCounter}ターン）。`,true); return; }
   if(c.type==='scout'){ useScout(idx); }
   else if(c.type==='shuffle'){ useShuffle(idx); }
   else if(c.type==='rehire'){ useRehire(idx); }
@@ -5361,12 +5385,13 @@ function specUse(kind){
     hint(`命乞い成功！次の特殊攻撃（${EVENT_INFO[ev].label}）をパスした。`); playSfx('shuffle');
   } else if(kind==='cure'){
     const sealed=flags.filter(f=>isLocked(f)).length;
-    const dn=hand.filter(c=>['curse_bomb','curse_dark','curse_minus'].includes(c.type)).length, dOn=disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||flags.some(f=>f.negated&&!f.closed);
+    const isDisC=c=>['curse_bomb','curse_dark','curse_minus','curse_null'].includes(c.type)||isEnemyEq(c);
+    const dn=hand.filter(isDisC).length+flags.filter(f=>!f.closed&&f.cards.some(isEnemyEq)).length, dOn=disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn();
     if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
     const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
-    poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; if(!f.closed) f.negated=false; }); spec.cure++;
-    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0;   // 防御・色半減・暗闇を解除し、手札のボム／暗闇／マイナスの武器も消す
-    if(dn){ hand=hand.filter(c=>!['curse_bomb','curse_dark','curse_minus'].includes(c.type)); autoRefill(dn); }
+    poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; if(!f.closed) f.cards=f.cards.filter(c=>!isEnemyEq(c)); }); spec.cure++;
+    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0;   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
+    { const before=hand.length; hand=hand.filter(c=>!isDisC(c)); autoRefill(before-hand.length); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
   } else if(kind==='bullet'){
     enemyFreeze+=5; spec.bullet++;
@@ -5475,7 +5500,7 @@ const SPEC_INFO={
   punch:{title:'👊 物理で殴る',desc:'敵にすぐ50ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   guard:{title:'🛡 防御',desc:'次に受けるHPのダメージが半分になります。'},
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
-  cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇の効果や、手札のボム／暗闇／マイナスの武器、マイナスにされた旗も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
+  cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
 function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
@@ -5924,7 +5949,7 @@ function buildAccDefs(){
   L.push({id:'hp_x2',name:'大体力のピアス',icon:'💎',desc:'最大体力が2倍になる'});
   L.push({id:'glass',name:'背水のピアス',icon:'⏳',desc:'体力が1になる代わりに、敵の動きが1ターンに1回から2ターンに1回になる'});
   L.push({id:'hp_scarf',name:'体力スカーフ',icon:'🧣',desc:'最大体力が100倍になる。代わりに、装備中は山札に「白紙」のカード10枚が紛れ込む（意味のないカード。捨てられる）'});
-  L.push({id:'reflect_mirror',name:'反射の手鏡',icon:'🪞',desc:'敵の特殊攻撃（呪いのカード）を跳ね返す。封鎖のカード→敵は3ターン動けない／毒のカード→敵の体力が毎ターン減る／ボム→敵のHPが半分になる／暗闇・マイナスの武器→無効'});
+  L.push({id:'reflect_mirror',name:'反射の手鏡',icon:'🪞',desc:'敵の特殊攻撃（呪いのカード）を跳ね返す。封鎖のカード→敵は3ターン動けない／毒のカード→敵の体力が毎ターン減る／ボム→敵のHPが半分になる／暗闇→無効'});
   L.push({id:'endure',name:'ふんばるピアス',icon:'🔹',desc:'体力80%以上の状態から一気に0になるとき、1で踏みとどまる'});
   L.push({id:'combo_barrier',name:'コンボバリアの指輪',icon:'💠',desc:'スーパーコンボ（役のない旗の連続も含む）が続いている間、敵の攻撃で受けるダメージが半分になる'});
   L.push({id:'host_ring',name:'ホストの指輪',icon:'🔗',desc:'「役のない」旗が続くとコンボになる。続くたびに倍率が1.2倍ずつ増えていく（上限なし）。役のある旗が1つでもあると無効。代わりに、次に引くカード（Next）が見えなくなる'});
@@ -6782,7 +6807,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
