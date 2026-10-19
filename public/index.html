@@ -363,6 +363,7 @@
   .fc small.fc-sw{ font-size:10px; opacity:.9; color:#ff9a8a; line-height:1; }
   .fc small{ display:block; font-size:8px; color:var(--cream-2); opacity:.75; }
   .fc.ev-rage{ border-color:#ff7a4a; background:rgba(255,110,60,.2); } .fc.ev-rage b{ color:#ffb07a; }
+  .fc.ev-dis{ border-color:#c58cff; background:rgba(150,90,220,.2); } .fc.ev-dis b{ color:#e3c8ff; }
   .fc.ev-seal{ border-color:#9fd0ff; background:rgba(90,150,224,.2); } .fc.ev-seal b{ color:#cfe6ff; }
   .fc.ev-poison{ border-color:#c58aff; background:rgba(150,80,220,.22); } .fc.ev-poison b{ color:#e0c0ff; }
   .fc.now{ border-color:var(--gold); }
@@ -1892,13 +1893,67 @@ let enemyFreeze=0, enemyPoisonPer=0, hpBonus=0, specBonusK={}, specProg={}, spec
 const EVENT_INFO={
   rage:{icon:'🔥',label:'攻撃力×2',cls:'ev-rage'},
   seal:{icon:'🔒',label:'旗を封鎖',cls:'ev-seal'},
-  poison:{icon:'☠',label:'毒',cls:'ev-poison'}
+  poison:{icon:'☠',label:'毒',cls:'ev-poison'},
+  guard:{icon:'🛡',label:'防御（コンボ−1）',cls:'ev-dis'},
+  bguard:{icon:'🛡',label:'大防御（コンボ−10）',cls:'ev-dis'},
+  bomb:{icon:'💣',label:'ボムを投げ込む',cls:'ev-dis'},
+  minus:{icon:'➖',label:'マイナスの武器',cls:'ev-dis'},
+  freeze:{icon:'❄',label:'いてつくはどう',cls:'ev-dis'},
+  dark:{icon:'🌑',label:'暗闇',cls:'ev-dis'},
+  colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
 };
 /* ===== 呪いカード（毒・封鎖）：山札に混ざり、捨てられず、使うと効果が発動する ===== */
 const CURSE_DEF={
   poison:{type:'curse_poison',name:'毒',short:'☠毒',desc:'使うと毒をあびる（毎ターン戦力が減っていく）。捨てられない。シャッフルでのみ山札に戻せる。'},
-  seal:{type:'curse_seal',name:'封鎖',short:'🔒封鎖',desc:'使うと好きな旗を1つ封鎖できる。捨てられない。シャッフルでのみ山札に戻せる。'}
+  seal:{type:'curse_seal',name:'封鎖',short:'🔒封鎖',desc:'使うと好きな旗を1つ封鎖できる。捨てられない。シャッフルでのみ山札に戻せる。'},
+  bomb:{type:'curse_bomb',name:'ボム',short:'💣5',fuse:5,desc:'手札に持ったまま5ターンたつと爆発して自分のHPが半分になる。使うと（1ターン使って）処理できる。捨てられない。'},
+  dark:{type:'curse_dark',name:'暗闇',short:'🌑暗闇',desc:'使うと数ターンの間、攻撃の予測表示が半分に見えなくなる。捨てられない。'},
+  minus:{type:'curse_minus',name:'マイナスの武器',short:'➖武器',desc:'使って旗に置くと、その旗の得点がマイナスになる（役・コンボも付かない）。捨てられない。'}
 };
+/* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
+const DIS_START_LV=18;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
+const DIS_PARAM={guardTurns:4, bguardTurns:2, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:4};
+// 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
+const DIS_TIERS=[
+  [18,['guard']],
+  [28,['guard','colhalf']],
+  [38,['guard','bomb','colhalf']],
+  [48,['guard','bomb','colhalf','minus']],
+  [58,['bguard','bomb','colhalf','minus']],
+  [66,['bguard','bomb','colhalf','minus','dark','freeze']]
+];
+const DIS_BOSS={'火星人':['guard','bomb','colhalf'],'水星人':['bguard','bomb','colhalf','minus'],'金星人':['bguard','bomb','colhalf','minus','dark'],'土星人':['bguard','bomb','colhalf','minus','dark','freeze'],'太陽神':['bguard','bomb','colhalf','minus','dark','freeze']};
+const DIS_NAME={guard:'防御(コンボ−1)',bguard:'大防御(コンボ−10)',bomb:'ボム',minus:'マイナスの武器',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減'};
+function disList(w){
+  if(typeof comboRestricted==='function' && comboRestricted()) return [];
+  if(w.boss) return DIS_BOSS[w.name]||[];
+  if(!(w.lv>=DIS_START_LV)) return [];
+  let r=[]; DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; }); return r;
+}
+let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0};
+const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
+const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
+const disDarkOn=()=>turnCounter<dis.darkUntil;
+const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus'})[c.type]||'seal';
+const minusCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.negated);
+function giveHandCard(c){
+  picked=null;
+  if(hand.length>=currentHandMax()){
+    const cand=hand.map((x,i)=>i).filter(i=>!isCurse(hand[i]));
+    if(!cand.length) return false;
+    graveyard.push(hand.splice(cand[Math.floor(Math.random()*cand.length)],1)[0]);   // 手札が上限なら1枚押し出される（上限は超えない）
+  }
+  hand.push(c); return true;
+}
+function tickBombs(){
+  let boom=false;
+  hand.forEach(c=>{ if(c.type==='curse_bomb'){ c.fuse--; c.short='💣'+Math.max(0,c.fuse); if(c.fuse<=0) boom=true; } });
+  if(boom){
+    hand=hand.filter(c=>c.type!=='curse_bomb'||c.fuse>0);
+    playerHp=Math.max(1,Math.ceil(playerHp*DIS_PARAM.bombKeep));
+    hint('💥 ボムが爆発した！ HPが半分になった…',true); playSfx('warn'); try{ screenShake(); }catch(e){}
+  }
+}
 const isCurse=c=>!!c && c.curse===true;
 function makeCurse(sub){ return {kind:'tactics',...CURSE_DEF[sub],curse:true,sub:undefined,uid:uid()}; }
 function removeAllCurses(){
@@ -1928,7 +1983,7 @@ function genSchedule(){
   while(t<90){
     // 攻撃力×2は基本：1回目・3回目…は必ず入れ、間の回は他の特殊攻撃（無い敵は攻撃力×2）
     let type='rage';
-    if(n%2===1){ n++; t+=w.gap; continue; } // 毒・封鎖は敵の行動ではなく呪いカード（山札）になった
+    if(n%2===1){ const dl=disList(w); if(dl.length) sched[t]=dl[((n-1)/2)%dl.length]; n++; t+=w.gap; continue; } // 毒・封鎖は呪いカード（山札）／妨害行動は月の民撃破後のみ
     sched[t]=type; n++;
     t+=w.gap; // 一定間隔
   }
@@ -2096,12 +2151,12 @@ function barrierMult(){
 function resetBattleRound(){
   frozenMults={}; frozenHost={};
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
-  enemyTurn=0; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
+  enemyTurn=0; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
   try{
     const st=document.getElementById('stage'), bn=document.getElementById('evBanner'), mo=document.getElementById('fighterMo');
-    const txt={rage:'🔥 攻撃力アップ！',poison:'☠ 毒！',seal:'🔒 旗を封鎖！'}[type]||'';
+    const txt={rage:'🔥 攻撃力アップ！',poison:'☠ 毒！',seal:'🔒 旗を封鎖！'}[type]||((EVENT_INFO[type]||{}).icon||'')+' '+((EVENT_INFO[type]||{}).label||'');
     const re=(el,c)=>{ if(!el) return; el.classList.remove(c); void el.offsetWidth; el.classList.add(c); };
     if(st){ ['fx-rage','fx-poison','fx-seal'].forEach(c=>st.classList.remove(c)); re(st,'fx-'+type); }
     if(bn){ bn.textContent=txt; re(bn,'show'); }
@@ -2113,7 +2168,25 @@ function sealCands(){
 }
 function applyEnemyEvent(type,target){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
-  if(type==='rage'){
+  if(type==='guard'||type==='bguard'){
+    dis.guardN=type==='guard'?1:10; dis.guardUntil=enemyTurn+(type==='guard'?DIS_PARAM.guardTurns:DIS_PARAM.bguardTurns);
+    hint(`🛡 敵が${type==='guard'?'防御':'大防御'}！ コンボが−${dis.guardN}される（あと${dis.guardUntil-enemyTurn}ターン）`,true); playSfx('warn');
+  } else if(type==='bomb'){
+    giveHandCard(makeCurse('bomb')); hint('💣 ボムを手札に投げ込まれた！ 使って処理しないと爆発する！',true); playSfx('warn');
+  } else if(type==='minus'){
+    giveHandCard(makeCurse('minus')); hint('➖ マイナスの武器を手札に押し付けられた！',true); playSfx('warn');
+  } else if(type==='dark'){
+    giveHandCard(makeCurse('dark')); hint('🌑 暗闇のカードを手札に押し付けられた！',true); playSfx('warn');
+  } else if(type==='freeze'){
+    const had=enemyFreeze>0||enemyPoisonPer>0;
+    enemyFreeze=0; enemyPoisonPer=0;
+    hint(had?'❄ いてつくはどう！ 敵にかけた効果が消し飛んだ！':'❄ いてつくはどう！（効果はなかった）',true); playSfx('warn');
+  } else if(type==='colhalf'){
+    const ks=Object.keys(carryMap), cols=ks.length?ks.slice().sort((a,b)=>carryMap[b]-carryMap[a]):flags.filter(f=>f.symbolColor).map(f=>f.symbolColor);
+    const col=cols.length?cols[0]:COLORS[Math.floor(Math.random()*COLORS.length)];
+    dis.halfColor=col; dis.halfUntil=enemyTurn+DIS_PARAM.halfTurns;
+    hint(`🎨 敵が${CNAME[col]}の力を封じた！ ${CNAME[col]}のコンボ威力が半分（あと${DIS_PARAM.halfTurns}ターン）`,true); playSfx('warn');
+  } else if(type==='rage'){
     hint(`敵が怒り狂った！攻撃力が${BALANCE.rageMultiplier}倍に！（現在${currentEnemyAtk()}）`,true); playSfx('warn');
   } else if(type==='poison'){
     poisonPer += (WAVES[stageIndex].poison||2+WAVES[stageIndex].tier);
@@ -2535,6 +2608,7 @@ function advanceTurn(usedCard){
   if(CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(1);
   { const mp=(CHARACTER&&monDisp()==='毒キノコ')?2:0; if(mp>0&&enemyPoisonPer<=0&&bossHp>1){ bossHp=Math.max(1,bossHp-mp); animateBossHp(bossHp,350); } }
   if(enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
+  tickBombs();
   let ev=null;
   if(stepped){
     for(let k=0;k<accX();k++){   // 倍の腕輪：敵のターンも2倍の速さで進む
@@ -2575,6 +2649,7 @@ function closeCheck(fi, closedByEnemy){
   const f=flags[fi];
   if(!f.closed&&f.cards.length>=3&&(closedByEnemy||!flagMonster(f))){   // 装備(武器など)が乗っている間は、数字カード2枚+装備でも閉じない（装備を数字カードで換装して3枚そろった時に閉じる）
     f.closed=true; f.closeSeq=++closeSeqCounter; f.result=evaluate(f);
+    if(f.negated&&!closedByEnemy){ f.result.base=-Math.abs(f.result.base||f.result.sum||0); f.result.mult=1; }   // マイナスの武器：得点がマイナス・役なし
     f.capturedByEnemy=!!closedByEnemy;
     f.symbolColor = flagSymbolColor(f);
     if(closedByEnemy){
@@ -3652,7 +3727,13 @@ function performFreeShuffle(recycle){
 
 function useCurse(handIdx){
   const used=hand[handIdx]; if(!used||busy) return;
-  const kind=used.type==='curse_poison'?'poison':'seal';
+  const kind=curseKind(used);
+  if(kind==='minus'){
+    const mc=minusCands();
+    if(!mc.length) return hint('マイナスにできる旗がありません。',true);
+    if(mc.length>1){ pending={type:'sealpick', uid:used.uid, minus:true}; picked=null; render(); hint('マイナスにする旗をタップしてください。（キャンセルすると使いません）'); return; }
+    return doCurse(handIdx, mc[0].i);
+  }
   if(kind==='seal' && !hasAcc('reflect_mirror')){
     const cands=sealCands(), sealedNow=flags.filter(f=>isLocked(f)).length;
     if(cands.length>1 && sealedNow<FLAG_COUNT-1){   // 封鎖する旗は自分で選ぶ
@@ -3666,12 +3747,15 @@ function useCurse(handIdx){
 }
 function doCurse(handIdx, target){
   const used=hand[handIdx]; if(!used) return;
-  const kind=used.type==='curse_poison'?'poison':'seal';
+  const kind=curseKind(used);
   busy=true;
   hand.splice(handIdx,1);          // 使った呪いは墓地に行かず消える
   advanceTurn(used);
   playSfx('place');
-  if(hasAcc('reflect_mirror')){
+  if(kind==='bomb'){ hint('💣 ボムを処理した。',true); }
+  else if(kind==='dark'){ dis.darkUntil=turnCounter+DIS_PARAM.darkTurns; hint(`🌑 暗闇…！ ${DIS_PARAM.darkTurns}ターン、攻撃の予測が半分にしか見えない。`,true); playSfx('warn'); }
+  else if(kind==='minus'){ const f=flags[target]; if(f){ f.negated=true; hint(`➖ F${target+1}の旗がマイナスになった！（閉じると得点がマイナス・役なし）`,true); playSfx('warn'); } }
+  else if(hasAcc('reflect_mirror')){
     if(kind==='seal'){ enemyFreeze+=3; hint('🪞 封鎖を跳ね返した！敵は3ターン動けない。',true); }
     else { enemyPoisonPer+=Math.max(1,Math.round(WAVES[stageIndex].threshold*0.01)); hint(`🪞 毒を跳ね返した！敵は毎ターン${enemyPoisonPer}ずつ弱っていく。`,true); }
     playSfx('warn');
@@ -3784,7 +3868,7 @@ function nextEventIn(){
 function sweepAlert(k,ev){
   try{
     const el=document.getElementById('evSweep'); if(!el) return;
-    const nm={rage:'攻撃力×2',poison:'毒',seal:'旗を封鎖'}[ev]||'特殊攻撃';
+    const nm=(EVENT_INFO[ev]||{}).label||'特殊攻撃';
     el.innerHTML=`<span>${EVENT_INFO[ev].icon} ${k<=1?'次の1手で':'あと2手で'}${nm}</span>`;
     el.className='ev-sweep'; void el.offsetWidth; el.className='ev-sweep go'+(k<=1?' k1':'');
     if(k<=1) playSfx('warn');
@@ -3947,7 +4031,7 @@ function predictAttackRange(pA){
   };
   rec(0);
   pick=worsts; lo=Math.min(lo,evalPick(false));   // 最小値＝残りの旗が全部いちばん低い結果（役なし）で終わった場合
-  return {min:Math.max(0,Math.round(pA+lo)), max:Math.max(0,Math.round(pA+hi))};
+  { const mn=Math.max(0,Math.round(pA+lo)), mx=Math.max(0,Math.round(pA+hi)); return disDarkOn()?{min:Math.round(mn/2),max:Math.round(mx/2)}:{min:mn,max:mx}; }
 }
 function renderBattle(){
   updateBarrier();
@@ -3958,6 +4042,9 @@ function renderBattle(){
   document.getElementById('playerHpMax').textContent=playerHpMax;
   // 最後の旗を埋めた（=これから攻撃が確定する）局面では、実際の攻撃計算と同じ「直前の一手の時点」の値を表示する
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
+  { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
+    if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='font-size:11px;color:#e3c8ff;text-align:center;min-height:0;'; pb.appendChild(db); }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}×½(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); db.textContent=a.join('  '); } }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
   document.getElementById('enemyAtkNum').textContent=eA;
@@ -3985,7 +4072,7 @@ function renderBattle(){
   }
   { const sr=document.getElementById('scoreRange');
     if(sr){ let rg=null; try{ if(!pend) rg=predictAttackRange(pA); }catch(e){}
-      const lo=rg?rg.min:Math.round(pA), hi=rg?rg.max:Math.round(pA);
+      const lo=rg?rg.min:Math.round(disDarkOn()?pA/2:pA), hi=rg?rg.max:Math.round(disDarkOn()?pA/2:pA);
       const sg=v=>{ const t=fmtCompact(Math.abs(v)); return v>0?`<span class="pm-pos">+${t}</span>`:v<0?`<span class="pm-neg">-${t}</span>`:`<span class="pm-zero">±0</span>`; };   // 敵の攻撃力との差（−＝自分がダメージ、＋＝敵にダメージ）
       const dl=lo-eA, dh=hi-eA;
       sr.innerHTML = `<span class="pm-sw">⚔</span>` + (lo===hi ? `${fmtCompact(hi)}` : `${fmtCompact(lo)}〜${fmtCompact(hi)}`) + `<span class="pm-diff">(${dl===dh?sg(dh):sg(dl)+'〜'+sg(dh)})</span>`; } }
@@ -4041,7 +4128,7 @@ function render(){
   let targets=[];
   if(pending&&pending.type==='guidance') targets=guidanceTargets(pending.step);
   else if(pending&&pending.type==='skillplace') targets=targetsFor(pending.card);
-  else if(pending&&pending.type==='sealpick') targets=sealCands().map(c=>c.i);
+  else if(pending&&pending.type==='sealpick') targets=(pending.minus?minusCands():sealCands()).map(c=>c.i);
   else if(picked!==null && !pending) targets=targetsFor(hand[picked]);
   const highlighting=targets.length>0;
 
@@ -4103,6 +4190,7 @@ function render(){
         </div>`;
       }
     }
+    else if(f.negated) badge=`<div class="badge lockbadge">➖マイナスの旗</div>`;
     else if(locked) badge=`<div class="badge lockbadge">${f.lockedUntil>100000?'敵に封鎖された':'封鎖中 残り'+(f.lockedUntil-turnCounter)}</div>`;
     else if(mon) badge=`<div class="badge monbadge">⚔ ${monsterName(mon)}</div>`;
     if(bigResult){
@@ -4311,7 +4399,7 @@ function nowText(){
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='split') return '分裂させる部隊カードをタップしよう。';
   if(pending&&pending.type==='skillplace') return '置く旗をタップしよう。';
-  if(pending&&pending.type==='sealpick') return '封鎖する旗をタップしよう。';
+  if(pending&&pending.type==='sealpick') return pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
@@ -4330,6 +4418,9 @@ function updateTelops(){
 
 /* ---- card info overlay ---- */
 function curseInfo(c){
+  if(c.type==='curse_bomb') return `手札に持ったまま<b style="color:var(--danger)">あと${c.fuse}ターン</b>で爆発し、HPが半分になる。使えば（1ターン使って）処理できる。`;
+  if(c.type==='curse_dark') return `使うと<b style="color:var(--danger)">${DIS_PARAM.darkTurns}ターン</b>の間、攻撃の予測表示が半分に見えなくなる。`;
+  if(c.type==='curse_minus') return `使って旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる（役・コンボも付かない）。`;
   const per=WAVES[stageIndex].poison||(2+WAVES[stageIndex].tier);
   if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">1ターンごとに戦力が−${per}</b>ずつ減っていき（減った分は積み重なる）、<b>攻撃が確定するまで</b>続きます。毒のカードを重ねて使うと、減る量も増えます。「🧪薬」で止められます。<br><b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。`;
   return `使うと好きな旗を1つ選んで、<b style="color:var(--danger)">${BALANCE.sealTurns}ターンの間</b>使えなくなる（置いてあったカードは墓地へ）。封鎖が解けるまでに攻撃が来ると追加ダメージを受けます。「🧪薬」ですぐに解除できます。<br><b style="color:var(--danger)">捨てることはできません</b>。使うか、シャッフルで山札に戻すしかありません。`;
@@ -4987,7 +5078,7 @@ function tapFlag(i){
     return;
   }
   if(pending&&pending.type==='sealpick'){
-    if(!sealCands().some(c=>c.i===i)){ hint('その旗は封鎖できません。',true); return; }
+    if(!(pending.minus?minusCands():sealCands()).some(c=>c.i===i)){ hint(pending.minus?'その旗にはマイナスを付けられません。':'その旗は封鎖できません。',true); return; }
     const hi=hand.findIndex(c=>c.uid===pending.uid); pending=null;
     if(hi<0){ render(); return; }
     doCurse(hi,i); return;
@@ -5906,8 +5997,10 @@ function accVal(c){
   return v;
 }
 function superMultFor(sym,raw){
+  if(disGuardOn()) raw=Math.max(1,raw-dis.guardN);   // 敵の防御：コンボ数が減る
   let m=comboRestricted()?Math.min(raw,COMBO_CAP):raw;   // 倍率の上限なし（月の民を倒すまでは×5まで）
   if(sym && hasAcc('super15_'+sym)) m*=(1+0.25*accX()); if(sym && hasAcc('super2_'+sym)) m*=(1+0.5*accX());
+  if(disHalfOn(sym)) m=Math.max(1,m*0.5);   // 敵に色を封じられた
   return m;
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
@@ -6676,7 +6769,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19q';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
