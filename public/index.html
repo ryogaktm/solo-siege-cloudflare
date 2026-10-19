@@ -1561,7 +1561,7 @@ const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'�
 const MON_SKILL={   // モンスターが自分のキャラになった時の特殊技（kind 無し＝毎ターン働く常時効果）
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
-  '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを手札に1枚加えます。'},
+  '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
   'スライム':{kind:'shuffle'},
   'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
@@ -1570,7 +1570,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{kind:'gold',name:'コガネモチ',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
-  '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを手札に1枚生み出します。'}
+  '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
 function monSpLabel(ch){ const m=ch.monSkill; if(m&&m.name) return (m.icon||'')+m.name; return ch.sp.length?MON_SP_LABEL[ch.sp[0]]:'なし'; }
@@ -5621,17 +5621,12 @@ function monSkillUse(){
   }
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
-  else if(m.kind==='sting'||m.kind==='fang'){   // 手札に1枚加える（手札の上限を超えてもよい）
+  else if(m.kind==='sting'||m.kind==='fang'){   // 手札を通さず、旗に直接置く
     const nc=m.kind==='sting'?{kind:'troop',color:'red',value:1,uid:uid(),temp:true}:{kind:'troop',color:'purple',value:6,uid:uid(),temp:true};
     const nm=m.kind==='sting'?'一刺し！赤の1':'毒の牙！紫の6';
-    if(hand.length>=currentHandMax()){   // 手札がいっぱい：1枚捨ててから加える（上限は絶対に超えない）
-      pending={type:'addcard',card:nc,nm}; picked=null; render(); hint(nm+'を加えるため、手札から捨てるカードを1枚タップしてください。',true); return;
-    }
-    hand.push(nc); spec.mon++; playSfx('combo');
-    hint(nm+'が手札に加わった。',true);
-    render(); try{ layoutHand(false, nc.uid, null); }catch(_){}
-    try{ saveGame(); }catch(_){}
-    return;
+    if(!targetsFor(nc).length){ hint('置ける旗がありません。',true); return; }
+    pending={type:'skillplace',card:nc,mk:m.kind}; picked=null; render();
+    hint(nm+'を置く旗をタップしてください。（やめるなら✕キャンセル）',true); return;
   }
   else if(m.kind==='swallow'){
     if(stomach.length){
@@ -7000,7 +6995,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
