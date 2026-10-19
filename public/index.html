@@ -3733,6 +3733,7 @@ function useCurse(handIdx){
   const used=hand[handIdx]; if(!used||busy) return;
   const kind=curseKind(used);
   if(kind==='minus'){
+    if(hasAcc('reflect_mirror')) return doCurse(handIdx);   // 手鏡で跳ね返す（旗は選ばない）
     const mc=minusCands();
     if(!mc.length) return hint('マイナスにできる旗がありません。',true);
     if(mc.length>1){ pending={type:'sealpick', uid:used.uid, minus:true}; picked=null; render(); hint('マイナスにする旗をタップしてください。（キャンセルすると使いません）'); return; }
@@ -3756,7 +3757,12 @@ function doCurse(handIdx, target){
   hand.splice(handIdx,1);          // 使った呪いは墓地に行かず消える
   advanceTurn(used);
   playSfx('place');
-  if(kind==='bomb'){ hint('💣 ボムを処理した。',true); }
+  if((kind==='bomb'||kind==='dark'||kind==='minus') && hasAcc('reflect_mirror')){
+    if(kind==='bomb'){ bossHp=Math.max(1,Math.ceil(bossHp/2)); animateBossHp(bossHp,500); hint('🪞 ボムを跳ね返した！ 敵のHPが半分になった！',true); }
+    else hint(`🪞 ${kind==='dark'?'暗闇':'マイナスの武器'}を跳ね返した！ 効果は無効。`,true);
+    playSfx('warn');
+  }
+  else if(kind==='bomb'){ hint('💣 ボムを処理した。',true); }
   else if(kind==='dark'){ dis.darkUntil=turnCounter+DIS_PARAM.darkTurns; hint(`🌑 暗闇…！ ${DIS_PARAM.darkTurns}ターン、攻撃の予測が半分にしか見えない。`,true); playSfx('warn'); }
   else if(kind==='minus'){ const f=flags[target]; if(f){ f.negated=true; hint(`➖ F${target+1}の旗がマイナスになった！（閉じると得点がマイナス・役なし）`,true); playSfx('warn'); } }
   else if(hasAcc('reflect_mirror')){
@@ -5355,9 +5361,12 @@ function specUse(kind){
     hint(`命乞い成功！次の特殊攻撃（${EVENT_INFO[ev].label}）をパスした。`); playSfx('shuffle');
   } else if(kind==='cure'){
     const sealed=flags.filter(f=>isLocked(f)).length;
-    if(poisonPer<=0 && sealed===0){ hint('毒も封鎖も受けていないので、薬は不要です。',true); return; }
-    const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':''].filter(Boolean).join('と');
-    poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; }); spec.cure++;
+    const dn=hand.filter(c=>['curse_bomb','curse_dark','curse_minus'].includes(c.type)).length, dOn=disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||flags.some(f=>f.negated&&!f.closed);
+    if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
+    const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
+    poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; if(!f.closed) f.negated=false; }); spec.cure++;
+    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0;   // 防御・色半減・暗闇を解除し、手札のボム／暗闇／マイナスの武器も消す
+    if(dn){ hand=hand.filter(c=>!['curse_bomb','curse_dark','curse_minus'].includes(c.type)); autoRefill(dn); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
   } else if(kind==='bullet'){
     enemyFreeze+=5; spec.bullet++;
@@ -5466,7 +5475,7 @@ const SPEC_INFO={
   punch:{title:'👊 物理で殴る',desc:'敵にすぐ50ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   guard:{title:'🛡 防御',desc:'次に受けるHPのダメージが半分になります。'},
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
-  cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。すでに減った戦力は戻りません。（ターンは進みません）'}
+  cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇の効果や、手札のボム／暗闇／マイナスの武器、マイナスにされた旗も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
 function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
@@ -5915,7 +5924,7 @@ function buildAccDefs(){
   L.push({id:'hp_x2',name:'大体力のピアス',icon:'💎',desc:'最大体力が2倍になる'});
   L.push({id:'glass',name:'背水のピアス',icon:'⏳',desc:'体力が1になる代わりに、敵の動きが1ターンに1回から2ターンに1回になる'});
   L.push({id:'hp_scarf',name:'体力スカーフ',icon:'🧣',desc:'最大体力が100倍になる。代わりに、装備中は山札に「白紙」のカード10枚が紛れ込む（意味のないカード。捨てられる）'});
-  L.push({id:'reflect_mirror',name:'反射の手鏡',icon:'🪞',desc:'敵の特殊攻撃（呪いのカード）を跳ね返す。封鎖のカード→敵は3ターン動けない／毒のカード→敵の体力が毎ターン減る'});
+  L.push({id:'reflect_mirror',name:'反射の手鏡',icon:'🪞',desc:'敵の特殊攻撃（呪いのカード）を跳ね返す。封鎖のカード→敵は3ターン動けない／毒のカード→敵の体力が毎ターン減る／ボム→敵のHPが半分になる／暗闇・マイナスの武器→無効'});
   L.push({id:'endure',name:'ふんばるピアス',icon:'🔹',desc:'体力80%以上の状態から一気に0になるとき、1で踏みとどまる'});
   L.push({id:'combo_barrier',name:'コンボバリアの指輪',icon:'💠',desc:'スーパーコンボ（役のない旗の連続も含む）が続いている間、敵の攻撃で受けるダメージが半分になる'});
   L.push({id:'host_ring',name:'ホストの指輪',icon:'🔗',desc:'「役のない」旗が続くとコンボになる。続くたびに倍率が1.2倍ずつ増えていく（上限なし）。役のある旗が1つでもあると無効。代わりに、次に引くカード（Next）が見えなくなる'});
@@ -6773,7 +6782,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19r';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19s';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
