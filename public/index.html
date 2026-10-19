@@ -2573,7 +2573,7 @@ function flagSymbolColor(f){
 }
 function closeCheck(fi, closedByEnemy){
   const f=flags[fi];
-  if(!f.closed&&f.cards.length>=3){
+  if(!f.closed&&f.cards.length>=3&&(closedByEnemy||!flagMonster(f))){   // 装備(武器など)が乗っている間は、数字カード2枚+装備でも閉じない（装備を数字カードで換装して3枚そろった時に閉じる）
     f.closed=true; f.closeSeq=++closeSeqCounter; f.result=evaluate(f);
     f.capturedByEnemy=!!closedByEnemy;
     f.symbolColor = flagSymbolColor(f);
@@ -6676,7 +6676,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-19o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-19p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
