@@ -3300,7 +3300,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       const addedBonus = card.sub==='number' ? card.value : 5;
       let value=existingMon.value, color=existingMon.color;
       const mixNeg = card.sub==='number' && (card.value<0 || (existingMon.value!=null && existingMon.value<0));
-      if(card.sub==='number') value = mixNeg ? (existingMon.value!=null?existingMon.value:0)+card.value : card.value;   // マイナスが絡むときは足し算（+7に−4で+3）
+      if(card.sub==='number') value = mixNeg ? (existingMon.sub==='combined'?priorBonus-5:existingMon.sub==='number'?priorBonus:0)+card.value : card.value;   // マイナスが絡むときは、それまでの合計(重ねた分も含む)に足し算（+7に−4で+3／+7+8に−9で+6）
       else color=card.color;
       const sub = (value!=null && color!=null) ? 'combined' : card.sub;
       const newAccumulated = priorBonus+addedBonus;
@@ -6807,7 +6807,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
