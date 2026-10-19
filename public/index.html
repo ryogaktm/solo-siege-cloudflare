@@ -1957,7 +1957,67 @@ function makeMinusEq(){ const r=isMidGame()?DIS_PARAM.minusRangeMid:DIS_PARAM.mi
 // '敵の名前':{dis:[妨害の順番], gap:妨害の間隔(ターン。省略で通常), first:最初の妨害ターン(省略で通常)}
 // 使える妨害: half colnull guard bguard bomb cfield pfield minus null dark freeze autonum(敵の数字カードを勝手に置く)
 // 例) 'ゾンビ':{dis:['half','autonum'], gap:8},
+// dis=その敵が使う妨害を順番に繰り返す／nums=敵の数字カード(autonum)で出す固定カード[色,数字]（順番に出る）。自由に書き換えてOK
 const ENEMY_CFG={
+  '野盗':{dis:['half']},   // lv18
+  '巨大ムカデ':{dis:['half']},   // lv19
+  '沼のリザードマン':{dis:['half']},   // lv20
+  'ゴブリン':{dis:['half']},   // lv21
+  'ゴブリンの戦士':{dis:['half']},   // lv22
+  'ホブゴブリン':{dis:['half']},   // lv23
+  '墓場の亡霊':{dis:['half']},   // lv24
+  'ゾンビ':{dis:['half']},   // lv25
+  '呪われた農夫':{dis:['half']},   // lv26
+  '骸骨戦士':{dis:['half']},   // lv27
+  '骸骨弓兵':{dis:['colnull','half']},   // lv28
+  '動く鎧':{dis:['colnull','half']},   // lv29
+  '死霊術師':{dis:['half','colnull']},   // lv30
+  '食屍鬼':{dis:['colnull','half']},   // lv31
+  'オークの斥候':{dis:['colnull','half']},   // lv32
+  'オーク':{dis:['colnull','half']},   // lv33
+  'オークの戦士長':{dis:['colnull','half']},   // lv34
+  'トロル':{dis:['half','colnull']},   // lv35
+  '山賊王':{dis:['colnull','half']},   // lv36
+  '猛牛の戦車':{dis:['half','colnull']},   // lv37
+  '暗黒の傭兵':{dis:['colnull','cfield','autonum'],nums:[['orange',1],['red',5],['orange',6]]},   // lv38
+  '元の身体':{dis:['colnull','autonum','cfield'],nums:[['red',3],['orange',1],['red',2]]},   // lv39
+  '暗黒騎士':{dis:['autonum','cfield','colnull'],nums:[['yellow',5],['red',2],['blue',4]]},   // lv40
+  '精鋭の暗黒騎士':{dis:['colnull','half','autonum','cfield'],nums:[['green',6],['purple',5],['green',4]]},   // lv41
+  '魔術師':{dis:['half','autonum','colnull','cfield'],nums:[['orange',2],['green',1],['orange',2]]},   // lv42
+  '小竜':{dis:['cfield','colnull','autonum'],nums:[['blue',6],['purple',1],['blue',6]]},   // lv43
+  '火を吹くワイバーン':{dis:['colnull','half','autonum','cfield'],nums:[['yellow',2],['green',1],['blue',3]]},   // lv44
+  '竜騎士':{dis:['colnull','cfield','autonum'],nums:[['green',1],['purple',5],['purple',1]]},   // lv45
+  '古龍':{dis:['cfield','autonum','colnull'],nums:[['yellow',2],['green',1],['orange',1]]},   // lv46
+  '氷の古竜':{dis:['cfield','autonum','colnull'],nums:[['yellow',6],['purple',5],['red',6]]},   // lv47
+  '雷を操る竜':{dis:['null','autonum','minus'],nums:[['yellow',1],['purple',2],['red',3]]},   // lv48
+  '双頭の竜':{dis:['minus','guard','pfield','autonum'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
+  '山を砕く巨竜':{dis:['cfield','null','autonum','guard'],nums:[['red',1],['purple',3],['orange',2]]},   // lv50
+  '先遣の巨人':{dis:['pfield','minus','autonum'],nums:[['green',1],['red',6],['orange',5]]},   // lv51
+  '地平線いっぱいの巨人':{dis:['colnull','null','autonum'],nums:[['blue',4],['red',5],['blue',4]]},   // lv52
+  '嵐の巨人':{dis:['cfield','minus','bomb','autonum'],nums:[['purple',5],['red',4],['red',6]]},   // lv53
+  '炎の巨人王':{dis:['colnull','guard','autonum','pfield'],nums:[['orange',4],['green',1],['purple',2]]},   // lv54
+  '悪魔の斥候':{dis:['null','pfield','autonum'],nums:[['blue',5],['orange',4],['yellow',3]]},   // lv55
+  '地獄の番犬':{dis:['autonum','null','colnull','bomb'],nums:[['blue',3],['orange',3],['yellow',1]]},   // lv56
+  '悪魔の将軍':{dis:['null','guard','minus','autonum'],nums:[['purple',3],['blue',6],['red',1]]},   // lv57
+  '全ての邪悪を背負った魔王':{dis:['cfield','pfield','bomb','half']},   // lv58
+  '魔王の側近':{dis:['colnull','minus','null','autonum'],nums:[['red',9],['blue',9],['green',5]]},   // lv59
+  '魔王の親衛兵':{dis:['autonum','cfield','pfield','bguard','half'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
+  '四天王の一人':{dis:['bomb','cfield','minus','autonum'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
+  '魔王の影':{dis:['pfield','bguard','colnull','autonum'],nums:[['green',4],['green',10],['red',4]]},   // lv62
+  '魔王の化身':{dis:['cfield','bguard','autonum','bomb'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
+  '不死身の魔王':{dis:['null','bguard','colnull','autonum'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
+  '深淵の魔王':{dis:['null','cfield','pfield','minus','half']},   // lv65
+  '終焉の魔王':{dis:['dark','colnull','autonum'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
+  '滅びの化身':{dis:['cfield','bomb','autonum','guard'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
+  '星を喰らうもの':{dis:['freeze','guard','dark','autonum'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
+  '次元を砕く者':{dis:['freeze','bomb','autonum'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
+  '時の支配者':{dis:['minus','bomb','autonum'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
+  '世界の終わり':{dis:['guard','minus','colnull','autonum'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
+  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
+  '水星人':{dis:['colnull','cfield','autonum','bguard'],nums:[['green',6],['purple',7],['yellow',4]]},   // lv★
+  '金星人':{dis:['bomb','autonum','minus','bguard'],nums:[['purple',3],['orange',3],['green',9]]},   // lv★
+  '土星人':{dis:['freeze','bomb','colnull','minus']},   // lv★
+  '太陽神':{dis:['colnull','cfield','autonum'],nums:[['blue',10],['blue',9],['orange',8]]},   // lv★
 };
 function disList(w){
   if(typeof comboRestricted==='function' && comboRestricted()) return [];
@@ -2242,7 +2302,9 @@ function applyEnemyEvent(type,target){
     if(!cand.length){ hint('敵が数字カードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
     else {
       const pk=cand[Math.floor(Math.random()*cand.length)], f=pk.f;
-      const col=COLORS[Math.floor(Math.random()*COLORS.length)], v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10));
+      const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
+      if(nl&&nl.length){ const pk2=nl[(disFired-1+nl.length*100)%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カード
+      else { col=COLORS[Math.floor(Math.random()*COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
       f.cards.push({kind:'troop',color:col,value:v,uid:uid(),temp:true});   // 見た目は普通の数字カード
       hint(`🔢 敵が勝手に旗へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
       try{ render(); }catch(e){}
@@ -6938,7 +7000,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
