@@ -1946,8 +1946,8 @@ const DIS_TIERS=[
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','bguard'],'金星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','bguard'],'土星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
 const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
-const EVENT_SHORT={half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく'};
-const isDisEv=ev=>!!DIS_NAME[ev];
+const EVENT_SHORT={poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく'};
+const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
 const eqv=v=>v<0?String(v):v+'+';
@@ -4031,7 +4031,7 @@ function updateEvCountdown(){
     el.style.display='block'; el.textContent=`${EVENT_INFO[na.ev].icon}(${na.k})`; el.classList.toggle('near',na.k<=1);
   }
   { const lane=document.getElementById('disLane'), lt=document.getElementById('disLaneTxt');
-    const showLane=!!lane && !gameEnded && disList(WAVES[stageIndex]).length>0;
+    const showLane=!!lane && !gameEnded && (disList(WAVES[stageIndex]).length>0 || eventsIn(isDisEv,1).length>0);
     if(lane){ lane.style.display=showLane?'flex':'none';
       if(showLane&&lt){ const L=eventsIn(isDisEv,2); lt.innerHTML = L.length ? L.map(x=>`<span class="dis-chip${x.k<=1?' near':''}">${EVENT_INFO[x.ev].icon}${EVENT_SHORT[x.ev]||''}<b>${x.k}</b></span>`).join('') : '<span class="dis-chip none">妨害なし</span>'; } } }
   const bg=document.getElementById('specBeg'), gd=document.getElementById('specGuard');
@@ -6938,7 +6938,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
