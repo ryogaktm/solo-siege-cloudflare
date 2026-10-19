@@ -994,6 +994,9 @@
   .beststat{ text-align:center; font-size:11px; color:var(--cream-2); opacity:.85; margin-top:4px; }
   .beststat b{ color:var(--gold); font-family:'Cinzel',serif; }
 
+  .flag .eqtag{ position:absolute; left:50%; bottom:3px; transform:translateX(-50%); z-index:6; pointer-events:none; font-size:10px; font-weight:900; padding:1px 7px; border-radius:9px; white-space:nowrap; border:1px solid; }
+  .flag .eqtag.pos{ background:rgba(20,70,40,.88); color:#b6ffd0; border-color:#4fd68a; }
+  .flag .eqtag.neg{ background:rgba(90,20,20,.9); color:#ffc4c4; border-color:#ff6a6a; }
   .flag .badge.lockbadge{ background:var(--danger); color:#2a0a04; }
 
   .flag-result-big{
@@ -1908,8 +1911,7 @@ const EVENT_INFO={
   colnull:{icon:'🎨',label:'色封じ（特定色のコンボ無効）',cls:'ev-dis'},
   cfield:{icon:'💀',label:'カラフルフィールド',cls:'ev-dis'},
   pfield:{icon:'🌀',label:'パニックフィールド',cls:'ev-dis'},
-  autow:{icon:'⚔',label:'武器カードの設置',cls:'ev-dis'},
-  autoc:{icon:'🎨',label:'カラーカードの設置',cls:'ev-dis'},
+  autonum:{icon:'🔢',label:'敵の数字カードの設置',cls:'ev-dis'},
   guard:{icon:'⬇',label:'コンボダウン（−1）',cls:'ev-dis'},
   bguard:{icon:'⬇',label:'大コンボダウン（−10）',cls:'ev-dis'},
   bomb:{icon:'💣',label:'時限ボム',cls:'ev-dis'},
@@ -1937,14 +1939,14 @@ const DIS_TIERS=[
   [18,['half']],
   [28,['half','colnull']],
   [38,['half','colnull','cfield']],
-  [48,['half','cfield','bomb','autow','colnull','pfield','minus','autoc','null','guard']],
-  [58,['half','bomb','cfield','autow','pfield','colnull','minus','autoc','null','bguard']],
-  [66,['half','bomb','autow','cfield','pfield','autoc','colnull','minus','null','dark','freeze','bguard','guard']]
+  [48,['half','cfield','bomb','autonum','colnull','pfield','minus','null','guard']],
+  [58,['half','bomb','cfield','autonum','pfield','colnull','minus','null','bguard']],
+  [66,['half','bomb','autonum','cfield','pfield','colnull','minus','null','dark','freeze','bguard','guard']]
 ];
-const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autow','colnull','pfield','minus','autoc','null','bguard'],'金星人':['half','cfield','bomb','autow','colnull','pfield','minus','autoc','null','dark','bguard'],'土星人':['half','cfield','bomb','autow','colnull','pfield','minus','autoc','null','dark','freeze','bguard','guard'],'太陽神':['half','cfield','bomb','autow','colnull','pfield','minus','autoc','null','dark','freeze','bguard','guard']};
+const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','bguard'],'金星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','bguard'],'土星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autow:'勝手に武器カード設置',autoc:'勝手にカラーカード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
-const EVENT_SHORT={half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autow:'武器設置',autoc:'色設置',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく'};
+const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
+const EVENT_SHORT={half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく'};
 const isDisEv=ev=>!!DIS_NAME[ev];
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -1952,8 +1954,8 @@ const eqv=v=>v<0?String(v):v+'+';
 function makeMinusEq(){ const r=DIS_PARAM.minusRange; return {kind:'monster',sub:'number',value:-(r[0]+Math.floor(Math.random()*(r[1]-r[0]+1))),enemyCard:true,uid:uid()}; }
 // ===== 敵ごとの個性（ここだけ書き換えればOK）=====
 // '敵の名前':{dis:[妨害の順番], gap:妨害の間隔(ターン。省略で通常), first:最初の妨害ターン(省略で通常)}
-// 使える妨害: half colnull guard bguard bomb cfield pfield minus null dark freeze autow(勝手に武器) autoc(勝手にカラー)
-// 例) 'ゾンビ':{dis:['half','autow'], gap:8},
+// 使える妨害: half colnull guard bguard bomb cfield pfield minus null dark freeze autonum(敵の数字カードを勝手に置く)
+// 例) 'ゾンビ':{dis:['half','autonum'], gap:8},
 const ENEMY_CFG={
 };
 function disList(w){
@@ -2234,21 +2236,14 @@ function applyEnemyEvent(type,target){
     giveHandCard(makeCurse('bomb')); hint(`💣 時限ボムを手札に押し付けられた！ 旗に置くと、${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないとスーパーコンボ−${DIS_PARAM.bombPenalty}。`,true); playSfx('warn');
   } else if(type==='cfield'){
     const cf=makeColorField(); giveHandCard(cf); hint(`💀 カラフルフィールド（${CNAME[cf.color]}）を押し付けられた！ 旗に置くとその旗には${CNAME[cf.color]}のカードしか置けない（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn');
-  } else if(type==='autow'||type==='autoc'){
-    const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!flagMonster(f)&&f.cards.length<3&&f.cards.some(c=>c.kind==='troop'));
-    if(!cand.length){ hint('敵がカードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
+  } else if(type==='autonum'){
+    const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!flagMonster(f)&&f.cards.length<=1);
+    if(!cand.length){ hint('敵が数字カードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
     else {
-      const pk=cand[Math.floor(Math.random()*cand.length)], f=pk.f, tr=f.cards.filter(c=>c.kind==='troop');
-      let mon;
-      if(type==='autow'){
-        const mx=Math.max(...tr.map(c=>c.value)); mon={kind:'monster',sub:'number',value:Math.min(10,mx+1+Math.floor(Math.random()*2)),enemyCard:true,uid:uid()};
-      } else {
-        const used=new Set(); tr.forEach(c=>{ if(c.color) used.add(c.color); if(c.altColor) used.add(c.altColor); });
-        const pool=COLORS.filter(c=>!used.has(c)); const col=(pool.length?pool:COLORS)[Math.floor(Math.random()*(pool.length?pool.length:COLORS.length))];
-        mon={kind:'monster',sub:'cfield',color:col,enemyCard:true,accumulatedBonus:0,uid:uid()};
-      }
-      f.cards.push(mon);
-      hint(type==='autow'?`⚔ 敵が勝手に旗へ武器カードを置いた！（${mon.value}以上のカードを置くと外せる）`:`🎨 敵が勝手に旗へカラーカードを置いた！（${CNAME[mon.color]}以外のマークは置けない…逆らうとコンボ−${DIS_PARAM.cfieldPenalty}）`,true); playSfx('warn');
+      const pk=cand[Math.floor(Math.random()*cand.length)], f=pk.f;
+      const col=COLORS[Math.floor(Math.random()*COLORS.length)], v=1+Math.floor(Math.random()*10);
+      f.cards.push({kind:'troop',color:col,value:v,uid:uid(),temp:true});   // 見た目は普通の数字カード
+      hint(`🔢 敵が勝手に旗へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
       try{ render(); }catch(e){}
     }
   } else if(type==='pfield'){
@@ -2256,7 +2251,7 @@ function applyEnemyEvent(type,target){
   } else if(type==='half'){
     dis.halfNext=true; hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
   } else if(type==='minus'){
-    const me=makeMinusEq(); giveHandCard(me); hint(`➖ 呪いの装備（${me.value}）を手札に押し付けられた！ 旗に置くとその旗の数字がマイナスになる。プラスの装備を重ねれば相殺できる。`,true); playSfx('warn');
+    { const me=makeMinusEq(); const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&f.cards.length<3&&(!flagMonster(f)||flagMonster(f).sub==='number'||flagMonster(f).sub==='combined')); if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
   } else if(type==='null'){
     giveHandCard(makeCurse('null')); hint('🚫 無効の呪いを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='dark'){
@@ -4350,10 +4345,12 @@ function render(){
     }
     else if(locked) badge=`<div class="badge lockbadge">${f.lockedUntil>100000?'敵に封鎖された':'封鎖中 残り'+(f.lockedUntil-turnCounter)}</div>`;
     else if(mon) badge=`<div class="badge monbadge">⚔ ${monsterName(mon)}</div>`;
+    const eqB=f.eqBonus||0, eqP=mon?monsterBonusFor(mon):0;
+    const eqTag=(eqB||mon)?`<div class="eqtag ${(eqB+eqP)<0?'neg':'pos'}">装備 ${eqB>0?'+':''}${eqB}${mon?` ／ 待ち ${eqP>0?'+':''}${eqP}`:''}</div>`:'';
     if(bigResult){
-      d.innerHTML=bigResult;
+      d.innerHTML=bigResult+eqTag;
     } else {
-      d.innerHTML=badge+(f.bomb?`<div class="badge lockbadge"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'');
+      d.innerHTML=badge+(f.bomb?`<div class="badge lockbadge"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
       const st=document.createElement('div'); st.className='stack';
       const choosingHere = pending && pending.type==='guidance' && pending.step==='choose' && pending.from===i;
       if(choosingHere) st.classList.add('spread-choose');
@@ -6940,7 +6937,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
