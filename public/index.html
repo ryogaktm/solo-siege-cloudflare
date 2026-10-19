@@ -336,10 +336,17 @@
   .st-row{ position:absolute; left:0; right:0; z-index:3; display:flex; gap:10px; padding:0 12px; pointer-events:none; }
   .st-hp{ top:10px; }
   .st-atk{ top:44px; }
+  .st-dis{ top:78px; }
+  .dis-tag{ font-size:10px; font-weight:900; color:#d9b8ff; text-shadow:0 1px 2px #000; }
+  .dis-txt{ display:inline-flex; gap:4px; flex-wrap:nowrap; }
+  .dis-chip{ font-size:10px; font-weight:800; color:#efe0ff; background:rgba(60,30,90,.72); border:1px solid rgba(197,140,255,.7); border-radius:9px; padding:1px 5px; white-space:nowrap; line-height:1.25; }
+  .dis-chip b{ margin-left:3px; color:#fff; }
+  .dis-chip.near{ border-color:#ff5a48; color:#ffd6d0; animation:evSoft 2.2s ease-in-out infinite; }
+  .dis-chip.none{ opacity:.6; }
   /* 縦が足りない画面（アプリ内ビューアなど）では、上の部分を詰めて盤面に高さを回す */
   .app.compact{ padding-top:calc(2px + env(safe-area-inset-top)); }
   .app.compact .stage{ height:118px; margin:2px 0 6px; }
-  .app.compact .st-hp{ top:6px; } .app.compact .st-atk{ top:36px; }
+  .app.compact .st-hp{ top:6px; } .app.compact .st-atk{ top:36px; } .app.compact .st-dis{ top:66px; }
   .app.compact .wavebar{ margin-bottom:6px; }
   .app.compact .upcoming-wrap{ margin-bottom:6px; gap:3px; }
   .app.compact .board-wrap{ margin-bottom:4px; }
@@ -1117,6 +1124,7 @@
       <div class="st-side pl"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num" id="scoreNum">0</span></div></div>
       <div class="st-side en"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num enemy-num" id="enemyAtkNum">0</span><span id="evCountdown" class="ev-cd" style="display:none"></span></div></div>
     </div>
+    <div class="st-row st-dis" id="disLane" style="display:none"><div class="st-side pl"></div><div class="st-side en"><span class="dis-tag">妨害</span><span id="disLaneTxt" class="dis-txt"></span></div></div>
     <div class="fighter pl" id="fighterPl"><span id="topCharSpr"></span></div>
     <div class="fighter mo" id="fighterMo"><span id="waveSpr"></span></div>
     <div id="evBanner" class="ev-banner"></div>
@@ -1842,6 +1850,7 @@ function monsterName(m){
   if(m.sub==='combined') return `${CNAME[m.color]}・${m.value}以上の装備`;
   if(m.sub==='number') return m.value<0?`${m.value}の呪いの装備`:`${m.value}以上の力の装備`;
   if(m.sub==='cfield') return `${CNAME[m.color]}のカラフルフィールド`;
+  if(m.sub==='pfield') return 'パニックフィールド';
   return `${CNAME[m.color]}の装備`;
 }
 function monsterBonusFor(m){
@@ -1898,6 +1907,7 @@ const EVENT_INFO={
   half:{icon:'🛡',label:'防御（次の攻撃半減）',cls:'ev-dis'},
   colnull:{icon:'🎨',label:'色封じ（特定色のコンボ無効）',cls:'ev-dis'},
   cfield:{icon:'💀',label:'カラフルフィールド',cls:'ev-dis'},
+  pfield:{icon:'🌀',label:'パニックフィールド',cls:'ev-dis'},
   guard:{icon:'⬇',label:'コンボダウン（−1）',cls:'ev-dis'},
   bguard:{icon:'⬇',label:'大コンボダウン（−10）',cls:'ev-dis'},
   bomb:{icon:'💣',label:'時限ボム',cls:'ev-dis'},
@@ -1909,7 +1919,7 @@ const EVENT_INFO={
 };
 /* ===== 呪いカード（毒・封鎖）：山札に混ざり、捨てられず、使うと効果が発動する ===== */
 const CURSE_DEF={
-  poison:{type:'curse_poison',name:'毒',short:'☠毒',desc:'使うと毒をあびる（毎ターン戦力が減っていく）。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
+  poison:{type:'curse_poison',name:'毒',short:'☠毒',desc:'使うと5ターンの間、フィールドに出す数字カード（装備も）が−1される。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
   seal:{type:'curse_seal',name:'封鎖',short:'🔒封鎖',desc:'使うと好きな旗を1つ封鎖できる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
   bomb:{type:'curse_bomb',name:'時限ボム',short:'💣ボム',desc:'旗に置くと、5ターン以内にその旗で役を揃えないと爆発してスーパーコンボ−20。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
   dark:{type:'curse_dark',name:'暗闇',short:'🌑暗闇',desc:'使うと数ターンの間、攻撃の予測表示が半分に見えなくなる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
@@ -1918,20 +1928,23 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=18;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, every:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={softLv:28, softEvery:2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, every:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
   [18,['half']],
   [28,['half','colnull']],
   [38,['half','colnull','cfield']],
-  [48,['half','cfield','bomb','colnull','minus','null','guard']],
-  [58,['half','bomb','cfield','colnull','minus','null','bguard']],
-  [66,['half','bomb','cfield','colnull','minus','null','dark','freeze','bguard','guard']]
+  [48,['half','cfield','bomb','colnull','pfield','minus','null','guard']],
+  [58,['half','bomb','cfield','pfield','colnull','minus','null','bguard']],
+  [66,['half','bomb','cfield','pfield','colnull','minus','null','dark','freeze','bguard','guard']]
 ];
-const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','colnull','minus','null','bguard'],'金星人':['half','cfield','bomb','colnull','minus','null','dark','bguard'],'土星人':['half','cfield','bomb','colnull','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','cfield','bomb','colnull','minus','null','dark','freeze','bguard','guard']};
+const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','colnull','pfield','minus','null','bguard'],'金星人':['half','cfield','bomb','colnull','pfield','minus','null','dark','bguard'],'土星人':['half','cfield','bomb','colnull','pfield','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','cfield','bomb','colnull','pfield','minus','null','dark','freeze','bguard','guard']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
+const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
+const EVENT_SHORT={half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく'};
+const isDisEv=ev=>!!DIS_NAME[ev];
+const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
 const eqv=v=>v<0?String(v):v+'+';
 function makeMinusEq(){ const r=DIS_PARAM.minusRange; return {kind:'monster',sub:'number',value:-(r[0]+Math.floor(Math.random()*(r[1]-r[0]+1))),enemyCard:true,uid:uid()}; }
@@ -1961,6 +1974,7 @@ function applyComboPenalty(n){   // 敵のカードを消した代償
   const pen=DIS_PARAM.removePenalty*n;
   comboLoss(pen,`💥 敵のカードを${n}枚消した代償で、スーパーコンボが−${pen}された！`);
 }
+function makePanicField(){ return {kind:'monster',sub:'pfield',enemyCard:true,accumulatedBonus:0,uid:uid()}; }
 function makeColorField(){ return {kind:'monster',sub:'cfield',color:COLORS[Math.floor(Math.random()*COLORS.length)],enemyCard:true,accumulatedBonus:0,uid:uid()}; }
 const bombCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.bomb);
 function bombBoom(i){
@@ -2021,7 +2035,7 @@ function genSchedule(){
     t+=w.gap; // 一定間隔
   }
   { const dl=disList(w);   // 妨害行動（月の民撃破後のみ）：攻撃×2とは別の枠に、最初の攻撃×2の半gap後から gap×every おきに入れる
-    if(dl.length){ const gp=Math.max(2,Math.round(w.gap*DIS_PARAM.every)); let k=0; for(let td=w.first+Math.round(w.gap/2); td<90; td+=gp){ if(!sched[td]){ sched[td]=dl[(disFired+k)%dl.length]; k++; } } } }
+    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const gp=Math.max(2,Math.round(w.gap*DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1)));  /* 火星人より弱い敵は妨害の間隔が倍 */ let k=0; for(let td=w.first+Math.round(w.gap/2); td<90; td+=gp){ if(!sched[td]){ sched[td]=dl[(disFired+k)%dl.length]; k++; } } } }
   if(w.enrageAt>0){ for(let k=0;k<3;k++) sched[w.enrageAt+k]='rage'; } // 終盤の敵は一定ターンを過ぎると3連続で攻撃力×2（狂暴化）
   return sched;
 }
@@ -2211,6 +2225,8 @@ function applyEnemyEvent(type,target){
     giveHandCard(makeCurse('bomb')); hint(`💣 時限ボムを手札に押し付けられた！ 旗に置くと、${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないとスーパーコンボ−${DIS_PARAM.bombPenalty}。`,true); playSfx('warn');
   } else if(type==='cfield'){
     const cf=makeColorField(); giveHandCard(cf); hint(`💀 カラフルフィールド（${CNAME[cf.color]}）を押し付けられた！ 旗に置くとその旗には${CNAME[cf.color]}のカードしか置けない（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn');
+  } else if(type==='pfield'){
+    giveHandCard(makePanicField()); hint('🌀 パニックフィールドを押し付けられた！ 旗に置くと、次にその旗へ置くカードの数字が逆転（革命）する。',true); playSfx('warn');
   } else if(type==='half'){
     dis.halfNext=true; hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
   } else if(type==='minus'){
@@ -2232,8 +2248,8 @@ function applyEnemyEvent(type,target){
   } else if(type==='rage'){
     hint(`敵が怒り狂った！攻撃力が${BALANCE.rageMultiplier}倍に！（現在${currentEnemyAtk()}）`,true); playSfx('warn');
   } else if(type==='poison'){
-    poisonPer += (WAVES[stageIndex].poison||2+WAVES[stageIndex].tier);
-    hint(`毒をあびた…毎ターン戦力が${poisonPer}ずつ減っていく！`,true); playSfx('warn');
+    dis.poisonUntil=turnCounter+DIS_PARAM.poisonTurns;
+    hint(`☠ 毒をあびた…${DIS_PARAM.poisonTurns}ターンの間、フィールドに出す数字カード（装備も）が−1される！`,true); playSfx('warn');
   } else if(type==='seal'){
     const cand=sealCands().filter(({i})=>target!==undefined ? i===target : i!==lastFi);
     const sealedNow=flags.filter(f=>isLocked(f)).length;
@@ -2607,11 +2623,11 @@ function targetsFor(card){
       // 数字カードが置いてあれば使える。力の装備（武器）が乗っていても染められる。色指定の装備がある旗には、同じ色の装備だけ
       if(f.cards.some(c=>c.kind==='troop') && (!mon || mon.sub==='number' || mon.color===card.color)) out.push(i);
     }
-    else if(card.kind==='monster' && card.sub==='cfield'){
+    else if(card.kind==='monster' && (card.sub==='cfield'||card.sub==='pfield')){
       if(!mon && f.cards.length<3) out.push(i);
     }
     else if(card.kind==='monster' && card.sub!=='necro'){
-      if(mon && mon.sub==='cfield'){ /* カラフルフィールドの旗には装備を重ねられない */ }
+      if(mon && (mon.sub==='cfield'||mon.sub==='pfield')){ /* 敵のフィールドカードの旗には装備を重ねられない */ }
       else if(mon){
         if(card.sub==='number'){
           const existingNum = (mon.sub==='number'||mon.sub==='combined') ? mon.value : -Infinity;
@@ -3186,6 +3202,7 @@ function resolveMonsterDefeatByRef(mon, enemy, fi){
 }
 function triggerMonsterDefeatFX(fi, defeat){
   if(defeat.timedOut){ hint(`${monsterName(defeat.monster)}の換装に成功したが、無効。`, true); return; }
+  if(defeat.monster&&(defeat.monster.sub==='cfield'||defeat.monster.sub==='pfield')) return;   // 敵のフィールドカードは「換装成功」の演出なし
   const el=document.querySelector(`.flag[data-index="${fi}"]`);
   if(!el) return;
   el.classList.add('just-closed');
@@ -3267,7 +3284,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   if(!targetsFor(card).includes(fi)){
     if(card.kind==='monster'){
       const existingMon=flagMonster(f);
-      if(existingMon && existingMon.sub==='cfield') hint('カラフルフィールドの旗には、装備を重ねられません。',true); else
+      if(existingMon && (existingMon.sub==='cfield'||existingMon.sub==='pfield')) hint('敵のフィールドカードの旗には、装備を重ねられません。',true); else
       if(existingMon && card.sub==='number' && (existingMon.sub==='number'||existingMon.sub==='combined') && card.value<existingMon.value){
         hint(`重ねるなら${existingMon.value}以上の力の装備が必要です。`,true);
       } else if(card.sub==='mark'){
@@ -3302,6 +3319,14 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     }
   }
   busy=true; picked=null; lastFi=fi;
+  { const m0=flagMonster(f), msgs=[];
+    if(card.kind==='troop'){
+      if(m0 && m0.sub==='pfield'){ if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value; msgs.push(`🌀 革命！ 数字が${card.origValue}→${card.value}に逆転した`); }
+      if(poisonOn() && card.value>1){ if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で数字が−1（${card.value}）`); }
+    } else if(card.kind==='monster' && card.sub==='number' && !card.enemyCard && card.value>0 && poisonOn()){
+      if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で装備の数字が−1（${card.value}）`);
+    }
+    if(msgs.length) hint(msgs.join(' ／ '),true); }
   if(card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)){
     const placed=card.kind==='troop'?{kind:'troop',color:card.color,altColor:card.altColor,mixed:card.mixed,value:card.value,uid:card.uid,purchased:card.purchased,temp:card.temp,origValue:card.origValue,origColor:card.origColor,origAlt:card.origAlt,origMixed:card.origMixed}:{kind:'wild',color:'wild',label:card.short,uid:card.uid,purchased:card.purchased,base:card};   // base＝元のカード（戦いが終わったら元の軍師カードに戻す）
     hand.splice(handIdx,1);
@@ -3374,7 +3399,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     }
     const placed={kind:'monster', sub:card.sub, value:card.value, color:card.color, uid:card.uid};
     if(card.enemyCard) placed.enemyCard=true;
-    if(card.sub==='cfield') placed.accumulatedBonus=0;
+    if(card.sub==='cfield'||card.sub==='pfield') placed.accumulatedBonus=0;
     f.cards.push(placed);
     if(CHARACTER.id==='general'){
       if(card.sub==='number') showComment(`おおっと！${card.value}以上置かないといけないぞ！大丈夫か！？`);
@@ -3911,6 +3936,10 @@ function paintCard(d, c, mini){
       d.className='pcard monster cfield'+(mini?' mini':'');
       d.style.background=CFILL[c.color];
       d.innerHTML=`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:calc(var(--slot-w,60px)*.62);line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))">💀</div>`;
+    } else if(c.sub==='pfield'){
+      d.className='pcard monster pfield'+(mini?' mini':'');
+      d.style.background='repeating-linear-gradient(45deg,#4b2a78 0 8px,#7a3fb0 8px 16px)';
+      d.innerHTML=`<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:calc(var(--slot-w,60px)*.5);line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))">🌀<span style="font-size:.45em;font-weight:900;color:#fff;margin-top:2px">1⇄10</span></div>`;
     } else if(c.sub==='necro'){
       d.className='pcard monster necro'+(mini?' mini':'');
       d.innerHTML=`<div class="ttitle">鍛治</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#caa6e0">${EMBLEM.necro}</svg></div>`;
@@ -3952,16 +3981,17 @@ function enemyOffs(k,pend0,base){
   const after=j=>Math.floor((turnCounter+j)/2)-Math.floor(turnCounter/2);
   return pend0 ? (enemyTurn-base)+after(k-1) : after(k);
 }
-function nextEventIn(){
+function eventsIn(pred,max){
   const pend0=!!prevSnap && flags.length>0 && flags.every(f=>f.closed);
-  const base=pend0?prevSnap.t:enemyTurn;
-  if(!hasAcc('glass')){ for(let k=1;k<=40;k++){ const ev=enemySched[base+k]; if(ev) return {k,ev}; } return null; }
-  for(let k=1;k<=80;k++){
+  const base=pend0?prevSnap.t:enemyTurn, out=[];
+  if(!hasAcc('glass')){ for(let k=1;k<=60&&out.length<max;k++){ const ev=enemySched[base+k]; if(ev&&pred(ev)) out.push({k,ev}); } return out; }
+  for(let k=1;k<=100&&out.length<max;k++){
     const t=base+enemyOffs(k,pend0,base), ev=enemySched[t];
-    if(ev && (k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,base)>enemyOffs(k-1,pend0,base))) return {k,ev};
+    if(ev && pred(ev) && (k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,base)>enemyOffs(k-1,pend0,base))) out.push({k,ev});
   }
-  return null;
+  return out;
 }
+function nextEventIn(pred){ return eventsIn(pred||(()=>true),1)[0]||null; }
 function sweepAlert(k,ev){
   try{
     const el=document.getElementById('evSweep'); if(!el) return;
@@ -3974,15 +4004,20 @@ function sweepAlert(k,ev){
 function updateEvCountdown(){
   const el=document.getElementById('evCountdown'); if(!el) return;
   const n=nextEventIn();
-  if(!n||gameEnded){ el.style.display='none'; } else {
-    el.style.display='block'; el.textContent=`${EVENT_INFO[n.ev].icon}(${n.k})`; el.classList.toggle('near',n.k<=1);
+  const na=nextEventIn(ev=>!isDisEv(ev));   // 敵の攻撃のレーンには攻撃系だけ。妨害は下の専用レーンに出す
+  if(!na||gameEnded){ el.style.display='none'; } else {
+    el.style.display='block'; el.textContent=`${EVENT_INFO[na.ev].icon}(${na.k})`; el.classList.toggle('near',na.k<=1);
   }
+  { const lane=document.getElementById('disLane'), lt=document.getElementById('disLaneTxt');
+    const showLane=!!lane && !gameEnded && disList(WAVES[stageIndex]).length>0;
+    if(lane){ lane.style.display=showLane?'flex':'none';
+      if(showLane&&lt){ const L=eventsIn(isDisEv,2); lt.innerHTML = L.length ? L.map(x=>`<span class="dis-chip${x.k<=1?' near':''}">${EVENT_INFO[x.ev].icon}${EVENT_SHORT[x.ev]||''}<b>${x.k}</b></span>`).join('') : '<span class="dis-chip none">妨害なし</span>'; } } }
   const bg=document.getElementById('specBeg'), gd=document.getElementById('specGuard');
   const near=n&&n.k<=1&&!gameEnded;
   { const w=document.getElementById('evWarn'), wt=document.getElementById('evWarnTxt');
     const show=!!(n && n.k<=2 && !gameEnded && !waveAdvancing);
     if(w){ w.classList.toggle('on',show); w.classList.toggle('k1',show&&n.k<=1); }
-    if(show){ const nm={rage:'攻撃力×2',poison:'毒',seal:'旗を封鎖'}[n.ev]||'特殊攻撃'; wt.textContent=n.k<=1?`${EVENT_INFO[n.ev].icon} 次の1手で${nm}！`:`${EVENT_INFO[n.ev].icon} あと2手で${nm}`;
+    if(show){ const nm=(EVENT_INFO[n.ev]||{}).label||'特殊攻撃'; wt.textContent=n.k<=1?`${EVENT_INFO[n.ev].icon} 次の1手で${nm}！`:`${EVENT_INFO[n.ev].icon} あと2手で${nm}`;
  }
     // 画面中央をサッと横切るアラート（カウントが2・1に変わるたびに1回）
     if(show){
@@ -4141,7 +4176,7 @@ function renderBattle(){
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='font-size:11px;color:#e3c8ff;text-align:center;min-height:0;'; pb.appendChild(db); }
-    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); db.textContent=a.join('  '); } }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`☠毒:数字−1(あと${dis.poisonUntil-turnCounter})`); db.textContent=a.join('  '); } }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
   document.getElementById('enemyAtkNum').textContent=eA;
@@ -4533,6 +4568,9 @@ function cardInfoContent(c){
   if(c.kind==='monster'){
     if(c.sub==='necro'){
       return `<p><b>鍛治職人</b></p><p>発動すると、墓地にある装備が全て山札に戻ります（獲得済みの得点はそのまま）。</p>`;
+    }
+    if(c.sub==='pfield'){
+      return `<p><b>パニックフィールド</b></p><p>敵に押し付けられたカード。旗に置くと、次にその旗へ置く数字カードの<b style="color:var(--danger)">数字が逆転（革命）</b>する（1↔10、2↔9…。万能カードは変わらない）。その戦いの間だけの変化。全滅・誘導で取り除ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。</p>`;
     }
     if(c.sub==='cfield'){
       return `<p><b>${CNAME[c.color]}のカラフルフィールド</b></p><p>敵に押し付けられたカード。旗に置くと、その旗には<b style="color:var(--danger)">${CNAME[c.color]}のカードしか置けなく</b>なる（万能カードは可）。<b>無理に違う色を置くこともできるが、スーパーコンボが−${DIS_PARAM.cfieldPenalty}</b>される。全滅・誘導で取り除ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。</p>`;
@@ -5455,11 +5493,11 @@ function specUse(kind){
   } else if(kind==='cure'){
     const sealed=flags.filter(f=>isLocked(f)).length;
     const isDisC=c=>['curse_bomb','curse_dark','curse_minus','curse_null'].includes(c.type)||isEnemyEq(c);
-    const dn=hand.filter(isDisC).length+flags.filter(f=>!f.closed&&f.cards.some(isEnemyEq)).length, dOn=disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn()||dis.halfNext||flags.some(f=>f.bomb);
+    const dn=hand.filter(isDisC).length+flags.filter(f=>!f.closed&&f.cards.some(isEnemyEq)).length, dOn=disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn()||poisonOn()||dis.halfNext||flags.some(f=>f.bomb);
     if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
     const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
     poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; f.bomb=0; if(!f.closed) f.cards=f.cards.filter(c=>!isEnemyEq(c)); }); spec.cure++;
-    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.halfNext=false;   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
+    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; dis.halfNext=false;   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
     { const before=hand.length; hand=hand.filter(c=>!isDisC(c)); autoRefill(before-hand.length); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
   } else if(kind==='bullet'){
@@ -6876,7 +6914,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
