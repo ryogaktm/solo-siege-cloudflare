@@ -1570,7 +1570,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
-  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くたび、敵のHPが減ります。最初は1、その後2、4、8…と倍々に増えていきます。（敵のHPが1より下がることはありません。敵が変わるとまた1から）'},
+  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。（敵のHPが1より下がることはありません。敵が変わると1に戻ります）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{kind:'gold',name:'コガネモチ',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
@@ -2031,7 +2031,7 @@ function disList(w){
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   return r.filter(k=>!DIS_OFF.includes(k));
 }
-let disFired=0, mushN=0;   // mushN＝毒キノコの胞子が何回目か（敵ごとにリセット）
+let disFired=0, mushDmg=1;   // mushDmg＝毒キノコの次のダメージ（敵ごとに1へリセット）
 let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
 const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
@@ -2446,7 +2446,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  stomach=[]; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; mushN=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
+  stomach=[]; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -2758,9 +2758,11 @@ function advanceTurn(usedCard){
   let stepped=!hasAcc('glass') || turnCounter%2===0;   // 背水のピアス：敵は2ターンに1回しか動かない
   if(enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
   if(CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(Math.max(1,Math.round(playerHpMax/10)));   // アリ：毎ターン最大体力の10分の1回復
-  if(CHARACTER&&monDisp()==='毒キノコ'&&usedCard&&usedCard.kind==='troop'&&enemyPoisonPer<=0){   // 毒の胞子：数字カードを場に置くたび、1,2,4,8…と倍々に敵のHPが減る（1より下がらない）
-    const md=Math.pow(2,Math.min(mushN,40)); mushN++;
-    if(bossHp>1){ bossHp=Math.max(1,bossHp-md); animateBossHp(bossHp,350); hint(`🍄 毒の胞子！ 敵のHPが${md}減った`,false); }
+  if(CHARACTER&&monDisp()==='毒キノコ'){   // 毒の胞子：数字カードを置くと今のダメージを与えて2倍に。それ以外の行動だと、次のダメージが半分になる（最小1）
+    if(usedCard&&usedCard.kind==='troop'){
+      const md=mushDmg; mushDmg=Math.min(mushDmg*2,1e15);
+      if(enemyPoisonPer<=0&&bossHp>1){ bossHp=Math.max(1,bossHp-md); animateBossHp(bossHp,350); hint(`🍄 毒の胞子！ 敵のHPが${fmtCompact(md)}減った（次は${fmtCompact(mushDmg)}）`,false); }
+    } else { mushDmg=Math.max(1,Math.floor(mushDmg/2)); }
   }
   if(enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
   tickBombs();
@@ -4324,7 +4326,8 @@ function render(){
   document.getElementById('deckCount').textContent=activeDeck.length;
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
-  { const mb=document.getElementById('specMon'); if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.name||'')); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
+  { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
+    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.name||'')); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
   { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
     if(mb&&ms&&ms.kind==='swallow'&&stomach.length&&specEnabled('mon')){ if(!chip){ chip=document.createElement('div'); chip.id='stomachChip'; chip.style.cssText='position:fixed;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#8ff0c4;text-shadow:0 1px 3px #000'; document.body.appendChild(chip); }
       chip.innerHTML='<span>飲み込み中</span>'; chip.appendChild(cardEl(stomach[0],true)); const r=mb.getBoundingClientRect(); chip.style.left=(r.left+r.width/2)+'px'; chip.style.transform='translateX(-50%)'; chip.style.bottom=(innerHeight-r.top+4)+'px'; }
@@ -5240,7 +5243,7 @@ function advanceToNextStage(){
   }
   score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
-  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; mushN=0; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -5703,7 +5706,7 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
@@ -5712,7 +5715,10 @@ function openSpecModal(k){
   const si=specInfoFor(k);
   document.getElementById('specModalTitle').textContent=si.title;
   document.getElementById('specModalDesc').textContent=si.desc+(k==='guard'&&guardOn?'（今すでに発動中です）':'');
+  const passive=(k==='mon'&&monDisp()==='毒キノコ');
   document.getElementById('specModalLeft').textContent=specLeft(k);
+  document.getElementById('specModalLeft').parentElement.style.display=passive?'none':'';
+  document.getElementById('specModalGo').style.display=passive?'none':'';
   document.getElementById('specModal').style.display='flex';
 }
 function closeSpecModal(){ document.getElementById('specModal').style.display='none'; specModalKind=null; }
@@ -7010,7 +7016,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
