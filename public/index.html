@@ -3215,7 +3215,7 @@ function weakBodyFinale(wave){   // 弱い体は、1回敵を倒すと調子に�
   try{ playSfx('warn'); }catch(e){}
   ov.querySelector('#finaleGo').onclick=()=>{ ov.remove(); nextStageIdx=top; battleNo=MAX_BATTLES-1; advanceToNextStage(); };   // 本当に1位と戦う（負ければそのままゲームオーバー）
 }
-function healPlayer(n){ n=Number(n)||0; if(n>0) playerHp+=n; }   // 回復は最大値を超えてよい。超過分は戦闘が終わると消える
+function healPlayer(n){ n=Number(n)||0; if(n>0&&hasAcc('heal_patch')) n=Math.round(n*(1+accX())); if(n>0) playerHp+=n; }   // 回復湿布：回復量が2倍（倍の腕輪で3倍）。   // 回復は最大値を超えてよい。超過分は戦闘が終わると消える
 function finishWaveOutcome(defeated, wave){
   if(playerHp>playerHpMax) playerHp=playerHpMax;
   if(defeated){
@@ -6138,6 +6138,7 @@ function buildAccDefs(){
   L.push({id:'glass',name:'背水のピアス',icon:'⏳',desc:'体力が1になる代わりに、敵の動きが1ターンに1回から2ターンに1回になる'});
   L.push({id:'hp_scarf',name:'体力スカーフ',icon:'🧣',desc:'最大体力が100倍になる。代わりに、装備中は山札に「白紙」のカード10枚が紛れ込む（意味のないカード。捨てられる）'});
   L.push({id:'reflect_mirror',name:'反射の手鏡',icon:'🪞',desc:'敵の特殊攻撃（呪いのカード）を跳ね返す。封鎖のカード→敵は3ターン動けない／毒のカード→敵の体力が毎ターン減る／ボム→敵のHPが半分になる／暗闇→無効'});
+  L.push({id:'heal_patch',name:'回復湿布',icon:'🩹',desc:'体力の回復量が2倍になる'});
   L.push({id:'endure',name:'ふんばるピアス',icon:'🔹',desc:'体力80%以上の状態から一気に0になるとき、1で踏みとどまる'});
   L.push({id:'combo_barrier',name:'コンボバリアの指輪',icon:'💠',desc:'スーパーコンボ（役のない旗の連続も含む）が続いている間、敵の攻撃で受けるダメージが半分になる'});
   L.push({id:'host_ring',name:'ホストの指輪',icon:'🔗',desc:'「役のない」旗が続くとコンボになる。続くたびに倍率が1.2倍ずつ増えていく（上限なし）。役のある旗が1つでもあると無効。代わりに、次に引くカード（Next）が見えなくなる'});
@@ -6267,6 +6268,7 @@ function goalDef(d){
     case 'hp_x15': return {tier:'mid',text:'体力が半分を切らずに敵を倒す',done:()=>S.minHp>=0.5,prog:hpTxt(),final:true};
     case 'hp_x2': return {tier:'hard',text:'体力が80%を切らずに敵を倒す',done:()=>S.minHp>=0.8,prog:hpTxt(),final:true};
     case 'glass': return {tier:'hard',text:'体力が半分以下の状態で敵を倒す',done:()=>S.minHp<=0.5,final:true};
+    case 'heal_patch': return {tier:'easy',text:'体力が70%以下になった状態で敵を倒す',done:()=>S.minHp<=0.7,prog:hpTxt(),final:true};
     case 'endure': return {tier:'hard',text:'体力30%以下の状態で敵を倒す',done:()=>S.lowHpWin>0,final:true};
     case 'gold_s': { const n=Math.round(thr*0.5); return {tier:'mid',text:`1回の攻撃で敵に${n}以上のダメージ`,done:()=>S.maxDealt>=n,prog:`最高 ${Math.min(n,S.maxDealt)} / ${n}`}; }
     case 'gold_m': { const n=Math.round(thr*0.8); return {tier:'hard',text:`1回の攻撃で敵に${n}以上のダメージ`,done:()=>S.maxDealt>=n,prog:`最高 ${Math.min(n,S.maxDealt)} / ${n}`}; }
@@ -6527,7 +6529,7 @@ function accPriceBase(d){
   if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
   if(id==='glass') return 200;
   if(id==='combo_barrier'||id==='host_ring') return 200; if(id==='double_x') return 300; if(id==='clairvoyant') return 200; if(id==='hand') return 150;
-  if(id==='hp_scarf') return 300; if(id==='reflect_mirror') return 200; if(id==='hp_x15') return 120; if(id==='hp_x2') return 220; if(id==='endure') return 160;
+  if(id==='hp_scarf') return 300; if(id==='reflect_mirror') return 200; if(id==='hp_x15') return 120; if(id==='hp_x2') return 220; if(id==='endure') return 160; if(id==='heal_patch') return 120;
   if(id==='gold_s') return 200; if(id==='gold_m') return 400; if(id==='gold_l') return 800;
   if(id==='add3_weapon'||id==='add3_armor') return 100;
   return 60;
@@ -6995,7 +6997,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
