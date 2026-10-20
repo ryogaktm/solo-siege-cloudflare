@@ -1570,7 +1570,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
-  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。（敵のHPが1より下がることはありません。敵が変わると1に戻ります）'},
+  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。敵のHPが0になれば、そのまま倒せます。（敵が変わると1に戻ります）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{kind:'gold',name:'コガネモチ',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
@@ -2031,7 +2031,7 @@ function disList(w){
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   return r.filter(k=>!DIS_OFF.includes(k));
 }
-let disFired=0, mushDmg=1;   // mushDmg＝毒キノコの次のダメージ（敵ごとに1へリセット）
+let disFired=0, mushDmg=1, mushKill=false;   // mushDmg＝毒キノコの次のダメージ（敵ごとに1へリセット）
 let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
 const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
@@ -2761,7 +2761,7 @@ function advanceTurn(usedCard){
   if(CHARACTER&&monDisp()==='毒キノコ'){   // 毒の胞子：数字カードを置くと今のダメージを与えて2倍に。それ以外の行動だと、次のダメージが半分になる（最小1）
     if(usedCard&&usedCard.kind==='troop'){
       const md=mushDmg; mushDmg=Math.min(mushDmg*2,1e15);
-      if(enemyPoisonPer<=0&&bossHp>1){ bossHp=Math.max(1,bossHp-md); animateBossHp(bossHp,350); hint(`🍄 毒の胞子！ 敵のHPが${fmtCompact(md)}減った（次は${fmtCompact(mushDmg)}）`,false); }
+      if(enemyPoisonPer<=0&&bossHp>0){ bossHp=Math.max(0,bossHp-md); animateBossHp(bossHp,350); if(bossHp<=0) mushKill=true; hint(`🍄 毒の胞子！ 敵のHPが${fmtCompact(md)}減った（次は${fmtCompact(mushDmg)}）`,false); }
     } else { mushDmg=Math.max(1,Math.floor(mushDmg/2)); }
   }
   if(enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
@@ -3108,6 +3108,7 @@ function deckOut(){
 }
 function endCheck(){
   if(gameEnded) return;
+  if(mushKill){ mushKill=false; if(bossHp<=0){ strikeBoss(0,'🍄 毒の胞子で敵を倒した！','mushroom'); return; } }   // 毒でHPが0になったら、そのまま倒す
   const decksEmpty=activeDeck.length===0;
   const open=flags.filter(f=>!f.closed && !isLocked(f));
   const stuck=decksEmpty&&(hand.length===0||!canPlayAnything());
@@ -7016,7 +7017,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
