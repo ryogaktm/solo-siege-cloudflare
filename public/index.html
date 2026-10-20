@@ -1565,8 +1565,8 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'スライム':{kind:'shuffle'},
   'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
-  'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、体力が1回復します。'},
-  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'毎ターン、敵のHPが2減ります。（敵のHPが1より下がることはありません）'},
+  'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
+  '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くたび、敵のHPが減ります。最初は1、その後2、4、8…と倍々に増えていきます。（敵のHPが1より下がることはありません。敵が変わるとまた1から）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{kind:'gold',name:'コガネモチ',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
@@ -2027,7 +2027,7 @@ function disList(w){
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   return r.filter(k=>!DIS_OFF.includes(k));
 }
-let disFired=0;
+let disFired=0, mushN=0;   // mushN＝毒キノコの胞子が何回目か（敵ごとにリセット）
 let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
 const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
@@ -2442,7 +2442,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  stomach=[]; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
+  stomach=[]; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; hostCarry=0; mushN=0; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -2753,8 +2753,11 @@ function advanceTurn(usedCard){
   flags.forEach(f=>{ if(f.lockedUntil && f.lockedUntil<=turnCounter) f.lockedUntil=0; });
   let stepped=!hasAcc('glass') || turnCounter%2===0;   // 背水のピアス：敵は2ターンに1回しか動かない
   if(enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
-  if(CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(1);
-  { const mp=(CHARACTER&&monDisp()==='毒キノコ')?2:0; if(mp>0&&enemyPoisonPer<=0&&bossHp>1){ bossHp=Math.max(1,bossHp-mp); animateBossHp(bossHp,350); } }
+  if(CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(Math.max(1,Math.round(playerHpMax/10)));   // アリ：毎ターン最大体力の10分の1回復
+  if(CHARACTER&&monDisp()==='毒キノコ'&&usedCard&&usedCard.kind==='troop'&&enemyPoisonPer<=0){   // 毒の胞子：数字カードを場に置くたび、1,2,4,8…と倍々に敵のHPが減る（1より下がらない）
+    const md=Math.pow(2,Math.min(mushN,40)); mushN++;
+    if(bossHp>1){ bossHp=Math.max(1,bossHp-md); animateBossHp(bossHp,350); hint(`🍄 毒の胞子！ 敵のHPが${md}減った`,false); }
+  }
   if(enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
   tickBombs();
   let ev=null;
@@ -5227,7 +5230,7 @@ function advanceToNextStage(){
   }
   score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
-  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; mushN=0; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -6997,7 +7000,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
