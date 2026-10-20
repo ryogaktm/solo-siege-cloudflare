@@ -1567,7 +1567,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
   'スライム':{kind:'shuffle'},
-  'コボルト':{kind:'punch',slow:10,name:'殴る',icon:'👊',desc:'敵の攻撃力の上昇率を、10ターンの間、半分に抑えます。'},
+  'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。敵のHPが0になれば、そのまま倒せます。（敵が変わると1に戻ります）'},
@@ -2115,6 +2115,7 @@ function genSchedule(){
   if(w.enrageAt>0){ for(let k=0;k<3;k++) sched[w.enrageAt+k]='rage'; } // 終盤の敵は一定ターンを過ぎると3連続で攻撃力×2（狂暴化）
   return sched;
 }
+const SLOW_TURNS=10;   // 殴る：攻撃力の上昇を半分にする期間（ターン）
 let slowWins=[];   // コボルトの殴る：[開始ターン,終了ターン]の間、攻撃力の上昇が半分
 function enemyAtkAt(t){
   const w=WAVES[stageIndex];
@@ -5611,12 +5612,11 @@ function specUse(kind){
     if(guardOn) return;
     guardOn=true; spec.guard++;
     hint('防御！次に受けるHPのダメージが半分になる。'); playSfx('place');
-  } else if(kind==='punch'){
-    if(CHARACTER.monSkill&&CHARACTER.monSkill.slow){   // コボルト：敵の攻撃力の上昇率を10ターン半分に抑える
-      spec.punch++; slowWins.push([enemyTurn,enemyTurn+CHARACTER.monSkill.slow]); hint(`👊 殴った！ 敵の攻撃力の上昇が${CHARACTER.monSkill.slow}ターンの間、半分になった。`,true); playSfx('place'); dlog('action',{name:'kobold_slow'}); render(); return;
-    }
-    spec.punch++; const D=(CHARACTER.monSkill&&CHARACTER.monSkill.dmg)||50;
-    strikeBoss(Math.min(D,bossHp), `物理で殴った！敵に${D}ダメージ。`, 'punch'); return;
+  } else if(kind==='punch'){   // 殴る：敵の攻撃力の上昇率を10ターン半分に抑える
+    const T0=(CHARACTER.monSkill&&CHARACTER.monSkill.slow)||SLOW_TURNS;
+    slowWins.push([enemyTurn,enemyTurn+T0]); dlog('action',{name:'punch_slow'});
+    const D=(CHARACTER.monSkill&&CHARACTER.monSkill.dmg)||50; spec.punch++;   // ダメージはそのまま（コボルト100／ほか50）に、攻撃力の上昇抑制をプラス
+    strikeBoss(Math.min(D,bossHp), `👊 殴った！ 敵に${D}ダメージ。さらに${T0}ターンの間、敵の攻撃力の上昇が半分になった。`, 'punch'); return;
   }
   dlog('action',{name:'spec_'+kind});
   render();
@@ -5706,7 +5706,7 @@ function doShuffle(){
 const SPEC_INFO={
   shuffle:{title:'🔄 シャッフル',desc:'手札をすべて山札に戻して混ぜ、新しく引き直します。（ターンは進みません）'},
   beg:{title:'🙏 命乞い',desc:'次に予定されている敵の特殊攻撃（攻撃力アップ・毒・封鎖）を1回パスします。（ターンは進みません）'},
-  punch:{title:'👊 物理で殴る',desc:'敵にすぐ50ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
+  punch:{title:'👊 殴る',desc:'敵にすぐ50ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   guard:{title:'🛡 防御',desc:'次に受けるHPのダメージが半分になります。'},
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
@@ -7021,7 +7021,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
