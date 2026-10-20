@@ -373,6 +373,8 @@
   .fc.ev-dis{ border-color:#c58cff; background:rgba(150,90,220,.2); } .fc.ev-dis b{ color:#e3c8ff; }
   .fc.ev-seal{ border-color:#9fd0ff; background:rgba(90,150,224,.2); } .fc.ev-seal b{ color:#cfe6ff; }
   .fc.ev-poison{ border-color:#c58aff; background:rgba(150,80,220,.22); } .fc.ev-poison b{ color:#e0c0ff; }
+  .fc.fc-empty{ background:transparent; border-color:rgba(255,255,255,.06); border-style:dashed; }
+  .sp-label{ color:#d9b8ff; }
   .fc.now{ border-color:var(--gold); }
   .fc.fc-clock{ border-color:#7fd6ff; background:rgba(90,190,255,.16); } .fc.fc-clock b{ font-size:16px; }
   .timerrow{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
@@ -1147,6 +1149,8 @@
   <div class="upcoming-wrap">
     <div class="upcoming-label">敵の予測</div>
     <div class="upcoming-row" id="upcomingRow"></div>
+    <div class="upcoming-label sp-label" id="upcomingLabel2" style="display:none">特殊攻撃</div>
+    <div class="upcoming-row sp-row" id="upcomingRow2" style="display:none"></div>
   </div>
 
   <div class="board-wrap">
@@ -4175,17 +4179,23 @@ function renderUpcoming(){
   const pend0=!!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   const baseT=pend0?prevSnap.t:enemyTurn;
   const nClk=Math.min(8,Math.max(0,enemyFreeze));
-  for(let c=0;c<nClk;c++) html+='<div class="fc fc-clock"><b>🕐</b></div>';
+  let html2='', anySp=false;
+  for(let c=0;c<nClk;c++){ html+='<div class="fc fc-clock"><b>🕐</b></div>'; html2+='<div class="fc fc-empty"></div>'; }
   for(let k=1;k<=8-nClk;k++){
     const t=baseT+enemyOffs(k,pend0,baseT), ev=enemySched[t];
-    if(ev){
+    if(ev==='rage'){   // 攻撃力×2は上の段
       const info=EVENT_INFO[ev];
-      html+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${info.label}</small></div>`;
+      html+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+='<div class="fc fc-empty"></div>';
     } else {
       html+=`<div class="fc"><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
+      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small></div>`; }
+      else html2+='<div class="fc fc-empty"></div>';
     }
   }
   row.innerHTML=html;
+  { const r2=document.getElementById('upcomingRow2'), l2=document.getElementById('upcomingLabel2');
+    const show=!gameEnded && (anySp || (WAVES[stageIndex] && disList(WAVES[stageIndex]).length>0));
+    if(r2){ r2.style.display=show?'':'none'; r2.innerHTML=show?html2:''; } if(l2) l2.style.display=show?'':'none'; }
 }
 let barrierLv=0;
 function updateBarrier(){
@@ -7000,7 +7010,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
