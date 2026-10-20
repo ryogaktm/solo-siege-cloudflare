@@ -1567,7 +1567,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
   'スライム':{kind:'shuffle'},
-  'コボルト':{kind:'punch',dmg:100,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与えます。敵のHPが0になればそのままステージクリアです。'},
+  'コボルト':{kind:'punch',slow:10,name:'殴る',icon:'👊',desc:'敵の攻撃力の上昇率を、10ターンの間、半分に抑えます。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。敵のHPが0になれば、そのまま倒せます。（敵が変わると1に戻ります）'},
@@ -2115,12 +2115,13 @@ function genSchedule(){
   if(w.enrageAt>0){ for(let k=0;k<3;k++) sched[w.enrageAt+k]='rage'; } // 終盤の敵は一定ターンを過ぎると3連続で攻撃力×2（狂暴化）
   return sched;
 }
+let slowWins=[];   // コボルトの殴る：[開始ターン,終了ターン]の間、攻撃力の上昇が半分
 function enemyAtkAt(t){
   const w=WAVES[stageIndex];
-  let mult=1;
-  for(let k=1;k<=t;k++) if(enemySched[k]==='rage') mult*=BALANCE.rageMultiplier;
+  let mult=1, te=t;
+  for(let k=1;k<=t;k++){ if(enemySched[k]==='rage') mult*=BALANCE.rageMultiplier; if(slowWins.some(r=>k>r[0]&&k<=r[1])) te-=0.5; }
   const fk=FLAG_COUNT/BALANCE.flagCountAtkBase;
-  return Math.round((w.atk + w.grow*t)*fk*mult*monAtkMult);
+  return Math.round((w.atk + w.grow*te)*fk*mult*monAtkMult);
 }
 function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
@@ -2276,7 +2277,7 @@ function barrierMult(){
 function resetBattleRound(){
   frozenMults={}; frozenHost={};
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
-  enemyTurn=0; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
+  enemyTurn=0; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
   try{
@@ -5611,6 +5612,9 @@ function specUse(kind){
     guardOn=true; spec.guard++;
     hint('防御！次に受けるHPのダメージが半分になる。'); playSfx('place');
   } else if(kind==='punch'){
+    if(CHARACTER.monSkill&&CHARACTER.monSkill.slow){   // コボルト：敵の攻撃力の上昇率を10ターン半分に抑える
+      spec.punch++; slowWins.push([enemyTurn,enemyTurn+CHARACTER.monSkill.slow]); hint(`👊 殴った！ 敵の攻撃力の上昇が${CHARACTER.monSkill.slow}ターンの間、半分になった。`,true); playSfx('place'); dlog('action',{name:'kobold_slow'}); render(); return;
+    }
     spec.punch++; const D=(CHARACTER.monSkill&&CHARACTER.monSkill.dmg)||50;
     strikeBoss(Math.min(D,bossHp), `物理で殴った！敵に${D}ダメージ。`, 'punch'); return;
   }
@@ -7017,7 +7021,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
