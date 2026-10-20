@@ -1779,7 +1779,7 @@ const LADDER_N=WAVES.length;  // 通常の敵の数（ラスボスはこの外�
 const FINAL_BOSSES=[['火星人',25,'alien_mars'],['水星人',49,'alien_mercury'],['金星人',49,'alien_venus'],['土星人',60,'alien_saturn'],['太陽神',71,'alien_sun'],['月の民',12,'alien_moon']];  // [名前, 基準にする敵の段(0始まり), 絵]（人間ラスボス案は一旦保留）
 FINAL_BOSSES.forEach(([nm,ref],k)=>{ const r=WAVES[ref], m=1.5;
   WAVES.push({...r,name:nm,hp:Math.round(r.hp*m),atk:Math.round(r.atk*m),grow:Math.round(r.grow*m*10)/10,isNew:true,immortal:false,boss:true,lv:0,rank:0,threshold:Math.round(r.hp*m)}); });
-WAVES.forEach((w,i)=>{ if((!w.boss&&i<=25)||w.name==='火星人'||w.name==='月の民'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 最初のラスボスと、それ以下の順位（下位23体）は強さ1/2
+WAVES.forEach((w,i)=>{ if((!w.boss&&i<=25)||w.name==='月の民'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 下位の順位（下位23体）は強さ1/2（火星人は2倍に戻した v142）
 { const mo=WAVES.find(w=>w.name==='月の民'), sp=WAVES.find(w=>w.name==='大グモの巣'&&!w.boss); if(mo&&sp){ mo.hp=sp.hp; mo.atk=sp.atk; mo.grow=sp.grow; mo.threshold=sp.hp; } }   // 月の民の強さは大グモと同じ
 WAVES.forEach(w=>{ w.baseId=w.name; w.id=w.name; });   // 名前は表示用（「別の」が付くことがある）、idは種類の判定用
 function applyEnemyNames(){
@@ -6997,7 +6997,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-20n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-20o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
