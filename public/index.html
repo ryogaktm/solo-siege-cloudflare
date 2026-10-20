@@ -4194,7 +4194,7 @@ function renderUpcoming(){
   }
   row.innerHTML=html;
   { const r2=document.getElementById('upcomingRow2'), l2=document.getElementById('upcomingLabel2');
-    const show=!gameEnded && (anySp || (WAVES[stageIndex] && disList(WAVES[stageIndex]).length>0));
+    const show=!gameEnded;   // 初期の敵でも常に表示（妨害がなければ空の枠）
     if(r2){ r2.style.display=show?'':'none'; r2.innerHTML=show?html2:''; } if(l2) l2.style.display=show?'':'none'; }
 }
 let barrierLv=0;
@@ -7010,7 +7010,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
