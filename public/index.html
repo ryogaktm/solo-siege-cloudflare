@@ -6793,6 +6793,7 @@ function renderShop_(){
   }
   const nDeck=items.length; let accEmpty=false;
   {
+    shopStock=shopStock.filter(id=>!ACC_OFF.includes(id));   // 取り下げたアクセサリーが、保存済みの品揃えに残っていたら店から外す
     const stock=shopStock.map(id=>accDef(id)).filter(d=>d && !accOwned.some(o=>o.id===d.id));
     stock.forEach((d,k)=>items.push({key:'acc_'+d.id,head:k===0?'売っているアクセサリー':null,icon:accIconHtml(d),name:d.name,desc:d.desc,price:accPrice(d),
       apply:()=>{ accOwned.push({aid:accSeq++,id:d.id}); shopStock=shopStock.filter(x=>x!==d.id); hint(`${d.name}を買った。`); }}));
@@ -7025,7 +7026,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-21j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
