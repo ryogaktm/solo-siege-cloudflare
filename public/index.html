@@ -2820,6 +2820,11 @@ function closeCheck(fi, closedByEnemy){
       addScore(-rawSum);
     } else {
       f.baseCombo = f.result.mult>1;
+      if(f.baseCombo && f.symbolColor==='yellow' && hasAcc('blade_yellow') && CHARACTER.combo){   // 雷鳴刀：黄のコンボ10以上でスーパーコンボを出すたびに敵が止まる
+        const col=f.symbolColor, cr=carryMap[col], cnt=flags.filter(g=>g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor===col).length;
+        if(cr||cnt>=2){ let raw=(cr||1)+cnt; if(comboRestricted()) raw=Math.min(raw,COMBO_CAP);
+          if(raw>=bladeNeed('yellow')){ const n=1*accX(); enemyFreeze+=n; setTimeout(()=>hint(`⚡ 雷鳴刀！ 敵の動きが${n}ターン止まる。`,true),300); dlog('action',{name:'blade_yellow',raw}); } }
+      }
       if(f.baseCombo){ f.comboMult=f.result.mult; }  // 役が付いた旗＝スーパーコンボの対象。得点は役の倍率のみ（追加の倍率なし）
       addScore(f.result.base);
       f.sheetSum = f.result.sum;
@@ -6153,8 +6158,15 @@ const SHORTC = c=>CNAME[c].replace('旗','');
 const SP_NAME={shuffle:'シャッフル',beg:'命乞い',punch:'殴る',guard:'防御',cure:'薬'};
 const SP_ACC={shuffle:'ブレスレット',beg:'首輪',punch:'指輪',guard:'バングル',cure:'鼻輪'};
 const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
+/* 色ごとの「剣」：その色のコンボ数が一定以上になると効果が出る（色は随時追加。goal＝取得条件のスーパーコンボ数、price＝基本の値段） */
+const COMBO_BLADES={
+  yellow:{name:'雷鳴刀',icon:'⚡',need:10,goal:8,price:350,desc:'黄のコンボが10以上のとき、黄のスーパーコンボを出すたびに敵の動きが1ターン止まる'},
+  red:{name:'烈火の剣',icon:'🔥',need:30,goal:12,price:450,desc:'赤のコンボが30以上のとき、赤のスーパーコンボの攻撃力が3倍になる'}
+};
+const bladeNeed=(c)=>{ const b=COMBO_BLADES[c]; return b?b.need:0; };
 function buildAccDefs(){
   const L=[];
+  Object.keys(COMBO_BLADES).forEach(c=>{ if(ALL_GAME_COLORS.includes(c)){ const b=COMBO_BLADES[c]; L.push({id:'blade_'+c,color:c,name:b.name,icon:b.icon,desc:b.desc}); } });
   ALL_GAME_COLORS.forEach(c=>L.push({id:'super15_'+c,color:c,name:`${SHORTC(c)}のリング`,icon:'💍',desc:`${SHORTC(c)}のスーパーコンボのとき、倍率が1.25倍（ネックレスと重ね掛け可）`}));
   ALL_GAME_COLORS.forEach(c=>L.push({id:'super2_'+c,color:c,name:`${SHORTC(c)}のネックレス`,icon:'📿',desc:`${SHORTC(c)}のスーパーコンボのとき、倍率が1.5倍（リングと重ね掛け可）`}));
   [['wedge','ウェッジ','同色連番のブレスレット','⌚'],['royal','ロイヤルファランクス','同色同数の首輪','👑'],['phalanx','ファランクス','同じ数字の指輪','💍'],['skirmish','スカーミッシュ','連番の鼻輪','🔘'],['battalion','バタリオン','同じ色のバングル','🪢']]
@@ -6254,7 +6266,9 @@ function accVal(c){
 function superMultFor(sym,raw){
   if(disGuardOn()) raw=Math.max(1,raw-dis.guardN);   // 敵の防御：コンボ数が減る
   let m=comboRestricted()?Math.min(raw,COMBO_CAP):raw;   // 倍率の上限なし（月の民を倒すまでは×5まで）
+  const mBase=m;
   if(sym && hasAcc('super15_'+sym)) m*=(1+0.25*accX()); if(sym && hasAcc('super2_'+sym)) m*=(1+0.5*accX());
+  if(sym==='red' && hasAcc('blade_red') && mBase>=bladeNeed('red')) m*=(1+2*accX());   // 烈火の剣：赤30コンボ以上で攻撃力3倍
   if(disHalfOn(sym)) m=Math.max(1,m*(dis.halfMul==null?0.5:dis.halfMul));   // 敵に色を封じられた（0＝無効）
   return m;
 }
@@ -6278,6 +6292,7 @@ function goalDef(d){
   { const bg=BONUS_GOALS.find(x=>x.id===id); if(bg){ const r=bg.def(S); return Object.assign({tier:bg.tier,text:bg.txt?bg.txt():bg.text},r); } }
   if(BOSS_DROP[id]!==undefined) return {tier:'easy',boss:BOSS_DROP[id],text:`${WAVES[BOSS_DROP[id]].name}を倒す`,done:()=>false,final:true};
   if(id.startsWith('super15_')) return {tier:'mid',text:`${cn}旗のスーパーコンボを×3まで決める`,done:()=>(S.super[d.color]||0)>=3,prog:`×${Math.min(3,S.super[d.color]||0)} / ×3`};
+  if(id.startsWith('blade_')){ const b=COMBO_BLADES[d.color]; return {tier:'hard',text:`${cn}旗のスーパーコンボを×${b.goal}まで決める`,done:()=>(S.super[d.color]||0)>=b.goal,prog:`×${Math.min(b.goal,S.super[d.color]||0)} / ×${b.goal}`}; }
   if(id.startsWith('super2_')) return {tier:'hard',text:`${cn}旗のスーパーコンボを×5まで決める`,done:()=>(S.super[d.color]||0)>=5,prog:`×${Math.min(5,S.super[d.color]||0)} / ×5`};
   const hpTxt=()=>`最低体力 ${Math.round(S.minHp*100)}%`;
   switch(id){
@@ -6551,7 +6566,7 @@ const ACC_PRICE_MULT=2.5;  // アクセサリー屋の値段倍率（売値は�
 const accPrice=d=>Math.round(accPriceBase(d)*ACC_PRICE_MULT);
 function accPriceBase(d){
   const id=d.id;
-  if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150;
+  if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150; if(id.startsWith('blade_')) return (COMBO_BLADES[d.color]||{}).price||350;
   if(id==='super_unlimited') return 300; if(id==='sp_double') return 150; if(id==='purple_out') return 120;
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
   if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
@@ -7026,7 +7041,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-21j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-22a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
