@@ -1820,7 +1820,7 @@ function pickDrop(){
   return s;
 }
 /* 勝ったあとの「次の敵」のジャンプ：数字はここで調整 */
-const JUMP_PARAM={atkRatio:0.6, hpMul:2, refTurn:20, rageAdj:1.5, maxStep:8};   // atkRatio＝敵の標準攻撃力が自分の攻撃力のこの割合以下 / hpMul＝敵HPが自分の攻撃力のこの倍以下 / refTurn＝敵の標準攻撃力を測るターン / rageAdj＝攻撃力×2の分の見込み（20ターン目で約1.5倍）/ maxStep＝一度に飛べる最大段数
+const JUMP_PARAM={atkRatio:0.6, hpMul:2, refTurn:20, rageAdj:1.5, over:1, maxStep:99};   // atkRatio＝敵の標準攻撃力が自分の攻撃力のこの割合以下 / hpMul＝敵HPが自分の攻撃力のこの倍以下 / refTurn＝敵の標準攻撃力を測るターン / rageAdj＝攻撃力×2の分の見込み（20ターン目で約1.5倍）/ over＝倒せそうな敵からさらに何段上の「ちょっと敵わない」敵まで飛ぶか / maxStep＝一度に飛べる最大段数（99＝制限なし）
 function jumpRefAtk(w){ return (w.atk+w.grow*JUMP_PARAM.refTurn)*(FLAG_COUNT/BALANCE.flagCountAtkBase)*monAtkMult*JUMP_PARAM.rageAdj; }
 function pickJumpByPower(power, cur){   // 「この攻撃力なら、このくらいの敵は倒せそう」という一番強い敵（負けない条件＋2〜3回で倒せる条件）
   let best=cur+1;
@@ -1831,7 +1831,7 @@ function pickJump(over){
   // オーバーキル量（とどめの攻撃が敵HPを超えた分）より「ちょっと強い」敵＝HPがそれを上回る最初の敵
   const cur=stageIndex;
   let old=LADDER_N-1; for(let i=cur+1;i<LADDER_N;i++){ if(WAVES[i].hp>over){ old=i; break; } }
-  const byPow=pickJumpByPower(lastPower,cur);   // 今のやり方と「攻撃力から予測」のやり方の、強い方
+  const byPow=Math.min(pickJumpByPower(lastPower,cur)+JUMP_PARAM.over, LADDER_N-1);   // 今のやり方と「攻撃力から予測」のやり方の、強い方
   const r=Math.min(Math.max(old,byPow), cur+Math.max(1,JUMP_PARAM.maxStep), LADDER_N-1);
   try{ dlog('action',{name:'pick_jump',over,power:lastPower,old,byPow,pick:r}); }catch(e){}
   return r;
@@ -7068,7 +7068,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-24a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-24b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
