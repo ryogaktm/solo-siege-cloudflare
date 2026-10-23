@@ -4284,7 +4284,7 @@ function renderBattle(){
   // 最後の旗を埋めた（=これから攻撃が確定する）局面では、実際の攻撃計算と同じ「直前の一手の時点」の値を表示する
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
-    if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='font-size:11px;color:#e3c8ff;text-align:center;min-height:0;'; pb.appendChild(db); }
+    if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
     if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`☠毒:数字−1(あと${dis.poisonUntil-turnCounter})`); db.textContent=a.join('  '); } }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
@@ -7042,7 +7042,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-23a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-23b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
