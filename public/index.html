@@ -3027,6 +3027,9 @@ let stageBgIdx=-1;
 function refreshStage(){
   const bg=document.getElementById('stageBg'); if(!bg) return;
   if(stageBgIdx!==stageIndex){ stageBgIdx=stageIndex; bg.innerHTML=bgSVG(WAVES[stageIndex].tier); const mo=document.getElementById('fighterMo'); if(mo) mo.classList.remove('ko','lunge','hit'); }
+  { const mo=document.getElementById('fighterMo'), pl=document.getElementById('fighterPl');   // 倒れた絵が残って消えたままにならないように：生きているのに「倒れ」の印が付いていたら外す
+    if(mo&&mo.classList.contains('ko')&&bossHp>0&&!waveAdvancing) mo.classList.remove('ko');
+    if(pl&&pl.classList.contains('ko')&&playerHp>0) pl.classList.remove('ko'); }
 }
 function fighterEl(who){ return document.getElementById(who==='player'?'fighterPl':'fighterMo'); }
 function stageDmgPop(who, text, cls){
@@ -7068,7 +7071,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-24b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-24c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
