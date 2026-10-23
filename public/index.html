@@ -350,6 +350,11 @@
   .app.compact .wavebar{ margin-bottom:6px; }
   .app.compact .upcoming-wrap{ margin-bottom:6px; gap:3px; }
   .app.compact .board-wrap{ margin-bottom:4px; }
+  .app.tight .upcoming-label{ display:none !important; }   /* 盤面が狭い時：ラベルを消し、予測の段を細くして旗の高さを確保 */
+  .app.tight .upcoming-wrap{ margin-bottom:3px; gap:2px; }
+  .app.tight .fc{ padding:2px 2px; } .app.tight .fc b{ font-size:11px; } .app.tight .fc small{ font-size:7.5px; } .app.tight .fc small.fc-sw{ display:none; }
+  .app.tight .stage{ height:104px; margin:2px 0 4px; }
+  .app.tight .st-hp{ top:4px; } .app.tight .st-atk{ top:28px; } .app.tight .st-dis{ top:52px; }
   .st-side{ flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px; }
   .st-hp .st-side{ background:rgba(0,0,0,.5); border-radius:10px; padding:5px 10px; }
   .st-hp .hp-icon{ width:16px; font-size:13px; }
@@ -2378,24 +2383,34 @@ function applyBoardGrid(){
   fitBoardSize();
 }
 function fitBoardSize(){
-  { const ap=document.getElementById('appRoot'); if(ap) ap.classList.toggle('compact', ap.clientHeight>0 && ap.clientHeight<780); }
+  const ap=document.getElementById('appRoot'); if(!ap){ fitBoardCalc(); return; }
+  const small=ap.clientHeight>0 && ap.clientHeight<780;
+  ap.classList.toggle('compact',small); ap.classList.remove('tight');
+  const sz=fitBoardCalc();
+  if(sz!==null && sz<60){   // 旗の置き場が狭すぎてシートが潰れる時は、上の表示を詰めて盤面に高さを回す
+    ap.classList.add('compact','tight'); fitBoardCalc();
+  }
+}
+function fitBoardCalc(){
   const board=document.getElementById('board');
   const wrap=board && board.parentElement;
-  if(!board||!wrap) return;
+  if(!board||!wrap) return null;
   const cols=FLAG_GRID_COLS[FLAG_COUNT]||3;
   const rows=Math.ceil(FLAG_COUNT/cols)||1;
   const gap=10;
   const availW=wrap.clientWidth;
   const availH=wrap.clientHeight;
-  if(availW<=0||availH<=0) return;
+  if(availW<=0||availH<=0) return null;
   const rl=document.getElementById('predBox'), rlH=rl?rl.offsetHeight:0;
   const cellW=(availW-gap*(cols-1))/cols;
   let cellH=(availH-rlH-gap*(rows-1))/rows;   // 盤面は空いている高さを全部使う（上下に余白を作らない）
+  const sRaw=(cellH-18)/1.84;
   const s=Math.max(46, Math.min(96, (cellH-18)/1.84, cellW-14));
   cellH=Math.min(cellH, s*1.84+30);   // カードが最大サイズでも埋まらないほど縦長の画面では、枠だけ伸ばさない
   board.style.width=Math.max(0, cellW*cols+gap*(cols-1))+'px';
   board.style.gridAutoRows=Math.max(0, cellH)+'px';
   { const r=document.documentElement.style; r.setProperty('--slot-w',s+'px'); r.setProperty('--slot-h',s+'px'); r.setProperty('--slot-off',(s*0.42)+'px'); }
+  return sRaw;
 }
 window.addEventListener('resize', ()=>{ try{ fitBoardSize(); }catch(e){} });
 try{ const bw=document.getElementById('board').parentElement; if(window.ResizeObserver){ let _ro=0; new ResizeObserver(()=>{ try{ fitBoardSize(); }catch(e){} }).observe(document.getElementById('appRoot')); new ResizeObserver(()=>{ cancelAnimationFrame(_ro); _ro=requestAnimationFrame(()=>{ try{ fitBoardSize(); }catch(e){} }); }).observe(bw); } }catch(e){}
@@ -7042,7 +7057,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-23b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-23c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
