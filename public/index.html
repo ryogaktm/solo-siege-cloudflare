@@ -1819,11 +1819,22 @@ function pickDrop(){
   if(!foughtIdx.has(c2)) return c2;
   return s;
 }
+/* 勝ったあとの「次の敵」のジャンプ：数字はここで調整 */
+const JUMP_PARAM={atkRatio:0.6, hpMul:2, refTurn:20, rageAdj:1.5, maxStep:8};   // atkRatio＝敵の標準攻撃力が自分の攻撃力のこの割合以下 / hpMul＝敵HPが自分の攻撃力のこの倍以下 / refTurn＝敵の標準攻撃力を測るターン / rageAdj＝攻撃力×2の分の見込み（20ターン目で約1.5倍）/ maxStep＝一度に飛べる最大段数
+function jumpRefAtk(w){ return (w.atk+w.grow*JUMP_PARAM.refTurn)*(FLAG_COUNT/BALANCE.flagCountAtkBase)*monAtkMult*JUMP_PARAM.rageAdj; }
+function pickJumpByPower(power, cur){   // 「この攻撃力なら、このくらいの敵は倒せそう」という一番強い敵（負けない条件＋2〜3回で倒せる条件）
+  let best=cur+1;
+  for(let i=cur+1;i<LADDER_N;i++){ const w=WAVES[i]; if(w.boss) break; if(jumpRefAtk(w)<=power*JUMP_PARAM.atkRatio && w.hp<=power*JUMP_PARAM.hpMul) best=i; }
+  return Math.min(best, LADDER_N-1);
+}
 function pickJump(over){
   // オーバーキル量（とどめの攻撃が敵HPを超えた分）より「ちょっと強い」敵＝HPがそれを上回る最初の敵
   const cur=stageIndex;
-  for(let i=cur+1;i<LADDER_N;i++){ if(WAVES[i].hp>over) return i; }
-  return LADDER_N-1;
+  let old=LADDER_N-1; for(let i=cur+1;i<LADDER_N;i++){ if(WAVES[i].hp>over){ old=i; break; } }
+  const byPow=pickJumpByPower(lastPower,cur);   // 今のやり方と「攻撃力から予測」のやり方の、強い方
+  const r=Math.min(Math.max(old,byPow), cur+Math.max(1,JUMP_PARAM.maxStep), LADDER_N-1);
+  try{ dlog('action',{name:'pick_jump',over,power:lastPower,old,byPow,pick:r}); }catch(e){}
+  return r;
 }
 const TACTIC_EXTRA = {
   alexander:'どの旗にもいつでも置ける万能カード（青♾️）。色・数字の条件を完全に無視できます（装備の色・数字条件も無視）。',
@@ -1905,7 +1916,7 @@ function loadOverallHighScore(){
 let stageIndex=0, waveAttempt=1, bossHp=0, displayedBossHp=0, victory=false, waveAdvancing=false, freeShuffles=0, rewardPicksRemaining=0, pendingRewardCards=[], handSlotBonus=0;
 let totalWaves=0, immortalKills=0, carryDamage=0;
 let introOn=false, introAdv=false;   // ミジンコで始めた時だけ、最初にリーダー→キングと戦う
-let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0;
+let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0, lastPower=0;
 const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
@@ -3186,7 +3197,7 @@ function checkWaveOutcome(){
   const dealt=Math.max(0,diff), taken=Math.max(0,-diff);
   const hpBefore=bossHp;
   bossHp=Math.max(0, bossHp-dealt);
-  lastDealt=Math.max(0,dealt-hpBefore);
+  lastDealt=Math.max(0,dealt-hpBefore); lastPower=Math.max(0,pAtk);   // 次の敵を選ぶ基準：倒した時の攻撃力（敵の攻撃力を引く前）
   const takenReal=buzzGate(Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult));
   playerHp=Math.max(0, playerHp-takenReal);
   totalWaves++;
@@ -5644,7 +5655,7 @@ function specUse(kind){
   render();
 }
 function strikeBoss(dmg,text,name){
-  busy=true; lastDealt=Math.max(0,dmg-Math.max(0,bossHp-dmg)); bossHp=Math.max(0,bossHp-dmg);
+  busy=true; lastDealt=Math.max(0,dmg-Math.max(0,bossHp-dmg)); lastPower=Math.max(0,dmg); bossHp=Math.max(0,bossHp-dmg);
   hint(text); playSfx('equipment');
   dlog('action',{name:name,eHpAfter:bossHp});
   const killed=bossHp<=0;
@@ -7057,7 +7068,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-23c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-24a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -7082,7 +7093,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, hostCarry, carryDamage, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, hostCarry, carryDamage, lastPower, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -7126,7 +7137,7 @@ function resumeGame(){
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0},st.spec||{}); guardOn=st.guardOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
-  lastDealt=st.lastDealt||0;
+  lastDealt=st.lastDealt||0; lastPower=st.lastPower||0;
   try{ lgImport(st.lg); }catch(e){}
   picked=null; pending=null; gameEnded=false; busy=false; waveAdvancing=false; infoIdx=null; justClosed=[]; frozenMults={}; frozenHost={}; stageBgIdx=-1;
   FLAG_COUNT=st.FLAG_COUNT||CHARACTER.flags;
