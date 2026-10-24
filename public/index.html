@@ -6251,7 +6251,6 @@ function buildAccDefs(){
   L.push({id:'gold_s',name:'銅の指輪',icon:'🥉',desc:'役に立たないが、売るとお金になる'});
   L.push({id:'gold_m',name:'銀の指輪',icon:'🥈',desc:'役に立たないが、売ると高い'});
   L.push({id:'gold_l',name:'金の指輪',icon:'🥇',desc:'役に立たないが、売るととても高い'});
-  L.push({id:'super_unlimited',name:'無限のチェーンネックレス',icon:'♾️',desc:'スーパーコンボの倍率の上限（×5）がなくなる。装備中は橙のカード6枚（ランダム）が山札に加わり、色が6種類になる。代わりに体力が1になる'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、敵の動きが止まる'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));
   L.push({id:'sp_double',name:'倍化のアンクレット',icon:'🔁',desc:'特殊技を使える回数が2倍になる'});
@@ -6350,7 +6349,7 @@ function specRemain(k){ if(!specEnabled(k)) return 0; if(k==='shuffle'&&CHARACTE
 /* ----- 取得条件（戦闘ごとのチェックリスト） ----- */
 let battleGoals=[];
 function blankBattleStat(){ return {super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0}; }
-const BOSS_DROP=Object.fromEntries(Object.entries({sp_beg:2,sp_cure:3,sp_guard:4,add3_weapon:1,add3_armor:5,purple_out:5,super_unlimited:6,sp_double:7}).map(([k,v])=>[k,BASE_IDX[v]]));
+const BOSS_DROP=Object.fromEntries(Object.entries({sp_beg:2,sp_cure:3,sp_guard:4,add3_weapon:1,add3_armor:5,purple_out:5,sp_double:7}).map(([k,v])=>[k,BASE_IDX[v]]));
 function goalDef(d){
   const id=d.id, S=accStat, thr=WAVES[stageIndex].threshold, cn=d.color?SHORTC(d.color):'';
   const R=(role,n)=>({tier:'easy',text:`${ROLE_P[role]||role}旗を${n}回完成させる`,done:()=>(S.roles[role]||0)>=n,prog:`${Math.min(n,S.roles[role]||0)} / ${n}回`});
@@ -6546,11 +6545,11 @@ function recalcHpMax(){
   if(hasAcc('hp_scarf')) mu*=1+99*accX();
   const m=Math.round(base*mu)+hpBonus;
   const old=playerHpMax;
-  if(hasAcc('glass')||hasAcc('super_unlimited')){ if(!hpGlassSave) hpGlassSave={max:old,hp:playerHp}; playerHpMax=1; playerHp=1; return; }
+  if(hasAcc('glass')){ if(!hpGlassSave) hpGlassSave={max:old,hp:playerHp}; playerHpMax=1; playerHp=1; return; }
   if(hpGlassSave){ const d=Math.max(0,m-hpGlassSave.max); playerHpMax=m; playerHp=Math.max(1,Math.min(m,hpGlassSave.hp+d)); hpGlassSave=null; return; }
   playerHpMax=m; playerHp=m>old?playerHp+(m-old):Math.min(playerHp,m);
 }
-function activeColorList(){ const L=ALL_GAME_COLORS.filter(c=>!(c==='purple'&&hasAcc('purple_out'))); if(hasAcc('super_unlimited')) L.push('orange'); return L; }
+function activeColorList(){ const L=ALL_GAME_COLORS.filter(c=>!(c==='purple'&&hasAcc('purple_out'))); return L; }
 // 着脱で山札に増減したカードを、見た目で知らせる
 function showAccDelta(title, cards, accName){
   if(!cards||!cards.length) return;
@@ -6563,12 +6562,8 @@ function showAccDelta(title, cards, accName){
 function applyAcc(o){
   if(!o) return;
   const dAdd=[]; const nm=(accDef(o.id)||{}).name||'';
-  if(o.id==='super_unlimited'){
-    if(!GAME_COLORS.includes('orange')) GAME_COLORS.push('orange');
-    if(!o.addUids){ o.addUids=[]; shuffle([1,2,3,4,5,6,7,8,9,10]).slice(0,6).forEach(v=>{ const c={kind:'troop',color:'orange',value:v,uid:uid(),inDeck:true}; deckUids.add(c.uid); o.addUids.push(c.uid); activeDeck.push(c); dAdd.push(c); }); shuffle(activeDeck); }
-  }
   if(o.id==='hp_scarf' && !o.addUids){ o.addUids=[]; for(let i=0;i<10;i++){ const c={kind:'tactics',type:'blank',name:'白紙',short:'白紙',uid:uid(),inDeck:true}; deckUids.add(c.uid); o.addUids.push(c.uid); activeDeck.push(c); dAdd.push(c); } shuffle(activeDeck); }
-  if(o.id==='hp_x15'||o.id==='hp_x2'||o.id==='hp_scarf'||o.id==='glass'||o.id==='super_unlimited'||o.id==='double_x') recalcHpMax();
+  if(o.id==='hp_x15'||o.id==='hp_x2'||o.id==='hp_scarf'||o.id==='glass'||o.id==='double_x') recalcHpMax();
   if(o.id==='del3' && o.del){
     o.held=[];
     [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(o.del.includes(arr[i].uid)) o.held.push(arr.splice(i,1)[0]); });
@@ -6589,13 +6584,7 @@ function unapplyAcc(o){
     [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(U.has(arr[i].uid)) arr.splice(i,1); });
     U.forEach(u=>deckUids.delete(u)); o.addUids=null;
   }
-  if(o.id==='super_unlimited' && o.addUids){
-    const U=new Set(o.addUids);
-    [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(U.has(arr[i].uid)) dRem.push(arr.splice(i,1)[0]); });
-    U.forEach(u=>deckUids.delete(u)); o.addUids=null;
-    const k=GAME_COLORS.indexOf('orange'); if(k>=0) GAME_COLORS.splice(k,1);
-  }
-  if(o.id==='hp_x15'||o.id==='hp_x2'||o.id==='hp_scarf'||o.id==='glass'||o.id==='super_unlimited'||o.id==='double_x') recalcHpMax();
+  if(o.id==='hp_x15'||o.id==='hp_x2'||o.id==='hp_scarf'||o.id==='glass'||o.id==='double_x') recalcHpMax();
   if(o.id==='del3' && o.held){ const back=o.held.slice(); o.held.forEach(c=>activeDeck.push(c)); o.held=null; shuffle(activeDeck); showAccDelta('山札に戻ったカード', back, nm); }
   if(o.id.startsWith('add3_') && o.addUids){
     const U=new Set(o.addUids);
@@ -6632,7 +6621,7 @@ const accPrice=d=>Math.round(accPriceBase(d)*ACC_PRICE_MULT);
 function accPriceBase(d){
   const id=d.id;
   if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150; if(id.startsWith('blade_')) return (COMBO_BLADES[d.color]||{}).price||350;
-  if(id==='super_unlimited') return 300; if(id==='sp_double') return 150; if(id==='purple_out') return 120;
+  if(id==='sp_double') return 150; if(id==='purple_out') return 120;
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
   if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
   if(id==='glass') return 200;
@@ -7106,7 +7095,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-24e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-25a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -7176,6 +7165,12 @@ function resumeGame(){
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
   lastDealt=st.lastDealt||0; lastPower=st.lastPower||0;
+  try{   // 無限のチェーンネックレスは廃止：古いセーブに残っている橙のカード（数字・色の装備）と橙の色を消す
+    const isO=c=>c&&c.color==='orange'&&!c.temp&&!c.enemyPlaced&&((c.kind==='troop')||(c.kind==='monster'&&c.sub==='mark'));
+    [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ if(!arr) return; for(let i=arr.length-1;i>=0;i--) if(isO(arr[i])){ if(deckUids) deckUids.delete(arr[i].uid); arr.splice(i,1); } });
+    const k=GAME_COLORS.indexOf('orange'); if(k>=0) GAME_COLORS.splice(k,1);
+    if(hpGlassSave&&!hasAcc('glass')) recalcHpMax();
+  }catch(e){}
   try{ lgImport(st.lg); }catch(e){}
   picked=null; pending=null; gameEnded=false; busy=false; waveAdvancing=false; infoIdx=null; justClosed=[]; frozenMults={}; frozenHost={}; stageBgIdx=-1;
   FLAG_COUNT=st.FLAG_COUNT||CHARACTER.flags;
