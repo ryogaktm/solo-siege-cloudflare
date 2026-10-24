@@ -2727,6 +2727,12 @@ function targetsFor(card){
       return;
     }
     if(card.type==='curse_bomb'){ if(!f.closed&&!isLocked(f)&&!f.bomb) out.push(i); return; }
+    if(card.kind==='monster' && card.sub==='mark'){   // 色の装備：役が固まった旗の上にも置ける（最後に置いたカードのマークが変わり、役が変わる）
+      if(isLocked(f)||f.capturedByEnemy) return;
+      const mon0=flagMonster(f);
+      if(f.cards.some(c=>c.kind==='troop') && (!mon0 || mon0.sub==='number' || mon0.color===card.color)) out.push(i);
+      return;
+    }
     if(f.closed||isLocked(f)) return;
     const mon=flagMonster(f);
     if(card.kind==='troop'||isAlexanderCard(card)){
@@ -3425,6 +3431,17 @@ function showPlacementComment(card, f, posBefore){
     }
   }
 }
+function reEvalClosedFlag(fi){   // 閉じた旗のマークが変わった時：役・得点・象徴の色を計算し直す
+  const f=flags[fi], oldBase=(f.result&&f.result.base)||0, oldName=f.result&&f.result.name;
+  const res=evaluate(f);
+  if(f.negated){ res.base=-Math.abs(res.base||res.sum||0); res.mult=1; }
+  f.result=res; f.symbolColor=flagSymbolColor(f); f.baseCombo=res.mult>1;
+  if(f.baseCombo) f.comboMult=res.mult; else delete f.comboMult;
+  f.sheetSum=res.sum;
+  addScore(res.base-oldBase);
+  try{ dlog('action',{name:'mark_on_closed',flag:fi+1,旧役:oldName,新役:res.name,差:res.base-oldBase}); }catch(e){}
+  return (res.name!==oldName)?`役：${oldName||'なし'}→${res.name||'なし'}`:'';
+}
 function playOnFlag(handIdx, fi, fromRect, noAsk){
   const card=hand[handIdx], f=flags[fi];
   try{ if(!noAsk) dlog('place_try',{置く:dbgCardStr(card), idx:handIdx, 掴んだ表示:dbgGrab, 手札:hand.map(dbgCardStr).join(' '), 画面の手札:[...document.querySelectorAll('.hand .pcard')].map(e=>{ const c=hand.find(x=>x.uid===e.dataset.uid); return (e.querySelector('.corner')||{}).textContent+'/'+(c?dbgCardStr(c):'?'); }).join(' '), 旗:fi+1}); }catch(e){}
@@ -3435,7 +3452,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       if(existingMon && card.sub==='number' && (existingMon.sub==='number'||existingMon.sub==='combined') && card.value<existingMon.value){
         hint(`重ねるなら${existingMon.value}以上の力の装備が必要です。`,true);
       } else if(card.sub==='mark'){
-        hint('色の装備は、数字カードが置いてある旗にだけ使えます（色指定の装備がある旗には、同じ色だけ）。',true);
+        hint('色の装備は、数字カードが置いてある旗にだけ使えます（色指定の装備がある旗には、同じ色だけ）。最後に置いたカードのマークが変わります。',true);
       } else if(!existingMon && f.cards.length<3 && !equipmentReachable(card, f)){
         hint('既に置かれているカードと条件が矛盾するため、この旗には置けません。',true);
       }
@@ -3500,7 +3517,8 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   if(card.kind==='monster' && card.sub==='mark'){
     hand.splice(handIdx,1);
-    f.cards.forEach(c=>{ if(c.kind==='troop'){ if(c.origColor===undefined){ c.origColor=c.color; c.origAlt=c.altColor; c.origMixed=c.mixed; } c.color=card.color; c.altColor=undefined; c.mixed=undefined; } });   // 色の装備で染めた色は、その戦いの間だけ（戦いが終わると元の色に戻す）
+    const tr=f.cards.filter(c=>c.kind==='troop'), tgt=tr[tr.length-1], idxOf=tgt?f.cards.indexOf(tgt)+1:0;
+    if(tgt){ if(tgt.origColor===undefined){ tgt.origColor=tgt.color; tgt.origAlt=tgt.altColor; tgt.origMixed=tgt.mixed; } tgt.color=card.color; tgt.altColor=undefined; tgt.mixed=undefined; }   // 色の装備：最後に置いたカード（3枚目）だけが染まる。その色は、その戦いの間だけ（戦いが終わると元の色に戻す）
     graveyard.push(card);
     playSfx('equipment');
     if(CHARACTER.id==='general') showComment(`お！${CNAME[card.color]}マークに染まったぞ！`);
@@ -3509,7 +3527,8 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     render(); layoutHand(false);
     flyToUid(card.uid, fromRect, ()=>{
       if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect);
-      busy=false; hint(`旗のカードがすべて${CNAME[card.color]}マークに変わった！`); endCheck(); render();
+      busy=false; let after=''; try{ if(f.closed&&!f.capturedByEnemy) after=reEvalClosedFlag(fi); }catch(e){ console.error(e); }
+      hint(`${idxOf}枚目のカードが${CNAME[card.color]}マークに変わった！${after}`); endCheck(); render();
     });
     return true;
   }
@@ -4737,7 +4756,7 @@ function cardInfoContent(c){
     if(c.sub==='number'){
       return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。旗の数字に<b>+${monsterBonusFor(c)}</b>が加算（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
     }
-    return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードの<b>マークがすべて${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。同色の役を作りたいときに使いましょう。装備のある旗には使えません。</p>`;
+    return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に最後に置いたカード（3枚目）の<b>マークが${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。役が固まった旗にも使え、<b>役やスーパーコンボも変わります</b>。同色の役を作りたいときに。</p>`;
   }
   let extra;
   if(isDariusCard(c)) extra=TACTIC_EXTRA.darius;
@@ -4961,7 +4980,7 @@ function buildMonsterList(){
     {card:{kind:'monster',sub:'number',value:7,uid:'mon-num'},
      name:'力の装備', desc:'旗に置かれると、その旗には「表示された数字以上」の部隊しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、装備だけが墓地へ送られます（置いたカードはそのまま残る）。その後は制限なく普通に置けるようになります。その旗の数字に、装備の数字が足されます（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。'},
     {card:{kind:'monster',sub:'mark',color:'blue',uid:'mon-mark'},
-     name:'色の装備', desc:'カードが置いてある旗にドラッグすると、その旗に置かれている部隊カードのマークがすべて装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままなので、同色の役を作りたいときに。'}
+     name:'色の装備', desc:'カードが置いてある旗（役が固まった旗も可）にドラッグすると、最後に置いたカード（3枚目）のマークが装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままで、役やスーパーコンボも変わります。'}
   ];
   entries.forEach(e=>{
     const row=document.createElement('div'); row.className='formation-example';
@@ -7087,7 +7106,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-24d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-24e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
