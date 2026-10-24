@@ -3241,15 +3241,35 @@ function checkWaveOutcome(){
     }
   }, synergyBonus>0?1800:250);
 }
-function playerLost(over){
-  if(battleNo>=MAX_BATTLES){ gameEnded=true; victory=false; showEnd('hpzero'); return; }
-  gameEnded=false; busy=true; waveAdvancing=true; inPrep=true;
-  nextStageIdx=pickDrop();
-  const got=acquireNew(false);
-  giveCopperRing(got);
-  try{ saveGame(); }catch(e){}
-  hint(`${WAVES[stageIndex].name}に敗れた…`,true);
-  showChest(got,0);
+function playerLost(over){   // 負けたらそこで終わり（降格はしない）。強い敵に負けた時は宇宙人が現れて能力を授ける
+  gameEnded=true; victory=false; showEnd('hpzero');
+}
+/* 宇宙人の贈り物：一定のレベル以上の敵に負けると、その段階の宇宙人が現れて能力を授ける（戦わない）。レベルはここで調整 */
+const ALIEN_GIFTS=[{id:'月の民',lv:13},{id:'火星人',lv:26},{id:'水星人',lv:38},{id:'金星人',lv:50},{id:'土星人',lv:62},{id:'太陽神',lv:72}];
+function alienGiftList(){   // 今回の負けで授かる宇宙人（順番に。まだ授かっていない・出さない設定でない・前の宇宙人を授かった後）
+  const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList(), out=[];
+  for(const g of ALIEN_GIFTS){
+    if(HIDDEN_BOSSES.includes(g.id)) continue;
+    if(beat.includes(g.id)) continue;
+    if(lostLv<g.lv) break;
+    out.push(g.id);
+  }
+  return out;
+}
+function alienGifts(next){   // 授ける宇宙人がいれば会話画面を出して、閉じたら next()。いなければ false
+  let ids=[]; try{ ids=alienGiftList(); }catch(e){}
+  if(!ids.length) return false;
+  const lostName=WAVES[stageIndex]?WAVES[stageIndex].name:'強敵';
+  const ov=document.createElement('div'); ov.className='modal-bg'; ov.style.cssText='display:flex;z-index:99999;background:rgba(8,8,14,.96);flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px';
+  const wi=id=>WAVES.find(w=>w.id===id);
+  const rows=ids.map(id=>{ const w=wi(id); let spr=''; try{ spr=spriteSVG(monSprKey(w),72,''); }catch(e){}
+    const moon=id==='月の民'; return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">${dispName(id)}</div><div style="font-size:12.5px;opacity:.9;line-height:1.6">${moon?'コンボの制限が解除された！<br>':''}「${dispName(id)}」の能力を授かった。次のゲームから仲間に選べる。</div></div>`; }).join('');
+  ov.innerHTML=`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">${lostName}に敗れた…<br>そこへ、宇宙人が現れた。<br>「キミ、なかなか見込みがあるね。<br>ボクの力を貸してあげよう」</div><div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-height:40vh;overflow-y:auto">${rows}</div><button class="btn" id="alienOk" style="width:auto;padding:10px 28px">ありがとう</button>`;
+  document.body.appendChild(ov);
+  try{ playSfx('combo'); }catch(e){}
+  ids.forEach(id=>{ try{ alienBeatAdd(id); unlockMon(id); }catch(e){} });
+  document.getElementById('alienOk').onclick=()=>{ ov.remove(); try{ newMonQueue.length=0; }catch(e){} next(); };
+  return true;
 }
 const isWeakBody=()=>!!CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー');
 function weakBodyFinale(wave){   // 弱い体は、1回敵を倒すと調子に乗って一番強い敵に本当に挑む（負けてゲームオーバー）
@@ -3288,14 +3308,9 @@ function finishWaveOutcome(defeated, wave){
       return;
     }
     lastDefeatedIdx=stageIndex; totalScore=WAVES[stageIndex].lv;
-    if(battleNo>=MAX_BATTLES){
+    if(stageIndex>=LADDER_N-1 && !wave.immortal){   // 一番上の敵まで倒したらクリア（それ以外は、負けるまで続く）
       hint(`${wave.name}を倒した！`,true);
-      setTimeout(()=>{
-        const bi=bossIdxFor(wave.lv), bn=WAVES[bi].name;
-        const endIt=()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); };
-        showConfirm(`4戦を生き抜いた！ ${bn}に挑戦しますか？（負けても最終順位は変わりません）`, ()=>{ nextStageIdx=bi; grantStageReward(); });
-        document.getElementById('confirmNo').onclick=()=>{ document.getElementById('confirmModal').style.display='none'; endIt(); };
-      }, 900);
+      setTimeout(()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); }, 900);
       return;
     }
     if(introOn&&wave.id==='ミジンコリーダー'){ nextStageIdx=INTRO_KING; introAdv=true; }
@@ -4384,7 +4399,7 @@ function render(){
   const wave=WAVES[stageIndex];
   { const ws=document.getElementById('waveSpr'), key=monSprKey(WAVES[stageIndex]); if(ws.dataset.k!==key+stageIndex){ ws.dataset.k=key+stageIndex; ws.innerHTML=spriteSVG(key,50,'',true); ws.style.filter=''; }
   refreshStage(); }
-  document.getElementById('waveTitle').innerHTML=`<span class="wt-badge">${battleNo>MAX_BATTLES?'ラスボス戦':`第${battleNo}戦${isWeakBody()?'':`<small>${battleNo>=MAX_BATTLES?'最終戦':`あと${MAX_BATTLES-battleNo}戦`}</small>`}`}</span><span class="wt-name">${wave.name}${wave.immortal&&immortalKills>0?`（${immortalKills}度撃破）`:''}</span><span class="wt-meta">${wave.boss?'':`${wave.rank}位・`}WAVE${waveAttempt}</span>`;
+  document.getElementById('waveTitle').innerHTML=`<span class="wt-badge">${wave.boss?'ラスボス戦':`第${battleNo}戦`}</span><span class="wt-name">${wave.name}${wave.immortal&&immortalKills>0?`（${immortalKills}度撃破）`:''}</span><span class="wt-meta">${wave.boss?'':`${wave.rank}位・`}WAVE${waveAttempt}</span>`;
   const bossPct=Math.max(0,(displayedBossHp/wave.threshold)*100);
   document.getElementById('bossHpFill').style.width=bossPct+'%';
   document.getElementById('bossHpNum').textContent=Math.max(0,Math.round(displayedBossHp));
@@ -5017,7 +5032,8 @@ function populateResultModal(){
   }
   document.getElementById('flagTable').innerHTML=flagRows+comboLines+recap;
 }
-function showEnd(reason){
+function showEnd(reason,giftDone){
+  if(!giftDone && (reason==='hpzero'||reason==='deckout')){ if(alienGifts(()=>showEnd(reason,true))) return; }
   dlog('end',{reason:reason}); recordRunResult(reason);
   render();
   bestTotal=Math.max(bestTotal,totalScore);
@@ -5046,7 +5062,7 @@ function showEnd(reason){
       document.getElementById('endTitle').textContent='勝った！村は護られた！';
       grEl.innerHTML=lastHtml;
       grEl.classList.add('victory');
-      document.getElementById('endSubline').textContent=WAVES[stageIndex].boss?`${WAVES[stageIndex].name}を倒した！`:`${MAX_BATTLES}戦を生き抜いた！`;
+      document.getElementById('endSubline').textContent=WAVES[stageIndex].boss?`${WAVES[stageIndex].name}を倒した！`:`一番上の敵まで倒した！`;
     } else if(reason==='hpzero'){
       document.getElementById('endTitle').textContent='力尽きた…';
       grEl.innerHTML=lastHtml;
@@ -6701,7 +6717,7 @@ function showPrep(keepStock){
 function refreshPrep(){
   try{ document.getElementById('prepChar').innerHTML=charSpr(CHARACTER,72,true); }catch(e){}
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
-  const nb=battleNo+1, nbTxt=nb>MAX_BATTLES?'ラスボス戦':`第${nb}戦 ／ 全${MAX_BATTLES}戦`;
+  const nb=battleNo+1, nbTxt=`第${nb}戦`;
   document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
   try{ const pc=document.getElementById('prepCarry'); if(pc&&comboRestricted()){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">コンボ制限中：倍率×'+COMBO_CAP+'まで・次の戦いへの持ち越し無し（月の民を倒すと解除）</span>'; } else if(pc){ const ks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]); if(ks.length){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">引き継ぎ</span>'+ks.map(c=>`<span class="pc-i">${miniIcon(EMBLEM[c],CFILL[c])}×${carryMap[c]}</span>`).join(''); } else pc.style.display='none'; } }catch(e){}
 }
@@ -7071,7 +7087,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-24c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-24d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
