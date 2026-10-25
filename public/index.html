@@ -2606,7 +2606,7 @@ function evaluate(f){
   let name,mult,tier;
   if(runOK&&same){name='ウェッジ';mult=5;tier='wedge';} else if(toak&&same){name='ロイヤルファランクス';mult=10;tier='wedge';} else if(toak){name='ファランクス';mult=3.5;tier='phalanx';}
   else if(same){name='バタリオン';mult=2.5;tier='battalion';} else if(runOK){name='スカーミッシュ';mult=3;tier='skirmish';} else {name='ホスト';mult=1;tier='host';}
-  { const rk={'ウェッジ':'wedge','ロイヤルファランクス':'royal','ファランクス':'phalanx','スカーミッシュ':'skirmish','バタリオン':'battalion'}[name]; if(rk && hasAcc('role_'+rk)) mult*=(1+0.5*accX()); }
+  { const rk={'ウェッジ':'wedge','ロイヤルファランクス':'royal','ファランクス':'phalanx','スカーミッシュ':'skirmish','バタリオン':'battalion'}[name]; if(rk && hasAcc('role_'+rk)) mult*=(1+0.5*accX()); if(rk && hasAcc('yaku_only')) mult*=(1+0.5*accX()); }   // 役のみの指輪：役のある旗は1.5倍
   return {name,mult,tier,base:Math.round(sum*mult),sum};
 }
 function resultTier(result){
@@ -2676,8 +2676,19 @@ function satisfiesMonster(card, f){
   if(m.sub==='mark'||m.sub==='cfield') return card.color===m.color;
   return true;
 }
+function yakuFits(card, f){   // 役のみの指輪：置いたあとに役が成り立つ（または、あと1枚で成り立つ余地がある）カードだけ置ける
+  if(isWildCard(card)) return true;
+  const cur=f.cards.filter(c=>c&&c.kind!=='monster');
+  if(cur.length===0) return true;
+  const ok=cs=>{ const r=evaluate({cards:cs,eqBonus:0}); return !!r && r.name!=='ホスト'; };
+  if(cur.length>=2) return ok([cur[0],cur[1],card]);
+  for(const col of COLORS) for(let v=1;v<=10;v++) if(ok([cur[0],card,{kind:'troop',color:col,value:v}])) return true;
+  return false;
+}
 function fitsFormation(card, f){
-  return !!card; // 役が無くても自由に置ける
+  if(!card) return false;
+  if(hasAcc('yaku_only')) return yakuFits(card,f);
+  return true; // 役が無くても自由に置ける
 }
 function fitsFormationOld(card, f){
   if(!card) return false;
@@ -4418,7 +4429,7 @@ function render(){
   const wave=WAVES[stageIndex];
   { const ws=document.getElementById('waveSpr'), key=monSprKey(WAVES[stageIndex]); if(ws.dataset.k!==key+stageIndex){ ws.dataset.k=key+stageIndex; ws.innerHTML=spriteSVG(key,50,'',true); ws.style.filter=''; }
   refreshStage(); }
-  document.getElementById('waveTitle').innerHTML=`<span class="wt-badge">${wave.boss?'ラスボス戦':`第${battleNo}戦`}</span><span class="wt-name">${wave.name}${wave.immortal&&immortalKills>0?`（${immortalKills}度撃破）`:''}</span><span class="wt-meta">${wave.boss?'':`${wave.rank}位・`}WAVE${waveAttempt}</span>`;
+  document.getElementById('waveTitle').innerHTML=`<span class="wt-badge">${wave.boss?'ラスボス戦':`第${battleNo}戦`}</span><span class="wt-name">${wave.name}${wave.immortal&&immortalKills>0?`（${immortalKills}度撃破）`:''}</span><span class="wt-meta">${wave.boss?'':`${wave.rank}位・`}${(()=>{ const tn=Math.max(0,turnCounter-(accStat.turn0||0)); return tn<=TURN_BONUS.turns?`<b style="color:var(--gold)">ターン${tn}/${TURN_BONUS.turns}★</b>`:`ターン${tn}`; })()}</span>`;
   const bossPct=Math.max(0,(displayedBossHp/wave.threshold)*100);
   document.getElementById('bossHpFill').style.width=bossPct+'%';
   document.getElementById('bossHpNum').textContent=Math.max(0,Math.round(displayedBossHp));
@@ -6251,6 +6262,7 @@ function buildAccDefs(){
   L.push({id:'gold_s',name:'銅の指輪',icon:'🥉',desc:'役に立たないが、売るとお金になる'});
   L.push({id:'gold_m',name:'銀の指輪',icon:'🥈',desc:'役に立たないが、売ると高い'});
   L.push({id:'gold_l',name:'金の指輪',icon:'🥇',desc:'役に立たないが、売るととても高い'});
+  L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、敵の動きが止まる'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));
   L.push({id:'sp_double',name:'倍化のアンクレット',icon:'🔁',desc:'特殊技を使える回数が2倍になる'});
@@ -6274,6 +6286,7 @@ const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id));
 const cashName=n=>n<=60?'小さな換金袋':n<=150?'換金のお守り':n<=300?'換金の宝飾':'換金の金塊';
 const cashDef=n=>({id:'cash_'+n,name:`${cashName(n)}（${n}G）`,icon:'💰',desc:`役に立たないが、売ると${n}Gになる`,cashVal:n});
 /* ★換金用アクセサリーの条件：ここを書き換える。cash＝売るともらえる金額、tier＝easy(かんたん)/mid/hard、final＝敵を倒した時に判定、avail＝出す条件 */
+const TURN_BONUS={turns:20, cash:250};   // 速く倒したボーナス：この戦闘のターン数がturns以内なら、cash分のお金（数字はここで調整）
 const BONUS_GOALS=[
   {id:'bn_role1',tier:'easy',cash:15,text:'役のある旗（ホスト以外）を1回完成させる',def:S=>({done:()=>Object.keys(S.roles).some(k=>k!=='ホスト'&&S.roles[k]>0)})},
   {id:'bn_role3',tier:'easy',cash:20,text:'役のある旗（ホスト以外）を3回完成させる',def:S=>({done:()=>Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0)>=3,prog:`${Math.min(3,Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0))} / 3回`})},
@@ -6284,7 +6297,7 @@ const BONUS_GOALS=[
   {id:'bn_long2',tier:'mid',cash:60,text:'8回以上の攻撃をかけて倒す（大長期戦）',def:S=>({final:true,done:()=>totalWaves-S.w0>=8,prog:`${totalWaves-S.w0} 回目`})},
   {id:'bn_fast2',tier:'mid',cash:50,text:'2回以内の攻撃で倒す',def:S=>({final:true,done:()=>totalWaves-S.w0<=2})},
   {id:'bn_fast1',tier:'hard',cash:100,text:'最初の攻撃で倒す（1撃で決める）',def:S=>({final:true,done:()=>totalWaves-S.w0<=1})},
-  {id:'bn_turns',tier:'hard',cash:125,text:'短いターン数で倒す',txt:()=>`${FLAG_COUNT*3+3}ターン以内に倒す`,def:S=>({final:true,done:()=>turnCounter-S.turn0<=FLAG_COUNT*3+3,prog:`${turnCounter-S.turn0}ターン`})},
+  {id:'bn_turns',tier:'hard',cash:TURN_BONUS.cash,text:'短いターン数で倒す',txt:()=>`${TURN_BONUS.turns}ターン以内に倒す`,def:S=>({final:true,done:()=>turnCounter-S.turn0<=TURN_BONUS.turns,prog:`${turnCounter-S.turn0}ターン`})},
   {id:'bn_kinds3',tier:'mid',cash:60,text:'1回の攻撃で3種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=3})},
   {id:'bn_kinds4',tier:'hard',cash:125,text:'1回の攻撃で4種類以上の役をそろえる',def:S=>({done:()=>S.maxKinds>=4})},
   {id:'bn_same3',tier:'mid',cash:50,text:'同じ役の旗を3つ以上そろえて攻撃する',def:S=>({done:()=>S.maxSame>=3})},
@@ -6366,6 +6379,7 @@ function goalDef(d){
     case 'add3_tac2': return Object.assign(R('ファランクス',1),{tier:'mid'});
     case 'add3_tac3': return Object.assign(R('ウェッジ',1),{tier:'hard'});
     case 'add3_num': return R('バタリオン',1);
+    case 'yaku_only': return {tier:'mid',text:'役のある旗を5回完成させる',done:()=>Object.values(S.roles).reduce((a,b)=>a+(b||0),0)>=5,prog:`${Math.min(5,Object.values(S.roles).reduce((a,b)=>a+(b||0),0))} / 5回`};
     case 'role_wedge': return {tier:'hard',text:`${ROLE_P['ウェッジ']}旗を2回完成させる`,done:()=>(S.roles['ウェッジ']||0)>=2,prog:`${Math.min(2,S.roles['ウェッジ']||0)} / 2回`};
     case 'role_royal': return {tier:'hard',text:`${ROLE_P['ロイヤルファランクス']}旗を1回完成させる`,done:()=>(S.roles['ロイヤルファランクス']||0)>=1,prog:`${Math.min(1,S.roles['ロイヤルファランクス']||0)} / 1回`};
     case 'role_phalanx': return {tier:'mid',text:`${ROLE_P['ファランクス']}旗を2回完成させる`,done:()=>(S.roles['ファランクス']||0)>=2,prog:`${Math.min(2,S.roles['ファランクス']||0)} / 2回`};
@@ -6623,7 +6637,7 @@ function accPriceBase(d){
   if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150; if(id.startsWith('blade_')) return (COMBO_BLADES[d.color]||{}).price||350;
   if(id==='sp_double') return 150; if(id==='purple_out') return 120;
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
-  if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
+  if(id==='yaku_only') return 200; if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
   if(id==='glass') return 200;
   if(id==='combo_barrier'||id==='host_ring') return 200; if(id==='double_x') return 300; if(id==='clairvoyant') return 200; if(id==='hand') return 150;
   if(id==='hp_scarf') return 300; if(id==='reflect_mirror') return 200; if(id==='hp_x15') return 120; if(id==='hp_x2') return 220; if(id==='endure') return 160; if(id==='heal_patch') return 240;
@@ -7095,7 +7109,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-25a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-25b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
