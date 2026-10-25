@@ -4267,14 +4267,30 @@ function renderUpcoming(){
   const nClk=Math.min(8,Math.max(0,enemyFreeze));
   let html2='', anySp=false;
   for(let c=0;c<nClk;c++){ html+='<div class="fc fc-clock"><b>🕐</b></div>'; html2+='<div class="fc fc-empty"><b>–</b></div>'; }
+  // 山札の呪い（毒・封鎖）：次に引く順に、何ターン後に手札へ来るかを特殊攻撃レーンに出す
+  const curseAt={};
+  { const nb=document.getElementById('nextMain'); const vis=!(hasAcc('host_ring')&&!hasAcc('clairvoyant'));
+    if(vis) activeDeck.slice(-20).reverse().forEach((c,i)=>{ if(c&&(c.type==='curse_poison'||c.type==='curse_seal')) curseAt[i+1]=c.type==='curse_poison'?'poison':'seal'; }); }
+  const curseCell=(ck)=>{ const ci=EVENT_INFO[ck]; return `<div class="fc ${ci.cls}"><b>${ci.icon}</b><small>${EVENT_SHORT[ck]||ci.label}</small><small class="fc-cd">あと${nClk+kk}</small></div>`; };
+  let kk=0;
   for(let k=1;k<=8-nClk;k++){
+    kk=k;
     const t=baseT+enemyOffs(k,pend0,baseT), ev=enemySched[t];
+    const cur=curseAt[nClk+k];
+    // 背水のピアス：このターン敵が動かない（攻撃力が上がらない）なら「–」
+    const stepped=!hasAcc('glass') || (k===1 ? (pend0 || t>enemyTurn) : enemyOffs(k,pend0,baseT)>enemyOffs(k-1,pend0,baseT));
+    if(!stepped){
+      html+='<div class="fc fc-empty"><b>–</b></div>';
+      html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>'; if(cur) anySp=true;
+      continue;
+    }
     if(ev==='rage'){   // 攻撃力×2は上の段
       const info=EVENT_INFO[ev];
-      html+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+='<div class="fc fc-empty"><b>–</b></div>';
+      html+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
       html+=`<div class="fc"><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
       if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small><small class="fc-cd">あと${k+nClk}</small></div>`; }
+      else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
     }
   }
@@ -7109,7 +7125,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-25b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-26a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
