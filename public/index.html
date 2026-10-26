@@ -370,6 +370,7 @@
   .diffline.pos{ color:#d8ffee; background:rgba(79,214,154,.2); border-color:rgba(143,240,196,.6); }
   .diffline.neg{ color:#ffd9d2; background:rgba(224,80,63,.25); border-color:rgba(255,138,122,.7); }
   .diffline.zero{ color:var(--cream-2); background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.2); }
+  .fc[data-ev]{ cursor:pointer; }
   .fc{ flex:1 1 0; min-width:30px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:4px 3px; line-height:1.1; }
   .fc b{ display:block; font-size:12px; color:var(--cream); font-family:'Cinzel',serif; }
   .fc small.fc-sw{ font-size:10px; opacity:.9; color:#ff9a8a; line-height:1; }
@@ -4258,6 +4259,36 @@ function fmtCompact(n){   // 大きい数は 3.4k / 12.3k / 4.5M / 1.2B のよ�
   while(Math.abs(Math.round(v*10)/10)>=1000 && i<u.length-1){ v/=1e3; i++; }
   return (Math.abs(v)>=100?String(Math.round(v)):String(Math.round(v*10)/10))+u[i];
 }
+
+const EVENT_DESC={
+  rage:()=>`敵が怒り狂い、攻撃力が${BALANCE.rageMultiplier}倍になる。`,
+  poison:()=>`山札にある「毒」の呪いカード。引いて使うと${DIS_PARAM.poisonTurns}ターンの間、フィールドに出す数字カード（装備も）が−1される。捨てられない。`,
+  seal:()=>`山札にある「封鎖」の呪いカード。使うと好きな旗を1つ封鎖できる。捨てられない。`,
+  half:()=>'敵が防御の構え。次のあなたの攻撃のダメージが半分になる。',
+  colnull:()=>`特定の色の力を${DIS_PARAM.colnullTurns}ターン封じる。その色のコンボが無効になる。`,
+  colhalf:()=>`特定の色のコンボ威力が一定ターン半分になる。`,
+  guard:()=>`コンボが−1される状態が${DIS_PARAM.guardTurns}ターン続く。`,
+  bguard:()=>`コンボが−10される状態が${DIS_PARAM.bguardTurns}ターン続く。`,
+  bomb:()=>`「時限ボム」のカードを手札に押し付ける。旗に置くと${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないと爆発し、スーパーコンボが−${DIS_PARAM.bombPenalty}される。`,
+  cfield:()=>'「カラフルフィールド」のカードを手札に押し付ける。旗に置くと、その旗には特定の色のカードしか置けなくなる。',
+  pfield:()=>'「パニックフィールド」のカードを手札に押し付ける。旗に置くと、次にその旗へ置くカードの数字が逆転（革命）する。',
+  autonum:()=>'敵が勝手に旗へ数字カードを1枚置く（空き・1枚以下の旗が対象）。',
+  minus:()=>'「マイナスの武器」を旗に置く。その旗の数字の合計が減る。プラスの武器を重ねれば減らせる。',
+  null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
+  dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
+  freeze:()=>'いてつくはどう。手札やカードの動きを止められる強力な妨害。'
+};
+function showEventPopup(ev,cd){
+  const info=EVENT_INFO[ev]; if(!info) return;
+  let bg=document.getElementById('evPopupBg');
+  if(!bg){ bg=document.createElement('div'); bg.className='modal-bg'; bg.id='evPopupBg'; bg.style.display='none';
+    bg.innerHTML='<div class="cardinfo"><div class="ci-text" id="evPopupTxt"></div><button class="btn ghost" id="evPopupClose">とじる</button></div>';
+    document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(e.target===bg||e.target.id==='evPopupClose') bg.style.display='none'; }); }
+  const d=(EVENT_DESC[ev]||(()=>info.label))();
+  document.getElementById('evPopupTxt').innerHTML=`<p style="font-size:22px;margin:0 0 6px">${info.icon} <b>${info.label}</b></p>${cd?`<p style="margin:0 0 8px;opacity:.8">あと${cd}ターン後</p>`:''}<p style="margin:0">${d}</p>`;
+  bg.style.display='flex';
+}
+document.addEventListener('click',e=>{ const c=e.target.closest&&e.target.closest('#upcomingRow .fc[data-ev],#upcomingRow2 .fc[data-ev]'); if(c) showEventPopup(c.dataset.ev,+c.dataset.cd||0); });
 function renderUpcoming(){
   const nr=document.getElementById('nextRow');
   { const nb=document.getElementById('nextMain'); const all=hasAcc('clairvoyant'); if(nb) nb.style.display=(hasAcc('host_ring')&&!all)?'none':'';
@@ -4273,7 +4304,7 @@ function renderUpcoming(){
   const curseAt={};
   { const nb=document.getElementById('nextMain'); const vis=!(hasAcc('host_ring')&&!hasAcc('clairvoyant'));
     if(vis) activeDeck.slice(-20).reverse().forEach((c,i)=>{ if(c&&(c.type==='curse_poison'||c.type==='curse_seal')) curseAt[i+1]=c.type==='curse_poison'?'poison':'seal'; }); }
-  const curseCell=(ck)=>{ const ci=EVENT_INFO[ck]; return `<div class="fc ${ci.cls}"><b>${ci.icon}</b><small>${EVENT_SHORT[ck]||ci.label}</small><small class="fc-cd">あと${nClk+kk}</small></div>`; };
+  const curseCell=(ck)=>{ const ci=EVENT_INFO[ck]; return `<div class="fc ${ci.cls}" data-ev="${ck}" data-cd="${nClk+kk}" data-curse="1"><b>${ci.icon}</b><small>${EVENT_SHORT[ck]||ci.label}</small><small class="fc-cd">あと${nClk+kk}</small></div>`; };
   let kk=0;
   for(let k=1;k<=8-nClk;k++){
     kk=k;
@@ -4288,10 +4319,10 @@ function renderUpcoming(){
     }
     if(ev==='rage'){   // 攻撃力×2は上の段
       const info=EVENT_INFO[ev];
-      html+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
+      html+=`<div class="fc ${info.cls}" data-ev="rage"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
       html+=`<div class="fc"><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
-      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}"><b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small><small class="fc-cd">あと${k+nClk}</small></div>`; }
+      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}"><b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small><small class="fc-cd">あと${k+nClk}</small></div>`; }
       else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
     }
@@ -7128,7 +7159,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-26b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-27a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
