@@ -4276,7 +4276,7 @@ const EVENT_DESC={
   minus:()=>'「マイナスの武器」を旗に置く。その旗の数字の合計が減る。プラスの武器を重ねれば減らせる。',
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
-  freeze:()=>'いてつくはどう。手札やカードの動きを止められる強力な妨害。'
+  freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
 };
 function showEventPopup(ev,cd){
   const info=EVENT_INFO[ev]; if(!info) return;
@@ -7159,7 +7159,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-27a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-27b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
