@@ -1135,7 +1135,6 @@
       <div class="st-side pl"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num" id="scoreNum">0</span></div></div>
       <div class="st-side en"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num enemy-num" id="enemyAtkNum">0</span><span id="evCountdown" class="ev-cd" style="display:none"></span></div></div>
     </div>
-    <div class="st-row st-dis" id="disLane" style="display:none"><div class="st-side pl"></div><div class="st-side en"><span class="dis-tag">妨害</span><span id="disLaneTxt" class="dis-txt"></span></div></div>
     <div class="fighter pl" id="fighterPl"><span id="topCharSpr"></span></div>
     <div class="fighter mo" id="fighterMo"><span id="waveSpr"></span></div>
     <div id="evBanner" class="ev-banner"></div>
@@ -1959,8 +1958,8 @@ const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEver
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
   [18,['half']],
-  [28,['half','colnull']],
-  [38,['half','colnull','cfield']],
+  [28,['half','colnull','autonum']],
+  [38,['half','colnull','cfield','autonum']],
   [48,['half','cfield','bomb','autonum','colnull','pfield','minus','null','guard']],
   [58,['half','bomb','cfield','autonum','pfield','colnull','minus','null','bguard']],
   [66,['half','bomb','autonum','cfield','pfield','colnull','minus','null','dark','freeze','bguard','guard']]
@@ -1991,16 +1990,16 @@ const ENEMY_CFG={
   'ゾンビ':{dis:['half']},   // lv25
   '呪われた農夫':{dis:['half']},   // lv26
   '骸骨戦士':{dis:['half']},   // lv27
-  '骸骨弓兵':{dis:['colnull','half']},   // lv28
-  '動く鎧':{dis:['colnull','half']},   // lv29
-  '死霊術師':{dis:['half','colnull']},   // lv30
-  '食屍鬼':{dis:['colnull','half']},   // lv31
-  'オークの斥候':{dis:['colnull','half']},   // lv32
-  'オーク':{dis:['colnull','half']},   // lv33
-  'オークの戦士長':{dis:['colnull','half']},   // lv34
-  'トロル':{dis:['half','colnull']},   // lv35
-  '山賊王':{dis:['colnull','half']},   // lv36
-  '猛牛の戦車':{dis:['half','colnull']},   // lv37
+  '骸骨弓兵':{dis:['colnull','half','autonum'],nums:[['orange',1],['red',2],['green',3]]},   // lv28
+  '動く鎧':{dis:['colnull','half','autonum'],nums:[['purple',1],['blue',3],['yellow',1]]},   // lv29
+  '死霊術師':{dis:['half','colnull','autonum'],nums:[['red',1],['green',4],['orange',3]]},   // lv30
+  '食屍鬼':{dis:['colnull','half','autonum'],nums:[['blue',1],['yellow',1],['purple',1]]},   // lv31
+  'オークの斥候':{dis:['colnull','half','autonum'],nums:[['green',1],['orange',2],['red',3]]},   // lv32
+  'オーク':{dis:['colnull','half','autonum'],nums:[['yellow',1],['purple',3],['blue',1]]},   // lv33
+  'オークの戦士長':{dis:['colnull','half','autonum'],nums:[['orange',1],['red',4],['green',3]]},   // lv34
+  'トロル':{dis:['half','colnull','autonum'],nums:[['purple',1],['blue',1],['yellow',1]]},   // lv35
+  '山賊王':{dis:['colnull','half','autonum'],nums:[['red',1],['green',2],['orange',3]]},   // lv36
+  '猛牛の戦車':{dis:['half','colnull','autonum'],nums:[['blue',1],['yellow',3],['purple',1]]},   // lv37
   '暗黒の傭兵':{dis:['colnull','cfield','autonum'],nums:[['orange',1],['red',5],['orange',6]]},   // lv38
   '元の身体':{dis:['colnull','autonum','cfield'],nums:[['red',3],['orange',1],['red',2]]},   // lv39
   '暗黒騎士':{dis:['autonum','cfield','colnull'],nums:[['yellow',5],['red',2],['blue',4]]},   // lv40
@@ -3780,6 +3779,8 @@ function discardGuidanceCard(target){
     hint('カードの選択が無効になっていました。もう一度お試しください。',true);
     return true;
   }
+  const reopened=!!src.closed;
+  if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.capturedByEnemy=false; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
   const usedGuidance=hand.splice(handIdx,1)[0];
   graveyard.push(usedGuidance);
   if(target==='grave'){ graveyard.push(card); } else { activeDeck.push(card); shuffle(activeDeck); }
@@ -3787,16 +3788,17 @@ function discardGuidanceCard(target){
   advanceTurn(usedGuidance);
   render(); layoutHand(false);
   busy=false; endCheck(); render();
-  hint(target==='grave' ? `${cardDisplayName(card)}を墓地に捨てた。` : `${cardDisplayName(card)}を山札に戻した。`);
+  hint((reopened?'封鎖を解いて、':'')+(target==='grave' ? `${cardDisplayName(card)}を墓地に捨てた。` : `${cardDisplayName(card)}を山札に戻した。`));
   return true;
 }
 function guidanceTargets(step){
-  if(step===0) return flags.map((f,i)=>i).filter(i=>!flags[i].closed && flags[i].cards.length>0);
+  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0 && !(flags[i].result&&flags[i].result.timedOut));   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
   const from=pending.from;
   const src=flags[from];
   if(!src) return [];
   const card=src.cards[pending.cardIdx];
   if(!card) return [];
+  if(src.closed) return [];   // 封鎖済みの旗のカードは移動不可。山札・墓地アイコンで除去だけ
   return flags.map((f,i)=>i).filter(i=>{
     if(i===from || flags[i].closed || isLocked(flags[i])) return false;
     const dm=flagMonster(flags[i]);
@@ -3817,10 +3819,10 @@ function resolveGuidance(fi){
   if(pending.step===0){
     if(!guidanceTargets(0).includes(fi)) return hint('その旗にはカードがありません。',true);
     pending.from=fi;
-    if(flags[fi].cards.length===1){
+    if(flags[fi].cards.length===1 && !flags[fi].closed){
       pending.cardIdx=0; pending.step=1; render(); hint('移動先の旗をタップ（山札・墓地アイコンで捨てることも可能）');
     } else {
-      pending.step='choose'; render(); hint('動かすカードをタップ（旗の中のカードを直接タップ）');
+      pending.step='choose'; render(); hint(flags[fi].closed?'除去するカードをタップ（旗は未封鎖に戻る）':'動かすカードをタップ（旗の中のカードを直接タップ）');
     }
     return;
   }
@@ -4186,7 +4188,7 @@ function updateEvCountdown(){
     el.style.display='block'; el.textContent=`${EVENT_INFO[na.ev].icon}(${na.k})`; el.classList.toggle('near',na.k<=1);
   }
   { const lane=document.getElementById('disLane'), lt=document.getElementById('disLaneTxt');
-    const showLane=!!lane && !gameEnded && (disList(WAVES[stageIndex]).length>0 || eventsIn(isDisEv,1).length>0);
+    const showLane=false;   // 画像が隠れるので妨害マークは出さない（特殊攻撃レーンに任せる）
     if(lane){ lane.style.display=showLane?'flex':'none';
       if(showLane&&lt){ const L=eventsIn(isDisEv,2); lt.innerHTML = L.length ? L.map(x=>`<span class="dis-chip${x.k<=1?' near':''}">${EVENT_INFO[x.ev].icon}${EVENT_SHORT[x.ev]||''}<b>${x.k}</b></span>`).join('') : '<span class="dis-chip none">妨害なし</span>'; } } }
   const bg=document.getElementById('specBeg'), gd=document.getElementById('specGuard');
@@ -4504,7 +4506,8 @@ function render(){
     let badge='';
     const mon=flagMonster(f);
     let bigResult=null;
-    if(f.result){
+    const guidOpen=!!(pending&&pending.type==='guidance'&&(pending.step==='choose'||pending.step===1)&&pending.from===i&&f.closed);   // 誘導で封鎖済みの旗のカードを選ぶ間は中身を見せる
+    if(f.result && !guidOpen){
       if(f.result.timedOut){
         badge=`<div class="badge timeoutbadge">🚩 敵に奪われた（${f.result.base}）</div>`;
       } else {
@@ -7125,7 +7128,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-26a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-26b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
