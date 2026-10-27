@@ -1960,17 +1960,17 @@ const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEver
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
   [5,['half']],
-  [10,['half','colnull']],
-  [14,['half','colnull','guard']],
-  [16,['half','colnull','guard','comboreset']],
-  [18,['half','colnull','guard','comboreset']],
-  [28,['half','colnull','autonum']],
-  [38,['half','colnull','cfield','autonum']],
-  [48,['half','cfield','bomb','autonum','colnull','pfield','minus','null','guard']],
-  [58,['half','bomb','comboreset','cfield','autonum','pfield','colnull','minus','null','bguard']],
-  [66,['half','bomb','comboreset','autonum','cfield','pfield','colnull','minus','null','dark','freeze','bguard','guard']]
+  [10,['half','autonum','colnull','autonum']],
+  [14,['half','autonum','colnull','guard','autonum']],
+  [16,['half','autonum','colnull','guard','autonum','comboreset']],
+  [18,['half','autonum','colnull','guard','autonum','comboreset']],
+  [28,['half','colnull','autonum','autonum']],
+  [38,['half','colnull','cfield','autonum','autonum']],
+  [48,['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','guard']],
+  [58,['half','bomb','comboreset','cfield','autonum','pfield','colnull','autonum','minus','null','bguard']],
+  [66,['half','bomb','comboreset','autonum','cfield','pfield','autonum','colnull','minus','null','dark','freeze','bguard','guard']]
 ];
-const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','bguard'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','minus','null','dark','bguard'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard']};
+const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
 const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)'};
 const EVENT_SHORT={poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0'};
@@ -1986,61 +1986,61 @@ function makeMinusEq(){ const r=isMidGame()?DIS_PARAM.minusRangeMid:DIS_PARAM.mi
 // 例) 'ゾンビ':{dis:['half','autonum'], gap:8},
 // dis=その敵が使う妨害を順番に繰り返す／nums=敵の数字カード(autonum)で出す固定カード[色,数字]（順番に出る）。自由に書き換えてOK
 const ENEMY_CFG={
-  '野盗':{dis:['half','colnull','guard','comboreset']},   // lv18
-  '巨大ムカデ':{dis:['half','colnull','guard','comboreset']},   // lv19
-  '沼のリザードマン':{dis:['half','colnull','guard','comboreset']},   // lv20
-  'ゴブリン':{dis:['half','colnull','guard','comboreset']},   // lv21
-  'ゴブリンの戦士':{dis:['half','colnull','guard','comboreset']},   // lv22
-  'ホブゴブリン':{dis:['half','colnull','guard','comboreset']},   // lv23
-  '墓場の亡霊':{dis:['half','colnull','guard','comboreset']},   // lv24
-  'ゾンビ':{dis:['half','colnull','guard','comboreset']},   // lv25
-  '呪われた農夫':{dis:['half','colnull','guard','comboreset']},   // lv26
-  '骸骨戦士':{dis:['half','colnull','guard','comboreset']},   // lv27
-  '骸骨弓兵':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['orange',1],['red',2],['green',3]]},   // lv28
-  '動く鎧':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['purple',1],['blue',3],['yellow',1]]},   // lv29
-  '死霊術師':{dis:['half','colnull','autonum','guard','comboreset'],nums:[['red',1],['green',4],['orange',3]]},   // lv30
-  '食屍鬼':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['blue',1],['yellow',1],['purple',1]]},   // lv31
-  'オークの斥候':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['green',1],['orange',2],['red',3]]},   // lv32
-  'オーク':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['yellow',1],['purple',3],['blue',1]]},   // lv33
-  'オークの戦士長':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['orange',1],['red',4],['green',3]]},   // lv34
-  'トロル':{dis:['half','colnull','autonum','guard','comboreset'],nums:[['purple',1],['blue',1],['yellow',1]]},   // lv35
-  '山賊王':{dis:['colnull','half','autonum','guard','comboreset'],nums:[['red',1],['green',2],['orange',3]]},   // lv36
-  '猛牛の戦車':{dis:['half','colnull','autonum','guard','comboreset'],nums:[['blue',1],['yellow',3],['purple',1]]},   // lv37
-  '暗黒の傭兵':{dis:['colnull','cfield','autonum'],nums:[['orange',1],['red',5],['orange',6]]},   // lv38
-  '元の身体':{dis:['colnull','autonum','cfield'],nums:[['red',3],['orange',1],['red',2]]},   // lv39
-  '暗黒騎士':{dis:['autonum','cfield','colnull'],nums:[['yellow',5],['red',2],['blue',4]]},   // lv40
-  '精鋭の暗黒騎士':{dis:['colnull','half','autonum','cfield'],nums:[['green',6],['purple',5],['green',4]]},   // lv41
-  '魔術師':{dis:['half','autonum','colnull','cfield'],nums:[['orange',2],['green',1],['orange',2]]},   // lv42
-  '小竜':{dis:['cfield','colnull','autonum'],nums:[['blue',6],['purple',1],['blue',6]]},   // lv43
-  '火を吹くワイバーン':{dis:['colnull','half','autonum','cfield'],nums:[['yellow',2],['green',1],['blue',3]]},   // lv44
-  '竜騎士':{dis:['colnull','cfield','autonum'],nums:[['green',1],['purple',5],['purple',1]]},   // lv45
-  '古龍':{dis:['cfield','autonum','colnull'],nums:[['yellow',2],['green',1],['orange',1]]},   // lv46
-  '氷の古竜':{dis:['cfield','autonum','colnull'],nums:[['yellow',6],['purple',5],['red',6]]},   // lv47
-  '雷を操る竜':{dis:['null','autonum','minus'],nums:[['yellow',1],['purple',2],['red',3]]},   // lv48
-  '双頭の竜':{dis:['minus','guard','pfield','autonum'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
-  '山を砕く巨竜':{dis:['cfield','null','autonum','guard'],nums:[['red',1],['purple',3],['orange',2]]},   // lv50
-  '先遣の巨人':{dis:['pfield','minus','autonum'],nums:[['green',1],['red',6],['orange',5]]},   // lv51
-  '地平線いっぱいの巨人':{dis:['colnull','null','autonum'],nums:[['blue',4],['red',5],['blue',4]]},   // lv52
-  '嵐の巨人':{dis:['cfield','minus','bomb','autonum'],nums:[['purple',5],['red',4],['red',6]]},   // lv53
-  '炎の巨人王':{dis:['colnull','guard','autonum','pfield'],nums:[['orange',4],['green',1],['purple',2]]},   // lv54
-  '悪魔の斥候':{dis:['null','pfield','autonum'],nums:[['blue',5],['orange',4],['yellow',3]]},   // lv55
-  '地獄の番犬':{dis:['autonum','null','colnull','bomb'],nums:[['blue',3],['orange',3],['yellow',1]]},   // lv56
-  '悪魔の将軍':{dis:['null','guard','minus','autonum'],nums:[['purple',3],['blue',6],['red',1]]},   // lv57
-  '全ての邪悪を背負った魔王':{dis:['cfield','pfield','bomb','half']},   // lv58
-  '魔王の側近':{dis:['colnull','minus','null','autonum'],nums:[['red',9],['blue',9],['green',5]]},   // lv59
-  '魔王の親衛兵':{dis:['autonum','cfield','pfield','bguard','half','comboreset'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
-  '四天王の一人':{dis:['bomb','cfield','minus','autonum','comboreset'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
-  '魔王の影':{dis:['pfield','bguard','colnull','autonum','comboreset'],nums:[['green',4],['green',10],['red',4]]},   // lv62
-  '魔王の化身':{dis:['cfield','bguard','autonum','bomb','comboreset'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
-  '不死身の魔王':{dis:['null','bguard','colnull','autonum','comboreset'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
-  '深淵の魔王':{dis:['null','cfield','pfield','minus','half','comboreset']},   // lv65
-  '終焉の魔王':{dis:['dark','colnull','autonum','comboreset'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
-  '滅びの化身':{dis:['cfield','bomb','autonum','guard','comboreset'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
-  '星を喰らうもの':{dis:['freeze','guard','dark','autonum','comboreset'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
-  '次元を砕く者':{dis:['freeze','bomb','autonum','comboreset'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
-  '時の支配者':{dis:['minus','bomb','autonum','comboreset'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
-  '世界の終わり':{dis:['guard','minus','colnull','autonum','comboreset'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
-  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum','comboreset'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
+  '野盗':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv18
+  '巨大ムカデ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv19
+  '沼のリザードマン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv20
+  'ゴブリン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv21
+  'ゴブリンの戦士':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv22
+  'ホブゴブリン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv23
+  '墓場の亡霊':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv24
+  'ゾンビ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv25
+  '呪われた農夫':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv26
+  '骸骨戦士':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv27
+  '骸骨弓兵':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['orange',1],['red',2],['green',3]]},   // lv28
+  '動く鎧':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['purple',1],['blue',3],['yellow',1]]},   // lv29
+  '死霊術師':{dis:['half','colnull','autonum','guard','comboreset','autonum'],nums:[['red',1],['green',4],['orange',3]]},   // lv30
+  '食屍鬼':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['blue',1],['yellow',1],['purple',1]]},   // lv31
+  'オークの斥候':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['green',1],['orange',2],['red',3]]},   // lv32
+  'オーク':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['yellow',1],['purple',3],['blue',1]]},   // lv33
+  'オークの戦士長':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['orange',1],['red',4],['green',3]]},   // lv34
+  'トロル':{dis:['half','colnull','autonum','guard','comboreset','autonum'],nums:[['purple',1],['blue',1],['yellow',1]]},   // lv35
+  '山賊王':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['red',1],['green',2],['orange',3]]},   // lv36
+  '猛牛の戦車':{dis:['half','colnull','autonum','guard','comboreset','autonum'],nums:[['blue',1],['yellow',3],['purple',1]]},   // lv37
+  '暗黒の傭兵':{dis:['colnull','cfield','autonum','autonum'],nums:[['orange',1],['red',5],['orange',6]]},   // lv38
+  '元の身体':{dis:['colnull','autonum','cfield','autonum'],nums:[['red',3],['orange',1],['red',2]]},   // lv39
+  '暗黒騎士':{dis:['autonum','cfield','colnull','autonum'],nums:[['yellow',5],['red',2],['blue',4]]},   // lv40
+  '精鋭の暗黒騎士':{dis:['colnull','half','autonum','cfield','autonum'],nums:[['green',6],['purple',5],['green',4]]},   // lv41
+  '魔術師':{dis:['half','autonum','colnull','cfield','autonum'],nums:[['orange',2],['green',1],['orange',2]]},   // lv42
+  '小竜':{dis:['cfield','colnull','autonum','autonum'],nums:[['blue',6],['purple',1],['blue',6]]},   // lv43
+  '火を吹くワイバーン':{dis:['colnull','half','autonum','cfield','autonum'],nums:[['yellow',2],['green',1],['blue',3]]},   // lv44
+  '竜騎士':{dis:['colnull','cfield','autonum','autonum'],nums:[['green',1],['purple',5],['purple',1]]},   // lv45
+  '古龍':{dis:['cfield','autonum','colnull','autonum'],nums:[['yellow',2],['green',1],['orange',1]]},   // lv46
+  '氷の古竜':{dis:['cfield','autonum','colnull','autonum'],nums:[['yellow',6],['purple',5],['red',6]]},   // lv47
+  '雷を操る竜':{dis:['null','autonum','minus','autonum'],nums:[['yellow',1],['purple',2],['red',3]]},   // lv48
+  '双頭の竜':{dis:['minus','guard','pfield','autonum','autonum'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
+  '山を砕く巨竜':{dis:['cfield','null','autonum','guard','autonum'],nums:[['red',1],['purple',3],['orange',2]]},   // lv50
+  '先遣の巨人':{dis:['pfield','minus','autonum','autonum'],nums:[['green',1],['red',6],['orange',5]]},   // lv51
+  '地平線いっぱいの巨人':{dis:['colnull','null','autonum','autonum'],nums:[['blue',4],['red',5],['blue',4]]},   // lv52
+  '嵐の巨人':{dis:['cfield','minus','bomb','autonum','autonum'],nums:[['purple',5],['red',4],['red',6]]},   // lv53
+  '炎の巨人王':{dis:['colnull','guard','autonum','pfield','autonum'],nums:[['orange',4],['green',1],['purple',2]]},   // lv54
+  '悪魔の斥候':{dis:['null','pfield','autonum','autonum'],nums:[['blue',5],['orange',4],['yellow',3]]},   // lv55
+  '地獄の番犬':{dis:['autonum','null','colnull','autonum','bomb'],nums:[['blue',3],['orange',3],['yellow',1]]},   // lv56
+  '悪魔の将軍':{dis:['null','guard','minus','autonum','autonum'],nums:[['purple',3],['blue',6],['red',1]]},   // lv57
+  '全ての邪悪を背負った魔王':{dis:['cfield','pfield','autonum','bomb','autonum','half']},   // lv58
+  '魔王の側近':{dis:['colnull','minus','null','autonum','autonum'],nums:[['red',9],['blue',9],['green',5]]},   // lv59
+  '魔王の親衛兵':{dis:['autonum','cfield','pfield','autonum','bguard','half','comboreset'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
+  '四天王の一人':{dis:['bomb','cfield','minus','autonum','comboreset','autonum'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
+  '魔王の影':{dis:['pfield','bguard','colnull','autonum','comboreset','autonum'],nums:[['green',4],['green',10],['red',4]]},   // lv62
+  '魔王の化身':{dis:['cfield','bguard','autonum','bomb','comboreset','autonum'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
+  '不死身の魔王':{dis:['null','bguard','colnull','autonum','comboreset','autonum'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
+  '深淵の魔王':{dis:['null','cfield','autonum','pfield','autonum','minus','half','comboreset']},   // lv65
+  '終焉の魔王':{dis:['dark','colnull','autonum','comboreset','autonum'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
+  '滅びの化身':{dis:['cfield','bomb','autonum','guard','comboreset','autonum'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
+  '星を喰らうもの':{dis:['freeze','guard','dark','autonum','comboreset','autonum'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
+  '次元を砕く者':{dis:['freeze','bomb','autonum','comboreset','autonum'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
+  '時の支配者':{dis:['minus','bomb','autonum','comboreset','autonum'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
+  '世界の終わり':{dis:['guard','minus','colnull','autonum','comboreset','autonum'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
+  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum','comboreset','autonum'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
   '水星人':{dis:['colnull','cfield','autonum','bguard'],nums:[['green',6],['purple',7],['yellow',4]]},   // lv★
   '金星人':{dis:['bomb','autonum','minus','bguard'],nums:[['purple',3],['orange',3],['green',9]]},   // lv★
   '土星人':{dis:['freeze','bomb','comboreset','colnull','minus']},   // lv★
@@ -7169,7 +7169,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
