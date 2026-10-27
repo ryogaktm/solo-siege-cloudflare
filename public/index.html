@@ -654,7 +654,7 @@
   .rail{ flex:0 0 48px; width:48px; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:6px 0; }
   .rail-l{ align-items:flex-start; padding-left:2px; }
   .rail-r{ align-items:flex-end; padding-right:2px; }
-  .board{ display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:auto; gap:10px; width:100%; }
+  .board{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:auto; gap:10px; width:100%; }
   .flag{
     position:relative; border-radius:9px; padding:9px 6px 7px; min-height:0; display:flex; flex-direction:column; justify-content:center;
     background:linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.42));
@@ -1010,9 +1010,9 @@
 
   .flag-result-big{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    height:100%; min-height:90px; gap:0; text-align:center; padding:2px 1px; overflow:hidden;
+    height:100%; min-height:90px; gap:0; text-align:center; padding:2px 1px; overflow:hidden; min-width:0; max-width:100%;
   }
-  .frb-total{ font-family:'Cinzel',serif; font-weight:800; font-size:32px; color:var(--gold); line-height:1;
+  .frb-total{ max-width:100%; font-family:'Cinzel',serif; font-weight:800; font-size:32px; color:var(--gold); line-height:1;
     text-shadow:0 0 14px rgba(226,192,106,.4); display:flex; align-items:center; justify-content:center; gap:4px; flex-wrap:wrap; }
   .frb-total .mini-mark{ width:26px; height:26px; }
   .frb-name{ font-size:11px; color:var(--cream-2); letter-spacing:0; white-space:nowrap; line-height:1.15; }
@@ -1024,7 +1024,7 @@
     animation:combo-boost-pulse 1s ease-in-out infinite;
   }
   .frb-combo-tag{
-    font-size:15px; color:#f2a0cc; font-weight:900; margin-left:2px;
+    flex:0 0 100%; white-space:nowrap; font-size:14px; color:#f2a0cc; font-weight:900; margin-left:2px;
     text-shadow:0 0 8px rgba(242,160,204,.9);
   }
   .frb-time-tag{
@@ -2397,7 +2397,7 @@ const FLAG_GRID_COLS={4:2, 5:5, 6:3};
 const FLAG_COUNT_LABEL={4:'四つの旗', 5:'五つの旗', 6:'六つの旗'};
 function applyBoardGrid(){
   const cols=FLAG_GRID_COLS[FLAG_COUNT]||3;
-  document.getElementById('board').style.gridTemplateColumns=`repeat(${cols}, 1fr)`;
+  document.getElementById('board').style.gridTemplateColumns=`repeat(${cols}, minmax(0,1fr))`;
   const sub=document.getElementById('brandSub');
   if(sub) sub.textContent=FLAG_COUNT_LABEL[FLAG_COUNT]||`${FLAG_COUNT}つの旗`;
   fitBoardSize();
@@ -4557,10 +4557,11 @@ function render(){
         const comboCount = inCombo ? liveGroups[f.symbolColor].length : 0;
         const sm = inCombo ? smap[i] : 1;
         const hv = (!inCombo && hmap[i]) ? hmap[i] : 0;
-        const displayVal = inCombo ? f.result.base*sm : (hv ? Math.round(f.result.base*hv) : f.result.base);
-        const comboTag = inCombo ? `<span class="frb-combo-tag">SUPER ×${sm}</span>` : (hv ? `<span class="frb-combo-tag">×${Math.round(hv*100)/100}</span>` : '');
+        const displayVal = Math.round(inCombo ? f.result.base*sm : (hv ? f.result.base*hv : f.result.base));   // 小数は切る
+        const dvLen=String(displayVal).length, dvFs=dvLen<=4?32:dvLen===5?27:dvLen===6?23:dvLen===7?20:17;
+        const comboTag = inCombo ? `<span class="frb-combo-tag">SUPER ×${Math.round(sm*100)/100}</span>` : (hv ? `<span class="frb-combo-tag">×${Math.round(hv*100)/100}</span>` : '');
         bigResult=`<div class="flag-result-big${(inCombo||hv)?' combo-boosted':''}">
-          <div class="frb-total">${markIcon}${displayVal}${comboTag}</div>
+          <div class="frb-total" style="font-size:${dvFs}px">${markIcon}${displayVal}${comboTag}</div>
           <div class="frb-name">${f.result.isMonster?f.result.name:markNums(f.cards)}</div>
           <div class="frb-grade">×${f.result.mult}</div>
         </div>`;
@@ -7169,7 +7170,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
