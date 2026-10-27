@@ -650,7 +650,7 @@
   .nextbar .upcoming-chip:first-child{ opacity:1; border-color:rgba(255,220,120,.55); }
   .upcoming-chip .mini-mark{ width:13px; height:13px; }
   .board-wrap{ position:relative; flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; gap:10px; overflow:hidden; margin-bottom:12px; padding:0 2px; }
-  .board-mid{ flex:1 1 auto; min-width:0; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .board-mid{ flex:1 1 0; min-width:0; overflow:hidden; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .rail{ flex:0 0 48px; width:48px; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:6px 0; }
   .rail-l{ align-items:flex-start; padding-left:2px; }
   .rail-r{ align-items:flex-end; padding-right:2px; }
@@ -6593,7 +6593,7 @@ function renderAccStrip(){
     const aid=accEq[i], o=aid&&accOwned.find(x=>x.aid===aid), d=o&&accDef(o.id);
     h+=d?`<div class="as on" data-id="${d.id}"><span class="ai">${accIconHtml(d).replace(/font-size:24px/,'font-size:22px')}</span><span class="an">${d.name}</span></div>`:'<div class="as"></div>';
   }
-  el.innerHTML=h;
+  el.innerHTML=h; try{ fitBoardSize(); }catch(e){}   // 右のアクセサリー欄の幅が変わったら盤面も合わせ直す
   el.querySelectorAll('.as').forEach(x=>{ const d=x.dataset.id&&accDef(x.dataset.id); x.onclick=e=>{ e.stopPropagation(); if(d) showAccInfo(d); else openAccModal(); }; });   // 付けている物はタップで説明、空きは装備画面
 }
 function showAccInfo(d){
@@ -7169,7 +7169,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
