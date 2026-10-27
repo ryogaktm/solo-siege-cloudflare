@@ -3630,10 +3630,11 @@ function inGraveZone(x,y){
   const left=Math.min(gr.left,dr.left)-150, bottom=Math.max(gr.bottom,dr.bottom)+70;
   return [y,y-30].some(yy=>x>=left && yy<=bottom);
 }
-function discardDraw(handIdx){
+function discardDraw(handIdx,okPen){
   const card=hand[handIdx]; if(!card||busy) return false;
-  if(isCurse(card)||isEnemyEq(card)){ hint('呪いのカードは捨てられません。使うか、旗に置きましょう。',true); return false; }
+  const enemyC=isEnemyCard(card);   // 敵のカード（呪い・敵の装備）も捨てられるが、スーパーコンボ−ペナルティ
   if(activeDeck.length===0){ hint('山札がないので、捨てて引くことはできません。',true); return false; }
+  if(enemyC && !okPen){ askComboPenalty(1,()=>{ const j=hand.indexOf(card); if(j>=0) discardDraw(j,true); }); return false; }
   busy=true;
   hand.splice(handIdx,1);
   graveyard.push(card);
@@ -3643,6 +3644,7 @@ function discardDraw(handIdx){
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
   busy=false;
   hint('1枚捨てて、山札から1枚引いた。（1ターン消費）');
+  if(enemyC) applyComboPenalty(1);
   endCheck(); render();
   return true;
 }
@@ -7171,7 +7173,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
