@@ -1845,7 +1845,7 @@ const TACTIC_EXTRA = {
   rehire:'発動すると、墓地にあるカードから1枚を選んで手札に戻せます。強かった部隊や装備をもう一度使いたい時に。',
   guidance:'発動すると、まず移動元の旗をタップ。旗に2枚ある場合はどちらを動かすか選べる（1枚しかない場合は自動でそれが選ばれる）。最後に移動先の旗をタップすれば、そのカードを別の旗へ移し替えられます。ヘッダーの山札・墓地アイコンをタップすれば、移動させずにそのまま捨てることもできます。',
   blank:'白紙のカード。何の効果もありません。手札に邪魔なら、墓地へドラッグして捨てて引き直しましょう（1ターン消費）。',
-  curse_poison:'使うと毒をあびて、毎ターン戦力が減っていきます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
+  curse_poison:'使うと毒をあびて、5ターンの間、フィールドに出す数字カード（装備も）が−1されます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
   curse_seal:'使うと好きな旗を1つ選んで封鎖できます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
   conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
   revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて反転します（1↔10、2↔9、3↔8、4↔7、5↔6。7なら4、2なら9）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
@@ -4796,11 +4796,12 @@ function updateTelops(){
 
 /* ---- card info overlay ---- */
 function curseInfo(c){
-  if(c.type==='curse_bomb') return `手札に持ったまま<b style="color:var(--danger)">あと${c.fuse}ターン</b>で爆発し、HPが半分になる。使えば（1ターン使って）処理できる。`;
+  if(c.type==='curse_bomb') return `使って旗を選ぶと、その旗に時限ボムを置く。<b style="color:var(--danger)">${DIS_PARAM.bombFuse}ターン以内</b>にその旗で役を揃えないと爆発し、<b style="color:var(--danger)">スーパーコンボが−${DIS_PARAM.bombPenalty}</b>される。役が揃えば解除できる。`;
+  if(c.type==='curse_null') return `使うと<b style="color:var(--danger)">${DIS_PARAM.nullTurns}ターン</b>の間、軍師カードの効果が無効になる。敵の呪い（毒・封鎖・ボム・暗闇）の効果も無効になる。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
   if(c.type==='curse_dark') return `使うと<b style="color:var(--danger)">${DIS_PARAM.darkTurns}ターン</b>の間、攻撃の予測表示が半分に見えなくなる。`;
   if(c.type==='curse_minus') return `使って旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる（役・コンボも付かない）。`;
   const per=WAVES[stageIndex].poison||(2+WAVES[stageIndex].tier);
-  if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">1ターンごとに戦力が−${per}</b>ずつ減っていき（減った分は積み重なる）、<b>攻撃が確定するまで</b>続きます。毒のカードを重ねて使うと、減る量も増えます。「🧪薬」で止められます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。`;
+  if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">${DIS_PARAM.poisonTurns}ターンの間</b>、フィールドに出す数字カード（装備も）が<b style="color:var(--danger)">−1</b>される。「🧪薬」で止められます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
   return `使うと好きな旗を1つ選んで、<b style="color:var(--danger)">${BALANCE.sealTurns}ターンの間</b>使えなくなる（置いてあったカードは墓地へ）。封鎖が解けるまでに攻撃が来ると追加ダメージを受けます。「🧪薬」ですぐに解除できます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。`;
 }
 function cardInfoContent(c){
@@ -7170,7 +7171,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
