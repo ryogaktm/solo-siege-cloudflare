@@ -1941,6 +1941,7 @@ const EVENT_INFO={
   null:{icon:'🚫',label:'無効の呪い',cls:'ev-dis'},
   freeze:{icon:'❄',label:'いてつくはどう',cls:'ev-dis'},
   dark:{icon:'🌑',label:'暗闇',cls:'ev-dis'},
+  comboreset:{icon:'💥',label:'コンボリセット',cls:'ev-dis'},
   colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
 };
 /* ===== 呪いカード（毒・封鎖）：山札に混ざり、捨てられず、使うと効果が発動する ===== */
@@ -1954,7 +1955,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=18;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, every:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.5, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, every:0.5};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -1962,13 +1963,13 @@ const DIS_TIERS=[
   [28,['half','colnull','autonum']],
   [38,['half','colnull','cfield','autonum']],
   [48,['half','cfield','bomb','autonum','colnull','pfield','minus','null','guard']],
-  [58,['half','bomb','cfield','autonum','pfield','colnull','minus','null','bguard']],
-  [66,['half','bomb','autonum','cfield','pfield','colnull','minus','null','dark','freeze','bguard','guard']]
+  [58,['half','bomb','comboreset','cfield','autonum','pfield','colnull','minus','null','bguard']],
+  [66,['half','bomb','comboreset','autonum','cfield','pfield','colnull','minus','null','dark','freeze','bguard','guard']]
 ];
-const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','bguard'],'金星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','bguard'],'土星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard']};
+const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','minus','null','bguard'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','minus','null','dark','bguard'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','minus','null','dark','freeze','bguard','guard']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い'};
-const EVENT_SHORT={poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく'};
+const DIS_NAME={half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)'};
+const EVENT_SHORT={poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -2023,23 +2024,23 @@ const ENEMY_CFG={
   '悪魔の将軍':{dis:['null','guard','minus','autonum'],nums:[['purple',3],['blue',6],['red',1]]},   // lv57
   '全ての邪悪を背負った魔王':{dis:['cfield','pfield','bomb','half']},   // lv58
   '魔王の側近':{dis:['colnull','minus','null','autonum'],nums:[['red',9],['blue',9],['green',5]]},   // lv59
-  '魔王の親衛兵':{dis:['autonum','cfield','pfield','bguard','half'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
-  '四天王の一人':{dis:['bomb','cfield','minus','autonum'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
-  '魔王の影':{dis:['pfield','bguard','colnull','autonum'],nums:[['green',4],['green',10],['red',4]]},   // lv62
-  '魔王の化身':{dis:['cfield','bguard','autonum','bomb'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
-  '不死身の魔王':{dis:['null','bguard','colnull','autonum'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
-  '深淵の魔王':{dis:['null','cfield','pfield','minus','half']},   // lv65
-  '終焉の魔王':{dis:['dark','colnull','autonum'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
-  '滅びの化身':{dis:['cfield','bomb','autonum','guard'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
-  '星を喰らうもの':{dis:['freeze','guard','dark','autonum'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
-  '次元を砕く者':{dis:['freeze','bomb','autonum'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
-  '時の支配者':{dis:['minus','bomb','autonum'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
-  '世界の終わり':{dis:['guard','minus','colnull','autonum'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
-  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
+  '魔王の親衛兵':{dis:['autonum','cfield','pfield','bguard','half','comboreset'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
+  '四天王の一人':{dis:['bomb','cfield','minus','autonum','comboreset'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
+  '魔王の影':{dis:['pfield','bguard','colnull','autonum','comboreset'],nums:[['green',4],['green',10],['red',4]]},   // lv62
+  '魔王の化身':{dis:['cfield','bguard','autonum','bomb','comboreset'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
+  '不死身の魔王':{dis:['null','bguard','colnull','autonum','comboreset'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
+  '深淵の魔王':{dis:['null','cfield','pfield','minus','half','comboreset']},   // lv65
+  '終焉の魔王':{dis:['dark','colnull','autonum','comboreset'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
+  '滅びの化身':{dis:['cfield','bomb','autonum','guard','comboreset'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
+  '星を喰らうもの':{dis:['freeze','guard','dark','autonum','comboreset'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
+  '次元を砕く者':{dis:['freeze','bomb','autonum','comboreset'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
+  '時の支配者':{dis:['minus','bomb','autonum','comboreset'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
+  '世界の終わり':{dis:['guard','minus','colnull','autonum','comboreset'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
+  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum','comboreset'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
   '水星人':{dis:['colnull','cfield','autonum','bguard'],nums:[['green',6],['purple',7],['yellow',4]]},   // lv★
   '金星人':{dis:['bomb','autonum','minus','bguard'],nums:[['purple',3],['orange',3],['green',9]]},   // lv★
-  '土星人':{dis:['freeze','bomb','colnull','minus']},   // lv★
-  '太陽神':{dis:['colnull','cfield','autonum'],nums:[['blue',10],['blue',9],['orange',8]]},   // lv★
+  '土星人':{dis:['freeze','bomb','comboreset','colnull','minus']},   // lv★
+  '太陽神':{dis:['colnull','comboreset','cfield','autonum'],nums:[['blue',10],['blue',9],['orange',8]]},   // lv★
 };
 function disList(w){
   if(typeof comboRestricted==='function' && comboRestricted()) return [];
@@ -2343,6 +2344,10 @@ function applyEnemyEvent(type,target){
     giveHandCard(makeCurse('null')); hint('🚫 無効の呪いを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='dark'){
     giveHandCard(makeCurse('dark')); hint('🌑 暗闇のカードを手札に押し付けられた！',true); playSfx('warn');
+  } else if(type==='comboreset'){
+    const had=Object.keys(carryMap).length>0 || flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor);
+    carryMap={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo) f.symbolColor=null; });
+    hint(had?'💥 コンボリセット！ スーパーコンボがすべて0に戻された…':'💥 コンボリセット！（今は積み上げたコンボがなかった）',true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
   } else if(type==='freeze'){
     const had=enemyFreeze>0||enemyPoisonPer>0;
     enemyFreeze=0; enemyPoisonPer=0;
@@ -4276,6 +4281,7 @@ const EVENT_DESC={
   minus:()=>'「マイナスの武器」を旗に置く。その旗の数字の合計が減る。プラスの武器を重ねれば減らせる。',
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
+  comboreset:()=>'積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
   freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
 };
 function showEventPopup(ev,cd){
@@ -7159,7 +7165,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-27b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
