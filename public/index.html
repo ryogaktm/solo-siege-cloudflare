@@ -1333,7 +1333,7 @@
     <button class="topback" id="goalClose">◀ 戻る</button>
     <h2>GOAL</h2>
     <p style="font-size:12.5px; line-height:1.8; color:var(--cream-2);">
-      6つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた<b style="color:#f0a8d0">戦力</b>を稼ごう。敵の攻撃力を上回る戦力をためて一斉攻撃し、自分のHPが尽きる前に魔王を倒せ。
+      旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた<b style="color:#f0a8d0">戦力</b>を稼ごう。敵の攻撃力を上回る戦力をためて一斉攻撃し、自分のHPが尽きる前に魔王を倒せ。
     </p>
     <div class="tabbar toptabbar">
       <button class="tabbtn toptabbtn active" data-toptab="howto">遊び方</button>
@@ -1347,11 +1347,13 @@
         <button class="tabbtn subtabbtn" data-subtab="placement">配置</button>
         <button class="tabbtn subtabbtn" data-subtab="enemy">敵</button>
         <button class="tabbtn subtabbtn" data-subtab="exchange">デッキ</button>
+        <button class="tabbtn subtabbtn" data-subtab="shop">お店</button>
       </div>
       <div class="subpage" data-subpage="basic" id="howtoBasic"></div>
       <div class="subpage" data-subpage="placement" id="howtoPlacement" style="display:none;"></div>
       <div class="subpage" data-subpage="enemy" id="howtoEnemy" style="display:none;"></div>
       <div class="subpage" data-subpage="exchange" id="howtoExchange" style="display:none;"></div>
+      <div class="subpage" data-subpage="shop" id="howtoShop" style="display:none;"></div>
     </div>
 
     <div class="toppage" data-toppage="cards" style="display:none;">
@@ -5050,9 +5052,10 @@ function fillPage(id, html){
   wrap.innerHTML=html; wrap.dataset.filled='1';
 }
 function buildHowtoPage(){
+  const FN=(CHARACTER&&CHARACTER.flags)||4;   // 旗の数はキャラで違う（4つ、王は6つ）
   fillPage('howtoBasic', `<div class="howto-section" id="howtoBasicSec">
-    <p>6つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた戦力で<b style="color:var(--danger)">ボスにダメージ</b>を与えよう。役が揃うと、役ごとの倍率（×3〜×10）が掛かる。<b style="color:#f2a0cc">スーパーコンボ</b>は、象徴の色が同じ「役の旗」が2つ以上同じマークのつながりごとに、先に閉じた旗から順に<b style="color:#f2a0cc">×2、×3、×4…</b>と倍率が上がっていく。攻撃のあとも連続は続き、次のシートでは続きの倍率（例：2つ決めたあとは×4から）になる。敵を倒して次の敵に進んでも連続は持ち越せる。倍率に上限はない。スーパーコンボが決まらない攻撃をするとリセットされる。役のない旗はスーパーコンボの対象外</p>
-    <p style="margin-top:8px;">6旗すべてが封鎖されると<b style="color:var(--gold)">一斉攻撃</b>！ <b style="color:var(--gold)">自分の戦力と敵の攻撃力がぶつかり合い、その差分だけ</b>が相手のHPを削る。自分が上回れば敵に、下回れば自分にダメージ。旗は空に戻り、敵の攻撃力もリセットされる。</p>
+    <p>${FN}つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた戦力で<b style="color:var(--danger)">ボスにダメージ</b>を与えよう。役が揃うと、役ごとの倍率（×3〜×10）が掛かる。<b style="color:#f2a0cc">スーパーコンボ</b>は、象徴の色が同じ「役の旗」が2つ以上同じマークのつながりごとに、先に閉じた旗から順に<b style="color:#f2a0cc">×2、×3、×4…</b>と倍率が上がっていく。攻撃のあとも連続は続き、次のシートでは続きの倍率（例：2つ決めたあとは×4から）になる。敵を倒して次の敵に進んでも連続は持ち越せる。倍率に上限はない。スーパーコンボが決まらない攻撃をするとリセットされる。役のない旗はスーパーコンボの対象外</p>
+    <p style="margin-top:8px;">${FN}旗すべてが封鎖されると<b style="color:var(--gold)">一斉攻撃</b>！ <b style="color:var(--gold)">自分の戦力と敵の攻撃力がぶつかり合い、その差分だけ</b>が相手のHPを削る。自分が上回れば敵に、下回れば自分にダメージ。旗は空に戻り、敵の攻撃力もリセットされる。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">ボスのHPが残っていれば同じステージのままWAVEだけ進み、次の戦いが始まる</b>（鼓舞・複製・融合の効果は次の戦いには持ち越されない）。<b style="color:var(--gold)">ボスを倒すと次のステージへ進み、そこで初めて手札も一新</b>される。</p>
     <p style="margin-top:8px;">敵の攻撃力は<b style="color:var(--danger)">カードを1枚使うごとに増えていく</b>。戦力・敵の攻撃力・その差分は、カードを1枚置くたびにリアルタイムで更新される。ためすぎは禁物、頃合いを見て旗を全部そろえて攻撃しよう。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">逆転の鍵はコンボ</b>：役が揃うと役の倍率が掛かり、象徴の色が同じ役の旗を2つ以上つなげると<b style="color:#f2a0cc">スーパーコンボで×2、×3、×4…</b>と旗ごとに倍率が上がる。攻撃して次のシートでもスーパーコンボを決めると、<b style="color:#f2a0cc">続きの倍率</b>から伸びていく。戦力が一気に跳ね上がる。</p>
@@ -5062,17 +5065,17 @@ function buildHowtoPage(){
   </div>`);
   addBigResultDemo(document.getElementById('howtoBasicSec'), 'green', 39, 'バタリオン', '×2.5', '旗が3枚揃って封鎖されると、こうして大きく合計値・役名・役の倍率が表示される。');
   addVictoryDemo(document.getElementById('howtoBasicSec'));
-  addBigResultDemo(document.getElementById('howtoBasicSec'), 'green', 39, 'バタリオン', '×2.5', '旗が3枚揃って封鎖されると、こうして大きく合計値・役名・役の倍率が表示される。');
 
   fillPage('howtoPlacement', `<div class="howto-section" id="howtoPlacementSec"><p>部隊カードは<b style="color:var(--gold)">どんなカードでも自由に置ける</b>（役が無くてもOK）。ただし3枚が<b style="color:var(--gold)">色をそろえる・数字をそろえる・連番でつなげる</b>のいずれかで役になると、その旗の得点に<b style="color:#f2a0cc">役の倍率</b>（スカーミッシュ×3／バタリオン×2.5／ファランクス×3.5（同色同数は「ロイヤルファランクス」×10）／ウェッジ×5）が掛かる。役が無い「ホスト」は等倍のまま。赤♾️は3枚目のみに置ける。</p></div>`);
   exRow(document.getElementById('howtoPlacementSec'),
     [{color:'green',value:4},{color:'blue',value:5},{color:'blue',value:6}],
     '役の例','緑4→青5→青6。4→5→6と数字がつながっているので「連番（スカーミッシュ）」の役が成立し、得点×3。');
 
-  fillPage('howtoEnemy', `<div class="howto-section" id="howtoEnemySec"><p>画面の「敵の予測」には、これから先の敵の動きが表示される。何もなければその時点での<b style="color:var(--danger)">敵の攻撃力</b>、特殊行動があれば印がつく。</p><p style="margin-top:8px;"><b style="color:#ffb07a">🔥 攻撃力×2</b>：敵の攻撃力が倍になる（その後もさらに増え続ける）。</p><p style="margin-top:8px;"><b style="color:#cfe6ff">🔒 旗を封鎖</b>：（後半のステージから）旗が1つ、3ターンの間使えなくなる（置けるカードが無いときは、手札を墓地へドラッグして捨て、1枚引いてターンを進めよう）。置いてあったカードは墓地へ。</p><p style="margin-top:8px;"><b style="color:#e0c0ff">☠ 毒</b>：（中盤のステージから）毎ターン、自分の戦力が減っていく。</p><p style="margin-top:8px;">敵は最初から攻撃力を持っていて、役を揃えて戦力で上回らないと差分で負けてしまう。ターンが進むほど攻撃力は上がり、厳しい行動も増える。軍師カード「突撃」は、今の盤面の状態ですぐに攻撃できる。<b style="color:var(--gold)">攻撃するとターンはリセット</b>されるので、その前に攻撃しよう。</p></div>`);
+  fillPage('howtoEnemy', `<div class="howto-section" id="howtoEnemySec"><p>画面の「敵の予測」には、これから先の敵の動きが表示される。何もなければその時点での<b style="color:var(--danger)">敵の攻撃力</b>、特殊行動があれば印がつく。印をタップすると、どんな攻撃が来るかが分かる。</p><p style="margin-top:8px;">敵は最初から攻撃力を持っていて、役を揃えて戦力で上回らないと差分で負けてしまう。ターンが進むほど攻撃力は上がり、厳しい行動も増える。<b style="color:var(--gold)">攻撃するとターンはリセット</b>されるので、その前に攻撃しよう。</p><p style="margin-top:8px;">敵ごとに得意な特殊行動がちがう（同じ技ばかり出す敵もいる）。<b>序盤の敵は、旗やカードに仕掛ける妨害だけ</b>で、プレイで対処できる。防御（次の攻撃が半分）やコンボを減らす技は、強い敵になってから出てくる。</p><p style="margin-top:10px;"><b style="color:var(--gold)">敵の特殊行動の一覧</b></p>${Object.keys(EVENT_DESC).filter(k=>EVENT_INFO[k]).map(k=>`<p style="margin-top:6px;"><b>${EVENT_INFO[k].icon} ${EVENT_INFO[k].label}</b>：${EVENT_DESC[k]()}</p>`).join('')}</div>`);
 
 
-  fillPage('howtoExchange', `<div class="howto-section" id="howtoExchangeSec"><p>手札のカードをタップすると説明が見られる。ドラッグで旗に置いてみよう。</p><p style="margin-top:8px;">6つの旗が全て埋まると自動で戦力が確定し、旗が空の状態に戻る。同時に<b style="color:var(--gold)">大山札</b>にある全てのカードがシャッフルされ、そこから40枚が山札に補充されてプレイが続く。<b style="color:var(--danger)">必要戦力に届いていなくても終了にはならず、そのまま次の敵と続けて戦う</b>。ヘッダーには次に引かれるカードが先読みで表示される。</p></div>`);
+  fillPage('howtoShop', `<div class="howto-section" id="howtoShopSec"><p>敵を倒すと<b style="color:var(--gold)">次の戦いの準備</b>画面になる。ここでお金を使って強くなれる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">お金の入り方</b>：旗で役を作るたびに入る（${Object.entries(YAKU_GOLD).filter(([k,v])=>v>0).map(([k,v])=>`${k}${v}G`).join('、')}）。アクセサリーに書かれた条件を達成した時にも入る。コガネムシを使うキャラなら、特殊技「コガネモチ」で100G。持っているアクセサリーを売ってもお金になる（売値は買値の約3割）。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーを買う</b>：装備すると毎回効く。付けられるのは${3}つまで。装備枠がいっぱいの時は、どれかを外して付け替える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">デッキを買う</b>：使い捨てのカードなどを山札に加える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">手付金</b>：アクセサリーのお金が足りない時だけ、半額を手付金として払って<b>取り置き</b>できる。取り置いた品は、品揃えが入れ替わっても棚に残り、残りの金額を払えば買える。お金が足りている時は、手付金は出ない。</p><p style="margin-top:8px;"><b style="color:var(--gold)">山札確認</b>：今の山札に何が入っているかを確認できる。</p></div>`);
+  fillPage('howtoExchange', `<div class="howto-section" id="howtoExchangeSec"><p>手札のカードをタップすると説明が見られる。ドラッグで旗に置いてみよう。</p><p style="margin-top:8px;">${FN}つの旗が全て埋まると自動で戦力が確定し、旗が空の状態に戻る。同時に<b style="color:var(--gold)">大山札</b>にある全てのカードがシャッフルされ、そこから40枚が山札に補充されてプレイが続く。<b style="color:var(--danger)">必要戦力に届いていなくても終了にはならず、そのまま次の敵と続けて戦う</b>。ヘッダーには次に引かれるカードが先読みで表示される。</p></div>`);
 
   fillPage('howtoCombo', `<div class="howto-section" id="howtoComboSec"><p>旗を封鎖すると<b style="color:var(--gold)">最後（3枚目）に置いたカードの色</b>がその旗の「象徴」になる。（役が揃った旗の）象徴の色が同じ旗がWAVE終了時に2つ以上あると、<b style="color:#f2a0cc">スーパーコンボ</b>が発動し、つながった旗は先に閉じた順に×2、×3、×4…と倍率が上がる（役が無い旗は対象外）。攻撃のあとも連続は続き、次のシートは続きの倍率から（色が違ってもOK）。決まらない攻撃や次の敵でリセット。<b style="color:var(--gold)">ボスを倒してステージをクリアすると</b>、報酬選択のチャンスが1回もらえ、「いつでもシャッフル＋1（上限3）」「軍師カード2枚 or ♾️カード2枚（ランダム）」「手札のスペース+1（上限3）」から好きなものを選べる。獲得したカード（軍師・♾️）は次のステージの山札に確実に加わり、<b style="color:#e8b8d8">★マーク付きの特別な見た目</b>になる。使われるまで何ステージ経っても山札に残り続けるが、<b style="color:var(--danger)">一度使うと二度と戻ってこない</b>。</p></div>`);
   exRow(document.getElementById('howtoComboSec'),
@@ -7285,7 +7288,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

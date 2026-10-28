@@ -13,3 +13,9 @@
 5. Deployments（または Builds）で再デプロイが走るのを待つ
 
 見る画面: https://（あなたのworkers.dev）/api/admin （パスワードだけ入れる）
+
+## テスト
+`sh tests/run_all.sh` ですべて実行（Playwrightが必要）。
+- `tests/rules.py` … 敵の並び・序盤の妨害・防御の演出・手付金などのルール
+- `tests/card_conservation.py` … カード効果の前後で、カードが勝手に増減しないか
+- `tests/tools/economy_sim.py` … 簡易ボットで1WAVEあたりの獲得Gを測る（目安）
