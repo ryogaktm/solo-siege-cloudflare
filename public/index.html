@@ -2060,18 +2060,25 @@ function disList(w){
   return r.filter(k=>!DIS_OFF.includes(k));
 }
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
-function pickDisSeq(dl,n){
-  const w={}; dl.forEach(x=>{ w[x]=(w[x]||0)+1; });   // 同じ技がリストに複数あれば、その分よく出る
-  const types=Object.keys(w), cnt=Object.assign({},disCount), out=[]; let last=disLast;
+function disWeights(w,dl){   // 敵ごとの「得意技」：ENEMY_CFG の fav:[...]（同じ技を並べるほど重い）か、無ければ名前から決まる偏りを使う（どの敵も得意技・準得意・苦手が固定）
+  const types=[...new Set(dl)], wt={};
+  const ec=ENEMY_CFG[w.name]||{};
+  if(ec.fav&&ec.fav.length){ types.forEach(t=>{ wt[t]=0.4; }); ec.fav.forEach(t=>{ if(wt[t]!==undefined) wt[t]=(wt[t]<1?0:wt[t])+1; }); return wt; }
+  let h=0; for(const ch of String(w.name)) h=(h*131+ch.charCodeAt(0))>>>0;
+  const n=types.length; types.forEach(t=>{ wt[t]=1; });
+  if(n<=1) return wt;
+  const f1=h%n, f2=(f1+1+((h>>>5)%(n-1)))%n; wt[types[f1]]=7; wt[types[f2]]=3;
+  if(n>=5){ const rest=types.map((t,i)=>i).filter(i=>i!==f1&&i!==f2); wt[types[rest[(h>>>9)%rest.length]]]=0; }   // 5種類以上なら1つは苦手（ほぼ出さない）
+  return wt;
+}
+function pickDisSeq(dl,n,w){
+  const wt=disWeights(w,dl), types=Object.keys(wt).filter(t=>wt[t]>0), out=[]; let l1=disLast, l2=null;
   for(let i=0;i<n;i++){
-    let t;
-    if(i===0 && disFired===0) t=dl[0];   // その敵の最初の1回は、その敵らしい先頭の技
-    else {
-      const cs=types.length>1?types.filter(x=>x!==last):types; let best=Infinity, bs=[];
-      cs.forEach(x=>{ const v=(cnt[x]||0)/w[x]; if(v<best-1e-9){ best=v; bs=[x]; } else if(Math.abs(v-best)<1e-9) bs.push(x); });
-      t=bs[Math.floor(Math.random()*bs.length)];
-    }
-    out.push(t); cnt[t]=(cnt[t]||0)+1; last=t;
+    let cs=types.slice(); if(l1&&l1===l2&&cs.length>1) cs=cs.filter(x=>x!==l1);   // 同じ技が3回続くのだけは避ける
+    let tot=0; cs.forEach(t=>{ tot+=wt[t]; }); let r=Math.random()*tot, pick=cs[cs.length-1];
+    for(const t of cs){ r-=wt[t]; if(r<=0){ pick=t; break; } }
+    if(i===0 && disFired===0){ pick=types.slice().sort((a,b)=>wt[b]-wt[a])[0]; }   // 最初の1回は得意技
+    out.push(pick); l2=l1; l1=pick;
   }
   return out;
 }
@@ -2156,7 +2163,7 @@ function genSchedule(){
     t+=w.gap; // 一定間隔
   }
   { const dl=disList(w);   // 妨害行動（月の民撃破後のみ）：攻撃×2とは別の枠に、最初の攻撃×2の半gap後から gap×every おきに入れる
-    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const ec=ENEMY_CFG[w.name]||{}; const gp=ec.gap?Math.max(2,ec.gap):Math.max(2,Math.round(w.gap*DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1)));  /* 火星人より弱い敵は妨害の間隔が倍 */ const tds=[]; for(let td=(ec.first||(w.first+Math.round(w.gap/2))); td<90; td+=gp){ if(!sched[td]) tds.push(td); } const seq=pickDisSeq(dl,tds.length); tds.forEach((td,i)=>{ sched[td]=seq[i]; }); } }
+    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const ec=ENEMY_CFG[w.name]||{}; const gp=ec.gap?Math.max(2,ec.gap):Math.max(2,Math.round(w.gap*DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1)));  /* 火星人より弱い敵は妨害の間隔が倍 */ const tds=[]; for(let td=(ec.first||(w.first+Math.round(w.gap/2))); td<90; td+=gp){ if(!sched[td]) tds.push(td); } const seq=pickDisSeq(dl,tds.length,w); tds.forEach((td,i)=>{ sched[td]=seq[i]; }); } }
   if(w.enrageAt>0){ for(let k=0;k<3;k++) sched[w.enrageAt+k]='rage'; } // 終盤の敵は一定ターンを過ぎると3連続で攻撃力×2（狂暴化）
   return sched;
 }
@@ -7243,7 +7250,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
