@@ -621,7 +621,7 @@
   .pcard.monster.necro{ background:linear-gradient(160deg,#241030,#120818); }
 
   .pcard.enemy{ background:linear-gradient(160deg, #7a2420 0%, #4a1210 60%, #240808 100%) !important; }
-  .pcard.voided{ filter:grayscale(1) brightness(.6); opacity:.65; } .pcard.voided::after{ content:'👻'; position:absolute; right:2px; bottom:2px; font-size:16px; }
+  .pcard.voided{ filter:grayscale(1) brightness(.6); opacity:.65; } .pcard.voided::after{ content:'🕳'; position:absolute; right:2px; bottom:2px; font-size:16px; }
   .badge.ghostbadge{ top:auto !important; bottom:4px; background:rgba(120,90,200,.85); color:#fff; }
   .pcard.enemy::before{ border-color:rgba(255,150,130,.45) !important; }
   .pcard.enemy .corner{ color:#ffd9d0 !important; }
@@ -1944,7 +1944,7 @@ const EVENT_INFO={
   freeze:{icon:'❄',label:'いてつくはどう',cls:'ev-dis'},
   dark:{icon:'🌑',label:'暗闇',cls:'ev-dis'},
   deatheater:{icon:'👹',label:'デスイーター',cls:'ev-dis'},
-  ghost:{icon:'👻',label:'悪霊',cls:'ev-dis'},
+  ghost:{icon:'🕳',label:'ワームホール',cls:'ev-dis'},
   minusrain:{icon:'🌧',label:'マイナスレイン',cls:'ev-dis'},
   comboreset:{icon:'💥',label:'コンボリセット',cls:'ev-dis'},
   colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
@@ -1977,8 +1977,8 @@ const DIS_TIERS=[
 ];
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={ghost:'悪霊(旗に憑りつき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)'};
-const EVENT_SHORT={ghost:'悪霊',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ'};
+const DIS_NAME={ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)'};
+const EVENT_SHORT={ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -2061,7 +2061,7 @@ function disList(w){
 }
 let disFired=0, mushDmg=1, mushKill=false;   // mushDmg＝毒キノコの次のダメージ（敵ごとに1へリセット）
 let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
-let haunt={};   // 悪霊：旗の番号→残り枚数（5枚使い切るまで消えない。敵が変わっても持ち越す）
+let haunt={};   // ワームホール：旗の番号→残り枚数（5枚使い切るまで消えない。敵が変わっても持ち越す）
 const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
 const disDarkOn=()=>turnCounter<dis.darkUntil;
@@ -2322,11 +2322,11 @@ function enemyEventFX(type){
 function sealCands(){
   return flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed && !isLocked(f) && f.cards.length<3);
 }
-function hauntBlock(i,what){   // 悪霊が憑りついた旗に置かれるカードは、効果を出さずに消える（残り枚数が1減る）
+function hauntBlock(i,what){   // ワームホールが開いた旗に置かれるカードは、効果を出さずに消える（残り枚数が1減る）
   if(!(haunt[i]>0)) return false;
   haunt[i]--; const left=haunt[i]; if(left<=0) delete haunt[i];
   try{ dlog('haunt_void',{flag:i+1,card:what,残り:left}); }catch(e){}
-  hint(left>0?`👻 悪霊のせいで、旗${i+1}に置かれた${what}は無効になった…（悪霊あと${left}枚）`:`👻 旗${i+1}の${what}が無効になり、悪霊が消えた！`,true); playSfx('warn');
+  hint(left>0?`🕳 ワームホールのせいで、旗${i+1}に置かれた${what}は無効になった…（ワームホールあと${left}枚）`:`🕳 旗${i+1}の${what}が無効になり、ワームホールが消えた！`,true); playSfx('warn');
   try{ render(); }catch(e){}
   return true;
 }
@@ -2374,10 +2374,10 @@ function applyEnemyEvent(type,target){
     }
   } else if(type==='ghost'){
     const cand=flags.map((f,i)=>i).filter(i=>!flags[i].closed&&!(haunt[i]>0));
-    if(!cand.length){ hint('👻 悪霊が現れたが、憑りつける旗がなかった。',true); }
+    if(!cand.length){ hint('🕳 ワームホールが現れたが、開ける旗がなかった。',true); }
     else { const i=cand[Math.floor(Math.random()*cand.length)]; haunt[i]=5;
       try{ dlog('ghost',{flag:i+1}); }catch(e){}
-      hint(`👻 悪霊が旗${i+1}に憑りついた！ その旗に置いたカードは5枚まで無効になる。`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){} }
+      hint(`🕳 ワームホールが旗${i+1}に開いた！ その旗に置いたカードは5枚まで無効になる。`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){} }
   } else if(type==='minusrain'){
     dis.poisonUntil=Math.max(dis.poisonUntil||0,turnCounter+DIS_PARAM.rainTurns);
     hint(`🌧 マイナスレイン！ ${DIS_PARAM.rainTurns}ターンの間、置く数字カードがすべて−1される！`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
@@ -2648,7 +2648,7 @@ function evaluate(f){
   let name,mult,tier;
   if(runOK&&same){name='ウェッジ';mult=5;tier='wedge';} else if(toak&&same){name='ロイヤルファランクス';mult=10;tier='wedge';} else if(toak){name='ファランクス';mult=3.5;tier='phalanx';}
   else if(same){name='バタリオン';mult=2.5;tier='battalion';} else if(runOK){name='スカーミッシュ';mult=3;tier='skirmish';} else {name='ホスト';mult=1;tier='host';}
-  if(cs.some(c=>c.voided)){ name='ホスト'; mult=1; tier='host'; }   // 悪霊に無効にされたカードがあると役にならない
+  if(cs.some(c=>c.voided)){ name='ホスト'; mult=1; tier='host'; }   // ワームホールに無効にされたカードがあると役にならない
   { const rk={'ウェッジ':'wedge','ロイヤルファランクス':'royal','ファランクス':'phalanx','スカーミッシュ':'skirmish','バタリオン':'battalion'}[name]; if(rk && hasAcc('role_'+rk)) mult*=(1+0.5*accX()); if(rk && hasAcc('yaku_only')) mult*=(1+0.5*accX()); }   // 役のみの指輪：役のある旗は1.5倍
   return {name,mult,tier,base:Math.round(sum*mult),sum};
 }
@@ -3536,7 +3536,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       return true;
     }
   }
-  if(haunt[fi]>0 && card.kind==='monster'){   // 悪霊の旗：装備カードも効果なしで墓地へ（敵のカードは消えるだけ）
+  if(haunt[fi]>0 && card.kind==='monster'){   // ワームホールの旗：装備カードも効果なしで墓地へ（敵のカードは消えるだけ）
     busy=true; picked=null; lastFi=fi;
     hand.splice(handIdx,1); if(!isEnemyEq(card)) graveyard.push(card);
     hauntBlock(fi,monsterName(card)||'装備');
@@ -3560,7 +3560,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     if(haunt[fi]>0 && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card))){
       placed.voided=true; haunt[fi]--;
       try{ dlog('haunt_void',{flag:fi+1,card:dbgCardStr(card),残り:haunt[fi]}); }catch(e){}
-      hint(haunt[fi]>0?`👻 悪霊のせいで、このカードは無効になった…（旗${fi+1}の悪霊あと${haunt[fi]}枚）`:`👻 最後の1枚が無効になり、旗${fi+1}の悪霊が消えた！`,true);
+      hint(haunt[fi]>0?`🕳 ワームホールのせいで、このカードは無効になった…（旗${fi+1}のワームホールあと${haunt[fi]}枚）`:`🕳 最後の1枚が無効になり、旗${fi+1}のワームホールが消えた！`,true);
       if(haunt[fi]<=0) delete haunt[fi];
     }
     hand.splice(handIdx,1);
@@ -4339,7 +4339,7 @@ const EVENT_DESC={
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
   deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
-  ghost:()=>'ターンになると強制的に発動。ランダムな旗に悪霊が憑りつく。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
+  ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
   freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
@@ -4630,7 +4630,7 @@ function render(){
     if(bigResult){
       d.innerHTML=bigResult+eqTag;
     } else {
-      d.innerHTML=badge+(haunt[i]>0?`<div class="badge ghostbadge">👻あと${haunt[i]}枚</div>`:'')+(f.bomb?`<div class="badge lockbadge"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
+      d.innerHTML=badge+(haunt[i]>0?`<div class="badge ghostbadge">🕳あと${haunt[i]}枚</div>`:'')+(f.bomb?`<div class="badge lockbadge"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
       const st=document.createElement('div'); st.className='stack';
       const choosingHere = pending && pending.type==='guidance' && pending.step==='choose' && pending.from===i;
       if(choosingHere) st.classList.add('spread-choose');
@@ -7227,7 +7227,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
