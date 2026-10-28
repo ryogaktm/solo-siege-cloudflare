@@ -4320,7 +4320,7 @@ const EVENT_DESC={
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
   deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
-  ghost:()=>'ターンになると強制的に発動。ランダムな旗に悪霊が憑りつく。その旗に置いたカードは、5枚まで無効（点数0・役にならない）になる。5枚使い切るまで消えない（敵が変わっても残る）。',
+  ghost:()=>'ターンになると強制的に発動。ランダムな旗に悪霊が憑りつく。その旗に置いたカードは、5枚まで無効（点数0・役にならない）になる。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
   freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
@@ -5425,7 +5425,7 @@ function advanceToNextStage(){
     if(finalHp<=0) chainedKill=true;
     bossHp=finalHp;
   }
-  score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
+  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
   playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
@@ -5779,10 +5779,10 @@ function specUse(kind){
   } else if(kind==='cure'){
     const sealed=flags.filter(f=>isLocked(f)).length;
     const isDisC=c=>['curse_bomb','curse_dark','curse_minus','curse_null'].includes(c.type)||isEnemyEq(c);
-    const dn=hand.filter(isDisC).length+flags.filter(f=>!f.closed&&f.cards.some(isEnemyEq)).length, dOn=disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn()||poisonOn()||dis.halfNext||flags.some(f=>f.bomb);
+    const dn=hand.filter(isDisC).length+flags.filter(f=>!f.closed&&f.cards.some(isEnemyEq)).length, dOn=Object.keys(haunt).length>0||disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn()||poisonOn()||dis.halfNext||flags.some(f=>f.bomb);
     if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
     const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
-    poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; f.bomb=0; if(!f.closed) f.cards=f.cards.filter(c=>!isEnemyEq(c)); }); spec.cure++;
+    haunt={}; poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; f.bomb=0; if(!f.closed) f.cards=f.cards.filter(c=>!isEnemyEq(c)); }); spec.cure++;
     dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; dis.halfNext=false;   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
     { const before=hand.length; hand=hand.filter(c=>!isDisC(c)); autoRefill(before-hand.length); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
@@ -7208,7 +7208,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
