@@ -1960,7 +1960,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=5;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.5, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, every:0.5};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, every:0.45};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -2059,6 +2059,22 @@ function disList(w){
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   return r.filter(k=>!DIS_OFF.includes(k));
 }
+let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
+function pickDisSeq(dl,n){
+  const w={}; dl.forEach(x=>{ w[x]=(w[x]||0)+1; });   // 同じ技がリストに複数あれば、その分よく出る
+  const types=Object.keys(w), cnt=Object.assign({},disCount), out=[]; let last=disLast;
+  for(let i=0;i<n;i++){
+    let t;
+    if(i===0 && disFired===0) t=dl[0];   // その敵の最初の1回は、その敵らしい先頭の技
+    else {
+      const cs=types.length>1?types.filter(x=>x!==last):types; let best=Infinity, bs=[];
+      cs.forEach(x=>{ const v=(cnt[x]||0)/w[x]; if(v<best-1e-9){ best=v; bs=[x]; } else if(Math.abs(v-best)<1e-9) bs.push(x); });
+      t=bs[Math.floor(Math.random()*bs.length)];
+    }
+    out.push(t); cnt[t]=(cnt[t]||0)+1; last=t;
+  }
+  return out;
+}
 let disFired=0, mushDmg=1, mushKill=false;   // mushDmg＝毒キノコの次のダメージ（敵ごとに1へリセット）
 let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
 let haunt={};   // ワームホール：旗の番号→残り枚数（5枚使い切るまで消えない。敵が変わっても持ち越す）
@@ -2140,7 +2156,7 @@ function genSchedule(){
     t+=w.gap; // 一定間隔
   }
   { const dl=disList(w);   // 妨害行動（月の民撃破後のみ）：攻撃×2とは別の枠に、最初の攻撃×2の半gap後から gap×every おきに入れる
-    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const ec=ENEMY_CFG[w.name]||{}; const gp=ec.gap?Math.max(2,ec.gap):Math.max(2,Math.round(w.gap*DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1)));  /* 火星人より弱い敵は妨害の間隔が倍 */ let k=0; for(let td=(ec.first||(w.first+Math.round(w.gap/2))); td<90; td+=gp){ if(!sched[td]){ sched[td]=dl[(disFired+k)%dl.length]; k++; } } } }
+    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const ec=ENEMY_CFG[w.name]||{}; const gp=ec.gap?Math.max(2,ec.gap):Math.max(2,Math.round(w.gap*DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1)));  /* 火星人より弱い敵は妨害の間隔が倍 */ const tds=[]; for(let td=(ec.first||(w.first+Math.round(w.gap/2))); td<90; td+=gp){ if(!sched[td]) tds.push(td); } const seq=pickDisSeq(dl,tds.length); tds.forEach((td,i)=>{ sched[td]=seq[i]; }); } }
   if(w.enrageAt>0){ for(let k=0;k<3;k++) sched[w.enrageAt+k]='rage'; } // 終盤の敵は一定ターンを過ぎると3連続で攻撃力×2（狂暴化）
   return sched;
 }
@@ -2332,7 +2348,7 @@ function hauntBlock(i,what){   // ワームホールが開いた旗に置かれ�
 }
 function applyEnemyEvent(type,target){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
-  if(DIS_NAME[type]) disFired++;
+  if(DIS_NAME[type]){ disFired++; disCount[type]=(disCount[type]||0)+1; disLast=type; }
   if(type==='guard'||type==='bguard'){
     dis.guardN=type==='guard'?1:10; dis.guardUntil=enemyTurn+(type==='guard'?DIS_PARAM.guardTurns:DIS_PARAM.bguardTurns);
     hint(`⬇ 敵の妨害！ コンボが−${dis.guardN}される（あと${dis.guardUntil-enemyTurn}ターン）`,true); playSfx('warn');
@@ -5444,7 +5460,7 @@ function advanceToNextStage(){
     if(finalHp<=0) chainedKill=true;
     bossHp=finalHp;
   }
-  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
+  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
   playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
@@ -7227,7 +7243,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
