@@ -2322,6 +2322,14 @@ function enemyEventFX(type){
 function sealCands(){
   return flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed && !isLocked(f) && f.cards.length<3);
 }
+function hauntBlock(i,what){   // 悪霊が憑りついた旗に置かれるカードは、効果を出さずに消える（残り枚数が1減る）
+  if(!(haunt[i]>0)) return false;
+  haunt[i]--; const left=haunt[i]; if(left<=0) delete haunt[i];
+  try{ dlog('haunt_void',{flag:i+1,card:what,残り:left}); }catch(e){}
+  hint(left>0?`👻 悪霊のせいで、旗${i+1}に置かれた${what}は無効になった…（悪霊あと${left}枚）`:`👻 旗${i+1}の${what}が無効になり、悪霊が消えた！`,true); playSfx('warn');
+  try{ render(); }catch(e){}
+  return true;
+}
 function applyEnemyEvent(type,target){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
   if(DIS_NAME[type]) disFired++;
@@ -2337,6 +2345,7 @@ function applyEnemyEvent(type,target){
     if(!cand.length){ hint('敵が数字カードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
     else {
       const pk=cand[Math.floor(Math.random()*cand.length)], f=pk.f;
+      if(hauntBlock(pk.i,'敵の数字カード')) return;
       const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
       if(nl&&nl.length){ const pk2=nl[(disFired-1+nl.length*100)%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カード
       else { col=COLORS[Math.floor(Math.random()*COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
@@ -2349,7 +2358,7 @@ function applyEnemyEvent(type,target){
   } else if(type==='half'){
     dis.halfNext=true; hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
   } else if(type==='minus'){
-    { const me=makeMinusEq(); const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&f.cards.length<3&&(!flagMonster(f)||flagMonster(f).sub==='number'||flagMonster(f).sub==='combined')); if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
+    { const me=makeMinusEq(); const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&f.cards.length<3&&(!flagMonster(f)||flagMonster(f).sub==='number'||flagMonster(f).sub==='combined')); if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(hauntBlock(flags.indexOf(f),'マイナスの武器')) return; if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
   } else if(type==='null'){
     giveHandCard(makeCurse('null')); hint('🚫 無効の呪いを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='dark'){
@@ -3527,6 +3536,16 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       return true;
     }
   }
+  if(haunt[fi]>0 && card.kind==='monster'){   // 悪霊の旗：装備カードも効果なしで墓地へ（敵のカードは消えるだけ）
+    busy=true; picked=null; lastFi=fi;
+    hand.splice(handIdx,1); if(!isEnemyEq(card)) graveyard.push(card);
+    hauntBlock(fi,monsterName(card)||'装備');
+    advanceTurn(card);
+    const refilled=autoRefill(1);
+    render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+    busy=false; endCheck(); render();
+    return true;
+  }
   busy=true; picked=null; lastFi=fi;
   { const m0=flagMonster(f), msgs=[];
     if(card.kind==='troop'){
@@ -4320,7 +4339,7 @@ const EVENT_DESC={
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
   deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
-  ghost:()=>'ターンになると強制的に発動。ランダムな旗に悪霊が憑りつく。その旗に置いたカードは、5枚まで無効（点数0・役にならない）になる。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
+  ghost:()=>'ターンになると強制的に発動。ランダムな旗に悪霊が憑りつく。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
   freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
@@ -7208,7 +7227,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
