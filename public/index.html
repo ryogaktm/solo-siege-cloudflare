@@ -2376,9 +2376,10 @@ function applyEnemyEvent(type,target){
     const sealedNow=flags.filter(f=>isLocked(f)).length;
     if(cand.length && sealedNow<FLAG_COUNT-1){
       const pick=cand[Math.floor(Math.random()*cand.length)];
-      graveyard.push(...pick.f.cards.splice(0,pick.f.cards.length));
+      const lost=pick.f.cards.splice(0,pick.f.cards.length); graveyard.push(...lost);
       pick.f.lockedUntil=turnCounter+BALANCE.sealTurns;
-      hint(`敵が旗を1つ封鎖した！${BALANCE.sealTurns}ターン使えない…（手札を捨てて引き直せばターンを進められる）`,true); playSfx('warn');
+      try{ dlog('seal_clear',{flag:pick.i+1,cards:lost.map(dbgCardStr).join(' ')}); }catch(e){}
+      hint(`敵が旗${pick.i+1}を封鎖した！${BALANCE.sealTurns}ターン使えない。${lost.length?`置いてあったカード（${lost.map(cardDisplayName).join('・')}）は墓地へ送られた…`:''}（手札を捨てて引き直せばターンを進められる）`,true); playSfx('warn');
     }
   }
 }
@@ -3468,7 +3469,7 @@ function reEvalClosedFlag(fi){   // 閉じた旗のマークが変わった時�
 }
 function playOnFlag(handIdx, fi, fromRect, noAsk){
   const card=hand[handIdx], f=flags[fi];
-  try{ if(!noAsk) dlog('place_try',{置く:dbgCardStr(card), idx:handIdx, 掴んだ表示:dbgGrab, 手札:hand.map(dbgCardStr).join(' '), 画面の手札:[...document.querySelectorAll('.hand .pcard')].map(e=>{ const c=hand.find(x=>x.uid===e.dataset.uid); return (e.querySelector('.corner')||{}).textContent+'/'+(c?dbgCardStr(c):'?'); }).join(' '), 旗:fi+1}); }catch(e){}
+  try{ if(!noAsk) dlog('place_try',{置く:dbgCardStr(card), idx:handIdx, 掴んだ表示:dbgGrab, 手札:hand.map(dbgCardStr).join(' '), 画面の手札:[...document.querySelectorAll('.hand .pcard')].map(e=>{ const c=hand.find(x=>x.uid===e.dataset.uid); return (e.querySelector('.corner')||{}).textContent+'/'+(c?dbgCardStr(c):'?'); }).join(' '), 旗:fi+1, 結果:(targetsFor(card).includes(fi)?'置ける':'置けない'), 理由:(targetsFor(card).includes(fi)?'':(f.closed?'閉じた旗':isLocked(f)?'封鎖中':(f.cards.length>=3?'3枚埋まっている':'役・装備の条件に合わない'))), 旗の中:f.cards.map(dbgCardStr).join(' ')}); }catch(e){}
   if(!targetsFor(card).includes(fi)){
     if(card.kind==='monster'){
       const existingMon=flagMonster(f);
@@ -7178,7 +7179,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -7376,9 +7377,10 @@ function lgCheck(tag){
     LG.last=cur; LG.exp.clear();
   }catch(e){ try{ console.error('lgCheck',e); }catch(_){} }
 }
-function lgExport(){ try{ if(!LG.last) return null; const l=[]; LG.last.forEach((v,u)=>l.push([u,v.d,v.tv,v.loc,v.p?1:0,v.cc||''])); return {l,m:[...LG.mods.entries()]}; }catch(e){ return null; } }
+function lgExport(){ try{ if(!LG.last) return null; const l=[]; LG.last.forEach((v,u)=>l.push([u,v.d,v.tv,v.loc,v.p?1:0,v.cc||''])); return {l,m:[...LG.mods.entries()],e:[...LG.exp.entries()]}; }catch(e){ return null; } }   // e＝直前までに「理由つきで起きた変化」（セーブ再開後も警告の誤検知が出ないように）
 function lgImport(x){
   LG.exp.clear(); LG.last=null; LG.mods=new Map();
+  try{ if(x&&x.e) x.e.forEach(([u,c])=>LG.exp.set(u,c)); }catch(e){}
   try{ if(x&&x.l){ const m=new Map(); x.l.forEach(r=>m.set(r[0],{c:null,d:r[1],tv:r[2],pv:r[2],loc:r[3],p:!!r[4],cc:r[5]||''})); LG.last=m; LG.mods=new Map(x.m||[]); } }catch(e){}
 }
 (function(){
