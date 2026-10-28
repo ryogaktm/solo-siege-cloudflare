@@ -6879,8 +6879,9 @@ function rollDeckCards(){ return shuffle(TACTICS.filter(t=>t.type==='alexander'?
 let shopBought=false;  // この準備中に、アクセサリー屋で買い物をしたか（買い切りで空になるのはOK、最初から空なのがNG）
 function rollAccStock(){
   shopBought=false;
-  const pool=ACC_DEFS.filter(d=>!accOwned.some(o=>o.id===d.id) && !d.id.startsWith('gold_') && !d.special);
-  shopStock=shuffle(pool.slice()).slice(0,5).map(d=>d.id);
+  const rs=Object.keys((shopOnce&&shopOnce.res)||{}).filter(id=>accDef(id)&&!accOwned.some(o=>o.id===id));   // 手付金で取り置き中の品は、品揃えが変わっても残る
+  const pool=ACC_DEFS.filter(d=>!accOwned.some(o=>o.id===d.id) && !d.id.startsWith('gold_') && !d.special && !rs.includes(d.id));
+  shopStock=rs.concat(shuffle(pool.slice()).slice(0,5).map(d=>d.id));
 }
 function rollShopStock(){
   rollDeckOffer();
@@ -7038,10 +7039,13 @@ function renderShop_(){
   }
   const nDeck=items.length; let accEmpty=false;
   {
-    shopStock=shopStock.filter(id=>!ACC_OFF.includes(id));   // 取り下げたアクセサリーが、保存済みの品揃えに残っていたら店から外す
+    shopStock=shopStock.filter(id=>!ACC_OFF.includes(id));
+    Object.keys((shopOnce&&shopOnce.res)||{}).forEach(id=>{ if(accDef(id)&&!accOwned.some(o=>o.id===id)&&!shopStock.includes(id)) shopStock.unshift(id); });   // 取り置き中の品は必ず棚に残す
+    // 取り下げたアクセサリーが、保存済みの品揃えに残っていたら店から外す
     const stock=shopStock.map(id=>accDef(id)).filter(d=>d && !accOwned.some(o=>o.id===d.id));
-    stock.forEach((d,k)=>items.push({key:'acc_'+d.id,head:k===0?'売っているアクセサリー':null,icon:accIconHtml(d),name:d.name,desc:d.desc,price:accPrice(d),
-      apply:()=>{ accOwned.push({aid:accSeq++,id:d.id}); shopStock=shopStock.filter(x=>x!==d.id); hint(`${d.name}を買った。`); }}));
+    stock.forEach((d,k)=>{ const rv=(shopOnce.res||{})[d.id], full=accPrice(d), paid=rv?Math.min(rv.paid,full):0;
+      items.push({key:'acc_'+d.id,head:k===0?'売っているアクセサリー':null,icon:accIconHtml(d),name:d.name,desc:d.desc,price:full-paid,fullPrice:full,paid:paid,reserved:!!rv,
+      apply:()=>{ if(shopOnce.res) delete shopOnce.res[d.id]; accOwned.push({aid:accSeq++,id:d.id}); shopStock=shopStock.filter(x=>x!==d.id); hint(`${d.name}を買った。`); }}); });
     accEmpty=!stock.length;
   }
   items.forEach((x,i)=>{ x.tab=i<nDeck?'deck':'acc'; });
@@ -7052,18 +7056,28 @@ function renderShop_(){
   const chosen=items.filter(x=>x.tab===kind&&buyQty[x.key]>0).map(x=>({...x,qty:buyQty[x.key]})), n=chosen.reduce((t,x)=>t+x.qty,0), tot=chosen.reduce((t,x)=>t+x.price*x.qty,0), short=tot>gold;
   if(items.length){
     const bb=document.createElement('button'); bb.className='btn'; bb.style.cssText='width:100%;margin:4px 0 8px'; bb.disabled=!chosen.length||short;
-    bb.textContent=!chosen.length?'買う（＋で個数を選ぶ）':short?`お金が足りません（${tot}G / 所持金 ${gold}G）`:`買う（${n}個 / −${tot}G）`;
-    bb.onclick=()=>confirmBuy(chosen,tot); bb.style.margin='0'; const bw=document.createElement('div'); bw.className='shop-act'; bw.appendChild(bb); body.appendChild(bw);
+    const dep=(chosen.length===1&&chosen[0].key.startsWith('acc_')&&chosen[0].qty===1&&!chosen[0].reserved)?Math.ceil(chosen[0].price/2):0;   // 手付金（足りない時だけ・アクセサリー1点・半額）
+    const canDep=short&&dep>0&&gold>=dep;
+    bb.disabled=!chosen.length||(short&&!canDep);
+    bb.textContent=!chosen.length?'買う（＋で個数を選ぶ）':canDep?`お金が足りない！ 本来${tot}G ／ 手付金${dep}G で取り置く`:short?`お金が足りません（${tot}G / 所持金 ${gold}G）`:`買う（${n}個 / −${tot}G）`;
+    bb.onclick=()=>canDep?confirmDeposit(chosen[0],dep):confirmBuy(chosen,tot); bb.style.margin='0'; const bw=document.createElement('div'); bw.className='shop-act'; bw.appendChild(bb); body.appendChild(bw);
   }
   if(kind==='acc'&&accEmpty){ head('売っているアクセサリー'); const e=document.createElement('div'); e.className='reward-sub'; e.textContent='品切れ'; body.appendChild(e); }
   items.filter(x=>x.tab===kind).forEach(x=>{ if(x.head) head(x.head); const q=buyQty[x.key]||0;
     const el=document.createElement('div'); el.className='reward-option acc-opt'; if(x.sold) el.style.opacity='.55';
-    el.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">${x.sold?'売り切れ':`${x.price}G`}</span></div><div class="acc-desc">${x.desc}</div></div>`+
+    el.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">${x.sold?'売り切れ':x.reserved?`取り置き中・残り${x.price}G`:`${x.price}G`}</span></div><div class="acc-desc">${x.desc}</div></div>`+
       (x.sold?'':`<div class="qty-box"><button class="qty-btn" data-d="-1" ${q<=0?'disabled':''}>−</button><span class="qty-num ${q>0?'on':''}">${q}</span><button class="qty-btn" data-d="1" ${q>=x.max?'disabled':''}>＋</button></div>`);
     el.querySelectorAll('.qty-btn').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); const d=+b.dataset.d; buyQty[x.key]=Math.max(0,Math.min(x.max,(buyQty[x.key]||0)+d)); renderShop(); }; });
     body.appendChild(el); });
 }
 let buySel=[], buyQty={}, swapLeft=0;
+function confirmDeposit(x,dep){   // 所持金が足りない時、半額を手付金として払って取り置きできる
+  const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">お金が足りない！</div><div class="reward-sub" style="text-align:left;margin-top:8px">${x.name}：本来 <b>${x.price}G</b>（所持金 ${gold}G）<br>半額の <b>手付金 ${dep}G</b> を払いますか？<br>払うと取り置きできます。残り ${x.price-dep}G を払えば、いつでも買えます。<br>（所持金 ${gold}G → ${gold-dep}G）</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn ghost" id="cdNo" style="flex:1">やめる</button><button class="btn" id="cdYes" style="flex:1">手付金を払う</button></div></div>`;
+  document.body.appendChild(bg);
+  bg.querySelector('#cdNo').onclick=()=>bg.remove();
+  bg.querySelector('#cdYes').onclick=()=>{ bg.remove(); if(gold<dep) return; const id=x.key.slice(4); gold-=dep; shopOnce.res=shopOnce.res||{}; shopOnce.res[id]={paid:dep}; buyQty={}; hint(`${x.name}を手付金${dep}Gで取り置いた。`); renderShop(); refreshPrep(); };
+}
 function confirmBuy(chosen,tot){
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
   bg.innerHTML=`<div class="reward-box"><div class="reward-title">購入の確認</div><div class="reward-sub" style="text-align:left;margin-top:8px">${chosen.map(x=>`・${x.name}${(x.qty||1)>1?` ×${x.qty}`:''}（${x.price*(x.qty||1)}G）`).join('<br>')}</div><div class="reward-sub" style="margin-top:8px"><b>合計 −${tot}G</b>（所持金 ${gold}G → ${gold-tot}G）<br>本当に買いますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="cbNo" style="flex:1">やめる</button><button class="btn" id="cbYes" style="flex:1">買う</button></div></div>`;
@@ -7271,7 +7285,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
