@@ -444,6 +444,9 @@
   .ev-warn-txt{ display:none; }
   .ev-sweep{ position:fixed; left:0; right:0; top:42%; height:64px; z-index:160; pointer-events:none; display:none; align-items:center; justify-content:center; background:linear-gradient(90deg,rgba(0,0,0,0),rgba(200,40,30,.88) 18%,rgba(200,40,30,.88) 82%,rgba(0,0,0,0)); color:#fff; font-size:28px; font-weight:900; text-shadow:0 0 8px #000; white-space:nowrap; }
   .ev-sweep.go{ display:flex; animation:ev-sweep-go 1.15s cubic-bezier(.2,.7,.3,1) forwards; }
+  .ev-sweep.shield{ background:linear-gradient(90deg,rgba(0,0,0,0),rgba(30,110,230,.95) 18%,rgba(30,110,230,.95) 82%,rgba(0,0,0,0)); }
+  .fighter.mo.guarding .spr, .fighter.mo.guarding #waveSpr{ filter:drop-shadow(0 0 6px #4aa8ff) drop-shadow(0 0 12px #2a7bff); }
+  .fighter.mo.guarding::after{ content:'🛡 攻撃半減'; position:absolute; left:50%; top:-22px; transform:translateX(-50%); white-space:nowrap; font-size:13px; font-weight:900; color:#fff; background:#1e6ee6; border:2px solid #bfe0ff; border-radius:12px; padding:1px 8px; box-shadow:0 0 10px #4aa8ff; animation:evSoft 1.2s ease-in-out infinite; z-index:7; }
   .ev-sweep.k1{ background:linear-gradient(90deg,rgba(0,0,0,0),rgba(235,25,15,.95) 18%,rgba(235,25,15,.95) 82%,rgba(0,0,0,0)); }
   @keyframes ev-sweep-go{ 0%{ transform:translateX(-105%); opacity:1; } 35%{ transform:translateX(0); } 65%{ transform:translateX(0); opacity:1; } 100%{ transform:translateX(105%); opacity:0; } }
   .flag-pred{ position:absolute; left:4px; right:4px; bottom:3px; text-align:center; font-size:10.5px; font-weight:800; color:#ffe9a8; text-shadow:0 0 3px #000,0 0 3px #000; pointer-events:none; line-height:1.15; z-index:7; }
@@ -2363,6 +2366,11 @@ function hauntBlock(i,what){   // ワームホールが開いた旗に置かれ�
   try{ render(); }catch(e){}
   return true;
 }
+function syncGuardFx(){ try{ const m=document.getElementById('fighterMo'); if(m) m.classList.toggle('guarding',!!dis.halfNext); }catch(e){} }
+function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾マークを出し続ける
+  try{ const el=document.getElementById('evSweep'); if(!el) return;
+    el.innerHTML='<span style="font-size:min(22px,5.2vw);white-space:nowrap">🛡 敵が防御！ 次の攻撃は半分</span>'; el.className='ev-sweep'; void el.offsetWidth; el.className='ev-sweep go shield'; }catch(e){}
+}
 function applyEnemyEvent(type,target){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
   if(DIS_NAME[type]){ disFired++; disCount[type]=(disCount[type]||0)+1; disLast=type; }
@@ -2389,7 +2397,7 @@ function applyEnemyEvent(type,target){
   } else if(type==='pfield'){
     giveHandCard(makePanicField()); hint('🌀 パニックフィールドを押し付けられた！ 旗に置くと、次にその旗へ置くカードの数字が逆転（革命）する。',true); playSfx('warn');
   } else if(type==='half'){
-    dis.halfNext=true; hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
+    dis.halfNext=true; shieldAlert(); syncGuardFx(); hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
   } else if(type==='minus'){
     { const me=makeMinusEq(); const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&f.cards.length<3&&(!flagMonster(f)||flagMonster(f).sub==='number'||flagMonster(f).sub==='combined')); if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(hauntBlock(flags.indexOf(f),'マイナスの武器')) return; if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
   } else if(type==='null'){
@@ -3290,7 +3298,7 @@ function checkWaveOutcome(){
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
   const rawAtk=Math.max(0, score-atkPoison), halved=!!dis.halfNext;
   const pAtk=rawAtk*(halved?0.5:1), eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
-  if(halved){ try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
+  if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   const diff=pAtk-eAtk;
   const dealt=Math.max(0,diff), taken=Math.max(0,-diff);
   const hpBefore=bossHp;
@@ -4499,7 +4507,7 @@ function predictAttackRange(pA){
   { const mn=Math.max(0,Math.round(pA+lo)), mx=Math.max(0,Math.round(pA+hi)); return disDarkOn()?{min:Math.round(mn/2),max:Math.round(mx/2)}:{min:mn,max:mx}; }
 }
 function renderBattle(){
-  updateBarrier();
+  updateBarrier(); syncGuardFx();
   const pct=Math.min(100,Math.max(0,playerHp/playerHpMax*100));
   const f=document.getElementById('playerHpFill'); if(f){ f.style.width=pct+'%'; f.classList.toggle('over',playerHp>playerHpMax); }
   { const fp=document.getElementById('fighterPl'); if(fp) fp.classList.toggle('buzz',buzzTurns>0); }
@@ -5837,7 +5845,7 @@ function specUse(kind){
     if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
     const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
     haunt={}; poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; f.bomb=0; if(!f.closed) f.cards=f.cards.filter(c=>!isEnemyEq(c)); }); spec.cure++;
-    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; dis.halfNext=false;   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
+    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; dis.halfNext=false; syncGuardFx();   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
     { const before=hand.length; hand=hand.filter(c=>!isDisC(c)); autoRefill(before-hand.length); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
   } else if(kind==='bullet'){
@@ -7262,7 +7270,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
