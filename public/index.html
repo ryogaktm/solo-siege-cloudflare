@@ -2376,10 +2376,9 @@ function applyEnemyEvent(type,target){
     const sealedNow=flags.filter(f=>isLocked(f)).length;
     if(cand.length && sealedNow<FLAG_COUNT-1){
       const pick=cand[Math.floor(Math.random()*cand.length)];
-      const lost=pick.f.cards.splice(0,pick.f.cards.length); graveyard.push(...lost);
       pick.f.lockedUntil=turnCounter+BALANCE.sealTurns;
-      try{ dlog('seal_clear',{flag:pick.i+1,cards:lost.map(dbgCardStr).join(' ')}); }catch(e){}
-      hint(`敵が旗${pick.i+1}を封鎖した！${BALANCE.sealTurns}ターン使えない。${lost.length?`置いてあったカード（${lost.map(cardDisplayName).join('・')}）は墓地へ送られた…`:''}（手札を捨てて引き直せばターンを進められる）`,true); playSfx('warn');
+      try{ dlog('seal',{flag:pick.i+1,残るカード:pick.f.cards.map(dbgCardStr).join(' ')}); }catch(e){}
+      hint(`敵が旗${pick.i+1}を封鎖した！${BALANCE.sealTurns}ターン使えない。${pick.f.cards.length?'置いてあるカードはそのまま残るが、カードを追加できない…':''}（手札を捨てて引き直せばターンを進められる）`,true); playSfx('warn');
     }
   }
 }
@@ -4810,7 +4809,7 @@ function curseInfo(c){
   if(c.type==='curse_minus') return `使って旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる（役・コンボも付かない）。`;
   const per=WAVES[stageIndex].poison||(2+WAVES[stageIndex].tier);
   if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">${DIS_PARAM.poisonTurns}ターンの間</b>、フィールドに出す数字カード（装備も）が<b style="color:var(--danger)">−1</b>される。「🧪薬」で止められます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
-  return `使うと好きな旗を1つ選んで、<b style="color:var(--danger)">${BALANCE.sealTurns}ターンの間</b>使えなくなる（置いてあったカードは墓地へ）。封鎖が解けるまでに攻撃が来ると追加ダメージを受けます。「🧪薬」ですぐに解除できます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。`;
+  return `使うと好きな旗を1つ選んで、<b style="color:var(--danger)">${BALANCE.sealTurns}ターンの間</b>使えなくなる（置いてあったカードはそのまま残るが、追加で置けない）。封鎖が解けるまでに攻撃が来ると追加ダメージを受けます。「🧪薬」ですぐに解除できます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。`;
 }
 function cardInfoContent(c){
   if(isCurse(c)) return `<p><b>${c.name}</b></p><p>${curseInfo(c)}</p>`;
@@ -7179,7 +7178,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-28i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-28j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
