@@ -1960,7 +1960,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=5;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, every:0.45};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.45};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -2057,18 +2057,28 @@ function disList(w){
   if(ENEMY_CFG[w.name]&&ENEMY_CFG[w.name].dis) r=ENEMY_CFG[w.name].dis;
   else if(w.boss) r=DIS_BOSS[w.name]||[];
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
-  return r.filter(k=>!DIS_OFF.includes(k));
+  r=r.filter(k=>!DIS_OFF.includes(k));
+  if(!w.boss && w.lv<DIS_PARAM.harshLv){   // 序盤は、プレイでどうにかできる「旗（シート）の妨害」だけ。防御・コンボ系は出さない
+    r=r.filter(k=>!HARSH_DIS.includes(k));
+    SHEET_DIS.forEach(([t,minLv])=>{ if(w.lv>=minLv && !r.includes(t) && !DIS_OFF.includes(t)) r.push(t); });
+  }
+  return r;
 }
+const HARSH_DIS=['half','guard','bguard','comboreset','colnull','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
+const SHEET_DIS=[['autonum',5],['cfield',10],['pfield',12],['minus',16],['bomb',20],['deatheater',24],['ghost',26],['minusrain',28]];   // [技, 出始めのlv]：旗やカードに関わる妨害
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
 function disWeights(w,dl){   // 敵ごとの「得意技」：ENEMY_CFG の fav:[...]（同じ技を並べるほど重い）か、無ければ名前から決まる偏りを使う（どの敵も得意技・準得意・苦手が固定）
   const types=[...new Set(dl)], wt={};
   const ec=ENEMY_CFG[w.name]||{};
   if(ec.fav&&ec.fav.length){ types.forEach(t=>{ wt[t]=0.4; }); ec.fav.forEach(t=>{ if(wt[t]!==undefined) wt[t]=(wt[t]<1?0:wt[t])+1; }); return wt; }
   let h=0; for(const ch of String(w.name)) h=(h*131+ch.charCodeAt(0))>>>0;
-  const n=types.length; types.forEach(t=>{ wt[t]=1; });
-  if(n<=1) return wt;
-  const f1=h%n, f2=(f1+1+((h>>>5)%(n-1)))%n; wt[types[f1]]=7; wt[types[f2]]=3;
-  if(n>=5){ const rest=types.map((t,i)=>i).filter(i=>i!==f1&&i!==f2); wt[types[rest[(h>>>9)%rest.length]]]=0; }   // 5種類以上なら1つは苦手（ほぼ出さない）
+  types.forEach(t=>{ wt[t]=1; });
+  const cand=(!w.boss && w.lv<DIS_PARAM.harshFavLv)?types.filter(t=>!HARSH_DIS.includes(t)):types;   // 序盤は、避けようのない妨害を得意技にしない
+  const n=cand.length; if(n<=0) return wt;
+  if(n===1){ wt[cand[0]]=7; return wt; }
+  const f1=h%n, f2=(f1+1+((h>>>5)%(n-1)))%n; wt[cand[f1]]=7; wt[cand[f2]]=3;
+  if(n>=5){ const rest=cand.map((t,i)=>i).filter(i=>i!==f1&&i!==f2); wt[cand[rest[(h>>>9)%rest.length]]]=0; }
+  if(!w.boss && w.lv<DIS_PARAM.harshFavLv) types.forEach(t=>{ if(HARSH_DIS.includes(t)) wt[t]=0.5; });   // 5種類以上なら1つは苦手（ほぼ出さない）
   return wt;
 }
 function pickDisSeq(dl,n,w){
@@ -7250,7 +7260,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
