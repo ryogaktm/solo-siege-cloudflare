@@ -352,7 +352,7 @@
   .app.compact .board-wrap{ margin-bottom:4px; }
   .app.tight .upcoming-label{ display:none !important; }   /* 盤面が狭い時：ラベルを消し、予測の段を細くして旗の高さを確保 */
   .app.tight .upcoming-wrap{ margin-bottom:3px; gap:2px; }
-  .app.tight .fc{ padding:2px 2px; } .app.tight .fc b{ font-size:11px; } .app.tight .fc small{ font-size:7.5px; } .app.tight .fc small.fc-sw{ display:none; }
+  .app.tight .fc{ padding:2px 2px; } .app.tight .fc b{ font-size:11px; } .app.tight .fc small{ font-size:7.5px; } .app.tight .fc:has(> small.fc-sw){ flex-direction:row; gap:1px; } .app.tight .fc small.fc-sw{ display:inline; font-size:9px; }
   .app.tight .stage{ height:104px; margin:2px 0 4px; }
   .app.tight .st-hp{ top:4px; } .app.tight .st-atk{ top:28px; } .app.tight .st-dis{ top:52px; }
   .st-side{ flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px; }
