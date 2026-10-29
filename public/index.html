@@ -2191,6 +2191,8 @@ function enemyAtkAt(t){
   const fk=FLAG_COUNT/BALANCE.flagCountAtkBase;
   return Math.round((w.atk + w.grow*te)*fk*mult*monAtkMult);
 }
+const ACC_PARAM={quickTurns:12, quickMul:5};   // 早撃ちのブーツ：このターン以内に全部の旗を完成させて攻撃すると、総攻撃力がこの倍になる（倍の腕輪で増え分が2倍）
+function quickMult(t){ return (hasAcc('quick_boots')&&t<=ACC_PARAM.quickTurns)?(1+(ACC_PARAM.quickMul-1)*accX()):1; }
 function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
 function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
@@ -2198,7 +2200,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=val(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*(dis.halfNext?0.5:1);
+  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn)*(dis.halfNext?0.5:1);
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -3298,7 +3300,8 @@ function checkWaveOutcome(){
   try{ const nm={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
-  const rawAtk=Math.max(0, score-atkPoison), halved=!!dis.halfNext;
+  const qm=quickMult(atkTurn), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
+  if(qm>1){ accStat.fastAtk=(accStat.fastAtk||0)+1; try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成 → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
   const pAtk=rawAtk*(halved?0.5:1), eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   const diff=pAtk-eAtk;
@@ -6426,6 +6429,7 @@ function buildAccDefs(){
   L.push({id:'gold_s',name:'銅の指輪',icon:'🥉',desc:'役に立たないが、売るとお金になる'});
   L.push({id:'gold_m',name:'銀の指輪',icon:'🥈',desc:'役に立たないが、売ると高い'});
   L.push({id:'gold_l',name:'金の指輪',icon:'🥇',desc:'役に立たないが、売るととても高い'});
+  L.push({id:'quick_boots',name:'早撃ちのブーツ',icon:'👢',desc:`${ACC_PARAM.quickTurns}ターンまでに全部の旗を完成させて攻撃すると、総攻撃力が${ACC_PARAM.quickMul}倍になる`});
   L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、敵の動きが止まる'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));
@@ -6525,7 +6529,7 @@ function spPlusPrice(){ return specPlusBought<=0?125:specPlusBought===1?250:350;
 function specRemain(k){ if(!specEnabled(k)) return 0; if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) return 99; return Math.max(0,specMax(k)-(spec[k]||0)); }
 /* ----- 取得条件（戦闘ごとのチェックリスト） ----- */
 let battleGoals=[];
-function blankBattleStat(){ return {super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0}; }
+function blankBattleStat(){ return {fastAtk:0,super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0}; }
 const BOSS_DROP=Object.fromEntries(Object.entries({sp_beg:2,sp_cure:3,sp_guard:4,add3_weapon:1,add3_armor:5,purple_out:5,sp_double:7}).map(([k,v])=>[k,BASE_IDX[v]]));
 function goalDef(d){
   const id=d.id, S=accStat, thr=WAVES[stageIndex].threshold, cn=d.color?SHORTC(d.color):'';
@@ -6537,6 +6541,7 @@ function goalDef(d){
   if(id.startsWith('super2_')) return {tier:'hard',text:`${cn}旗のスーパーコンボを×5まで決める`,done:()=>(S.super[d.color]||0)>=5,prog:`×${Math.min(5,S.super[d.color]||0)} / ×5`};
   const hpTxt=()=>`最低体力 ${Math.round(S.minHp*100)}%`;
   switch(id){
+    case 'quick_boots': return {tier:'hard',text:`${ACC_PARAM.quickTurns}ターン以内に旗を全部完成させて攻撃する`,done:()=>(S.fastAtk||0)>=1};
     case 'sp_shuffle': return {tier:'easy',text:'軍師カードを3枚使う',done:()=>S.tac>=3,prog:`${Math.min(3,S.tac)} / 3枚`};
     case 'del3': return R('ホスト',3);
     case 'add3_tac': return R('スカーミッシュ',1);
@@ -6802,7 +6807,7 @@ function accPriceBase(d){
   if(id==='sp_double') return 150; if(id==='purple_out') return 120;
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
   if(id==='yaku_only') return 200; if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
-  if(id==='glass') return 200;
+  if(id==='glass') return 200; if(id==='quick_boots') return 400;
   if(id==='combo_barrier'||id==='host_ring') return 200; if(id==='double_x') return 300; if(id==='clairvoyant') return 200; if(id==='hand') return 150;
   if(id==='hp_scarf') return 300; if(id==='reflect_mirror') return 200; if(id==='hp_x15') return 120; if(id==='hp_x2') return 220; if(id==='endure') return 160; if(id==='heal_patch') return 240;
   if(id==='gold_s') return 200; if(id==='gold_m') return 400; if(id==='gold_l') return 800;
@@ -7288,7 +7293,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
