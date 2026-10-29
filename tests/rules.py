@@ -47,5 +47,9 @@ with sync_playwright() as p:
     check('早撃ちのブーツ：持っていなければ等倍',r['none']==1,r)
     check('早撃ちのブーツ：12ターン以内は×5、13ターン目からは等倍',r['in12']==5 and r['out']==1,r)
     check('早撃ちのブーツ：倍の腕輪で増え分が2倍（×9）',r['dbl']==9,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); battleGoals=['quick_boots']; accOwned=accOwned.filter(a=>a.id!=='quick_boots'); const o={price:accPrice(accDef('quick_boots')),before:goalMet('quick_boots',true)};
+      accStat.fastAtk=1; o.after=goalMet('quick_boots',true); const got=acquireNew(true); o.got=got.some(d=>d.id==='quick_boots'); o.owned=accOwned.some(a=>a.id==='quick_boots'); return o}""")
+    check('早撃ちのブーツ：条件（12ターン以内に攻撃）を満たすと戦闘後にもらえる',r['before']==False and r['after']==True and r['got'] and r['owned'],r)
+    check('早撃ちのブーツ：値段は標準（150G）',r['price']==150,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

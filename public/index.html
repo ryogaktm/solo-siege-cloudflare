@@ -3301,7 +3301,8 @@ function checkWaveOutcome(){
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
   const qm=quickMult(atkTurn), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
-  if(qm>1){ accStat.fastAtk=(accStat.fastAtk||0)+1; try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成 → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
+  if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
+  if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成 → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
   const pAtk=rawAtk*(halved?0.5:1), eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   const diff=pAtk-eAtk;
@@ -6807,7 +6808,7 @@ function accPriceBase(d){
   if(id==='sp_double') return 150; if(id==='purple_out') return 120;
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
   if(id==='yaku_only') return 200; if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
-  if(id==='glass') return 200; if(id==='quick_boots') return 400;
+  if(id==='glass') return 200;
   if(id==='combo_barrier'||id==='host_ring') return 200; if(id==='double_x') return 300; if(id==='clairvoyant') return 200; if(id==='hand') return 150;
   if(id==='hp_scarf') return 300; if(id==='reflect_mirror') return 200; if(id==='hp_x15') return 120; if(id==='hp_x2') return 220; if(id==='endure') return 160; if(id==='heal_patch') return 240;
   if(id==='gold_s') return 200; if(id==='gold_m') return 400; if(id==='gold_l') return 800;
@@ -7293,7 +7294,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
