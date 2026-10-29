@@ -6810,7 +6810,8 @@ function purgeDeleted(){
 }
 /* ----- 宝箱 ----- */
 const ACC_PRICE_MULT=2.5;  // アクセサリー屋の値段倍率（売値は買値の半分）
-const accPrice=d=>Math.round(accPriceBase(d)*ACC_PRICE_MULT);
+const ACC_PRICE_CUT={500:100,600:100};   // 手が出しにくい値段の値下げ（元の値段→下げる額）。売値は変わらない
+const accPrice=d=>{ const f=Math.round(accPriceBase(d)*ACC_PRICE_MULT); return f-(d.id.startsWith('gold_')?0:(ACC_PRICE_CUT[f]||0)); };
 function accPriceBase(d){
   const id=d.id;
   if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150; if(id.startsWith('blade_')) return (COMBO_BLADES[d.color]||{}).price||350;
@@ -7303,7 +7304,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
