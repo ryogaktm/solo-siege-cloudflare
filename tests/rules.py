@@ -51,5 +51,23 @@ with sync_playwright() as p:
       accStat.fastAtk=1; o.after=goalMet('quick_boots',true); const got=acquireNew(true); o.got=got.some(d=>d.id==='quick_boots'); o.owned=accOwned.some(a=>a.id==='quick_boots'); return o}""")
     check('早撃ちのブーツ：条件（12ターン以内に攻撃）を満たすと戦闘後にもらえる',r['before']==False and r['after']==True and r['got'] and r['owned'],r)
     check('早撃ちのブーツ：値段は標準（150G）',r['price']==150,r)
+    r=ev("""()=>{ gold=0; shopOnce={}; rollAccStock(); inPrep=true; openShop('buyacc'); const id=shopStock[0], full=accPrice(accDef(id)); const o={};
+      const nm=accDef(id).name, row=()=>[...document.querySelectorAll('.acc-opt')].find(e=>e.querySelector('.reward-name').textContent.startsWith(nm)&&e.textContent.includes(full+'G'));
+      gold=full+5; renderShop(); o.rich=/手付金/.test(row().textContent);
+      gold=Math.ceil(full/2)+1; renderShop(); o.poor=/手付金/.test(row().textContent);
+      o.full=full; return o}""")
+    check('手付金：お金が足りている商品の行には手付金が出ない',r['rich']==False,r)
+    check('手付金：足りない商品の行に手付金の額が出る',r['poor']==True,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display='';
+      const o={}; spec.bullet=0; CHARACTER.sp=CHARACTER.sp||[]; if(!CHARACTER.sp.includes('bullet')) CHARACTER.sp.push('bullet');
+      enemyTurn=3; turnCounter=3; bulletLeft=0; enemyFreeze=0;
+      specUse('bullet'); o.after1=[bulletLeft,enemyFreeze];
+      const t0=turnCounter, e0=enemyTurn; advanceTurn(null); advanceTurn(null); o.frozen=[turnCounter-t0, enemyTurn-e0, bulletLeft];
+      const n0=document.querySelectorAll('.modal-bg').length; specUse('bullet'); o.second=bulletLeft; o.alert=[...document.querySelectorAll('.modal-bg')].some(m=>m.style.zIndex==='10001');
+      for(let i=0;i<3;i++) advanceTurn(null); o.ended=bulletLeft; const t1=turnCounter,e1=enemyTurn; advanceTurn(null); o.moves=[turnCounter-t1,enemyTurn-e1]; return o}""")
+    check('バレットタイム：使うと5ターン止まる',r['after1']==[5,5],r)
+    check('バレットタイム中はターンも敵も進まない',r['frozen']==[0,0,3],r)
+    check('バレットタイム：連続では使えず、アラートが出る',r['second']==3 and r['alert'],r)
+    check('バレットタイム：終わったらターンが進み、また使える',r['ended']==0 and r['moves']==[1,1],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

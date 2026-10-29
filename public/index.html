@@ -1580,7 +1580,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
   'スライム':{kind:'shuffle'},
-  'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
+  'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
@@ -1930,6 +1930,7 @@ let anyDragActive=false;
 let monAtkMult=1, buzzTurns=0, stomach=[];   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
+let bulletLeft=0;   // バレットタイムの残りターン（この間は時間が止まり、ターンも進まない）
 let enemyFreeze=0, enemyPoisonPer=0, hpBonus=0, specBonusK={}, specProg={}, specPlusBought=0;   // specBonusK＝ストアで買った「特殊技+1」（持ち技ごと）／specPlusBought＝買った回数（値段が上がる）
 //   // 反射の手鏡：敵の停止ターン数／敵が受ける毒（毎ターンの減少量）／栄養ドリンクの体力加算
 const EVENT_INFO={
@@ -2347,7 +2348,7 @@ function barrierMult(){
 function resetBattleRound(){
   frozenMults={}; frozenHost={};
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
-  enemyTurn=0; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
+  enemyTurn=0; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
   try{
@@ -2369,6 +2370,11 @@ function hauntBlock(i,what){   // ワームホールが開いた旗に置かれ�
   hint(left>0?`🕳 ワームホールのせいで、旗${i+1}に置かれた${what}は無効になった…（ワームホールあと${left}枚）`:`🕳 旗${i+1}の${what}が無効になり、ワームホールが消えた！`,true); playSfx('warn');
   try{ render(); }catch(e){}
   return true;
+}
+function gameAlert(msg){   // 画面に出るアラート（OKで閉じる）
+  const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10001';
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">⚠ できません</div><div class="reward-sub" style="margin-top:8px;white-space:pre-line">${msg}</div><button class="btn" id="gaOk" style="width:100%;margin-top:12px">OK</button></div>`;
+  document.body.appendChild(bg); bg.querySelector('#gaOk').onclick=()=>bg.remove();
 }
 function syncGuardFx(){ try{ const m=document.getElementById('fighterMo'); if(m) m.classList.toggle('guarding',!!dis.halfNext); }catch(e){} }
 function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾マークを出し続ける
@@ -2432,7 +2438,7 @@ function applyEnemyEvent(type,target){
     hint(had?'💥 コンボリセット！ スーパーコンボがすべて0に戻された…':'💥 コンボリセット！（今は積み上げたコンボがなかった）',true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
   } else if(type==='freeze'){
     const had=enemyFreeze>0||enemyPoisonPer>0;
-    enemyFreeze=0; enemyPoisonPer=0;
+    enemyFreeze=0; enemyPoisonPer=0; bulletLeft=0;
     hint(had?'❄ いてつくはどう！ 敵にかけた効果が消し飛んだ！':'❄ いてつくはどう！（効果はなかった）',true); playSfx('warn');
   } else if(type==='colhalf'||type==='colnull'){
     const ks=Object.keys(carryMap), cols=ks.length?ks.slice().sort((a,b)=>carryMap[b]-carryMap[a]):flags.filter(f=>f.symbolColor).map(f=>f.symbolColor);
@@ -2888,19 +2894,21 @@ let prevSnap=null;
 function advanceTurn(usedCard){
   if(usedCard&&usedCard.kind==='tactics'&&!isCurse(usedCard)) { accStat.tac=(accStat.tac||0)+1; checkGoalAnnounce(false); }
   prevSnap={t:enemyTurn,pp:poisonPenalty};
-  turnCounter++; if(buzzTurns>0) buzzTurns--;
-  flags.forEach(f=>{ if(f.lockedUntil && f.lockedUntil<=turnCounter) f.lockedUntil=0; });
-  let stepped=!hasAcc('glass') || turnCounter%2===0;   // 背水のピアス：敵は2ターンに1回しか動かない
-  if(enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
-  if(CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(Math.max(1,Math.round(playerHpMax/10)));   // アリ：毎ターン最大体力の10分の1回復
+  const bt=bulletLeft>0;   // バレットタイム中は時間が止まる：ターンも、敵も、毒・封鎖・ボムの時間も進まない
+  if(bt){ bulletLeft--; if(enemyFreeze>0) enemyFreeze--; }
+  else { turnCounter++; if(buzzTurns>0) buzzTurns--; }
+  if(!bt) flags.forEach(f=>{ if(f.lockedUntil && f.lockedUntil<=turnCounter) f.lockedUntil=0; });
+  let stepped=!bt && (!hasAcc('glass') || turnCounter%2===0);   // 背水のピアス：敵は2ターンに1回しか動かない
+  if(!bt && enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
+  if(!bt&&CHARACTER&&monDisp()==='アリ'&&playerHp>0) healPlayer(Math.max(1,Math.round(playerHpMax/10)));   // アリ：毎ターン最大体力の10分の1回復
   if(CHARACTER&&monDisp()==='毒キノコ'){   // 毒の胞子：数字カードを置くと今のダメージを与えて2倍に。それ以外の行動だと、次のダメージが半分になる（最小1）
     if(usedCard&&usedCard.kind==='troop'){
       const md=mushDmg; mushDmg=Math.min(mushDmg*2,1e15);
       if(enemyPoisonPer<=0&&bossHp>0){ bossHp=Math.max(0,bossHp-md); animateBossHp(bossHp,350); if(bossHp<=0) mushKill=true; hint(`🍄 毒の胞子！ 敵のHPが${fmtCompact(md)}減った（次は${fmtCompact(mushDmg)}）`,false); }
     } else { mushDmg=Math.max(1,Math.floor(mushDmg/2)); }
   }
-  if(enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
-  tickBombs();
+  if(!bt && enemyPoisonPer>0 && bossHp>1){ bossHp=Math.max(1,bossHp-enemyPoisonPer); animateBossHp(bossHp,350); }   // 反射の手鏡：毒を返された敵は毎ターン弱る（攻撃で倒す）
+  if(!bt) tickBombs();
   let ev=null;
   if(stepped){
     for(let k=0;k<accX();k++){   // 倍の腕輪：敵のターンも2倍の速さで進む
@@ -5856,8 +5864,9 @@ function specUse(kind){
     { const before=hand.length; hand=hand.filter(c=>!isDisC(c)); autoRefill(before-hand.length); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
   } else if(kind==='bullet'){
-    enemyFreeze+=5; spec.bullet++;
-    hint('⏱ バレットタイム！5ターンの間、敵の動きが止まる。'); playSfx('shuffle');
+    if(bulletLeft>0){ gameAlert(`バレットタイムは連続では使えません。\n今のバレットタイムが終わる（あと${bulletLeft}ターン）まで待ってください。`); playSfx('warn'); return; }
+    bulletLeft=5; enemyFreeze+=5; spec.bullet++;
+    hint('⏱ バレットタイム！5ターンの間、時間が止まる（敵も、ターンも進まない）。'); playSfx('shuffle');
   } else if(kind==='guard'){
     if(guardOn) return;
     guardOn=true; spec.guard++;
@@ -5958,7 +5967,7 @@ const SPEC_INFO={
   beg:{title:'🙏 命乞い',desc:'次に予定されている敵の特殊攻撃（攻撃力アップ・毒・封鎖）を1回パスします。（ターンは進みません）'},
   punch:{title:'👊 殴る',desc:'敵にすぐ50ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   guard:{title:'🛡 防御',desc:'次に受けるHPのダメージが半分になります。'},
-  bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、敵の動き（攻撃力の上昇や特殊攻撃）が止まります。（使った時点ではターンは進みません）'},
+  bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
 function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
@@ -6432,7 +6441,7 @@ function buildAccDefs(){
   L.push({id:'gold_l',name:'金の指輪',icon:'🥇',desc:'役に立たないが、売るととても高い'});
   L.push({id:'quick_boots',name:'早撃ちのブーツ',icon:'👢',desc:`${ACC_PARAM.quickTurns}ターンまでに全部の旗を完成させて攻撃すると、総攻撃力が${ACC_PARAM.quickMul}倍になる`});
   L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
-  L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、敵の動きが止まる'});
+  L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、時間が止まる（敵も、ターンも進まない。連続では使えない）'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));
   L.push({id:'sp_double',name:'倍化のアンクレット',icon:'🔁',desc:'特殊技を使える回数が2倍になる'});
   L.push({id:'del3',name:'断捨離のピアス',icon:'🗑',desc:'山札から好きな3枚を削除する（装備中のみ。外すと戻る）'});
@@ -7074,7 +7083,7 @@ function renderShop_(){
   if(kind==='acc'&&accEmpty){ head('売っているアクセサリー'); const e=document.createElement('div'); e.className='reward-sub'; e.textContent='品切れ'; body.appendChild(e); }
   items.filter(x=>x.tab===kind).forEach(x=>{ if(x.head) head(x.head); const q=buyQty[x.key]||0;
     const el=document.createElement('div'); el.className='reward-option acc-opt'; if(x.sold) el.style.opacity='.55';
-    el.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">${x.sold?'売り切れ':x.reserved?`取り置き中・残り${x.price}G`:`${x.price}G`}</span></div><div class="acc-desc">${x.desc}</div></div>`+
+    el.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">${x.sold?'売り切れ':x.reserved?`取り置き中・残り${x.price}G`:`${x.price}G`}</span>${(!x.sold&&!x.reserved&&x.key.startsWith('acc_')&&x.price>gold)?`<span class="acc-tag" style="margin-left:4px;background:#1e6ee6;color:#fff">手付金${Math.ceil(x.price/2)}G</span>`:''}</div><div class="acc-desc">${x.desc}</div></div>`+
       (x.sold?'':`<div class="qty-box"><button class="qty-btn" data-d="-1" ${q<=0?'disabled':''}>−</button><span class="qty-num ${q>0?'on':''}">${q}</span><button class="qty-btn" data-d="1" ${q>=x.max?'disabled':''}>＋</button></div>`);
     el.querySelectorAll('.qty-btn').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); const d=+b.dataset.d; buyQty[x.key]=Math.max(0,Math.min(x.max,(buyQty[x.key]||0)+d)); renderShop(); }; });
     body.appendChild(el); });
@@ -7294,7 +7303,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-29j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-29k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
