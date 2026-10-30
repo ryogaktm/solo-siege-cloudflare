@@ -4407,12 +4407,19 @@ function showEventPopup(ev,cd){
   let bg=document.getElementById('evPopupBg');
   if(!bg){ bg=document.createElement('div'); bg.className='modal-bg'; bg.id='evPopupBg'; bg.style.display='none';
     bg.innerHTML='<div class="cardinfo"><div class="ci-text" id="evPopupTxt"></div><button class="btn ghost" id="evPopupClose">とじる</button></div>';
-    document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(e.target===bg||e.target.id==='evPopupClose') bg.style.display='none'; }); }
+    document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(Date.now()-(bg._openedAt||0)<450) return; if(e.target===bg||e.target.id==='evPopupClose') bg.style.display='none'; }); }
   const d=(EVENT_DESC[ev]||(()=>info.label))();
   document.getElementById('evPopupTxt').innerHTML=`<p style="font-size:22px;margin:0 0 6px">${info.icon} <b>${info.label}</b></p>${cd?`<p style="margin:0 0 8px;opacity:.8">あと${cd}ターン後</p>`:''}<p style="margin:0">${d}</p>`;
-  bg.style.display='flex';
+  bg._openedAt=Date.now(); bg.style.display='flex';
 }
-document.addEventListener('click',e=>{ const c=e.target.closest&&e.target.closest('#upcomingRow .fc[data-ev],#upcomingRow2 .fc[data-ev]'); if(c) showEventPopup(c.dataset.ev,+c.dataset.cd||0); });
+/* 妨害・特殊攻撃のマークをタップ → 説明のポップアップ。click が届かない端末（iPhone等）でも開くように、指を離した時（pointerup）でも開く。二重に開かないよう0.7秒の間引きをする */
+(function(){
+  const SEL='#upcomingRow .fc[data-ev],#upcomingRow2 .fc[data-ev]'; let last=0, dn=null;
+  const open=c=>{ const n=Date.now(); if(n-last<700) return; last=n; showEventPopup(c.dataset.ev,+c.dataset.cd||0); };
+  document.addEventListener('pointerdown',e=>{ const c=e.target.closest&&e.target.closest(SEL); dn=c?{c,x:e.clientX,y:e.clientY,t:Date.now()}:null; },true);
+  document.addEventListener('pointerup',e=>{ const c=e.target.closest&&e.target.closest(SEL); if(c&&dn&&dn.c===c&&Math.abs(e.clientX-dn.x)<12&&Math.abs(e.clientY-dn.y)<12&&Date.now()-dn.t<800) open(c); dn=null; },true);
+  document.addEventListener('click',e=>{ const c=e.target.closest&&e.target.closest(SEL); if(c) open(c); });
+})();
 function renderUpcoming(){
   const nr=document.getElementById('nextRow');
   { const nb=document.getElementById('nextMain'); const all=hasAcc('clairvoyant'); if(nb) nb.style.display=(hasAcc('host_ring')&&!all)?'none':'';
@@ -7307,7 +7314,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-31a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-10-31b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

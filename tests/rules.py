@@ -69,5 +69,12 @@ with sync_playwright() as p:
     check('バレットタイム中はターンも敵も進まない',r['frozen']==[0,0,3],r)
     check('バレットタイム：連続では使えず、アラートが出る',r['second']==3 and r['alert'],r)
     check('バレットタイム：終わったらターンが進み、また使える',r['ended']==0 and r['moves']==[1,1],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none');
+      const i=WAVES.findIndex(w=>w.lv===20); stageIndex=i; nextStageIdx=i; enemyTurn=8; enemySched=genSchedule(); render(); renderUpcoming();
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms)), disp=()=>{const e=document.getElementById('evPopupBg'); return e?getComputedStyle(e).display:'none'};
+      const c=document.querySelector('#upcomingRow2 .fc[data-ev]'); const rc=c.getBoundingClientRect(); const o={bubbles:true,clientX:rc.x+5,clientY:rc.y+5,pointerId:7,pointerType:'touch',isPrimary:true};
+      c.dispatchEvent(new PointerEvent('pointerdown',o)); c.dispatchEvent(new PointerEvent('pointerup',o)); await sleep(100); const viaPointer=disp();
+      document.getElementById('evPopupBg').style.display='none'; await sleep(800); c.click(); await sleep(100); const viaClick=disp(); return {viaPointer,viaClick}}""")
+    check('妨害レーンのマークは、指を離した時（pointerup）でも、click でも、説明が開く',r['viaPointer']=='flex' and r['viaClick']=='flex',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
