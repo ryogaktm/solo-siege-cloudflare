@@ -7076,11 +7076,13 @@ function giveCopperRing(got){
   if(got.some(d=>d.id==='gold_s')) return;
   const cu=accDef('gold_s'); if(cu){ chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); chestWhy.gold_s='戦闘のごほうび（必ずもらえる）'; }
 }
+let lastGoalRes=[];   // 直前の戦いの取得条件の結果［{name,text,ok}］
 function grantStageReward(){
   inPrep=true;
   playSfx('bossDefeat');
   setTimeout(()=>playSfx('reward'), 350);
   const income=0;
+  try{ lastGoalRes=battleGoals.map(id=>{ const d=accDef(id), g=d&&goalDef(d); return g?{id,ok:!!goalMet(id,true),text:g.text,name:(goalShow(id)||d).name}:null; }).filter(Boolean); }catch(e){ lastGoalRes=[]; }   // 戦闘の結果：この戦いの取得条件を、アクセサリーを渡す前に判定しておく
   const got=acquireNew();
   giveCopperRing(got);
   try{ saveGame(); }catch(e){}  // 戦闘が終わったところで保存（やめても準備画面から再開）
@@ -7104,6 +7106,10 @@ function openChest(got,income){
     el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div>${chestWhy[d.id]?`<div class="acc-desc" style="margin-top:4px;color:var(--gold);font-weight:700">${chestWhy[d.id]}</div>`:''}</div>`;
     box.appendChild(el);
   });
+  { const okL=(lastGoalRes||[]).filter(x=>x.ok);   // 戦いが終わったら、クリアした条件を一覧で出す
+    const gb=document.createElement('div'); gb.className='reward-option'; gb.style.cssText='cursor:default;flex-direction:column;align-items:stretch;gap:4px';
+    gb.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">📋 クリアした条件（${okL.length}／${(lastGoalRes||[]).length}）</div>`+(okL.length?okL.map(x=>`<div class="acc-desc">☑ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'<div class="acc-desc" style="opacity:.8">今回クリアした条件はありませんでした</div>');
+    box.insertBefore(gb,box.firstChild); }
   const cashO=chestAids.map(a=>accOwned.find(o=>o.aid===a)).filter(Boolean);
   if(cashO.length){
     const tot=cashO.reduce((t,o)=>t+accSell(accDef(o.id)),0);
