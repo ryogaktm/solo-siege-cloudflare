@@ -1211,7 +1211,6 @@
   <div class="rail"></div>
     <div class="specrow">
       <button class="spec-btn" id="freeShuffleBtn"><span class="si">🔄</span><span class="sl">シャッフル</span><b id="freeShuffleCount">1</b></button>
-      <button class="spec-btn" id="specBeg"><span class="si">🙏</span><span class="sl">命乞い</span><b id="specBegN">1</b></button>
       <button class="spec-btn" id="specPunch"><span class="si">👊</span><span class="sl">殴る</span><b id="specPunchN">1</b></button>
       <button class="spec-btn" id="specGuard"><span class="si">🛡</span><span class="sl">防御</span><b id="specGuardN">1</b></button>
       <button class="spec-btn" id="specCure"><span class="si">🧪</span><span class="sl">薬</span><b id="specCureN">1</b></button>
@@ -1490,12 +1489,14 @@ const TACTICS = [
   {type:'guidance',name:'誘導',short:'誘導',desc:'旗の一番上のカードを別の旗へ移動',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
   {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする（最大10）',count:3},
+  {type:'plead',name:'命乞い',short:'命乞い',desc:'これから来る敵の大技（攻撃力アップ・妨害）の発動を3ターン遅らせる',count:2,isNew:true},
   {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚複製する',count:2},
   {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
   {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など。1は1と1の2枚）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
 ];
-const GLOBAL_TACTIC_TYPES=['scout','shuffle','inspire','rehire','conscript','revolution'];
+const GLOBAL_TACTIC_TYPES=['scout','shuffle','inspire','rehire','conscript','revolution','plead'];
+const PLEAD_TURNS=3;   // 命乞いカード：敵の大技を遅らせるターン数
 const HAND_MAX_BASE = 6, LOCK_TURNS = 5, WAVE_DRAW = 40;
 let FLAG_COUNT = 6;
 /* =====================================================================
@@ -1580,7 +1581,7 @@ CHARACTERS.forEach(ch=>{
 });
 let CHARACTER = CHARACTERS[2];
 /* ===== モンスターキャラ：倒したモンスターは次回からキャラ選択で選べる（固有の特殊技つき） ===== */
-const MON_SP_KINDS=['punch','guard','cure','beg','bullet','shuffle'];
+const MON_SP_KINDS=['punch','guard','cure','guard','bullet','shuffle'];   // 命乞いは軍師カードになったので、その枠は防御に（並びを変えないため枠は残す）
 const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'🙏命乞い',bullet:'⏱バレットタイム',shuffle:'🔄シャッフル'};
 const MON_SKILL={   // モンスターが自分のキャラになった時の特殊技（kind 無し＝毎ターン働く常時効果）
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
@@ -1895,6 +1896,7 @@ const TACTIC_EXTRA = {
   conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
   revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて反転します（1↔10、2↔9、3↔8、4↔7、5↔6。7なら4、2なら9）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
   split:'発動後、手札の部隊カードを1枚タップ。そのカードがランダムに2枚へ分裂します（合計は変わりません。8なら2と6、3と5など。1だけは1と1の2枚になります）。増えた1枚は、その戦いの間だけ使えます。',
+  plead:'発動すると、これから予定されている敵の大技（攻撃力アップ・妨害・狂暴化など、特殊攻撃レーンの印すべて）が'+PLEAD_TURNS+'ターン遅れます。時間を稼いで、旗を揃える余裕を作りたい時に。（すでに起きた効果は戻りません）',
   inspire:'発動すると、このカードを除く今の手札にある部隊・力の装備の数字がすべて+3されます（最大10まで）。強い役や換装条件を狙いやすくなります。',
   duplicate:'発動後、複製したい手札のカードをタップ。そのカードのコピーが手札に加わります（複製もとのカードはそのまま残ります）。コピーはこの戦いの間だけ有効です。',
   fusion:'発動後、手札の部隊カードを2枚タップして選択。合計値を保ったまま、高い方は必ず10になり、低い方はその余り（合計−10）になります（例：4と8→2と10、6と8→4と10）。合計が10以下の場合は、合計値のカード1枚だけにまとまります（例：2と8→10、6と2→8が1枚）。分裂して2枚になるときは、それぞれ元のカードのマーク（色）のままです。1枚にまとまるときは、数字が高い方のカードのマーク（色）になります（同じ数字なら、手札で左にある方）。',
@@ -4285,6 +4287,18 @@ function useConscript(handIdx){
   busy=false; hint('突撃！今の状態で攻撃する！',true);
   checkWaveOutcome();
 }
+function usePlead(handIdx){
+  const left=Object.keys(enemySched).map(Number).filter(t=>t>enemyTurn);
+  if(!left.length) return hint('この先に、遅らせられる敵の大技はありません。',true);
+  busy=true;
+  const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
+  const ns={}; Object.keys(enemySched).forEach(k=>{ const t=+k; ns[t>enemyTurn?t+PLEAD_TURNS:t]=enemySched[k]; }); enemySched=ns;   // これから来る予定を、すべてPLEAD_TURNSターン後ろへ
+  try{ dlog('action',{name:'plead_card',delay:PLEAD_TURNS,moved:left.length}); }catch(e){}
+  advanceTurn(used);
+  const refilled=autoRefill(1);
+  render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+  busy=false; hint(`🙏 命乞い：敵の大技が${PLEAD_TURNS}ターン遅れた！`); playSfx('shuffle'); endCheck(); render();
+}
 function useInspire(handIdx){
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
@@ -4690,7 +4704,7 @@ function render(){
   { const fb=document.getElementById('freeShuffleBtn'), inf=(CHARACTER.startShuffles===Infinity);
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
-    const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','beg','punch','guard','cure','bullet'].filter(specEnabled).length; row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
+    const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','punch','guard','cure','bullet'].filter(specEnabled).length; row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
   document.getElementById('graveCount').textContent=graveyard.length;
   document.getElementById('gravePileBtn').classList.toggle('pile-ready', picked!==null && !pending && !gameEnded);
   const guidanceDiscardable = pending && pending.type==='guidance' && pending.step===1;
@@ -5912,6 +5926,7 @@ document.getElementById('ciPrimary').onclick=()=>{
   else if(c.type==='rehire'){ useRehire(idx); }
   else if(c.type==='guidance'){ useGuidance(idx); }
   else if(c.type==='inspire'){ useInspire(idx); }
+  else if(c.type==='plead'){ usePlead(idx); }
   else if(c.type==='revolution'){ useRevolution(idx); }
   else if(c.type==='split'){ useSplit(idx); }
   else if(c.type==='conscript'){ useConscript(idx); }
@@ -6106,7 +6121,6 @@ function doShuffle(){
 }
 const SPEC_INFO={
   shuffle:{title:'🔄 シャッフル',desc:'手札をすべて山札に戻して混ぜ、新しく引き直します。（ターンは進みません）'},
-  beg:{title:'🙏 命乞い',desc:'次に予定されている敵の特殊攻撃（攻撃力アップ・毒・封鎖）を1回パスします。（ターンは進みません）'},
   punch:{title:'👊 殴る',desc:'敵にすぐ50ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   guard:{title:'🛡 防御',desc:'次に受けるHPのダメージが半分になります。'},
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
@@ -7328,7 +7342,7 @@ function offerEquip(list){
 }
 const DECK_PRICE_MULT=2.5;  // デッキ屋の値段倍率
 const SWAP_PRICE=Math.round(30*DECK_PRICE_MULT), UP_PRICE=Math.round(50*DECK_PRICE_MULT), CH_PRICE=Math.round(50*DECK_PRICE_MULT);
-const CARD_PRICE={scout:40,shuffle:40,holy:60,rehire:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
+const CARD_PRICE={scout:40,shuffle:40,holy:60,rehire:60,plead:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
 const cardPrice=t=>Math.round((CARD_PRICE[t.type]||60)*DECK_PRICE_MULT);
 function startSwap(){
   const cards=allCardsUnique().filter(deckEligible).filter(c=>c.inDeck).sort(deckSortCmp);
