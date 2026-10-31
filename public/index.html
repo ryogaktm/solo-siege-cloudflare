@@ -1326,7 +1326,7 @@
 <div class="modal-bg" id="confirmModal" style="display:none;">
   <div class="reward-box">
     <div class="reward-title" id="confirmTitle">確認</div>
-    <div class="reward-sub" id="confirmMsg" style="margin-bottom:16px;"></div>
+    <div class="reward-sub" id="confirmMsg" style="margin-bottom:16px;white-space:pre-line;"></div>
     <button class="btn" id="confirmYes">はい</button>
     <button class="btn ghost" id="confirmNo" style="margin-top:8px;">いいえ</button>
   </div>
@@ -1595,6 +1595,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{kind:'gold',name:'コガネモチ',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
+  'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
@@ -1754,7 +1755,7 @@ const ROMAN = ['I','II','III','IV','V','VI'];
 const NEW_MONSTERS=[
   ['野ネズミの群れ','毒キノコの群れ','大グモの巣','コボルトの一団','洞窟のヘビ'],
   ['吸血コウモリの大群','ゴブリンの斥候','野盗の一団','巨大ムカデ','沼のリザードマン'],
-  ['ゴブリンの戦士団','ホブゴブリンの群れ','墓場の亡霊','ゾンビの群れ','呪われた農夫たち'],
+  ['ゴブリンの戦士団','ホブゴブリンの群れ','墓場の亡霊','ゾンビの群れ','ジャックランタン'],
   ['骸骨弓兵団','動く鎧の群れ','死霊術師の一団','食屍鬼の群れ','オークの斥候隊'],
   ['オークの戦士長','トロルの群れ','山賊王の軍','猛牛の戦車隊','暗黒の傭兵団'],
   ['暗黒騎士の精鋭','魔術師団','小竜の群れ','火を吹くワイバーン','竜騎士団'],
@@ -1768,7 +1769,7 @@ const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファ�
 const ENEMY_SCALE=0.9;
 const HUMAN_INS=36, HUMAN_IDX=38, HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
 const INTRO_LEADER=1, INTRO_KING=2;   // ミジンコで始めた時の最初の2戦の敵   // 真ん中に出す人間（0始まりの位置）
-const DISP_NAME={'ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'ゴブリン','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'オーク','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'野盗','ゴブリンの戦士団':'ゴブリンの戦士','ホブゴブリンの群れ':'ホブゴブリン','ゾンビの群れ':'ゾンビ','呪われた農夫たち':'呪われた農夫','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','食屍鬼の群れ':'食屍鬼','オークの斥候隊':'オークの斥候','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'四天王の一人','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
+const DISP_NAME={'ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'ゴブリン','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'オーク','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'野盗','ゴブリンの戦士団':'ゴブリンの戦士','ホブゴブリンの群れ':'ホブゴブリン','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','食屍鬼の群れ':'食屍鬼','オークの斥候隊':'オークの斥候','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'四天王の一人','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
 const WAVES=(()=>{
   const base=BALANCE.enemies.map((e,i)=>i===0?{...e}:{...e,hp:e.hp*10,atk:e.atk*10,grow:Math.round(e.grow*100)/10});
   const out=[];
@@ -2015,7 +2016,7 @@ const ENEMY_CFG={
   'ホブゴブリン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv23
   '墓場の亡霊':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv24
   'ゾンビ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv25
-  '呪われた農夫':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv26
+  'ジャックランタン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv26
   '骸骨戦士':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv27
   '骸骨弓兵':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['orange',1],['red',2],['green',3]]},   // lv28
   '動く鎧':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['purple',1],['blue',3],['yellow',1]]},   // lv29
@@ -5984,6 +5985,20 @@ function monSkillUse(){
     if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
   }
+  else if(m.kind==='trick'){
+    if((spec.mon||0)>=1){ hint('トリックオアトリートは、1回の戦いで1回しか使えません。',true); return; }
+    showConfirm('🎃 トリックオアトリート！\n2分の1で敵が死に、2分の1で自分が死にます。\n（1回の戦いで1回だけ。ふんばるピアスなどでも防げません）\n使いますか？',()=>{
+      if(gameEnded||busy) return;
+      spec.mon++;
+      if(Math.random()<0.5){ strikeBoss(bossHp,'🎃 トリックオアトリート！ お菓子がもらえず、いたずらが炸裂した…敵が倒れた！','trick_win'); }
+      else {
+        gameEnded=true; busy=true; playerHp=0; screenShake(); renderBattle();
+        hint('🎃 トリックオアトリート！ いたずらは自分に返ってきた…自分が倒れた。',true); playSfx('warn'); dlog('action',{name:'trick_lose'});
+        setTimeout(()=>triggerDefeatFX(()=>{ playerLost(0); }), 700);
+      }
+    });
+    return;
+  }
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
   else if(m.kind==='sting'||m.kind==='fang'){   // 手札を通さず、旗に直接置く
@@ -6128,6 +6143,7 @@ const SPR={novice:["................", ".....KKKKKK.....", "....KNNNNNNK....", "
 const WAVE_SPR=['slime','bat','goblin','skeleton','orc','darkknight','dragon','giant','demon','immortal'];
 const MON_ARCH={"fly": ["................", "................", "..CC........CC..", ".CWWC......CWWC.", ".CWWCKKKKKKCWWC.", "..CC.KGGGGK.CC..", "....KGRGGRGK....", "....KGGGGGGK....", ".....KGGGGK.....", "....KKGGGGKK....", "...K.KGGGGK.K...", "..K..KKGGKK..K..", ".....K.KK.K.....", "....K..K.K..K...", "................", "................"], "frog": ["................", "................", "................", "...KKK....KKK...", "..KEEEK..KEEEK..", "..KEWKEKKEKWEK..", "..KEEEEEEEEEEK..", ".KEEEEEEEEEEEEK.", ".KEEmmmmmmmmEEK.", ".KEEEEEEEEEEEEK.", ".KeEEEEEEEEEEeK.", "KEeKEEEEEEEEKeEK", "KEEKeEEEEEEeKEEK", ".KK.KKKKKKKK.KK.", "................", "................"], "worm": ["................", "................", "................", "................", ".....KKKK.......", "....KssssK......", "...KsWKsWKsKKK..", "...KssssssKssK..", "....KmmssKKssK..", ".....KKKKsssK...", "....KKKKKsssK...", "...KssssssssK...", "...KsssKKKKK....", "....KKK.........", "................", "................"], "ant": ["................", "................", "..K..........K..", "...K........K...", "....KK....KK....", "...KNNK..KNNK...", "...KNNKKKKNNK...", "....KKNNNNKK....", ".....KNnnNK.....", "....KKNNNNKK....", "...K.KNNNNK.K...", "..K..KNnnNK..K..", ".K...KNNNNK...K.", "......KKKK......", "................", "................"], "beetle": ["................", "................", "....K......K....", "....KK....KK....", "....KYKKKKYK....", "....KYYYYYYK....", "...KYYWYYWYYK...", "..KYYYYKKYYYYK..", "..KYYYYKKYYYYK..", "..KEEEEKKEEEEK..", "..KEeEEKKEEeEK..", "..KEEEEKKEEEEK..", "...KKEEKKEEKK...", "..K.KKKKKKKK.K..", "................", "................"], "rat": ["................", "................", "................", "...KK.KK........", "..KssKssK.......", "..KsRKsRK.......", "..KKssssKKKK....", "...KssssssssK...", "..KmKgggggggK...", "..KKgggggGgggK..", "...KgggggggggK..", "...KgGgggGgggK.K", "...KKKgggKKKKKK.", "...KsKKK.KsK..K.", "....KK....KK..K.", "................"], "mushroom": ["................", "................", "....KKKKKKKK....", "...KRRRRRRRRK...", "..KRRWWRRRWWRK..", "..KRRWWRRRRRRK..", "..KRRRRRWWRRRK..", "..KKKKKKKKKKKK..", "....KwwwwwwK....", "....KwKwwKwK....", "....KwwwwwwK....", "....KwwmmwwK....", "....KwwwwwwK....", ".....KKKKKK.....", "................", "................"], "spider": ["................", "................", "K...K......K...K", ".K..K.KKKK.K..K.", "..K.KKPPPPKK.K..", "...KKPPRPPRPKK..", "....KPPPPPPK....", "KKKKKPPppPPKKKKK", "...KKPPppPPKK...", "..K.KPPppPPK.K..", ".K..KKPPPPKK..K.", "K....KKKKKK....K", "................", "................", "................", "................"], "snake": ["................", "................", "................", "......KKKK......", ".....KEEEEK.....", "....KEWKEEWK....", "....KEEEEEEK....", "....KEmmmEK.....", "....KKEEEKK.....", "...KEEEEEK......", "..KEeEEEEKKKK...", "..KEEEEEEEEEEK..", "...KKKEeEEEEEK..", "......KKKKKKK...", "................", "................"], "centipede": ["................", "................", "................", "..K..K..K..K....", "..KNNKNNKNNK....", ".KNNNNNNNNNNK...", ".KNRNNnnNNNNNK..", "K.KKNNNNNNNNNNK.", ".K.KKNNKKNNNNK..", "..K..KKNNNNNK...", "....K.KKNNNNNK..", ".....K..KKNNNK..", "..........KKK...", "................", "................", "................"], "lizardman": ["................", ".....KKKK.......", "....KEEEEKK.....", "...KEWKEEEEK....", "...KEEEEEEEEK...", "...KEmmmEEK.....", "....KKKEEEK.....", "..KKKEEEEEEKK...", ".KgGKEeEEEEKgGK.", ".KgGKEEEEEEKgGK.", "..KKKEEEEEEKKK..", "....KEEKKEEK....", "....KEEK.KEEK...", "...KKEK...KEKK..", "....KKK....KKK..", "................"], "ghost": ["................", "....KKKKKKK.....", "...KwwwwwwwK....", "..KwwwwwwwwwK...", "..KwWKwwwKWwK...", "..KwKKwwwKKwK...", "..KwwwwwwwwwK...", "..KwwwKKKwwwK...", "..KwwwwwwwwwK...", "..KwwwwwwwwwwK..", "..KwwwwwwwwwK...", "..KwKwwKwwKwK...", "..KK.KwK.KK.K...", "................", "................", "................"], "zombie": ["................", "....KKKKKK......", "...KOOOOOOK.....", "..KOOWKOOWKK....", "..KOOOOOOOOK....", "..KOOmmmmOK.....", "...KKKOOKK......", "..KOOOKKOOOOOK..", ".KOOoKGGKoOOOOK.", ".KOOoKGGKKKKKK..", ".KOOoKGGKOOK....", "..KKKKGGKOOK....", "....KGGKKGGK....", "....KGGK.KGGK...", "...KKKK..KKKK...", "................"], "armor": ["......KKKK......", "....KKggggKK....", "...KgGggggGgK...", "...KgKKKKKKgK...", "...KgGRRRRGgK...", "...KgGGGGGGgK...", "....KKKggKKK....", "..KKKgggggGKKK..", ".KGgKgGGGGgKgGK.", ".KGgKggggggKgGK.", ".KGgKgGGGGgKgGK.", "..KKKggKKggKKK..", "....KggK.KggK...", "....KGGK.KGGK...", "...KKKKK.KKKKK..", "................"], "bull": ["................", "KK..........KK..", "KwK........KwK..", ".KwKKKKKKKKwK...", "..KKNNNNNNNKK...", "...KNRNNNRNK....", "...KNNNNNNNKKKK.", "...KNNmmNNNNNNK.", "...KNNNNNNNNNNK.", "....KKNNNNNNnNK.", "....KNNNNNNNNNK.", "....KNNKKNNKNNK.", "....KNNK.KNNK.K.", "....KnnK.KnnK...", "....KKKK.KKKK...", "................"], "troll": ["................", "....KKKKKK......", "...KEEEEEEK.....", "..KEEWKEWEEK....", "..KEEEEEEEEK....", "..KEEEmmEEEK....", "...KKEEEEKK.....", ".KKEEEEEEEEKK...", "KEEKEEeEEEKEEK..", "KEEKEEEEEEKEEK..", "KEEKEEEEEEKEEK..", ".KKKEEEEEEKKK...", "...KEEK.KEEK....", "...KEEK.KEEK....", "..KKKKK.KKKKK...", "................"], "mage": ["......KP........", ".....KPPK.......", "....KPPPPK......", "...KPPPPPPK.....", "..KKKKKKKKKK....", "....KSKSSKSK....", "....KSSSSSSK....", "....KSssssSK....", "...KKPPPPPPKK...", "..KPPPKPPKPPPK..", ".KSKPPPPPPPPKSKY", "..KKPPPpPPPPKKY.", "...KPPPPPPPPKKY.", "...KPPPPPPPPK.Y.", "...KKKKKKKKKK.Y.", "................"], "wyvern": ["................", "...K........K...", "..KKK......KKK..", ".KRRK..KK..KRRK.", ".KRRRKKRRKKRRRK.", "KRRRRKRRRRKRRRRK", "KRRKRKRWRWKRKRRK", "KRK.KRRRRRRK.KRK", ".K..KRRRRRRK..K.", "....KKRrrRRK....", "....KRRrrrRK....", ".....KRRRRK.....", "....KRRKKRRK....", "...KRRK..KRRK...", "...KKK....KKK...", "................"], "hound": ["................", "...K.KK.........", "..KDKDDK........", ".KDDWDDDK.......", ".KDDDDDDKKKKK...", "..KKRDDDDDDDDK..", "...KDmmDDDDDDK..", "...KKDDDDDDDDDK.", "....KDDDDDDDDDK.", ".....KDDDDDDDDK.", ".....KDdKKKDdDK.", ".....KDK..KDK.K.", ".....KDK..KDK...", ".....KKK..KKK...", "................", "................"], "imp": ["K..........K....", "KK........KK....", "KRK..KK..KRK....", ".KRKKRRKKRK.....", "..KKRRRRKK......", "...KRWRRWRK.....", "...KRRRRRRK.....", "....KRmmRK......", "..KKKKRRKKKK....", ".KRRKRRRRKRRK...", "KRRK.KRRK.KRRK..", "KRK..KRRK..KRK..", "K....KRRK...K...", ".....KrrK.......", "....KKKKKK..K...", "................"], "shadow": ["................", "................", "....KKKKKKK.....", "...KDDDDDDDK....", "..KDDDDDDDDDK...", "..KDWWDDDWWDK...", "..KDWRDDDWRDK...", "..KDDDDDDDDDK...", "..KDDDKKKDDDK...", "..KDDKDDDKDDK...", ".KDDDDDDDDDDDK..", ".KDdDDKDKDDdDK..", ".KDK.KDDDK.KDK..", "..K...KDK...K...", "................", "................"], "orb": ["................", "......KKKK......", "....KKYYYYKK....", "...KYYYYYYYYK...", "..KYYWWWWWWYYK..", "..KYWWKKKKWWYK..", ".KYYWKRRRRKWYYK.", ".KYYWKRKKRKWYYK.", ".KYYWKRRRRKWYYK.", "..KYWWKKKKWWYK..", "..KYYWWWWWWYYK..", "...KYYYYYYYYK...", "....KKYYYYKK....", "......KKKK......", "................", "................"], "bandit": ["................", "....KKKKKK......", "...KNNNNNNK.....", "...KNNNNNNK.....", "..KKSSSSSSKK....", "..KSKKKKKKSK....", "..KDDDDDDDDK....", "...KDDRDDRDK....", "..KKDDDDDDDKK...", ".KNKDDDDDDDKwK..", ".KNKDDDDDDDKwgK.", "..KKDDKKKDDKK.K.", "....KDDK.KDDK...", "....KNNK.KNNK...", "...KKKKK.KKKKK..", "................"], "twin": ["................", "K..K.......K..K.", "KrKKK.....KKKrK.", "KRRKKK...KKKRRK.", "KRWKRKK.KKRKWRK.", "KRRRRKK.KKRRRRK.", ".KRRRKKKKKRRRK..", "..KKRRRRRRRRKK..", "...KRRRRRRRRK...", "...KRRRRRRRRK...", "...KRRWRRWRRK...", "....KRRRRRRK....", "....KRKKKKRK....", "...KRRK..KRRK...", "...KKK....KKK...", "................"]};
 MON_ARCH.mosquito=["................", "................", "......CC.CC.....", ".....CWWCWWC....", "....CWWWCWWWC...", ".....CCWWWCC....", ".K....KGGGK.....", "..K..KGgGGGK....", "...KKKGGRRGK....", "...K..KGRRGK....", "......KGGGK.K...", ".......KGK..K...", "......K.K.K.K...", "......K..K..K...", "................", "................"];
+MON_ARCH.jack=["................", ".......KK.......", "......KEeK......", "....KKKEEKKK....", "..KKFFFFFFFFKK..", ".KFFFFFFFFFFFFK.", ".KFFKFFFFFFKFFK.", "KFFKYKFFFFKYKFFK", "KFFKYYKFFKYYKFFK", "KFFFKKFFFFKKFFFK", "KFFFFFFFFFFFFFFK", "KFFKFFKYYKFFKFFK", ".KFKYKYKKYKYKFK.", ".KFFKYKKKKYKFFK.", "..KKFFKKKKFFKK..", "....KKKKKKKK...."];
 Object.assign(SPR,MON_ARCH);
 SPR.gunman=["................",".....KKKKK......","....KNNNNNK.....","....KNNNNNK.....",".KKKnnnnnnnKKK..","...KSSSSSSSK....","...KSKSSSKSK....","...KRRRRRRRK....","..KBBBBBBBBBK...",".KBBBBBBBBBBBK..",".KBBBBBBBBBBSggg",".KBBBBBBBBBBBK..","..KDDDDDDDDDK...","...KDDK..KDDK...","...KNNK..KNNK...","..KKKKK.KKKKK..."];   // ガンマン（ポンチョにカウボーイハット、右手にリボルバー）
 Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
@@ -6144,7 +6160,7 @@ const MON_SPR={
 '何匹かのスライム':['slime'],
 '野ネズミの群れ':['rat'],'毒キノコの群れ':['mushroom'],'大グモの巣':['spider'],'コボルトの一団':['goblin',{E:'h',e:'H'}],'洞窟のヘビ':['snake',{E:'T',e:'t'}],
 'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['gunman'],'野盗の一団':['bandit'],'巨大ムカデ':['centipede'],'沼のリザードマン':['lizardman'],
-'ゴブリンの集団':['goblin'],'ゴブリンの戦士団':['goblin',{E:'e',e:'D'}],'ホブゴブリンの群れ':['orc',{O:'h',o:'N'}],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'呪われた農夫たち':['zombie',{O:'S',o:'s'}],
+'ゴブリンの集団':['goblin'],'ゴブリンの戦士団':['goblin',{E:'e',e:'D'}],'ホブゴブリンの群れ':['orc',{O:'h',o:'N'}],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
 '骸骨戦士の集団':['skeleton'],'骸骨弓兵団':['skeleton',{w:'Z',g:'h',G:'N'}],'動く鎧の群れ':['armor'],'死霊術師の一団':['mage',{P:'D',p:'d'}],'食屍鬼の群れ':['zombie',{O:'g',o:'G'}],'オークの斥候隊':['orc',{O:'E',o:'e'}],
 'オークの軍勢':['orc'],'オークの戦士長':['orc',{O:'N',o:'n'}],'トロルの群れ':['troll'],'山賊王の軍':['bandit',{D:'Y',d:'y'}],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['bandit',{D:'G',d:'D'}],
 '暗黒騎士団':['darkknight'],'暗黒騎士の精鋭':['darkknight',{D:'P',d:'p'}],'魔術師団':['mage',{P:'B',p:'b'}],'小竜の群れ':['wyvern',{R:'E',r:'e'}],'火を吹くワイバーン':['wyvern'],'竜騎士団':['darkknight',{D:'R',d:'r'}],
@@ -6614,9 +6630,9 @@ function superMultFor(sym,raw){
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
 function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
-function specMax(k){ return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
+function specMax(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='trick') return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
 function spTargets(){   // 「特殊技+1」を付けられる先：最初から持っている技と、装備中のアクセサリーが与えている技
-  const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; const ms=CHARACTER.monSkill; out.push({k,acc:null,label:k==='mon'?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
+  const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; if(k==='mon'&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='trick') return; const ms=CHARACTER.monSkill; out.push({k,acc:null,label:k==='mon'?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
   accEq.forEach(aid=>{ const o=accOwned.find(x=>x.aid===aid); if(o&&o.id.startsWith('sp_')&&o.id!=='sp_double'&&o.id!=='sp_shuffle'){ const d=accDef(o.id); if(d) out.push({k:o.id.slice(3),acc:o,label:d.name}); } });
   return out;
 }

@@ -101,5 +101,10 @@ with sync_playwright() as p:
     r=ev("""()=>{ const sim=(lo,hi)=>{ const o={soft:0,big:0,n:0}; WAVES.filter(w=>!w.boss&&w.lv>=lo&&w.lv<=hi).forEach(w=>{ stageIndex=WAVES.indexOf(w); for(let k=0;k<40;k++){ const s=genSchedule(); Object.values(s).forEach(e=>{ if(e==='rage') return; o.n++; if(SOFT_DIS.includes(e)) o.soft++; else o.big++; }); } }); return o}; return {mid:sim(20,40),hi:sim(50,72)} }""")
     print('妨害の内訳 (soft=カード/場荒らし, big=大きい不可逆)',r)
     check('妨害の出る割合：カード・場荒らし系が半数以上',r['mid']['soft']>r['mid']['big'] and r['hi']['soft']>=r['hi']['big']*0.8,r)
+    r=ev("""async()=>{ const i=WAVES.findIndex(w=>w.baseId==='ジャックランタン'); CHARACTER=makeMonChar(i,'ジャックランタン'); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms)), rnd=Math.random, o={max:specMax('mon')}; Math.random=()=>0.1; specUse('mon'); await sleep(100); document.getElementById('confirmYes').click(); await sleep(600); o.win=bossHp===0; o.again=specRemain('mon'); Math.random=rnd;
+      CHARACTER=makeMonChar(i,'ジャックランタン'); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      Math.random=()=>0.9; specUse('mon'); await sleep(100); document.getElementById('confirmYes').click(); await sleep(1500); o.lose=gameEnded&&playerHp===0; Math.random=rnd; return o}""")
+    check('ジャックランタン：トリックオアトリートは1戦1回・1/2で敵が死に1/2で自分が死ぬ',r['max']==1 and r['win'] and r['again']==0 and r['lose'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
