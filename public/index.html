@@ -376,9 +376,10 @@
   .fc small.fc-sw{ font-size:10px; opacity:.9; color:#ff9a8a; line-height:1; }
   .fc small{ display:block; font-size:8px; color:var(--cream-2); opacity:.75; }
   .fc.ev-rage{ border-color:#ff7a4a; background:rgba(255,110,60,.2); } .fc.ev-rage b{ color:#ffb07a; }
-  .fc.ev-dis{ border-color:#c58cff; background:rgba(150,90,220,.2); } .fc.ev-dis b{ color:#e3c8ff; }
-  .fc.ev-seal{ border-color:#9fd0ff; background:rgba(90,150,224,.2); } .fc.ev-seal b{ color:#cfe6ff; }
-  .fc.ev-poison{ border-color:#c58aff; background:rgba(150,80,220,.22); } .fc.ev-poison b{ color:#e0c0ff; }
+  .fc.ev-dis, .fc.ev-seal, .fc.ev-poison{ background:#fff; border-color:#b07af0; }   /* 下のレーン（妨害の予測）は白地にして、字が見えるように */
+  .fc.ev-dis b, .fc.ev-seal b, .fc.ev-poison b{ color:#3a1d66; text-shadow:0 0 1px rgba(0,0,0,.45); }
+  .fc.ev-dis small, .fc.ev-seal small, .fc.ev-poison small{ color:#3a2a55; opacity:1; font-weight:700; }
+  .fc.ev-dis small.fc-cd, .fc.ev-seal small.fc-cd, .fc.ev-poison small.fc-cd{ color:#a01238; font-weight:900; }
   .fc.fc-empty{ background:transparent; border-color:rgba(255,255,255,.1); border-style:dashed; } .fc.fc-empty b{ color:var(--cream-2); opacity:.35; font-weight:400; }
   .fc small.fc-cd{ font-size:8px; color:#ffe9a8; opacity:.95; margin-top:1px; }
   .sp-label{ color:#d9b8ff; }
