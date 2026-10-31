@@ -128,5 +128,10 @@ with sync_playwright() as p:
       useScout(0); await sleep(700); discardTap(1); discardTap(2); confirmDiscard(); await sleep(700); o.dd=[!!pending,turnCounter,t0,graveyard.length,g0,hand.length,h0.split(',').length]; o.done=!pending && turnCounter===t0+1 && graveyard.length===g0+3 && hand.length===h0.split(',').length;
       return o}""")
     check('補充：捨てるカードを選んでいる間はキャンセルでき（手札・山札・ターンが元に戻る）、確定でターンが進む',r['pend'] and r['turnHeld'] and r['btn'] and r['restored'] and r['done'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false; stageIndex=WAVES.findIndex(w=>w.lv===30); introOn=false; rollGoals();
+      document.getElementById('cardListModal').style.display='flex'; document.getElementById('specModal').style.display='flex';
+      grantStageReward(); await new Promise(r=>setTimeout(r,300));
+      return {list:document.getElementById('cardListModal').style.display, spec:document.getElementById('specModal').style.display, chest:document.getElementById('chestModal').style.display}}""")
+    check('戦いが終わったら、開きっぱなしのポップアップ（一覧・特殊技など）が閉じて宝箱だけが出る',r['list']=='none' and r['spec']=='none' and r['chest']=='flex',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

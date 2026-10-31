@@ -5403,6 +5403,7 @@ function populateResultModal(){
   document.getElementById('flagTable').innerHTML=flagRows+comboLines+recap;
 }
 function showEnd(reason,giftDone){
+  closeStrayModals();
   if(!giftDone && (reason==='hpzero'||reason==='deckout')){ if(alienGifts(()=>showEnd(reason,true))) return; }
   dlog('end',{reason:reason}); recordRunResult(reason);
   render();
@@ -7085,9 +7086,14 @@ function giveCopperRing(got){
   if(got.some(d=>d.id==='gold_s')) return;
   const cu=accDef('gold_s'); if(cu){ chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); chestWhy.gold_s='戦闘のごほうび（必ずもらえる）'; }
 }
+function closeStrayModals(){   // 戦いが終わった時：開きっぱなしのポップアップ（山札・墓地の一覧、カード説明、特殊技など）が、宝箱や結果の上に暗い膜のように残らないよう閉じる
+  try{ ['cardInfoBg','specModal','goalModal','cardListModal','confirmModal','pickModal','rehireModal','accModal','dbgModal','deckBuildModal','condModal','shopModal','rankModal'].forEach(id=>{ const m=document.getElementById(id); if(m&&m.style.display!=='none') m.style.display='none'; });
+    document.querySelectorAll('body > .modal-bg:not([id])').forEach(m=>{ const z=parseInt(m.style.zIndex)||0; if(z>=10000&&z<=10001) m.remove(); });
+    document.querySelectorAll('.dragcard').forEach(g=>g.remove()); }catch(e){}
+}
 let lastGoalRes=[];   // 直前の戦いの取得条件の結果［{name,text,ok}］
 function grantStageReward(){
-  inPrep=true;
+  inPrep=true; closeStrayModals();
   playSfx('bossDefeat');
   setTimeout(()=>playSfx('reward'), 350);
   const income=0;
