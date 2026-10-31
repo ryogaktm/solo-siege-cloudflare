@@ -988,6 +988,9 @@
     font-family:'Noto Sans JP',sans-serif; cursor:pointer;
   }
   .tabbtn.active{ background:var(--gold); color:#201808; border-color:var(--gold); }
+  .howto-det{ border:1px solid var(--gold-3); border-radius:9px; margin:0 0 8px; padding:0 10px; }
+  .howto-det>summary{ cursor:pointer; padding:10px 2px; font-size:13px; font-weight:800; color:var(--gold); }
+  .howto-det[open]>summary{ border-bottom:1px solid rgba(255,255,255,.07); margin-bottom:8px; }
   .howto-section{ margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,.07); }
   .howto-section:last-child{ border-bottom:none; }
   .howto-title{ font-family:'Cinzel',serif; font-size:13px; color:var(--gold); margin:0 0 4px; }
@@ -1347,18 +1350,17 @@
         <button class="tabbtn subtabbtn active" data-subtab="basic">基本</button>
         <button class="tabbtn subtabbtn" data-subtab="placement">配置</button>
         <button class="tabbtn subtabbtn" data-subtab="enemy">敵</button>
-        <button class="tabbtn subtabbtn" data-subtab="curse">呪い</button>
-        <button class="tabbtn subtabbtn" data-subtab="skill">特殊技</button>
-        <button class="tabbtn subtabbtn" data-subtab="exchange">デッキ</button>
-        <button class="tabbtn subtabbtn" data-subtab="shop">お店</button>
+        <button class="tabbtn subtabbtn" data-subtab="detail">詳細</button>
       </div>
       <div class="subpage" data-subpage="basic" id="howtoBasic"></div>
       <div class="subpage" data-subpage="placement" id="howtoPlacement" style="display:none;"></div>
       <div class="subpage" data-subpage="enemy" id="howtoEnemy" style="display:none;"></div>
-      <div class="subpage" data-subpage="curse" id="howtoCurse" style="display:none;"></div>
-      <div class="subpage" data-subpage="skill" id="howtoSkill" style="display:none;"></div>
-      <div class="subpage" data-subpage="exchange" id="howtoExchange" style="display:none;"></div>
-      <div class="subpage" data-subpage="shop" id="howtoShop" style="display:none;"></div>
+      <div class="subpage" data-subpage="detail" id="howtoDetail" style="display:none;">
+        <details class="howto-det"><summary>🏪 お店</summary><div id="howtoShop"></div></details>
+        <details class="howto-det"><summary>🃏 デッキ・手札</summary><div id="howtoExchange"></div></details>
+        <details class="howto-det"><summary>☠ 呪いカードと聖水</summary><div id="howtoCurse"></div></details>
+        <details class="howto-det"><summary>⚡ 特殊技</summary><div id="howtoSkill"></div></details>
+      </div>
     </div>
 
     <div class="toppage" data-toppage="cards" style="display:none;">
