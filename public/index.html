@@ -627,7 +627,7 @@
   .pcard.monster.mini .ttitle{ font-size:8px; top:3px; }
   .pcard.monster.necro{ background:linear-gradient(160deg,#241030,#120818); }
 
-  .auto-fc{ position:absolute; top:2px; right:3px; z-index:5; display:flex; flex-direction:column; align-items:flex-end; gap:2px; pointer-events:none; }
+  .auto-fc{ position:absolute; top:-17px; right:4px; z-index:5; display:flex; flex-direction:column; align-items:flex-end; gap:2px; pointer-events:none; }
   .auto-fc .afc{ display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:900; line-height:1; padding:2px 5px; border-radius:7px; background:rgba(120,12,40,.92); color:#fff; border:1px solid #ff8aa0; white-space:nowrap; }
   .auto-fc .afc i{ display:inline-flex; align-items:center; gap:1px; font-style:normal; background:rgba(255,255,255,.92); padding:0 3px; border-radius:4px; }
   .auto-fc .afc i svg{ width:10px; height:10px; }
@@ -4654,7 +4654,7 @@ function renderUpcoming(){
       html+=`<div class="fc ${info.cls}" data-ev="rage"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
       html+=`<div class="fc"><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
-      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}"><b>${info.icon}</b><small>${ev==='autonum'?(()=>{ try{ const pl=getAutoPlan(t); return CNAME[pl.col]+pl.v; }catch(e){ return EVENT_SHORT[ev]; } })():(EVENT_SHORT[ev]||info.label)}</small><small class="fc-cd">あと${k+nClk}</small></div>`; }
+      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}">${ev==='autonum'?(()=>{ try{ const pl=getAutoPlan(t); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}${pl.v}</b>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]}</small>`; } })():`<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`}<small class="fc-cd">あと${k+nClk}</small></div>`; }
       else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
     }
