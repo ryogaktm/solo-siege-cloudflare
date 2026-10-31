@@ -120,5 +120,13 @@ with sync_playwright() as p:
       const w=WAVES.find(x=>!x.boss&&x.lv>=30); o.inList=disList(w).includes('assassin'); const lo=WAVES.find(x=>!x.boss&&x.lv===25); o.early=lo?disList(lo).includes('assassin'):true;
       return o}""")
     check('暗殺：旗のカードが1枚ランダムに墓地へ／妨害の発動を大きな帯で知らせる／中盤以降の敵が出す',r['left']==2 and r['grave']==1 and r['banner'] and r['inList'] and r['early'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={}; hand[0]=Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='scout'),{uid:uid()}); render();
+      const h0=hand.map(c=>c.uid).join(), d0=activeDeck.map(c=>c.uid).join(), t0=turnCounter, g0=graveyard.length;
+      useScout(0); await sleep(700); o.pend=pending&&pending.type==='discard'&&pending.scout; o.handUp=hand.length; o.turnHeld=turnCounter===t0; o.btn=document.getElementById('cancelPendingBtn').style.display!=='none';
+      cancelPending(); await sleep(200); o.restored=hand.map(c=>c.uid).join()===h0 && activeDeck.map(c=>c.uid).join()===d0 && turnCounter===t0 && graveyard.length===g0 && !pending;
+      useScout(0); await sleep(700); discardTap(1); discardTap(2); confirmDiscard(); await sleep(700); o.dd=[!!pending,turnCounter,t0,graveyard.length,g0,hand.length,h0.split(',').length]; o.done=!pending && turnCounter===t0+1 && graveyard.length===g0+3 && hand.length===h0.split(',').length;
+      return o}""")
+    check('補充：捨てるカードを選んでいる間はキャンセルでき（手札・山札・ターンが元に戻る）、確定でターンが進む',r['pend'] and r['turnHeld'] and r['btn'] and r['restored'] and r['done'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

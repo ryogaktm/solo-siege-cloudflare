@@ -3979,6 +3979,13 @@ function resolveFusion(){
   hint(hintMsg);
 }
 function cancelPending(){
+  if(pending && pending.type==='discard' && pending.scout && !busy){   // 補充のキャンセル：引いた3枚を山札の上に戻し、補充カードを手札へ戻す（ターンは進んでいない）
+    const dr=pending.drawn||[]; const back=[];
+    dr.forEach(u=>{ const i=hand.findIndex(c=>c.uid===u); if(i>=0) back.push(hand.splice(i,1)[0]); });
+    back.reverse().forEach(c=>activeDeck.push(c));
+    hand.splice(Math.min(pending.handIdx,hand.length),0,pending.used);
+    pending=null; picked=null; busy=false; render(); layoutHand(false); hint('補充をキャンセルしました。'); return;
+  }
   if(!pending || pending.type==='discard' || pending.type==='rehire' || pending.type==='spitdiscard') return;
   if(pending.type==='replace_select' && pending.used){ hand.splice(Math.min(pending.handIdx,hand.length),0,pending.used); }
   pending=null; picked=null; busy=false;
@@ -4121,8 +4128,7 @@ function resolveGuidance(fi){
 function useScout(handIdx){
   if(activeDeck.length===0) return hint('山札が尽きています。',true);
   busy=true;
-  const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
-  advanceTurn(used);
+  const used=hand.splice(handIdx,1)[0];   // 補充カードは、捨てるカードを確定するまで手札から外して持っておく（キャンセルすれば戻る。ターンも確定まで進まない）
   const drawn=[];
   for(let i=0;i<3;i++){
     const c=drawFromPools();
@@ -4131,7 +4137,7 @@ function useScout(handIdx){
   }
   const from=document.getElementById('deckPileBtn').getBoundingClientRect();
   render(); drawn.forEach((c,i)=>setTimeout(()=>layoutHand(false,c.uid,from),i*90));
-  setTimeout(()=>{ pending={type:'discard',chosen:[]}; busy=false; render(); hint('捨てる手札を2枚タップ（0/2）'); }, 420);
+  setTimeout(()=>{ pending={type:'discard',chosen:[],scout:true,used,handIdx,drawn:drawn.map(c=>c.uid)}; busy=false; render(); hint('捨てる手札を2枚タップ（0/2）。やめるなら✕キャンセル'); }, 420);
 }
 function discardTap(idx){
   const i=pending.chosen.indexOf(idx);
@@ -4149,7 +4155,10 @@ function confirmDiscard(){
     const discarded=pending.chosen.map(i=>hand[i]), enN=discarded.filter(isEnemyCard).length;
     graveyard.push(...discarded.filter(c=>!isEnemyCard(c)));   // 敵のカードは墓地にも行かず消える
     pending.chosen.sort((a,b)=>b-a).forEach(i=>hand.splice(i,1));
-    pending=null; busy=false; render(); layoutHand(false); hint(''); if(enN) applyComboPenalty(enN); endCheck(); render();
+    const scoutUsed=pending.scout?pending.used:null;
+    pending=null; busy=false;
+    if(scoutUsed){ graveyard.push(scoutUsed); advanceTurn(scoutUsed); }   // 補充の確定：ここでカードを使い、ターンが進む
+    render(); layoutHand(false); hint(''); if(enN) applyComboPenalty(enN); endCheck(); render();
   },280);
 }
 
@@ -5045,7 +5054,7 @@ function updateTelops(){
     if(pending && ['discard','replace_select','guidance','duplicate','fusion','split','sealpick','holy'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
     else if(pendHintTxt){ if(he.textContent===pendHintTxt) he.textContent=''; pendHintTxt=''; }
   }
-  document.getElementById('cancelPendingBtn').style.display = (pending && pending.type!=='discard' && pending.type!=='rehire' && pending.type!=='spitdiscard') ? '' : 'none';
+  document.getElementById('cancelPendingBtn').style.display = (pending && ((pending.type!=='discard' && pending.type!=='rehire' && pending.type!=='spitdiscard') || pending.scout)) ? '' : 'none';
   document.getElementById('confirmPendingBtn').style.display = (pending && (pending.type==='replace_select' || (pending.type==='discard' && pending.chosen.length===2))) ? '' : 'none';
 }
 
@@ -7566,7 +7575,7 @@ function saveGame(force){
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
     const st={v:1, lad:8, topUsed, hpStock, plAtkMult, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
-      activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
+      activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
 }
