@@ -457,6 +457,10 @@
   @keyframes evSoft{ 0%,100%{ opacity:.25; text-shadow:0 0 2px #000; } 50%{ opacity:1; text-shadow:0 0 3px #000,0 0 8px rgba(255,60,40,.9); } }
   .ev-banner{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%) scale(.6); text-align:center; font-size:22px; font-weight:900; color:#fff; text-shadow:0 0 8px #f33,0 0 3px #000; opacity:0; pointer-events:none; z-index:6; }
   .ev-banner.show{ animation:ev-banner-in 1.3s ease-out; }
+  .ev-banner.dis{ font-size:20px; padding:10px 6px; background:rgba(110,10,40,.88); border-top:2px solid #ff8aa0; border-bottom:2px solid #ff8aa0; text-shadow:0 0 10px #ff4d6d,0 0 3px #000; }
+  .ev-banner.dis.show{ animation:ev-banner-in 2.2s ease-out; }
+  .stage.fx-dis{ animation:fx-dis 1s ease-out; }
+  @keyframes fx-dis{ 0%,100%{box-shadow:inset 0 0 0 rgba(255,60,90,0);} 15%,55%{box-shadow:inset 0 0 50px rgba(255,60,90,.95);transform:translateX(-3px);} 35%{transform:translateX(3px);} }
   @keyframes ev-banner-in{ 0%{opacity:0;transform:translateY(-50%) scale(.5);} 15%{opacity:1;transform:translateY(-50%) scale(1.2);} 70%{opacity:1;transform:translateY(-50%) scale(1);} 100%{opacity:0;transform:translateY(-50%) scale(1);} }
   .stage.fx-rage{ animation:fx-rage .9s ease-out; } .stage.fx-poison{ animation:fx-poison .9s ease-out; } .stage.fx-seal{ animation:fx-seal .9s ease-out; }
   @keyframes fx-rage{ 0%,100%{box-shadow:inset 0 0 0 rgba(255,60,40,0);} 20%{box-shadow:inset 0 0 40px rgba(255,60,40,.9);transform:translateX(-4px);} 40%{transform:translateX(4px);} 60%{transform:translateX(-3px);} 80%{transform:translateX(2px);} }
@@ -1997,6 +2001,7 @@ const EVENT_INFO={
   ghost:{icon:'🕳',label:'ワームホール',cls:'ev-dis'},
   minusrain:{icon:'🌧',label:'マイナスレイン',cls:'ev-dis'},
   wipe:{icon:'💥',label:'全滅（旗のカードが消える）',cls:'ev-dis'},
+  assassin:{icon:'🗡',label:'暗殺（旗のカードが1枚墓地へ）',cls:'ev-dis'},
   comboreset:{icon:'💥',label:'コンボリセット',cls:'ev-dis'},
   colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
 };
@@ -2012,7 +2017,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=5;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -2029,8 +2034,8 @@ const DIS_TIERS=[
 ];
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
-const EVENT_SHORT={ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
+const DIS_NAME={assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
+const EVENT_SHORT={assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -2110,6 +2115,7 @@ function disList(w){
   else if(w.boss) r=DIS_BOSS[w.name]||[];
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   if((w.boss||w.lv>=DIS_PARAM.wipeLv) && r.length && !r.includes('wipe')) r=[...r,'wipe'];   // 全滅カード：どの敵も出す
+  if((w.boss||w.lv>=DIS_PARAM.assassinLv) && r.length && !r.includes('assassin')) r=[...r,'assassin'];   // 暗殺：どの敵も出す（旗のカードが1枚墓地へ）
   r=r.filter(k=>!DIS_OFF.includes(k));
   if(!w.boss && w.lv<DIS_PARAM.harshLv){   // 序盤は、プレイでどうにかできる「旗（シート）の妨害」だけ。防御・コンボ系は出さない
     r=r.filter(k=>!HARSH_DIS.includes(k));
@@ -2118,8 +2124,8 @@ function disList(w){
   return r;
 }
 const HARSH_DIS=['half','guard','bguard','comboreset','colnull','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
-const SHEET_DIS=[['autonum',5],['cfield',10],['pfield',12],['minus',16],['bomb',20],['deatheater',24],['ghost',26],['minusrain',28]];   // [技, 出始めのlv]：旗やカードに関わる妨害
-const SOFT_DIS=['autonum','cfield','pfield','minus','null','dark','bomb','wipe'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
+const SHEET_DIS=[['autonum',5],['cfield',10],['pfield',12],['minus',16],['bomb',20],['assassin',22],['deatheater',24],['ghost',26],['minusrain',28]];   // [技, 出始めのlv]：旗やカードに関わる妨害
+const SOFT_DIS=['autonum','cfield','pfield','minus','null','dark','bomb','wipe','assassin'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
 function disWeights(w,dl){
   const wt=disWeights0(w,dl), ec=ENEMY_CFG[w.name]||{};
@@ -2410,8 +2416,9 @@ function enemyEventFX(type){
     const st=document.getElementById('stage'), bn=document.getElementById('evBanner'), mo=document.getElementById('fighterMo');
     const txt={rage:'🔥 攻撃力アップ！',poison:'☠ 毒！',seal:'🔒 旗を封鎖！'}[type]||((EVENT_INFO[type]||{}).icon||'')+' '+((EVENT_INFO[type]||{}).label||'');
     const re=(el,c)=>{ if(!el) return; el.classList.remove(c); void el.offsetWidth; el.classList.add(c); };
-    if(st){ ['fx-rage','fx-poison','fx-seal'].forEach(c=>st.classList.remove(c)); re(st,'fx-'+type); }
-    if(bn){ bn.textContent=txt; re(bn,'show'); }
+    const isDis=isDisEv(type)&&!['poison','seal'].includes(type);   // 妨害技：毎回はっきりわかるよう、画面全体の赤い点滅＋大きな帯で知らせる
+    if(st){ ['fx-rage','fx-poison','fx-seal','fx-dis'].forEach(c=>st.classList.remove(c)); re(st,isDis?'fx-dis':'fx-'+type); }
+    if(bn){ bn.classList.remove('dis'); if(isDis) bn.classList.add('dis'); bn.textContent=isDis?'⚠ 妨害！ '+txt:txt; re(bn,'show'); }
     if(mo && type==='rage') re(mo,'enraged');
   }catch(e){}
 }
@@ -2479,6 +2486,17 @@ function applyEnemyEvent(type,target){
       if(!isEnemyEq(c)&&!c.temp) graveyard.push(c);
       try{ dlog('deatheater',{flag:fi+1,card:dbgCardStr(c)}); }catch(e){}
       hint(`👹 デスイーター！ 旗${fi+1}の1枚目（${cardDisplayName(c)}）を食べられた…`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
+    }
+  } else if(type==='assassin'){
+    const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&f.cards.length>0);   // 完成済み・封鎖中の旗は狙われない
+    const picks=[]; cand.forEach(({f,i})=>f.cards.forEach((c,ci)=>picks.push({f,i,c,ci})));
+    if(!picks.length){ hint('🗡 暗殺者が現れたが、狙えるカードがなかった。',true); try{ stageDmgPop('monster','🗡 暗殺…空振り',''); }catch(e){} }
+    else {
+      const pk=picks[Math.floor(Math.random()*picks.length)], nm=cardDisplayName(pk.c);
+      pk.f.cards.splice(pk.ci,1);
+      if(!isEnemyEq(pk.c)&&!pk.c.temp) graveyard.push(pk.c);
+      try{ dlog('assassin',{flag:pk.i+1,card:dbgCardStr(pk.c)}); }catch(e){}
+      hint(`🗡 暗殺！ 旗${pk.i+1}の「${nm}」が墓地へ送られた…`,true); playSfx('warn'); try{ stageDmgPop('monster','🗡 暗殺！ 旗'+(pk.i+1)+' '+nm+'が墓地へ',''); screenShake(); render(); }catch(e){}
     }
   } else if(type==='ghost'){
     const cand=flags.map((f,i)=>i).filter(i=>!flags[i].closed&&!(haunt[i]>0));
@@ -4509,6 +4527,7 @@ const EVENT_DESC={
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   wipe:()=>'「全滅」のカードを手札に押し付ける。使うと選んだ旗のカード（呪いも）がすべて消える。空の旗にも使える（使わずに持っていることはできるが、捨てられない）。聖水で消せる。',
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
+  assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）のカードの中からランダムに1枚を選び、墓地へ送る。置いた位置は関係なく、敵が置いたカードや装備も対象。',
   deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
   ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,

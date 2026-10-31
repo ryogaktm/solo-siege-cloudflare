@@ -113,5 +113,12 @@ with sync_playwright() as p:
       playerHp=0; o.rev=tryRevive(); o.hpRev=playerHp; o.stock2=hpStock; o.revNone=tryRevive();
       return o}""")
     check('スライム：細胞分裂でHP・攻撃力が半分になり体力ストック+1／ストックで1回復活（初期は0）',r['kind']=='cell' and r['stock0']==0 and r['stock1']==1 and r['hp1']==-(-r['hp0']//2) and r['atk']==0.5 and r['rev'] and r['hpRev']>0 and r['stock2']==0 and not r['revNone'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      const o={}; flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0}); applyEnemyEvent('assassin'); o.none=true;
+      flags[1].cards=[{kind:'troop',color:'red',value:9,uid:uid()},{kind:'troop',color:'red',value:8,uid:uid()},{kind:'troop',color:'red',value:7,uid:uid()}]; const g0=graveyard.length;
+      applyEnemyEvent('assassin'); o.left=flags[1].cards.length; o.grave=graveyard.length-g0; o.banner=document.getElementById('evBanner').classList.contains('dis')&&document.getElementById('evBanner').textContent.includes('妨害');
+      const w=WAVES.find(x=>!x.boss&&x.lv>=30); o.inList=disList(w).includes('assassin'); const lo=WAVES.find(x=>!x.boss&&x.lv===25); o.early=lo?disList(lo).includes('assassin'):true;
+      return o}""")
+    check('暗殺：旗のカードが1枚ランダムに墓地へ／妨害の発動を大きな帯で知らせる／中盤以降の敵が出す',r['left']==2 and r['grave']==1 and r['banner'] and r['inList'] and r['early'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
