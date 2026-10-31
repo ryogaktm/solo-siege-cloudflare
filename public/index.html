@@ -1767,9 +1767,14 @@ const TOP_MONSTERS=['深淵の魔王','終焉の魔王','滅びの化身','星�
 const LOW_MONSTERS=['ハエの群れ','カエルの群れ','ミミズの群れ','アリの行列','コガネムシの群れ'];
 const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファランクス':'同じ色・同じ数字をそろえた','ファランクス':'同じ数字をそろえた','スカーミッシュ':'連番にした','バタリオン':'同じ色をそろえた','ホスト':'役のない'};  // 役名→わかりやすい言い方（アクセサリー説明用）
 const ENEMY_SCALE=0.9;
-const HUMAN_INS=36, HUMAN_IDX=38, HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
+const HUMAN_INS=36; let HUMAN_IDX=38; const HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
 const INTRO_LEADER=1, INTRO_KING=2;   // ミジンコで始めた時の最初の2戦の敵   // 真ん中に出す人間（0始まりの位置）
 const DISP_NAME={'ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'ゴブリン','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'オーク','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'野盗','ゴブリンの戦士団':'ゴブリンの戦士','ホブゴブリンの群れ':'ホブゴブリン','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'呪われた農夫','オークの斥候隊':'オークの斥候','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'四天王の一人','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
+/* ===== モンスターを足す時の置き場 =====
+   ここに { name:'新モンスター名', after:'この敵の次に入れる（今いる敵の名前）', spr:'MON_ARCHに足した絵のキー' } を書くと、
+   前後の敵の強さの間（幾何平均）に1体入る。敵の特殊技・妨害は ENEMY_CFG、特殊技(自分で使う時)は MON_SKILL、表示名は DISP_NAME に足す。
+   保存データは敵の名前で覚えているので、途中に足しても続きから再開できる。 */
+const EXTRA_MONSTERS=[], MON_SPR_EXTRA={};
 const WAVES=(()=>{
   const base=BALANCE.enemies.map((e,i)=>i===0?{...e}:{...e,hp:e.hp*10,atk:e.atk*10,grow:Math.round(e.grow*100)/10});
   const out=[];
@@ -1797,15 +1802,20 @@ const WAVES=(()=>{
   { const iF=out.findIndex(w=>w.name==='ハエの群れ'), a=out[iF], b=out[iF+1], g=(x,y)=>Math.sqrt(x*y);   // 蚊：ハエとカエルの間に1体足す（その分、吸血コウモリを外して総数は同じ）
     out.splice(iF+1,0,{...a,name:'蚊',hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
     const iB=out.findIndex(w=>w.name==='吸血コウモリの大群'); if(iB>=0) out.splice(iB,1); }
+  EXTRA_MONSTERS.forEach(x=>{ const i=out.findIndex(w=>w.name===x.after); if(i<0) return; const a=out[i], b=out[i+1]||a, g=(u,v)=>Math.sqrt(u*v);
+    out.splice(i+1,0,{...a,name:x.name,hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
+    if(x.spr) MON_SPR_EXTRA[x.name]=[x.spr]; });
   out.forEach(w=>{ w.hp=Math.round(w.hp*ENEMY_SCALE); w.atk=Math.round(w.atk*ENEMY_SCALE); w.grow=Math.round(w.grow*ENEMY_SCALE*10)/10; });  // 全体の強さ調整（0.9＝10%弱く）
   out.forEach((w,i)=>{ w.lv=i+1; w.rank=out.length-i; w.threshold=w.hp; });
   return out;
 })();
+HUMAN_IDX=WAVES.findIndex(w=>w.name===HUMAN_MON);   // 敵を足しても位置がずれないよう、名前から探す
 const LADDER_N=WAVES.length;  // 通常の敵の数（ラスボスはこの外）
-const FINAL_BOSSES=[['火星人',25,'alien_mars'],['水星人',49,'alien_mercury'],['金星人',49,'alien_venus'],['土星人',60,'alien_saturn'],['太陽神',71,'alien_sun'],['月の民',12,'alien_moon']];  // [名前, 基準にする敵の段(0始まり), 絵]（人間ラスボス案は一旦保留）
-FINAL_BOSSES.forEach(([nm,ref],k)=>{ const r=WAVES[ref], m=1.5;
+const FINAL_BOSSES=[['火星人','呪われた農夫たち','alien_mars'],['水星人','山を砕く巨竜','alien_mercury'],['金星人','山を砕く巨竜','alien_venus'],['土星人','暗黒の四天王','alien_saturn'],['太陽神','全てを無に帰すもの','alien_sun'],['月の民','大グモの巣','alien_moon']];   // [名前, 基準にする敵の名前, 絵]  // [名前, 基準にする敵の段(0始まり), 絵]（人間ラスボス案は一旦保留）
+FINAL_BOSSES.forEach(([nm,refName],k)=>{ const r=WAVES.find(w=>w.name===refName), m=1.5;
   WAVES.push({...r,name:nm,hp:Math.round(r.hp*m),atk:Math.round(r.atk*m),grow:Math.round(r.grow*m*10)/10,isNew:true,immortal:false,boss:true,lv:0,rank:0,threshold:Math.round(r.hp*m)}); });
-WAVES.forEach((w,i)=>{ if((!w.boss&&i<=25)||w.name==='月の民'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 下位の順位（下位23体）は強さ1/2（火星人は2倍に戻した v142）
+const HALF_UPTO=WAVES.findIndex(w=>w.name==='呪われた農夫たち');   // この敵まで（下位の敵）は強さ1/2
+WAVES.forEach((w,i)=>{ if((!w.boss&&i<=HALF_UPTO)||w.name==='月の民'){ w.hp=Math.round(w.hp/2); w.atk=Math.round(w.atk/2); w.grow=Math.round(w.grow/2*10)/10; w.threshold=w.hp; } });  // 下位の順位（下位23体）は強さ1/2（火星人は2倍に戻した v142）
 { const mo=WAVES.find(w=>w.name==='月の民'), sp=WAVES.find(w=>w.name==='大グモの巣'&&!w.boss); if(mo&&sp){ mo.hp=sp.hp; mo.atk=sp.atk; mo.grow=sp.grow; mo.threshold=sp.hp; } }   // 月の民の強さは大グモと同じ
 WAVES.forEach(w=>{ w.baseId=w.name; w.id=w.name; });   // 名前は表示用（「別の」が付くことがある）、idは種類の判定用
 function applyEnemyNames(){
@@ -6145,6 +6155,37 @@ const MON_ARCH={"fly": ["................", "................", "..CC........CC.
 MON_ARCH.mosquito=["................", "................", "......CC.CC.....", ".....CWWCWWC....", "....CWWWCWWWC...", ".....CCWWWCC....", ".K....KGGGK.....", "..K..KGgGGGK....", "...KKKGGRRGK....", "...K..KGRRGK....", "......KGGGK.K...", ".......KGK..K...", "......K.K.K.K...", "......K..K..K...", "................", "................"];
 MON_ARCH.jack=["................", ".......KK.......", "......KEeK......", "....KKKEEKKK....", "..KKFFFFFFFFKK..", ".KFFFFFFFFFFFFK.", ".KFFKFFFFFFKFFK.", "KFFKYKFFFFKYKFFK", "KFFKYYKFFKYYKFFK", "KFFFKKFFFFKKFFFK", "KFFFFFFFFFFFFFFK", "KFFKFFKYYKFFKFFK", ".KFKYKYKKYKYKFK.", ".KFFKYKKKKYKFFK.", "..KKFFKKKKFFKK..", "....KKKKKKKK...."];
 MON_ARCH.farmer=["................", ".....KKKKKK.....", "....KYYYYYYK....", "...KYYyYYyYYK...", ".KKKKKKKKKKKKKKg", ".KYYYYYYYYYYYYKg", "..KKKKKKKKKKKK.H", "....KOOOOOOK...H", "....KOROOROK...H", "....KOOOOOOK...H", "....KKOmmOKK...H", "...KBBBBBBBBK..H", "..KOKBbBBbBKOKHH", "..KOKBBBBBBKOK.H", "....KBBKKBBK...H", "....KKK..KKK...H"];
+MON_ARCH.kobold=["................", "..KK........KK..", ".KNNK......KNNK.", ".KNnNKKKKKKNnNK.", "..KNNNNNNNNNNK..", "..KNYKNNNNKYNK..", "..KNNNNKKNNNNK..", "...KNNNKKNNNK...", "...KNmmmmmmNK...", "....KKwKKwKK....", "..KKGGGGGGGGKK..", ".KGKGGGGGGGGKGK.", ".KGKGGGGGGGGKGK.", "..KKGGKKKKGGKK..", "...KNNK..KNNK...", "...KKKK..KKKK..."];
+MON_ARCH.goblin_warrior=["................", "...KKKKKKKKKK...", "..KggggGGggggK..", ".KgGGGGGGGGGGgK.", ".KEKGGGGGGGGKEW.", "KEEKEWEEEEWEKEwK", ".KKKEEKKKKEEKKw.", "....KEmmmmEK..w.", "...KKKEEEEKKK.w.", "KBBKKGGGGGGKKKw.", "KBbKKGGGGGGKGKw.", "KBbKKGGGGGGKGGw.", ".KBKKGGGGGGKKNNN", "...KGGK..KGGK.N.", "...KEEK..KEEK...", "...KKKK..KKKK..."];
+MON_ARCH.bandit_king=["................", "..K.K.K..K.K.K..", "..KYYYYYYYYYYK..", "..KyYYYYYYYYyK..", "..KKSSSSSSSSKK..", "..KSKSSSSSSKSK..", "..KSSSSSSSSSSK..", "..KRRRRRRRRRRK..", ".KRRRRRRRRRRRRK.", ".KRRrRRRRRRrRRK.", "KFFKRRRRRRRRKFFK", "KFFKNNNNNNNNKFFK", "KFFKNyNNNNyNKFFK", ".KKKNNNNNNNNKKK.", "...KNNK..KNNK...", "...KKKK..KKKK..."];
+MON_ARCH.mercenary=["..............g.", "...KKKKKKKKKKgwg", "..KDDDDDDDDDDKH.", "..KDddDDDDddDKH.", "..KDDDDDDDDDDKH.", "..KDKRRRRRRKDKH.", "..KDDDDDDDDDDKH.", "...KKDDDDDDKK.H.", "..KGGGGGGGGGGKH.", ".KGgKDDDDDDKgGH.", ".KGGKDRDDRDKGGH.", ".KGgKDDDDDDKgGH.", "..KKKDDDDDDKKKH.", "...KDDK..KDDK.H.", "...KddK..KddK.H.", "...KKKK..KKKK.H."];
+MON_ARCH.hobgoblin=["................", ".KK..........KK.", "KFFK........KFKK", "KFFKKKKKKKKKKHHH", ".KKFFFFFFFFFFHHH", "..KFWKFFFFKWFKH.", "..KFFFFFFFFFFKH.", "..KFFKKKKKKFFKH.", "...KFWmmmmWFK.H.", "..KKNNNNNNNNKKH.", ".KNNKNnNNnNKNNH.", "KFNNKNNNNNNKNNHK", "KFFKKNNNNNNKKFKK", ".KK.KNNKKNNK.KK.", "....KNNKKNNK....", "....KKKKKKKK...."];
+MON_ARCH.orc_scout=["................", "....KKKKKKKK....", "...KeeeeeeeeK...", "..KeeeEeeEeeeKnK", "..KeEEEEEEEEeKhK", ".KeeKOOOOOOKeehK", ".KeKOWOOOOWOKehK", ".KeKOOKKKKOOKwhK", "..KKOOWmmWOOKwhK", "...KKeeeeeeKK.hK", "..KeeKeeeeKeeKhK", "..KeKeeeeeeKeKhK", "..KKKeeeeeeKKKhK", "...KeeK..KeeK.nK", "...KnnK..KnnK...", "...KKKK..KKKK..."];
+MON_ARCH.orc_chief=["K..............K", "KK..........KggK", "KwK.........gGgK", ".KwKKKKKKKKKKgK.", "..KGGGGGGGGGGKH.", "..KGGGOOOOGGGKH.", "..KKOKOOOOKOKKH.", "..KOWOOOOOOWOKH.", "..KOOOOOOOOOOKH.", "..KOWKKKKKKWOKH.", "KKKGGGGGGGGGGKHK", "KGGKGGGggGGGKGHK", ".KKKGGGGGGGGKKH.", "...KGGK..KGGK.H.", "...KnnK..KnnK...", "...KKKK..KKKK..."];
+MON_ARCH.skel_archer=["................", "....KKKKKKKK....", "...KwwwKKwwwN...", "..KwwwwKKwwwwN.W", "..KwKKwKKwKKwKNW", "..KwKKwKKwKKwKNW", "...KwwKKKKwwWWNW", "...KwKwKKwKwK.NW", "....KKKKKKKK..NW", "...KKgwggwgKK.NW", "..KgGKwggwKGgN.W", "..KggKgwwgKgNK..", "..KGGKwggwKGGK..", "...KK.KggK.KK...", "....KwwKKwwK....", "....KKKKKKKK...."];
+MON_ARCH.necromancer=["................", "....KKKKKKKK.KWK", "...KpppPPpppKWKW", "..KpPPPPPPPPpKWK", "..KpPKKKKKKPpKH.", "..KpPKGGGGKPpKH.", "..KRPPKKKKPPRKH.", "..KppPPPPPPppKH.", "...KpppPPpppK.H.", "..KpPPPPPPPPpKH.", ".KpPPPKPPKPPPpH.", ".KpPPPKPPKPPPpH.", "..KpPPPPPPPPpKH.", "...KpPPppPPpK.H.", "...KpPppppPpK.H.", "...KKKKKKKKKK.H."];
+MON_ARCH.time_lord=["....KKKKKKKK....", "..KKYYYYYYYYKK..", ".KYYWWWWKWWWYYK.", ".KYWWWWWKWWWWYK.", "KYWWWWWKKWWWWWYK", "KYWWWWWKKWWWWWYK", "KYWWWWWKKWWWWWYK", "KYWWWKKKKWWWWWYK", "KYWWWWWWWWWWWWYK", ".KYWWWWWWWWWWYK.", "..KKYYYYYYYYKK..", "..KpPPPPPPPPpK..", ".KpPPPPPPPPPPpK.", ".KpPPYPPPPYPPpK.", "KpPPPPPPPPPPPPpK", "KKKKKKKKKKKKKKKK"];
+MON_ARCH.elite_knight=["...KRRRRRRRRK...", "..KRRRRRRRRRRK..", "..KDDDDDDDDDDKW.", ".KDddddddddddDw.", ".KDKKKKKKKKKKDw.", ".KDKRRDDDDRRKDw.", ".KDddDDDDDDddDw.", "..KDDDDDDDDDDKw.", "..KKKddddddKKKw.", ".KbbKDRDDRDKbbw.", ".KbBKDRDDRDKBbw.", ".KbbKDDDDDDKbbw.", "..KKKDDDDDDKKKw.", "...KDDK..KDDK.w.", "...KddK..KddKNNN", "...KKKK..KKKK..."];
+MON_ARCH.dragoon=["K.............WK", "KK...........www", "KwK.KKKKKKKK.KwK", "KwwKDDDDDDDDKwHK", "KKKKDddddddDKKHK", "...KDKKKKKKDK.H.", "...KDRRDDRRDK.H.", "...KDDDDDDDDK.H.", "..KKKddddddKKKH.", "..KGGGGGGGGGGKH.", ".KGgKBBBBBBKgGH.", ".KGGKBbBBbBKGGH.", ".KGgKBBBBBBKgGH.", "..KKKBBBBBBKKK..", "...KGGK..KGGK...", "...KKKK..KKKK..."];
+MON_ARCH.guard_elite=["K..............K", "KK..KKKKKKKK..KK", ".KKKDDDDDDDDKKK.", "..KDDddddddDDK..", "..KDDDDDDDDDDK..", "..KDKRRKKRRKDK..", "..KDDDDDDDDDDK..", "...KKDDDDDDKK...", "..KDDDDDDDDDDK..", ".KDDKDDDDDDKDDK.", "KDDDKDRDDRDKDDDK", "KDddKDDDDDDKddDK", "KDDDKDDDDDDKDDDK", "KDDDKDDDDDDKDDDK", ".KDDKDDKKDDKDDK.", "..KKKKKKKKKKKK.."];
+MON_ARCH.drakelet=["................", "................", "...KK......KK...", "..KRRK....KRRK..", "..KRWRK..KRWRK..", "..KRRRRKKRRRRK..", ".KKRRRKKKKRRRKK.", "KFKRRRK..KRRRKFK", "KFFKRRK..KRRKFFK", "KFFRRRRKKRRRRFFK", ".KKRYYRKKRYYRKK.", "..KRYYRKKRYYRK..", "..KRRRRKKRRRRK..", "...KKKKKKKKKK...", "................", "................"];
+MON_ARCH.ice_dragon=["C...C......C...C", "CC.CWC....CWC.CC", "CWCCWCKKKKCWCCWC", ".CWKCCCCCCCCKWC.", "..KCCwWWWWwCCK..", "..KCCKCCCCKCCK..", "..KCWCCCCCCWCK..", "..KKCCCCCCCCKK..", "...KCCCCCCCCK...", "..KCwwWWWWwwCK..", ".KCCwCCCCCCwCCK.", ".KCCCCCCCCCCCCK.", ".KCwKCCCCCCKwCK.", "..KCKKCCCCKKCK..", "...KK.KCCK.KK...", "................"];
+MON_ARCH.thunder_dragon=["Y...KK....KK...Y", "YY.KBBK..KBBK.YY", ".YYKBBBBBBBBKYY.", "..YKbBBBBBBbKY..", "YYYKBYBBBBYBKYYY", "Y.YKBBBBBBBBKY.Y", ".YYKKBBBBBBKKYY.", "..YYKbbbbbbKYY..", ".YYKBBBBBBBBKYY.", "YYKBBYBBBBYBBKYY", "Y.KBBYYBBYYBBK.Y", "..KBBBYBBYBBBK..", "..KKBBYBBYBBKK..", "...KBBBBBBBBK...", "...KKBBKKBBKK...", "....KKKKKKKK...."];
+MON_ARCH.twin_dragon=["................", ".KKK........KKK.", "KEEEK......KEEEK", "KEWEEK....KEEWEK", "KEEEEEK..KEEEEEK", ".KKEEEK..KEEEKK.", "...KEEEKKEEEK...", "...KEEEEEEEEK...", "..KEEEEEEEEEEK..", ".KELEEEEEEEELEK.", "KEELEEEeeEEELEEK", "KEEEEeEeeEeEEEEK", "KEEKEEEeeEEEKEEK", ".KKKEEEeeEEEKKK.", "...KEEKKKKEEK...", "...KKKK..KKKK..."];
+MON_ARCH.colossus_dragon=["....KKK..KKK....", "..KKnNNKKNNnKK..", "..KnNNNKKNNNnK..", "KKKNNnNNNNnNNKKK", "KnKNRNRNNRNRNKnK", "KnnNNNNNNNNNNnnK", "KnNNNmmmmmmNNNnK", "KnNNNwKwwKwNNNnK", "KNNnnNNNNNNnnNNK", "KNNNNNNNNNNNNNNK", "KNnNNnNNNNnNNnNK", "KnNNNGGNNGGNNNnK", "KNNNGGGGGGGGNNNK", "KNnKGGGGGGGGKnNK", ".KKKGGGGGGGGKKK.", "...KKKKKKKKKK..."];
+MON_ARCH.giant_scout=["................", "...KKKK..KKKK...", "..KBBBBBBBBBBHHH", "..KBbbbbbbbbBKH.", "..KKSSSSSSSSKKH.", "..KSKSSSSSSKSKH.", "..KSSSSSSSSSSKH.", "..KSSmmmmmmSSKH.", "...KKbbbbbbKK.H.", ".KbbBbbBBbbBbbH.", "KSSKBbBBBBbBKSHK", "KSSKBBBBBBBBKSHK", "KSKKBBBBBBBBKKHK", ".KK.KbbKKbbK.KK.", "...KbBBKKBBbK...", "...KKKKKKKKKK..."];
+MON_ARCH.storm_giant=["..WW.WW..WW.WW..", ".WwwWwwWWwwWwwW.", "WwCCwCCwwCCwCCwW", ".KKKKKKKKKKKKKK.", "..KbbbbBBbbbbK..", "..KbWKbBBbKWbK..", "..KbbbbBBbbbbK..", "..KBBBBBBBBBBK..", "..KBCBBBBBBCBK..", ".KbBBBBBBBBBBbK.", "KbbKBBBYBBBBKbbK", "KbCKBBYYBBBBKCbK", "KbbKBbYBBBbBKbbK", ".KK.KBBKKBBK.KK.", "...KbBBKKBBbK...", "...KKKKKKKKKK..."];
+MON_ARCH.fire_giant_king=["F.F.F.F..F.F.F.F", "FfFfFfFffFfFfFfF", "KFfFKYKYYKYKFfFK", "KYYYYYYYYYYYYYYK", "KKRRRRRRRRRRRRKK", "..KRfKfRRfKfRK..", "..KRRRRRRRRRRK..", "..KRRmmmmmmRRK..", "..KKrrrrrrrrKK..", ".KrRRRRRRRRRRrK.", "KFFKRRrRRrRRKFFK", "KFFKRRRRRRRRKFFK", "KFFKrRRRRRRrKFFK", ".KK.KRRKKRRK.KK.", "...KrRRKKRRrK...", "...KKKKKKKKKK..."];
+MON_ARCH.evil_lord=["P..K........K..P", "PP.KP......PK.PP", ".PKKPK....KPKKP.", "..KPPPKKKKPPPK..", "..KPPPPPPPPPPK..", "..KPRPPRRPPRPK..", "..KPPPPPPPPPPK..", "..KKRRRRRRRRKK..", "...KPPPPPPPPK...", "KKKKPPKKKKPPKKKK", "KPPKKPPKKPPKKPPK", "KPpPKPpKKpPKPpPK", ".KPpKPpKKpPKpPK.", "..KKKppKKppKKK..", "....KpPKKPpK....", "....KKKKKKKK...."];
+MON_ARCH.aide=["...K........K...", "..KPK......KPK..", "..KPPKKKKKKPPK..", "..KPPPPPPPPPPK..", "..KKKSSSSSSSKK..", "..KSKWSSSSKKSK..", "..KSSSSSSSSSSK..", "..KKSSKKKKSSKK..", "..KbbSSSSSSbbK..", ".KbPPbbbbbbPPbK.", "KbPPPPPPPPPPPPbK", "KbPPYPPPPPPYPPbK", "KbPPPPPPPPPPPPbK", "KbPPPPPPPPPPPPbK", ".KbPPPPPPPPPPbK.", "..KKKKKKKKKKKK.."];
+MON_ARCH.four_kings=["..KKKK....KKKK..", ".KRRRRK..KCCCCK.", ".KWRKRK..KWCKCK.", ".KRRRRK..KCCCCK.", "..KrrK....KTTK..", ".KrrrrK..KTTTTK.", ".KrKKrK..KTKKTK.", "................", "..KKKK....KKKK..", ".KYYYYK..KPPPPK.", ".KWYKYK..KWPKPK.", ".KYYYYK..KPPPPK.", "..KyyK....KppK..", ".KyyyyK..KppppK.", ".KyKKyK..KpKKpK.", "................"];
+MON_ARCH.abyss_lord=["K..............K", "KK............KK", "KDK..........KDK", "KDDKKKKKKKKKKDDK", "KDDKDDDDDDDDKDDK", "KKDKDDppppDDKDKK", "..KKDDpPPpDDKK..", "..KDDKWWWWKDDK..", "..KDDKWKKWKDDK..", "..KKDDDDDDDDKK..", "..KDDpDDDDpDDK..", ".KDDpPpDDpPpDDK.", "KDDKpPpDDpPpKDDK", "KDDKDpDDDDpDKDDK", "KDKKKDDDDDDKKKDK", "KKK.KKKKKKKK.KKK"];
+MON_ARCH.ruin=["................", "..KKKKKKKKKKKK..", ".KGGGGGggGGGGGK.", "KGgGGKGGGGKGGgGK", "KGGKGGGGGGGGKGGK", "KGWKRGGGGGGRKWGK", "KGKKRGGGGGGRKKGK", "KGGGKGGGGGGKGGGK", "KGGKGGKGGKGGKGGK", ".KGGKKGGGGKKGGK.", "..KGKGGGGGGKGK..", "..KGKGGGGGGKGK..", "...KKGGGGGGKK...", "....KGGGGGGK....", "...KKKGGGGKKK...", "...KKKKKKKKKK..."];
+MON_ARCH.world_end=["....KKKKKKKK....", "..KKCCBBBBCCKK..", "..KCCEEbbEECCK..", "KKCCEEEbbEEECCKK", "KCCEEeEbbEeEECCK", "KCEEKRRbbRRKEECK", "KCEKRRRrrRRRKECK", "KEEKRRrrrrRRKEEK", "KEEKrrrbbrrrKEEK", "KbEEKrrbbrrKEEbK", "KbbEEKbbbbKEEbbK", "..KbbEKbbKEbbK..", "..KKbbKKKKbbKK..", "....KKKKKKKK....", "................", "................"];
+MON_ARCH.avatar=["..YYYYYYYYYYYY..", ".YfffYYYYYYfffY.", "YfYYYYYYYYYYYYfY", "YfYKKKKKKKKKKYfY", "YfKYYYYYYYYYYKfY", "KKKYWKYYYYKWYKKK", "..KYYYYYYYYYYK..", "..KYYYmmmmYYYK..", "..KKYYYYYYYYKK..", "..KfWWWWWWWWfK..", "KKKWWWWWWWWWWKKK", "KfWKWWWWWWWWKWfK", "KfWKWWWWWWWWKWfK", ".KKKWWWWWWWWKKK.", "...KfWWffWWfK...", "...KKKKKKKKKK..."];
+MON_ARCH.final_lord=["F.F.F.F..F.F.F.F", "fFfFfFfFFfFfFfFf", "KFfFfFfFFfFfFfFK", "KDDDDDDDDDDDDDDK", "KDDRDDRDDRDDRDDK", "KDDDDDDDDDDDDDDK", "KDKKKKKKKKKKKKDK", "KDDKDDDDDDDDKDDK", "KKDDDDDDDDDDDDKK", ".KDDddDDDDddDDK.", "KDDdKDdDDdDKdDDK", "KDDdKDdDDdDKdDDK", "KDDdKDdDDdDKdDDK", ".KDKKDKKKKDKKDK.", "..KDDDDDDDDDDK..", "..KKKKKKKKKKKK.."];
+MON_ARCH.dimension=["....KKKKKKKK....", "..KKCCCCCCCCKK..", ".KCCPPPPPPPPCCK.", ".KCPPKKKKKKPPCK.", "KCPPKPPPPPPKPPCK", "KCPKPPCCCCPPKPCK", "KCPKPCCCCCCPKPCK", "KCPKPCKKKKCPKPCK", "KCPKPCCCCCCPKPCK", "KCPPKPPPPPPKPPCK", "KCCPPKKKKKKPPCCK", ".KCCPPPPPPPPCCK.", "..KKCCCCCCCCKK..", "....KKKKKKKK....", "................", "................"];
+MON_ARCH.void=["....KKKKKKKK....", "..KKDDDDDDDDKK..", ".KDDDDDpDDDDDDK.", ".KDDDWWWWWWDDDK.", "KDDDWKKKKKKWDDDK", "KDDWKDDDDDDKWDDK", "KDDWKDDDDDDKWDDK", "KDDWKDDpDDDKWDDK", "KDDWKDDpDDDKWDDK", "KDDDWKKKKKKWDDDK", "KDDDDWWWWWWDDDDK", ".KDDDDDpDDDDDDK.", "..KKDDDDDDDDKK..", "....KKKKKKKK....", "................", "................"];
 Object.assign(SPR,MON_ARCH);
 SPR.gunman=["................",".....KKKKK......","....KNNNNNK.....","....KNNNNNK.....",".KKKnnnnnnnKKK..","...KSSSSSSSK....","...KSKSSSKSK....","...KRRRRRRRK....","..KBBBBBBBBBK...",".KBBBBBBBBBBBK..",".KBBBBBBBBBBSggg",".KBBBBBBBBBBBK..","..KDDDDDDDDDK...","...KDDK..KDDK...","...KNNK..KNNK...","..KKKKK.KKKKK..."];   // ガンマン（ポンチョにカウボーイハット、右手にリボルバー）
 Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
@@ -6159,21 +6200,21 @@ const MON_SPR={
 'ミジンコ':['daphnia'],'ミジンコリーダー':['daphnia_leader'],'ミジンコキング':['daphnia_king'],'駆け出し兵隊長':['novice'],'元の身体':['general_halo'],'ネクロマンサー':['mage',{P:'T',p:'t'}],'歴戦の英雄':['hero'],
 'ハエの群れ':['fly'],'蚊':['mosquito'],'カエルの群れ':['frog'],'ミミズの群れ':['worm'],'アリの行列':['ant'],'コガネムシの群れ':['beetle'],
 '何匹かのスライム':['slime'],
-'野ネズミの群れ':['rat'],'毒キノコの群れ':['mushroom'],'大グモの巣':['spider'],'コボルトの一団':['goblin',{E:'h',e:'H'}],'洞窟のヘビ':['snake',{E:'T',e:'t'}],
+'野ネズミの群れ':['rat'],'毒キノコの群れ':['mushroom'],'大グモの巣':['spider'],'コボルトの一団':['kobold'],'洞窟のヘビ':['snake',{E:'T',e:'t'}],
 'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['gunman'],'野盗の一団':['bandit'],'巨大ムカデ':['centipede'],'沼のリザードマン':['lizardman'],
-'ゴブリンの集団':['goblin'],'ゴブリンの戦士団':['goblin',{E:'e',e:'D'}],'ホブゴブリンの群れ':['orc',{O:'h',o:'N'}],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
-'骸骨戦士の集団':['skeleton'],'骸骨弓兵団':['skeleton',{w:'Z',g:'h',G:'N'}],'動く鎧の群れ':['armor'],'死霊術師の一団':['mage',{P:'D',p:'d'}],'呪われた農夫たち':['farmer'],'オークの斥候隊':['orc',{O:'E',o:'e'}],
-'オークの軍勢':['orc'],'オークの戦士長':['orc',{O:'N',o:'n'}],'トロルの群れ':['troll'],'山賊王の軍':['bandit',{D:'Y',d:'y'}],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['bandit',{D:'G',d:'D'}],
-'暗黒騎士団':['darkknight'],'暗黒騎士の精鋭':['darkknight',{D:'P',d:'p'}],'魔術師団':['mage',{P:'B',p:'b'}],'小竜の群れ':['wyvern',{R:'E',r:'e'}],'火を吹くワイバーン':['wyvern'],'竜騎士団':['darkknight',{D:'R',d:'r'}],
-'古龍':['dragon'],'氷の古竜':['dragon',{R:'C',r:'B',y:'b',Y:'w'}],'雷を操る竜':['dragon',{R:'Y',r:'y'}],'双頭の竜':['dragon',{R:'E',r:'e'}],'山を砕く巨竜':['dragon',{R:'G',r:'D'}],'巨人の先遣隊':['giant',{H:'g',h:'w'}],
-'地平線いっぱいの巨人族':['giant'],'嵐の巨人族':['giant',{H:'B',S:'g'}],'炎の巨人王':['giant',{H:'F',S:'R'}],'悪魔の斥候':['imp'],'地獄の番犬':['hound'],'悪魔の軍団':['demon',{P:'R',p:'r'}],
-'全ての邪悪を背負った魔王':['demon'],'魔王の側近':['demon',{P:'B',p:'b'}],'魔王の親衛隊':['darkknight',{D:'T',d:'t'}],'暗黒の四天王':['demon',{P:'E',p:'e'}],'魔王の影':['shadow'],'魔王の化身':['immortal',{P:'T',p:'t'}],
+'ゴブリンの集団':['goblin'],'ゴブリンの戦士団':['goblin_warrior'],'ホブゴブリンの群れ':['hobgoblin'],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
+'骸骨戦士の集団':['skeleton'],'骸骨弓兵団':['skel_archer'],'動く鎧の群れ':['armor'],'死霊術師の一団':['necromancer'],'呪われた農夫たち':['farmer'],'オークの斥候隊':['orc_scout'],
+'オークの軍勢':['orc'],'オークの戦士長':['orc_chief'],'トロルの群れ':['troll'],'山賊王の軍':['bandit_king'],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['mercenary'],
+'暗黒騎士団':['darkknight'],'暗黒騎士の精鋭':['elite_knight'],'魔術師団':['mage',{P:'B',p:'b'}],'小竜の群れ':['drakelet'],'火を吹くワイバーン':['wyvern'],'竜騎士団':['dragoon'],
+'古龍':['dragon'],'氷の古竜':['ice_dragon'],'雷を操る竜':['thunder_dragon'],'双頭の竜':['twin_dragon'],'山を砕く巨竜':['colossus_dragon'],'巨人の先遣隊':['giant_scout'],
+'地平線いっぱいの巨人族':['giant'],'嵐の巨人族':['storm_giant'],'炎の巨人王':['fire_giant_king'],'悪魔の斥候':['imp'],'地獄の番犬':['hound'],'悪魔の軍団':['demon',{P:'R',p:'r'}],
+'全ての邪悪を背負った魔王':['evil_lord'],'魔王の側近':['aide'],'魔王の親衛隊':['guard_elite'],'暗黒の四天王':['four_kings'],'魔王の影':['shadow'],'魔王の化身':['avatar'],
 '不死身の魔王':['immortal'],
 '月の民':['alien_moon'],'火星人':['alien_mars'],'水星人':['alien_mercury'],'金星人':['alien_venus'],'土星人':['alien_saturn'],'太陽神':['alien_sun'],
-'深淵の魔王':['demon',{P:'D',p:'d',R:'C'}],'終焉の魔王':['immortal',{P:'B',p:'b'}],'滅びの化身':['shadow',{D:'p',d:'P'}],'星を喰らうもの':['orb'],'次元を砕く者':['orb',{Y:'P',R:'C'}],'時の支配者':['mage',{P:'Y',p:'y'}],'世界の終わり':['shadow',{D:'R',d:'r',R:'F'}],'全てを無に帰すもの':['orb',{Y:'D',W:'g',R:'W'}]
+'深淵の魔王':['abyss_lord'],'終焉の魔王':['final_lord'],'滅びの化身':['ruin'],'星を喰らうもの':['orb'],'次元を砕く者':['dimension'],'時の支配者':['time_lord'],'世界の終わり':['world_end'],'全てを無に帰すもの':['void']
 };
 function monSprKey(w){
-  const id=w.id||w.name, d=MON_SPR[id]; if(!d||!SPR[d[0]]) return WAVE_SPR[w.tier]||'slime';
+  const id=w.id||w.name, d=MON_SPR[id]||MON_SPR_EXTRA[id]; if(!d||!SPR[d[0]]) return WAVE_SPR[w.tier]||'slime';
   if(!d[1]) return d[0];
   const key='m_'+id;
   if(!SPR[key]) SPR[key]=SPR[d[0]].map(r=>r.split('').map(c=>d[1][c]||c).join(''));
@@ -7432,7 +7473,8 @@ function saveGame(force){
     const open=id=>{ const e=document.getElementById(id); return e && e.style.display==='flex'; };
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
-    const st={v:1, lad:8, mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
+    const st={v:1, lad:8, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -7468,6 +7510,12 @@ function resumeGame(){
     else { stageIndex=BASE_IDX[Math.min(st.stageIndex,BASE_IDX.length-1)]; battleNo=1; lastDefeatedIdx=-1; nextStageIdx=-1; st.totalScore=0; }
     const Zf=f=>{ stageIndex=f(stageIndex); lastDefeatedIdx=lastDefeatedIdx>=0?f(lastDefeatedIdx):-1; nextStageIdx=nextStageIdx>=0?f(nextStageIdx):-1; };   // 最下層にミジンコ系2体を足した分のずれ
     if(st.lad===7) Zf(i=>i>=1?i+2:i); else if(st.lad>=2&&st.lad<=6) Zf(i=>i>=N?i:(i>=1?i+2:i));
+    if(st.lad===8&&Array.isArray(st.nm)){   // 敵の名前で保存してあれば、途中に敵が増えていても名前で探し直す
+      const byNm=n=>n?WAVES.findIndex(w=>w.baseId===n):-1;
+      const a=byNm(st.nm[0]); if(a>=0) stageIndex=a;
+      if(st.nm[1]!==undefined&&st.nm[1]!==null){ const b=byNm(st.nm[1]); if(b>=0) lastDefeatedIdx=b; } if(st.nm[2]){ const c=byNm(st.nm[2]); if(c>=0) nextStageIdx=c; }
+      if(Array.isArray(st.nm[3])) st.fought=st.nm[3].map(byNm).filter(i=>i>=0);
+    }
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
   foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
   waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0;
