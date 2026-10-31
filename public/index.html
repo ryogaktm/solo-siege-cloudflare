@@ -1774,7 +1774,20 @@ const DISP_NAME={'ミジンコ':'そこらへんのミジンコ','ミジンコ�
    ここに { name:'新モンスター名', after:'この敵の次に入れる（今いる敵の名前）', spr:'MON_ARCHに足した絵のキー' } を書くと、
    前後の敵の強さの間（幾何平均）に1体入る。敵の特殊技・妨害は ENEMY_CFG、特殊技(自分で使う時)は MON_SKILL、表示名は DISP_NAME に足す。
    保存データは敵の名前で覚えているので、途中に足しても続きから再開できる。 */
-const EXTRA_MONSTERS=[{name:'海賊王',after:'山賊王の軍',spr:'pirate_king'},{name:'空賊王',after:'海賊王',spr:'sky_pirate_king'}], MON_SPR_EXTRA={};
+const EXTRA_MONSTERS=[
+  {name:'海賊王',after:'山賊王の軍',spr:'pirate_king'},
+  {name:'空賊王',after:'海賊王',spr:'sky_pirate_king'},
+  {name:'四天王もどき',after:'魔王の親衛隊',base:'魔王の親衛隊',t:0.333,spr:'k_mock'},
+  {name:'四天王候補',after:'四天王もどき',base:'魔王の親衛隊',t:0.667,spr:'k_cand'},
+  {name:'普通の四天王',after:'暗黒の四天王',base:'暗黒の四天王',t:0.111,spr:'k_plain'},
+  {name:'たまたま四天王',after:'普通の四天王',base:'暗黒の四天王',t:0.222,spr:'k_chance'},
+  {name:'影の四天王',after:'たまたま四天王',base:'暗黒の四天王',t:0.333,spr:'k_shadow'},
+  {name:'アンチ四天王',after:'影の四天王',base:'暗黒の四天王',t:0.444,spr:'k_anti'},
+  {name:'四天王を継ぐ者',after:'アンチ四天王',base:'暗黒の四天王',t:0.556,spr:'k_heir'},
+  {name:'四天王と呼ばれた男',after:'四天王を継ぐ者',base:'暗黒の四天王',t:0.667,spr:'k_called'},
+  {name:'四天王の元締め',after:'四天王と呼ばれた男',base:'暗黒の四天王',t:0.778,spr:'k_boss'},
+  {name:'最強の四天王',after:'四天王の元締め',base:'暗黒の四天王',t:0.889,spr:'k_best'}
+], MON_SPR_EXTRA={};
 const REMOVED_MONSTERS=['オークの斥候隊','オークの戦士長'];   // ここに名前を入れると、その敵は出なくなる
 const WAVES=(()=>{
   const base=BALANCE.enemies.map((e,i)=>i===0?{...e}:{...e,hp:e.hp*10,atk:e.atk*10,grow:Math.round(e.grow*100)/10});
@@ -1804,9 +1817,12 @@ const WAVES=(()=>{
     out.splice(iF+1,0,{...a,name:'蚊',hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
     const iB=out.findIndex(w=>w.name==='吸血コウモリの大群'); if(iB>=0) out.splice(iB,1); }
   REMOVED_MONSTERS.forEach(n=>{ const i=out.findIndex(w=>w.name===n); if(i>=0) out.splice(i,1); });
-  EXTRA_MONSTERS.forEach(x=>{ const i=out.findIndex(w=>w.name===x.after); if(i<0) return; const a=out[i], b=out[i+1]||a, g=(u,v)=>Math.sqrt(u*v);
-    out.splice(i+1,0,{...a,name:x.name,hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
-    if(x.spr) MON_SPR_EXTRA[x.name]=[x.spr]; });
+  { const exNames=new Set(EXTRA_MONSTERS.map(x=>x.name));
+  EXTRA_MONSTERS.forEach(x=>{ const ii=out.findIndex(w=>w.name===x.after); if(ii<0) return;
+    const bi=out.findIndex(w=>w.name===(x.base||x.after)); const a=out[bi]; let bj=bi+1; while(bj<out.length&&exNames.has(out[bj].name)) bj++; const b=out[bj]||a;   // 前後の「もともといる敵」の強さの間
+    const t=(x.t===undefined)?0.5:x.t, g=(u,v)=>u*Math.pow(v/u,t);
+    out.splice(ii+1,0,{...a,name:x.name,hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
+    if(x.spr) MON_SPR_EXTRA[x.name]=[x.spr]; }); }
   out.forEach(w=>{ w.hp=Math.round(w.hp*ENEMY_SCALE); w.atk=Math.round(w.atk*ENEMY_SCALE); w.grow=Math.round(w.grow*ENEMY_SCALE*10)/10; });  // 全体の強さ調整（0.9＝10%弱く）
   out.forEach((w,i)=>{ w.lv=i+1; w.rank=out.length-i; w.threshold=w.hp; });
   return out;
@@ -1834,7 +1850,7 @@ const MOON_IDX=LADDER_N+5;
 const moonUnlocked=()=>{ const b=alienBeatList(); return b.includes('月の民')||b.includes('火星人'); };   // 月の民（最初の宇宙人）を倒すと、コンボの制限と引き継ぎ無しが解除（火星人を倒した記録がある人は最初から解除）
 const comboRestricted=()=>!moonUnlocked();
 const COMBO_CAP=5;
-const bossIdxFor=lv=>{ if(lv>=72) return LADDER_N+4; if(!moonUnlocked()) return MOON_IDX; let k=(lv<=25?0:lv<=37?1:lv<=49?2:3); const beat=alienBeatList(); while(k>0&&(HIDDEN_BOSSES.includes(WAVES[LADDER_N+k].id)||!beat.includes(WAVES[LADDER_N+k-1].id))) k--; return LADDER_N+k; };
+const bossIdxFor=lv=>{ if(lv>=LADDER_N) return LADDER_N+4; if(!moonUnlocked()) return MOON_IDX; let k=(lv<=25?0:lv<=37?1:lv<=49?2:3); const beat=alienBeatList(); while(k>0&&(HIDDEN_BOSSES.includes(WAVES[LADDER_N+k].id)||!beat.includes(WAVES[LADDER_N+k-1].id))) k--; return LADDER_N+k; };
 const BASE_IDX=WAVES.map((w,i)=>(w.isNew||w.boss)?-1:i).filter(i=>i>=0);
 const MAX_BATTLES=4;
 const rk=v=>v>0?`${LADDER_N+1-v}位`:'―';  // 保存値（強さの段）→ 順位表示（1位が最強）
@@ -1938,6 +1954,7 @@ function saveHighScore(charId, v){
 (function(){ try{ if(!localStorage.getItem('soloSiegeLad5')||localStorage.getItem('soloSiegeLad6')) return; CHARACTERS.forEach(c=>{ const v=loadHighScore(c.id), i=v-1; if(i>=39) saveHighScore(c.id,v-3); else if(i>=36) saveHighScore(c.id,36); }); localStorage.setItem('soloSiegeLad6','1'); }catch(e){} })();   // 人間を中間に入れた版で保存された順位を元に戻す
 (function(){ try{ if(localStorage.getItem('soloSiegeLad7')) return; CHARACTERS.forEach(c=>{ const v=loadHighScore(c.id); if(v-1>=HUMAN_INS) saveHighScore(c.id,v+1); }); localStorage.setItem('soloSiegeLad7','1'); }catch(e){} })();   // 人間を1人入れた分、敵の段が1つずれた補正
 (function(){ try{ if(localStorage.getItem('soloSiegeLad8')) return; CHARACTERS.forEach(c=>{ const v=loadHighScore(c.id); if(v>=2) saveHighScore(c.id,v+2); }); localStorage.setItem('soloSiegeLad8','1'); }catch(e){} })();   // 最下層にミジンコリーダー・キングを足した分の補正
+(function(){ try{ if(localStorage.getItem('soloSiegeLad9')) return; CHARACTERS.forEach(c=>{ const v=loadHighScore(c.id); if(v>=62) saveHighScore(c.id,v+10); }); localStorage.setItem('soloSiegeLad9','1'); }catch(e){} })();   // 四天王系を10体足した分の補正（魔王の影より上は10段ずれる）
 function loadOverallHighScore(){
   return Math.max(0, ...CHARACTERS.map(c=>loadHighScore(c.id)));
 }
@@ -2002,7 +2019,7 @@ const DIS_TIERS=[
   [38,['half','colnull','cfield','autonum','autonum','minusrain','deatheater']],
   [48,['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','guard','minusrain','deatheater']],
   [58,['half','bomb','comboreset','cfield','autonum','pfield','colnull','autonum','minus','null','bguard','minusrain','deatheater','ghost']],
-  [66,['half','bomb','comboreset','autonum','cfield','pfield','autonum','colnull','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']]
+  [LADDER_N-6,['half','bomb','comboreset','autonum','cfield','pfield','autonum','colnull','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']]
 ];
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
@@ -3397,7 +3414,7 @@ function playerLost(over){   // 負けたらそこで終わり（降格はしな
   gameEnded=true; victory=false; showEnd('hpzero');
 }
 /* 宇宙人の贈り物：一定のレベル以上の敵に負けると、その段階の宇宙人が現れて能力を授ける（戦わない）。レベルはここで調整 */
-const ALIEN_GIFTS=[{id:'月の民',lv:13},{id:'火星人',lv:26},{id:'水星人',lv:38},{id:'金星人',lv:50},{id:'土星人',lv:62},{id:'太陽神',lv:72}];
+const ALIEN_GIFTS=[{id:'月の民',lv:13},{id:'火星人',lv:26},{id:'水星人',lv:38},{id:'金星人',lv:50},{id:'土星人',lv:LADDER_N-10},{id:'太陽神',lv:LADDER_N}];
 function alienGiftList(){   // 今回の負けで授かる宇宙人（順番に。まだ授かっていない・出さない設定でない・前の宇宙人を授かった後）
   const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList(), out=[];
   for(const g of ALIEN_GIFTS){
@@ -6188,6 +6205,16 @@ MON_ARCH.dimension=["....KKKKKKKK....", "..KKCCCCCCCCKK..", ".KCCPPPPPPPPCCK.", 
 MON_ARCH.void=["....KKKKKKKK....", "..KKDDDDDDDDKK..", ".KDDDDDpDDDDDDK.", ".KDDDWWWWWWDDDK.", "KDDDWKKKKKKWDDDK", "KDDWKDDDDDDKWDDK", "KDDWKDDDDDDKWDDK", "KDDWKDDpDDDKWDDK", "KDDWKDDpDDDKWDDK", "KDDDWKKKKKKWDDDK", "KDDDDWWWWWWDDDDK", ".KDDDDDpDDDDDDK.", "..KKDDDDDDDDKK..", "....KKKKKKKK....", "................", "................"];
 MON_ARCH.pirate_king=["................", "...KKKKKKKKKK...", "..KDDDDDDDDDDK..", ".KDDDDDWWDDDDDK.", "KKKKKKKKKKKKKKWK", "..KSSSSSSSKKKKw.", "..KSKSSSSSKKKKw.", "..KSSSSSSSSSSKw.", "..KDDDDDDDDDDKw.", ".KDDDDDDDDDDDDw.", "KRRKDDDDDDDDKRwK", "KRYKRRRRRRRRKYwK", "KRRKRYRRRRYRKRwK", ".KKKRRRRRRRRKNNN", "...KNNK..KNNK...", "...KKKK..KKKK..."];
 MON_ARCH.sky_pirate_king=["................", "...KKKKKKKKKK...", "..KNNNNNNNNNNK..", ".KNNNNNNNNNNNNK.", ".KNKKKKKKKKKKNK.", ".KNKCCWKKWCCKNK.", "..KSSSSSSSSSSK..", "..KSSSmmmmSSSK..", "..KKSSSSSSSSKK..", "KKKKRRRRRRRRKKKK", "KWWKBBBBBBBBKWWK", "KWwWKBYBBYBKWwWK", "KWWwKBBBBBBKwWWK", ".KWKKBBBBBBKKWK.", "...KbbK..KbbK...", "...KKKK..KKKK..."];
+MON_ARCH.k_mock=["................", "..K.K.K..K.K.K..", "..KYYYYYYYYYYK..", "..KYKYKYYKYKYK..", "..KSSSSSSSSSSKW.", "..KSKSSSSSSKSKw.", "..KSSSSSSSSSSKZ.", "..KSSmmmmmmSSKZ.", "..KKSSSSSSSSKKZ.", ".KZZZZZZZZZZZZZ.", "KSZKZhZZZZhZKZZK", "KSZKZZZZZZZZKZZK", ".KKKZZZZZZZZKKK.", "...KbbK..KbbK...", "...KbbK..KbbK...", "...KKKK..KKKK..."];
+MON_ARCH.k_cand=["................", "...KKKKKKKKKK...", "..KggggGGggggK..", "..KgGGGGGGGGgK..", "..KSSSSSSSSSSK..", "..KSKSSSSSSKSK..", "..KSSSSSSSSSSK..", "..KSSSmmmmSSSK..", "..KKSSSSSSSSKK..", ".KBBWWBBBBBBBBK.", "KBBKBBWBBBBBKBBK", "KSBKBBBWBBBBKBSK", ".KKKBBBBWBBBKKK.", "...KBBK..KBBK...", "...KBBK..KBBK...", "...KKKK..KKKK..."];
+MON_ARCH.k_plain=["................", "...KKKKKKKKKK...", "..KGGGGGGGGGGK..", ".KGggGGGGGGggGK.", ".KGSSSSSSSSSSCK.", ".KGSKSSSSSSKSCW.", ".KGSSSSSSSSSSGw.", "..KSSmmmmmmSSKw.", "..KKGGGGGGGGKKw.", ".KGGGGGGGGGGGGw.", "KGGKGGgGGgGGKGwK", "KGGKGGGGGGGGKGwK", ".KKKGGGGGGGGKKw.", "...KGGK..KGGKNNN", "...KGGK..KGGK...", "...KKKK..KKKK..."];
+MON_ARCH.k_chance=["..........K.K...", "...KKKKKKKYKY...", "..KWWWWWWWYYYK..", ".KWWWWWWWWWWWWK.", "..KKKKKKKKKKKK..", "..KSSSSSSSSSSK..", "..KSKSSSSSSKSK..", "..KSSSmmmmSSSK..", "..KKSSSSSSSSKK..", ".KWWWWWWWWWWWWK.", "KSWKWWWWWWWWKWSK", "KSWKWYWWWWYWKWSK", ".KKKWWWWWWWWKKK.", "...KNNK..KNNK...", "...KNNK..KNNK...", "...KKKK..KKKK..."];
+MON_ARCH.k_best=["Y.............wg", "YY.KKKK..KKKK.wg", ".YKYYYYYYYYYYKwg", "..KYYRYYYYRYYKwg", "..KDDDDDDDDDDKwg", "..KDKRRDDRRKDKwg", "..KDDDDDDDDDDKwg", "...KKDDDDDDKK.wg", ".KYYYYYYYYYYYYwg", "KYYYKYYYYYYKYYwg", "KYyYKYRYYRYKYywg", "KYYYKYYYYYYKYYwg", ".KKKKYYYYYYKKYYY", "...KYYK..KYYK.N.", "...KyyK..KyyK...", "...KKKK..KKKK..."];
+MON_ARCH.k_heir=["................", "...KKKK..KKKK.W.", "..KNNNNNNNNNNKC.", ".KNNNNNNNNNNNWC.", ".KNKSSSSSSSSKWC.", ".KNKSKSSSSKSKWC.", "..KSSSSSSSSSSWC.", "..KSSSmmmmSSSWC.", "..KKRRRRRRRRKWC.", ".KRRRBBBBBBRRWC.", "KRRRKBBBBBBKRWCK", "KRRRKBBBBBBKRRCK", "KRRKKBBBBBBKKNNN", ".KRKBBK..KBBKRK.", "..KKBBK..KBBKK..", "...KKKK..KKKK..."];
+MON_ARCH.k_boss=["................", "................", "....KKKKKKKK....", "..KKSSSSSSSSKK..", "..KSSSSSSSSSSK..", "..KWKSSSSSSKWK..", "..KSSSSSSSSSSK..", "..KWWWWWWWWWWK..", "..KWWWWWWWWWWYYY", ".KDDDDDDDDDDDDH.", "KDDKDDRDDRDDKDHK", "KDDKDDDDDDDDKDHK", "KSDKDDDDDDDDKDHK", ".KKKDDDDDDDDKKH.", "..KDDDK..KDDDKH.", "..KKKKK..KKKKKH."];
+MON_ARCH.k_anti=["................", "...KKKKKKKKKK...", "..KWWWWWWWWWWK..", ".KWWwwwwwwwwWWK.", ".KWKKKKKKKKKKWK.", ".KWKRRRRRRRRKWK.", ".KWWWWWWWWWWWWK.", "..KKWWWWWWWWKK..", ".KWWWWWWWWWWWWK.", "KWWWKWRRRRWKWWWK", "KWwKWRRKKRRWKwWK", "KWWKWRWRRWRWKWWK", ".KKKWWRRRRWWKKK.", "...KWWK..KWWK...", "...KwwK..KwwK...", "...KKKK..KKKK..."];
+MON_ARCH.k_shadow=["................", "...KKKKKKKKKK...", "..KpppPPPPpppK..", ".KppPPPPPPPPppK.", ".KpPPPPPPPPPPpK.", ".KpPYYPPPPYYPpK.", ".KpPPPPPPPPPPpK.", "..KpPPPPPPPPpK..", ".KppPPPPPPPPppK.", "KppPPPPPPPPPPppK", "KpPPPppppppPPPpK", "KpPPPPPPPPPPPPpK", ".KpPPPPppPPPPpK.", "..KpPpK..KpPpK..", "...KpPK..KPpK...", "....K.K..K.K...."];
+MON_ARCH.k_called=["................", "...KKKKKKKKKK...", "..KnnnnNNnnnnK..", ".KnNNNNNNNNNNnK.", "KKKKKKKKKKKKKKKK", "..KSSSSSSSSSSK..", "..KSKSSSSSSKSK..", "..KSSSSSSSSSSK..", "..KSSKKKKKWWRK..", ".KttTTTTTTTTttK.", "KttTKTTTTTTKTttK", "KttTKTTTTTTKTttK", "KtTTKTTTTTTKTTtK", ".KKKTTTTTTTTKKK.", "...KttK..KttK...", "...KKKK..KKKK..."];
 Object.assign(SPR,MON_ARCH);
 SPR.gunman=["................",".....KKKKK......","....KNNNNNK.....","....KNNNNNK.....",".KKKnnnnnnnKKK..","...KSSSSSSSK....","...KSKSSSKSK....","...KRRRRRRRK....","..KBBBBBBBBBK...",".KBBBBBBBBBBBK..",".KBBBBBBBBBBSggg",".KBBBBBBBBBBBK..","..KDDDDDDDDDK...","...KDDK..KDDK...","...KNNK..KNNK...","..KKKKK.KKKKK..."];   // ガンマン（ポンチョにカウボーイハット、右手にリボルバー）
 Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});

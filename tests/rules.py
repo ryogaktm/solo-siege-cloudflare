@@ -13,7 +13,7 @@ with sync_playwright() as p:
     pg.goto(GAME); pg.wait_for_timeout(600)
     ev=lambda js:pg.evaluate(js)
     check('起動でJSエラーが出ない',not errs,errs)
-    check('通常の敵が72体',ev("()=>WAVES.filter(w=>!w.boss).length")==72)
+    check('通常の敵が82体',ev("()=>WAVES.filter(w=>!w.boss).length")==82)
     bad=ev("()=>{const n=WAVES.filter(w=>!w.boss);return n.filter((w,i)=>i&&w.hp<n[i-1].hp).map(w=>w.name)}")
     check('敵のHPが下がる箇所がない（順位が上がるほど強い）',not bad,bad)
     bad=ev("()=>{const n=WAVES.filter(w=>!w.boss);return n.filter((w,i)=>i&&w.atk<n[i-1].atk).map(w=>w.name)}")
