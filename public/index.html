@@ -4668,7 +4668,25 @@ function predictAttackRange(pA){
   pick=worsts; lo=Math.min(lo,evalPick(false));   // 最小値＝残りの旗が全部いちばん低い結果（役なし）で終わった場合
   { const mn=Math.max(0,Math.round(pA+lo)), mx=Math.max(0,Math.round(pA+hi)); return disDarkOn()?{min:Math.round(mn/2),max:Math.round(mx/2)}:{min:mn,max:mx}; }
 }
+let lastSpecMax=null;
+function checkSpecMaxUp(){   // 戦闘中に特殊技の回数の上限が上がったら、はっきり知らせる
+  try{
+    if(!CHARACTER||gameEnded||inPrep) return;
+    const kinds=(CHARACTER.sp||[]).filter(k=>k!=='shuffle'||true), now={}; kinds.forEach(k=>{ now[k]=specMax(k); });
+    if(!lastSpecMax){ lastSpecMax=now; return; }
+    const ups=kinds.filter(k=>lastSpecMax[k]!==undefined&&now[k]>lastSpecMax[k]).map(k=>{ const t=(specInfoFor(k)||{}).title||k; return `${t}：${lastSpecMax[k]}回 → ${now[k]}回`; });
+    lastSpecMax=now;
+    if(ups.length) specUpAlert(ups);
+  }catch(e){}
+}
+function specUpAlert(lines){
+  const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10003';
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">🆙 特殊技の回数が増えた！</div><div class="reward-sub" style="margin-top:8px;text-align:left;white-space:pre-line">${lines.join('\n')}</div><button class="btn" style="width:100%;margin-top:12px">OK</button></div>`;
+  document.body.appendChild(bg); bg.querySelector('button').onclick=()=>bg.remove();
+  try{ playSfx('reward'); }catch(e){}
+}
 function renderBattle(){
+  checkSpecMaxUp();
   updateBarrier(); syncGuardFx();
   const pct=Math.min(100,Math.max(0,playerHp/playerHpMax*100));
   const f=document.getElementById('playerHpFill'); if(f){ f.style.width=pct+'%'; f.classList.toggle('over',playerHp>playerHpMax); }
@@ -6859,7 +6877,7 @@ function runGoalToast(){
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
 }
-function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); }
+function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) setTimeout(()=>{ if(!gameEnded&&!inPrep&&battleGoals.length&&!document.querySelector('.modal-bg[style*="display: flex"]')) openCondModal(); },700); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
 function grantSpecialAcc(id,msg){
   const d=accDef(id); if(!d||accOwned.some(o=>o.id===id)) return false;
   accOwned.push({aid:accSeq++,id:id}); goalToastQ.push(msg.replace('{n}',d.name)); runGoalToast(); return true;
@@ -7122,8 +7140,8 @@ function openChest(got,income){
     box.appendChild(el);
   });
   { const okL=(lastGoalRes||[]).filter(x=>x.ok);   // 戦いが終わったら、クリアした条件を一覧で出す
-    const gb=document.createElement('div'); gb.className='reward-option'; gb.style.cssText='cursor:default;flex-direction:column;align-items:stretch;gap:4px';
-    gb.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">📋 クリアした条件（${okL.length}／${(lastGoalRes||[]).length}）</div>`+(okL.length?okL.map(x=>`<div class="acc-desc">☑ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'<div class="acc-desc" style="opacity:.8">今回クリアした条件はありませんでした</div>')+((lastGoalRes||[]).some(x=>!x.ok)?'<div class="acc-desc" style="margin-top:6px;opacity:.75;font-weight:700">達成できなかった条件</div>'+(lastGoalRes||[]).filter(x=>!x.ok).map(x=>`<div class="acc-desc" style="opacity:.6">☐ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'');
+    const gb=document.createElement('div'); gb.style.cssText='cursor:default;text-align:left;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:10px 12px;border:1px solid var(--line,rgba(255,255,255,.15));border-radius:12px;background:rgba(255,255,255,.03);-webkit-tap-highlight-color:transparent;pointer-events:none';   // 見るだけ（タップしても何も起きない）／全部左揃え
+    gb.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800;text-align:left">📋 クリアした条件（${okL.length}／${(lastGoalRes||[]).length}）</div>`+(okL.length?okL.map(x=>`<div class="acc-desc" style="text-align:left">☑ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'<div class="acc-desc" style="opacity:.8;text-align:left">今回クリアした条件はありませんでした</div>')+((lastGoalRes||[]).some(x=>!x.ok)?'<div class="acc-desc" style="margin-top:6px;opacity:.75;font-weight:700;text-align:left">達成できなかった条件</div>'+(lastGoalRes||[]).filter(x=>!x.ok).map(x=>`<div class="acc-desc" style="opacity:.6;text-align:left">☐ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'');
     box.insertBefore(gb,box.firstChild); }
   const cashO=chestAids.map(a=>accOwned.find(o=>o.aid===a)).filter(Boolean);
   if(cashO.length){

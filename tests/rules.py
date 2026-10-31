@@ -133,5 +133,10 @@ with sync_playwright() as p:
       grantStageReward(); await new Promise(r=>setTimeout(r,300));
       return {list:document.getElementById('cardListModal').style.display, spec:document.getElementById('specModal').style.display, chest:document.getElementById('chestModal').style.display}}""")
     check('戦いが終わったら、開きっぱなしのポップアップ（一覧・特殊技など）が閉じて宝箱だけが出る',r['list']=='none' and r['spec']=='none' and r['chest']=='flex',r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false; stageIndex=WAVES.findIndex(w=>w.lv===30); introOn=false;
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={}; startBattleGoals(); await sleep(1000); const cm=document.getElementById('condModal'); o.cond=!!cm&&cm.style.display==='flex'; if(cm) cm.style.display='none';
+      renderBattle(); o.before=document.querySelectorAll('.modal-bg[style*="10003"]').length; const aid=accSeq++; accOwned.push({aid,id:'sp_double'}); accEq.push(aid); renderBattle(); o.alert=document.querySelectorAll('.modal-bg[style*="10003"]').length; o.txt=(document.querySelector('.modal-bg[style*="10003"]')||{}).innerText||'';
+      return o}""")
+    check('戦闘の最初に取得条件の一覧が出る／戦闘中に特殊技の回数の上限が上がるとアラートが出る',r['cond'] and r['before']==0 and r['alert']==1 and '回' in r['txt'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
