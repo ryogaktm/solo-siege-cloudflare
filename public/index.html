@@ -7108,7 +7108,7 @@ function openChest(got,income){
   });
   { const okL=(lastGoalRes||[]).filter(x=>x.ok);   // 戦いが終わったら、クリアした条件を一覧で出す
     const gb=document.createElement('div'); gb.className='reward-option'; gb.style.cssText='cursor:default;flex-direction:column;align-items:stretch;gap:4px';
-    gb.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">📋 クリアした条件（${okL.length}／${(lastGoalRes||[]).length}）</div>`+(okL.length?okL.map(x=>`<div class="acc-desc">☑ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'<div class="acc-desc" style="opacity:.8">今回クリアした条件はありませんでした</div>');
+    gb.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">📋 クリアした条件（${okL.length}／${(lastGoalRes||[]).length}）</div>`+(okL.length?okL.map(x=>`<div class="acc-desc">☑ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'<div class="acc-desc" style="opacity:.8">今回クリアした条件はありませんでした</div>')+((lastGoalRes||[]).some(x=>!x.ok)?'<div class="acc-desc" style="margin-top:6px;opacity:.75;font-weight:700">達成できなかった条件</div>'+(lastGoalRes||[]).filter(x=>!x.ok).map(x=>`<div class="acc-desc" style="opacity:.6">☐ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'');
     box.insertBefore(gb,box.firstChild); }
   const cashO=chestAids.map(a=>accOwned.find(o=>o.aid===a)).filter(Boolean);
   if(cashO.length){
