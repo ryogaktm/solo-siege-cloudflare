@@ -1595,7 +1595,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
   '大グモ':{kind:'spider',name:'捕食',icon:'🕷',desc:'自分のHPが敵より多い時、敵のHPを0にします。'},
   'コガネムシ':{kind:'gold',name:'コガネモチ',icon:'💰',desc:'金箔を集めて、すぐに100Gを手に入れます。'},
-  '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'ランダムなマークの「10」のカードを3枚、手札に加える。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
+  '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'手札を、ランダムなマークの「10」のカードで上限いっぱいにする（今の手札は墓地へ。呪いのカードは残る）。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
   'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
@@ -6033,8 +6033,11 @@ function monSkillUse(){
   else if(m.kind==='top'){
     if(topUsed){ hint('首席アタックは、1回のゲームに1回しか使えません。',true); return; }
     topUsed=true; spec.mon++;
-    const got=[]; for(let i=0;i<3;i++){ const c={kind:'troop',color:GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)],value:10,uid:uid(),temp:true}; hand.push(c); got.push(CNAME[c.color]); }
-    hint('🎓 首席アタック！ '+got.map(x=>x+'の10').join('・')+'が手札に加わった。（このゲームでは、もう使えない）',true); playSfx('combo'); dlog('action',{name:'top_attack',got});
+    const keep=hand.filter(isEnemyCard), drop=hand.filter(c=>!isEnemyCard(c));   // 呪い・敵のカードは消せないので残る
+    graveyard.push(...drop.filter(c=>!c.temp));
+    const n=Math.max(1,currentHandMax()-keep.length); hand=[...keep];
+    const got=[]; for(let i=0;i<n;i++){ const c={kind:'troop',color:GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)],value:10,uid:uid(),temp:true}; hand.push(c); got.push(CNAME[c.color]); }
+    hint('🎓 首席アタック！ 手札がすべて「10」になった！（'+got.join('・')+'）このゲームでは、もう使えない。',true); playSfx('combo'); dlog('action',{name:'top_attack',got});
     render(); layoutHand(false); try{ saveGame(); }catch(_){}
     return;
   }
