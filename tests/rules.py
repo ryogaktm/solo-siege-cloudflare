@@ -167,5 +167,8 @@ with sync_playwright() as p:
       return o}""")
     ok=all(r[k]['has'] and r[k]['fi']==r[k]['tgt'] and r[k]['changed'] and r[k]['onTgt'] for k in ['minus','ghost','deatheater','assassin'])
     check('旗を狙う妨害（マイナスの武器・ワームホール・デスイーター・暗殺）：旗の右上に予定が出て、予定の旗に発動する',ok,r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); inPrep=false; openAccModal(); await new Promise(r=>setTimeout(r,300));
+      const b=document.querySelector('#accModal .reward-box').getBoundingClientRect(), u=document.getElementById('accUpper').getBoundingClientRect(); document.getElementById('accModal').style.display='none'; return {bh:b.height,uh:u.height}}""")
+    check('戦闘中にアクセサリー画面（🎒）を開いても、中身が見える（空の枠にならない）',r['bh']>300 and r['uh']>200,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

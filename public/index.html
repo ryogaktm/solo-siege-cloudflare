@@ -944,6 +944,7 @@
   #shopModal #shopBody>*{ flex:0 0 auto; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
   #accModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; }
+  #accModal:not(.inprep) .reward-box{ height:min(88vh,780px); height:min(88svh,780px); }   /* 戦闘中に開いた時も中身が見えるように高さを持たせる（以前は中身がつぶれて空の枠だけになっていた） */
   #accModal.inprep .reward-box{ height:min(94vh,820px); height:min(94svh,820px); }
   #accUpper{ flex:1 1 0; min-height:0; overflow-y:auto; }
   #accModal:not(.inprep) #accDeckMini{ display:none; }
