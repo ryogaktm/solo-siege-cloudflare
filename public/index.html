@@ -627,6 +627,10 @@
   .pcard.monster.mini .ttitle{ font-size:8px; top:3px; }
   .pcard.monster.necro{ background:linear-gradient(160deg,#241030,#120818); }
 
+  .pcard.auto-enemy{ outline:2px solid #ff4d6d; outline-offset:-2px; box-shadow:0 0 10px rgba(255,77,109,.75); }
+  .pcard.auto-enemy::after{ content:'敵'; position:absolute; right:2px; bottom:2px; z-index:3; font-size:10px; font-weight:900; line-height:1; padding:2px 4px; border-radius:6px; background:#c0183a; color:#fff; }
+  .pcard.auto-new{ animation:autoNew 1.1s ease-out 2; }
+  @keyframes autoNew{ 0%{transform:translateY(-26px) scale(1.25); opacity:0; box-shadow:0 0 30px #ff4d6d;} 40%{transform:translateY(0) scale(1.08); opacity:1;} 100%{transform:none;} }
   .pcard.enemy{ background:linear-gradient(160deg, #7a2420 0%, #4a1210 60%, #240808 100%) !important; }
   .pcard.voided{ filter:grayscale(1) brightness(.6); opacity:.65; } .pcard.voided::after{ content:'🕳'; position:absolute; right:2px; bottom:2px; font-size:16px; }
   .badge.ghostbadge{ top:auto !important; bottom:4px; background:rgba(120,90,200,.85); color:#fff; }
@@ -2467,8 +2471,9 @@ function applyEnemyEvent(type,target){
       const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
       if(nl&&nl.length){ const pk2=nl[(disFired-1+nl.length*100)%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カード
       else { col=COLORS[Math.floor(Math.random()*COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
-      f.cards.push({kind:'troop',color:col,value:v,uid:uid(),temp:true});   // 見た目は普通の数字カード
-      hint(`🔢 敵が勝手に旗へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
+      const ac={kind:'troop',color:col,value:v,uid:uid(),temp:true,autoPlaced:true,autoFresh:true}; f.cards.push(ac);   // 中身は普通の数字カード。ただし「敵が置いた」とわかるよう赤い枠と「敵」の印を付け、置いた直後は光らせる
+      setTimeout(()=>{ ac.autoFresh=false; try{ render(); }catch(e){} },2200);
+      hint(`🔢 敵が勝手に旗${pk.i+1}へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
       try{ render(); }catch(e){}
     }
   } else if(type==='pfield'){
@@ -4400,6 +4405,7 @@ function paintCard(d, c, mini){
     d.innerHTML=`<div class="ttitle">${c.short||c.name}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#f0a38a">${EMBLEM.tactic}</svg></div>`;
   }
   if(c.enemyPlaced) d.classList.add('enemy');
+  if(c.autoPlaced){ d.classList.add('auto-enemy'); if(c.autoFresh) d.classList.add('auto-new'); }
   if(c.voided) d.classList.add('voided');
   if(c.purchased) d.classList.add('purchased');
 }
