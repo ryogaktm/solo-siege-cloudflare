@@ -1479,7 +1479,7 @@ const TACTICS = [
   {type:'darius',name:'赤♾️',short:'赤♾️',desc:'万能・強さ8／3枚目のみ',count:1},
   {type:'scout',name:'補充',short:'補充',desc:'3枚引き2枚捨てる（墓地へ）',count:4},
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ送り、その枚数を山札から引き直す',count:3},
-  {type:'wipe',name:'全滅',short:'全滅',desc:'指定した旗のカードを全て墓地へ（閉じた旗・敵に封鎖された旗・呪いの装備も可）',count:2},
+  {type:'holy',name:'聖水',short:'聖水',desc:'手札の呪いのカード、または旗に置かれた呪い（敵の装備・ボム・封鎖・ワームホール）を1つ選んで取り除く',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地からカードを1枚選んで手札に戻す',count:2},
   {type:'guidance',name:'誘導',short:'誘導',desc:'旗の一番上のカードを別の旗へ移動',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
@@ -1849,6 +1849,7 @@ const TACTIC_EXTRA = {
   darius:'旗の3枚目としてしか置けない万能カード（赤♾️）。色・数字の条件を完全に無視できます（装備の色・数字条件も無視）。先に2枚置いてから使いましょう。',
   scout:'発動すると部隊を3枚引き、その中から2枚を選んで捨てます（捨てたカードは墓地へ）。欲しい色や数字を探したい時に。',
   shuffle:'発動すると、このカード自身はまず墓地へ送られます。その後、残った手札から好きな枚数（0枚でも可）を選んで墓地へ送り、その枚数だけ山札から新しく引けます。手詰まりを一新したい時に。ヘッダーの「いつでもシャッフル」とは別物で、こちらは手札もカードも消費します。',
+  holy:'発動後、取り除きたい呪いをタップ。手札にある呪いのカード（毒・封鎖・ボム・暗闇・無効・全滅・敵の装備やフィールド）なら、そのカードが消えます。旗をタップすると、その旗の敵の装備・ボム・封鎖・ワームホールが消えます。スーパーコンボのペナルティはありません。',
   wipe:'指定した旗のカードをすべて墓地へ送り、その旗を空にします。敵に封鎖された旗（封鎖も解ける）や、呪いの装備の乗った旗にも使えます。閉じた旗にも使え、その場合は獲得済みの戦力も取り消されて未封鎖に戻ります。',
   rehire:'発動すると、墓地にあるカードから1枚を選んで手札に戻せます。強かった部隊や装備をもう一度使いたい時に。',
   guidance:'発動すると、まず移動元の旗をタップ。旗に2枚ある場合はどちらを動かすか選べる（1枚しかない場合は自動でそれが選ばれる）。最後に移動先の旗をタップすれば、そのカードを別の旗へ移し替えられます。ヘッダーの山札・墓地アイコンをタップすれば、移動させずにそのまま捨てることもできます。',
@@ -1953,6 +1954,7 @@ const EVENT_INFO={
   deatheater:{icon:'👹',label:'デスイーター',cls:'ev-dis'},
   ghost:{icon:'🕳',label:'ワームホール',cls:'ev-dis'},
   minusrain:{icon:'🌧',label:'マイナスレイン',cls:'ev-dis'},
+  wipe:{icon:'💥',label:'全滅（旗のカードが消える）',cls:'ev-dis'},
   comboreset:{icon:'💥',label:'コンボリセット',cls:'ev-dis'},
   colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
 };
@@ -1963,11 +1965,12 @@ const CURSE_DEF={
   bomb:{type:'curse_bomb',name:'時限ボム',short:'💣ボム',desc:'旗に置くと、5ターン以内にその旗で役を揃えないと爆発してスーパーコンボ−20。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
   dark:{type:'curse_dark',name:'暗闇',short:'🌑暗闇',desc:'使うと数ターンの間、攻撃の予測表示が半分に見えなくなる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
   minus:{type:'curse_minus',name:'マイナスの武器',short:'➖武器',desc:'（旧）'},
+  wipe:{type:'curse_wipe',name:'全滅',short:'💥全滅',desc:'使うと好きな旗を1つ選び、そこのカードを全て墓地へ送る（自分のカードが消える）。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。聖水で消せる。'},
   null:{type:'curse_null',name:'無効の呪い',short:'🚫無効',desc:'使うと5ターンの間、軍師カードの効果が無効になる。敵の呪い（毒・封鎖・ボム・暗闇）の効果も無効になる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'}
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=5;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.45};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:0.7};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -1984,8 +1987,8 @@ const DIS_TIERS=[
 ];
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
 const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)'};
-const EVENT_SHORT={ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ'};
+const DIS_NAME={ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
+const EVENT_SHORT={ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -2064,6 +2067,7 @@ function disList(w){
   if(ENEMY_CFG[w.name]&&ENEMY_CFG[w.name].dis) r=ENEMY_CFG[w.name].dis;
   else if(w.boss) r=DIS_BOSS[w.name]||[];
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
+  if((w.boss||w.lv>=DIS_PARAM.wipeLv) && r.length && !r.includes('wipe')) r=[...r,'wipe'];   // 全滅カード：どの敵も出す
   r=r.filter(k=>!DIS_OFF.includes(k));
   if(!w.boss && w.lv<DIS_PARAM.harshLv){   // 序盤は、プレイでどうにかできる「旗（シート）の妨害」だけ。防御・コンボ系は出さない
     r=r.filter(k=>!HARSH_DIS.includes(k));
@@ -2073,8 +2077,15 @@ function disList(w){
 }
 const HARSH_DIS=['half','guard','bguard','comboreset','colnull','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
 const SHEET_DIS=[['autonum',5],['cfield',10],['pfield',12],['minus',16],['bomb',20],['deatheater',24],['ghost',26],['minusrain',28]];   // [技, 出始めのlv]：旗やカードに関わる妨害
+const SOFT_DIS=['autonum','cfield','pfield','minus','null','dark','bomb','wipe'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
-function disWeights(w,dl){   // 敵ごとの「得意技」：ENEMY_CFG の fav:[...]（同じ技を並べるほど重い）か、無ければ名前から決まる偏りを使う（どの敵も得意技・準得意・苦手が固定）
+function disWeights(w,dl){
+  const wt=disWeights0(w,dl), ec=ENEMY_CFG[w.name]||{};
+  if(ec.fav&&ec.fav.length&&wt.wipe!==undefined&&wt.wipe<DIS_PARAM.wipeW) wt.wipe=DIS_PARAM.wipeW;   // 全滅は得意技でなくても普通に出る
+  SOFT_DIS.forEach(t=>{ if(wt[t]>0) wt[t]*=DIS_PARAM.softMul; });
+  return wt;
+}
+function disWeights0(w,dl){   // 敵ごとの「得意技」：ENEMY_CFG の fav:[...]（同じ技を並べるほど重い）か、無ければ名前から決まる偏りを使う（どの敵も得意技・準得意・苦手が固定）
   const types=[...new Set(dl)], wt={};
   const ec=ENEMY_CFG[w.name]||{};
   if(ec.fav&&ec.fav.length){ types.forEach(t=>{ wt[t]=0.4; }); ec.fav.forEach(t=>{ if(wt[t]!==undefined) wt[t]=(wt[t]<1?0:wt[t])+1; }); return wt; }
@@ -2106,7 +2117,7 @@ const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
 const disDarkOn=()=>turnCounter<dis.darkUntil;
 const nullOn=()=>turnCounter<dis.nullUntil;
-const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus',curse_null:'null'})[c.type]||'seal';
+const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus',curse_null:'null',curse_wipe:'wipe'})[c.type]||'seal';
 const minusCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.negated);
 const isEnemyCard=c=>isCurse(c)||isEnemyEq(c);
 function comboLoss(pen,msg){   // 持ち越しのスーパーコンボを下げる
@@ -2121,6 +2132,7 @@ function applyComboPenalty(n){   // 敵のカードを消した代償
 }
 function makePanicField(){ return {kind:'monster',sub:'pfield',enemyCard:true,accumulatedBonus:0,uid:uid()}; }
 function makeColorField(){ return {kind:'monster',sub:'cfield',color:COLORS[Math.floor(Math.random()*COLORS.length)],enemyCard:true,accumulatedBonus:0,uid:uid()}; }
+const wipeCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&f.cards.length>0);
 const bombCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.bomb);
 function bombBoom(i){
   const f=flags[i]; if(!f) return; f.bomb=0;
@@ -2413,6 +2425,8 @@ function applyEnemyEvent(type,target){
     { const me=makeMinusEq(); const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&f.cards.length<3&&(!flagMonster(f)||flagMonster(f).sub==='number'||flagMonster(f).sub==='combined')); if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(hauntBlock(flags.indexOf(f),'マイナスの武器')) return; if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
   } else if(type==='null'){
     giveHandCard(makeCurse('null')); hint('🚫 無効の呪いを手札に押し付けられた！',true); playSfx('warn');
+  } else if(type==='wipe'){
+    giveHandCard(makeCurse('wipe')); hint('💥 全滅のカードを手札に押し付けられた！ 使うと旗1つ分のカードが消える。聖水で消せる。',true); playSfx('warn');
   } else if(type==='dark'){
     giveHandCard(makeCurse('dark')); hint('🌑 暗闇のカードを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='deatheater'){
@@ -2741,6 +2755,7 @@ function darken(hex, pct){
 }
 const MIXED_SHAPE='<circle cx="50" cy="50" r="34"/>';
 function sanitizeCard(c){
+  if(c.kind==='tactics' && c.type==='wipe' && !c.curse){ c.type='holy'; c.name='聖水'; c.short='聖水'; c.desc=TACTICS.find(t=>t.type==='holy').desc; }
   if(c.kind==='tactics' && !c.name){
     let ref = TACTICS.find(t=>t.type===c.type);
     if(!ref) ref = TACTICS.find(t=>t.type==='alexander');
@@ -2873,7 +2888,7 @@ function targetsFor(card){
   return out;
 }
 function canPlayAnything(){
-  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||(c.type==='split'&&hand.some(x=>x.kind==='troop'))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
+  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||c.type==='holy'||(c.type==='split'&&hand.some(x=>x.kind==='troop'))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
 }
 
 /* ================= AUTO REFILL ================= */
@@ -3783,6 +3798,31 @@ function useDuplicate(handIdx){
   render();
   hint('複製したい手札のカードをタップしてください。');
 }
+const holyHandOK=c=>isCurse(c)||isEnemyEq(c);
+const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.closed&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0));
+function useHoly(handIdx){
+  const others=hand.some((c,i)=>i!==handIdx&&holyHandOK(c));
+  if(!others && !holyFlagCands().length) return hint('取り除ける呪いがありません（手札にも旗にも、呪いがありません）。',true);
+  busy=false; pending={type:'holy', uid:hand[handIdx].uid}; picked=null; render();
+  hint('取り除く呪いを、手札のカードか旗からタップしてください。（キャンセルすると使いません）');
+}
+function finishHoly(msg,extra){
+  const hi=hand.findIndex(c=>c.uid===pending.uid), used=hand[hi]; pending=null;
+  if(hi>=0){ hand.splice(hi,1); graveyard.push(used); advanceTurn(used); }
+  const refilled=autoRefill(1+(extra||0));
+  playSfx('shuffle'); render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+  busy=false; hint(msg); endCheck(); render();
+}
+function resolveHolyHand(idx){
+  const c=hand[idx]; if(!c||c.uid===pending.uid) return;
+  if(!holyHandOK(c)) return hint('そのカードは呪いではありません。呪いのカードをタップしてください。',true);
+  hand.splice(idx,1); finishHoly(`💧 聖水：${isCurse(c)?c.name:cardDisplayName(c)}を取り除いた！`,1);
+}
+function resolveHolyFlag(i){
+  const f=flags[i]; if(!holyFlagCands().some(x=>x.i===i)) return hint('その旗には取り除ける呪いがありません。',true);
+  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; delete haunt[i];
+  finishHoly(`💧 聖水：F${i+1}の呪い（敵の装備・ボム・封鎖・ワームホール）を取り除いた！`,0);
+}
 function useRevolution(handIdx){
   if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop')) return hint('手札に数字カードがありません。',true);
   busy=true;
@@ -4133,6 +4173,13 @@ function useCurse(handIdx){
     if(bc.length>1){ pending={type:'sealpick', uid:used.uid, bomb:true}; picked=null; render(); hint('ボムを置く旗をタップしてください。（キャンセルすると使いません）'); return; }
     return doCurse(handIdx, bc[0].i);
   }
+  if(kind==='wipe'){
+    if(hasAcc('reflect_mirror')) return doCurse(handIdx);
+    const wc=wipeCands();
+    if(!wc.length) return hint('全滅を使える旗がありません（カードが置いてある、完成前の旗が必要です）。',true);
+    if(wc.length>1){ pending={type:'sealpick', uid:used.uid, wipe:true}; picked=null; render(); hint('カードを消す旗をタップしてください。（キャンセルすると使いません）'); return; }
+    return doCurse(handIdx, wc[0].i);
+  }
   if(kind==='minus'){
     if(hasAcc('reflect_mirror')) return doCurse(handIdx);   // 手鏡で跳ね返す（旗は選ばない）
     const mc=minusCands();
@@ -4158,7 +4205,12 @@ function doCurse(handIdx, target){
   hand.splice(handIdx,1);          // 使った呪いは墓地に行かず消える
   advanceTurn(used);
   playSfx('place');
-  if((kind==='bomb'||kind==='dark') && hasAcc('reflect_mirror')){
+  if(kind==='wipe'){
+    if(hasAcc('reflect_mirror')){ hint('🪞 全滅を跳ね返した！ 効果は無効。',true); playSfx('warn'); }
+    else if(nullOn()) hint('🚫 全滅は無効化された。',true);
+    else { const wf=flags[target]; if(wf&&!wf.closed){ const cl=wf.cards.splice(0,wf.cards.length).filter(c=>!isEnemyEq(c)&&!c.temp); graveyard.push(...cl); wf.bomb=0; delete haunt[target]; hint(`💥 全滅！ F${target+1}のカードがすべて墓地へ送られた。`,true); playSfx('warn'); try{ screenShake(); }catch(e){} } }
+  }
+  else if((kind==='bomb'||kind==='dark') && hasAcc('reflect_mirror')){
     if(kind==='bomb'){ bossHp=Math.max(1,Math.ceil(bossHp/2)); animateBossHp(bossHp,500); hint('🪞 ボムを跳ね返した！ 敵のHPが半分になった！',true); }
     else hint('🪞 暗闇を跳ね返した！ 効果は無効。',true);
     playSfx('warn');
@@ -4395,6 +4447,7 @@ const EVENT_DESC={
   autonum:()=>'敵が勝手に旗へ数字カードを1枚置く（空き・1枚以下の旗が対象）。',
   minus:()=>'「マイナスの武器」を旗に置く。その旗の数字の合計が減る。プラスの武器を重ねれば減らせる。',
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
+  wipe:()=>'「全滅」のカードを手札に押し付ける。使うと選んだ旗のカードがすべて墓地へ送られる（使わずに持っていることはできるが、捨てられない）。聖水で消せる。',
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
   deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
   ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
@@ -4624,7 +4677,8 @@ function render(){
   let targets=[];
   if(pending&&pending.type==='guidance') targets=guidanceTargets(pending.step);
   else if(pending&&pending.type==='skillplace') targets=targetsFor(pending.card);
-  else if(pending&&pending.type==='sealpick') targets=(pending.bomb?bombCands():pending.minus?minusCands():sealCands()).map(c=>c.i);
+  else if(pending&&pending.type==='sealpick') targets=(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).map(c=>c.i);
+  else if(pending&&pending.type==='holy') targets=holyFlagCands().map(c=>c.i);
   else if(picked!==null && !pending) targets=targetsFor(hand[picked]);
   const highlighting=targets.length>0;
 
@@ -4895,10 +4949,11 @@ function nowText(){
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
   if(pending&&pending.type==='addcard') return '手札から捨てるカードを1枚タップしよう（'+pending.nm+'が加わる）。';
+  if(pending&&pending.type==='holy') return '取り除く呪いを、手札のカードか旗からタップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='split') return '分裂させる部隊カードをタップしよう。';
   if(pending&&pending.type==='skillplace') return '置く旗をタップしよう。';
-  if(pending&&pending.type==='sealpick') return pending.bomb?'ボムを置く旗をタップしよう。':pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
+  if(pending&&pending.type==='sealpick') return pending.wipe?'カードを消す旗をタップしよう。':pending.bomb?'ボムを置く旗をタップしよう。':pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
@@ -4908,7 +4963,7 @@ function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
-    if(pending && ['discard','replace_select','guidance','duplicate','fusion','split','sealpick'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
+    if(pending && ['discard','replace_select','guidance','duplicate','fusion','split','sealpick','holy'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
     else if(pendHintTxt){ if(he.textContent===pendHintTxt) he.textContent=''; pendHintTxt=''; }
   }
   document.getElementById('cancelPendingBtn').style.display = (pending && pending.type!=='discard' && pending.type!=='rehire' && pending.type!=='spitdiscard') ? '' : 'none';
@@ -4919,6 +4974,7 @@ function updateTelops(){
 function curseInfo(c){
   if(c.type==='curse_bomb') return `使って旗を選ぶと、その旗に時限ボムを置く。<b style="color:var(--danger)">${DIS_PARAM.bombFuse}ターン以内</b>にその旗で役を揃えないと爆発し、<b style="color:var(--danger)">スーパーコンボが−${DIS_PARAM.bombPenalty}</b>される。役が揃えば解除できる。`;
   if(c.type==='curse_null') return `使うと<b style="color:var(--danger)">${DIS_PARAM.nullTurns}ターン</b>の間、軍師カードの効果が無効になる。敵の呪い（毒・封鎖・ボム・暗闇）の効果も無効になる。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
+  if(c.type==='curse_wipe') return `使って旗を1つ選ぶと、その旗に置いたカードが<b style="color:var(--danger)">すべて墓地へ送られます</b>（完成前の旗のみ）。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。「💧聖水」ならペナルティなしで消せます。`;
   if(c.type==='curse_dark') return `使うと<b style="color:var(--danger)">${DIS_PARAM.darkTurns}ターン</b>の間、攻撃の予測表示が半分に見えなくなる。`;
   if(c.type==='curse_minus') return `使って旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる（役・コンボも付かない）。`;
   const per=WAVES[stageIndex].poison||(2+WAVES[stageIndex].tier);
@@ -4970,7 +5026,7 @@ function showCardInfo(idx){
   else if(c.type==='blank'){ primary.style.display=''; primary.textContent='捨てて引く'; }
   else if(c.sub==='necro'){ primary.style.display=''; primary.textContent='発動する'; }
   else if(c.type==='guidance'){ primary.style.display=''; primary.textContent='発動する'; }
-  else if(c.type==='duplicate'){ primary.style.display=''; primary.textContent='発動する'; }
+  else if(c.type==='duplicate'||c.type==='holy'){ primary.style.display=''; primary.textContent='発動する'; }
   else if(c.type==='fusion'||c.type==='split'){ primary.style.display=''; primary.textContent='発動する'; }
   else { primary.style.display='none'; }
   document.getElementById('cardInfoBg').style.display='flex';
@@ -5588,8 +5644,9 @@ function tapFlag(i){
     resolveGuidance(i);
     return;
   }
+  if(pending&&pending.type==='holy'){ resolveHolyFlag(i); return; }
   if(pending&&pending.type==='sealpick'){
-    if(!(pending.bomb?bombCands():pending.minus?minusCands():sealCands()).some(c=>c.i===i)){ hint(pending.bomb?'その旗にはボムを置けません。':pending.minus?'その旗にはマイナスを付けられません。':'その旗は封鎖できません。',true); return; }
+    if(!(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).some(c=>c.i===i)){ hint(pending.wipe?'その旗にはカードがありません。':pending.bomb?'その旗にはボムを置けません。':pending.minus?'その旗にはマイナスを付けられません。':'その旗は封鎖できません。',true); return; }
     const hi=hand.findIndex(c=>c.uid===pending.uid); pending=null;
     if(hi<0){ render(); return; }
     doCurse(hi,i); return;
@@ -5617,6 +5674,7 @@ function tapHand(idx){
   if(pending&&pending.type==='swallow'){ swallowTap(idx); return; }
   if(pending&&pending.type==='spitdiscard'){ spitDiscardTap(idx); return; }
   if(pending&&pending.type==='addcard'){ addCardTap(idx); return; }
+  if(pending&&pending.type==='holy'){ resolveHolyHand(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
   if(pending&&pending.type==='split'){ resolveSplit(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
@@ -5726,7 +5784,7 @@ let dbgGrab='';
 function attachDrag(el){
   let sx,sy,dragging=false,ghost=null,startRect=null,hoverFlag=null,hoverGrave=null,idx=-1;
   el.addEventListener('pointerdown',e=>{
-    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='split'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard'&&pending.type!=='addcard')) return;
+    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='holy'&&pending.type!=='split'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard'&&pending.type!=='addcard')) return;
     idx=hand.findIndex(c=>c.uid===el.dataset.uid); if(idx<0) return;
     try{ dbgGrab=((el.querySelector('.corner')||{}).textContent||'?')+'→'+dbgCardStr(hand[idx])+'(#'+idx+')'; }catch(_){}
     document.querySelectorAll('.dragcard').forEach(g=>g.remove());
@@ -5809,6 +5867,7 @@ document.getElementById('ciPrimary').onclick=()=>{
   else if(c.type==='conscript'){ useConscript(idx); }
   else if(isCurse(c)){ useCurse(idx); }
   else if(c.type==='blank'){ discardDraw(idx); }
+  else if(c.type==='holy'){ useHoly(idx); }
   else if(c.type==='duplicate'){ useDuplicate(idx); }
   else if(c.type==='fusion'){ useFusion(idx); }
   else if(c.sub==='necro'){ useNecromancer(idx); }
@@ -5863,7 +5922,7 @@ function specUse(kind){
     hint(`命乞い成功！次の特殊攻撃（${EVENT_INFO[ev].label}）をパスした。`); playSfx('shuffle');
   } else if(kind==='cure'){
     const sealed=flags.filter(f=>isLocked(f)).length;
-    const isDisC=c=>['curse_bomb','curse_dark','curse_minus','curse_null'].includes(c.type)||isEnemyEq(c);
+    const isDisC=c=>['curse_bomb','curse_dark','curse_minus','curse_null','curse_wipe'].includes(c.type)||isEnemyEq(c);
     const dn=hand.filter(isDisC).length+flags.filter(f=>!f.closed&&f.cards.some(isEnemyEq)).length, dOn=Object.keys(haunt).length>0||disGuardOn()||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn()||poisonOn()||dis.halfNext||flags.some(f=>f.bomb);
     if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
     const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
@@ -7151,7 +7210,7 @@ function offerEquip(list){
 }
 const DECK_PRICE_MULT=2.5;  // デッキ屋の値段倍率
 const SWAP_PRICE=Math.round(30*DECK_PRICE_MULT), UP_PRICE=Math.round(50*DECK_PRICE_MULT), CH_PRICE=Math.round(50*DECK_PRICE_MULT);
-const CARD_PRICE={scout:40,shuffle:40,wipe:60,rehire:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
+const CARD_PRICE={scout:40,shuffle:40,holy:60,rehire:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
 const cardPrice=t=>Math.round((CARD_PRICE[t.type]||60)*DECK_PRICE_MULT);
 function startSwap(){
   const cards=allCardsUnique().filter(deckEligible).filter(c=>c.inDeck).sort(deckSortCmp);
