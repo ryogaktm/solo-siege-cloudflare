@@ -145,5 +145,16 @@ with sync_playwright() as p:
       const el=document.querySelector('.pcard.auto-enemy'); const c=flags.flatMap(f=>f.cards).find(c=>c.autoPlaced);
       return {has:!!el, fresh:!!document.querySelector('.pcard.auto-new'), flag:!!c, normal:c&&c.kind==='troop'&&c.temp}}""")
     check('敵が置いた数字カードに赤い枠と「敵」の印が付き、置いた直後は光る（中身は普通の数字カード）',r['has'] and r['fresh'] and r['flag'] and r['normal'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false;
+      flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0}); enemyTurn=5; enemySched={8:'autonum'}; autoPlan={}; autoSeq=0; render();
+      const o={}; const fc=autoForecast(); const fi=+Object.keys(fc)[0]; o.k=fc[fi]&&fc[fi][0].k; o.badge=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); const pl={...autoPlan[8]};
+      // 予定の旗が埋まったら、別の旗へ移る（移った先に表示される）
+      flags[fi].cards=[{kind:'troop',color:'red',value:3,uid:uid()},{kind:'troop',color:'red',value:4,uid:uid()}]; render(); const fc2=autoForecast(); const fi2=+Object.keys(fc2)[0]; o.moved=fi2!==fi && !!document.querySelector('.flag[data-index="'+fi2+'"] .auto-fc');
+      // 命乞いで3ターン遅れると予定も一緒にずれる
+      hand[0]=Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='plead'),{uid:uid()}); usePlead(0); await new Promise(r=>setTimeout(r,500)); o.shift=!!autoPlan[11]&&!autoPlan[8]; o.k2=(Object.values(autoForecast())[0]||[{}])[0].k;
+      // 発動すると予定どおりのカードが予定の旗に置かれる
+      const want={...autoPlan[11]}, tgt=autoTargetIdx(autoPlan[11]); enemyTurn=11; applyEnemyEvent('autonum'); const c=flags[tgt].cards.find(c=>c.autoPlaced); o.fire=!!c&&c.color===want.col&&c.value===want.v; o.cleared=!autoPlan[11];
+      return o}""")
+    check('敵の数字カード：旗の右上に「あとNターン・色と数字」が出る／旗が埋まると別の旗へ移る／命乞いで一緒にずれる／予定どおりに置かれる',r['k']==3 and r['badge'] and r['moved'] and r['shift'] and r['fire'] and r['cleared'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

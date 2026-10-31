@@ -627,6 +627,12 @@
   .pcard.monster.mini .ttitle{ font-size:8px; top:3px; }
   .pcard.monster.necro{ background:linear-gradient(160deg,#241030,#120818); }
 
+  .auto-fc{ position:absolute; top:2px; right:3px; z-index:5; display:flex; flex-direction:column; align-items:flex-end; gap:2px; pointer-events:none; }
+  .auto-fc .afc{ display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:900; line-height:1; padding:2px 5px; border-radius:7px; background:rgba(120,12,40,.92); color:#fff; border:1px solid #ff8aa0; white-space:nowrap; }
+  .auto-fc .afc i{ display:inline-flex; align-items:center; gap:1px; font-style:normal; background:rgba(255,255,255,.92); padding:0 3px; border-radius:4px; }
+  .auto-fc .afc i svg{ width:10px; height:10px; }
+  .auto-fc .afc.near{ animation:afcBlink .8s ease-in-out infinite; }
+  @keyframes afcBlink{ 0%,100%{ box-shadow:0 0 0 rgba(255,77,109,0); } 50%{ box-shadow:0 0 10px #ff4d6d; } }
   .pcard.auto-enemy{ outline:2px solid #ff4d6d; outline-offset:-2px; box-shadow:0 0 10px rgba(255,77,109,.75); }
   .pcard.auto-enemy::after{ content:'敵'; position:absolute; right:2px; bottom:2px; z-index:3; font-size:10px; font-weight:900; line-height:1; padding:2px 4px; border-radius:6px; background:#c0183a; color:#fff; }
   .pcard.auto-new{ animation:autoNew 1.1s ease-out 2; }
@@ -2452,6 +2458,35 @@ function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾
   try{ const el=document.getElementById('evSweep'); if(!el) return;
     el.innerHTML='<span style="font-size:min(22px,5.2vw);white-space:nowrap">🛡 敵が防御！ 次の攻撃は半分</span>'; el.className='ev-sweep'; void el.offsetWidth; el.className='ev-sweep go shield'; }catch(e){}
 }
+/* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
+let autoPlan={}, autoSeq=0;   // autoPlan[発動ターン]={col,v,flag}
+const autoCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!flagMonster(f)&&f.cards.length<=1);
+function getAutoPlan(t){
+  if(autoPlan[t]) return autoPlan[t];
+  const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
+  if(nl&&nl.length){ const pk2=nl[autoSeq%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カードを順番に
+  else { col=COLORS[Math.floor(Math.random()*COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
+  autoSeq++; return autoPlan[t]={col,v,flag:null};
+}
+function autoTargetIdx(pl){   // 予定の旗が埋まった・封鎖された等で置けなくなったら、別の旗へ移す
+  const cand=autoCands();
+  if(pl.flag!==null && cand.some(c=>c.i===pl.flag)) return pl.flag;
+  pl.flag=cand.length?cand[Math.floor(Math.random()*cand.length)].i:null;
+  return pl.flag===null?-1:pl.flag;
+}
+function autoForecast(){   // 旗ごとの「あとNターンで何のカードが置かれる」予定
+  const out={}; try{
+    if(gameEnded||inPrep) return out;
+    const pend0=!!prevSnap&&flags.length>0&&flags.every(f=>f.closed), baseT=pend0?prevSnap.t:enemyTurn, nClk=Math.min(8,Math.max(0,enemyFreeze));
+    for(let k=1;k<=8-nClk;k++){
+      const t=baseT+enemyOffs(k,pend0,baseT);
+      const stepped=!hasAcc('glass')||(k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,baseT)>enemyOffs(k-1,pend0,baseT));
+      if(!stepped||enemySched[t]!=='autonum') continue;
+      const pl=getAutoPlan(t), fi=autoTargetIdx(pl); if(fi<0) continue;
+      (out[fi]=out[fi]||[]).push({k:k+nClk,col:pl.col,v:pl.v});
+    }
+  }catch(e){} return out;
+}
 function applyEnemyEvent(type,target){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
   if(DIS_NAME[type]){ disFired++; disCount[type]=(disCount[type]||0)+1; disLast=type; }
@@ -2463,17 +2498,14 @@ function applyEnemyEvent(type,target){
   } else if(type==='cfield'){
     const cf=makeColorField(); giveHandCard(cf); hint(`💀 カラフルフィールド（${CNAME[cf.color]}）を押し付けられた！ 旗に置くとその旗には${CNAME[cf.color]}のカードしか置けない（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn');
   } else if(type==='autonum'){
-    const cand=flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!flagMonster(f)&&f.cards.length<=1);
-    if(!cand.length){ hint('敵が数字カードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
+    const pl=getAutoPlan(enemyTurn), fi=autoTargetIdx(pl); delete autoPlan[enemyTurn];
+    if(fi<0){ hint('敵が数字カードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
     else {
-      const pk=cand[Math.floor(Math.random()*cand.length)], f=pk.f;
-      if(hauntBlock(pk.i,'敵の数字カード')) return;
-      const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
-      if(nl&&nl.length){ const pk2=nl[(disFired-1+nl.length*100)%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カード
-      else { col=COLORS[Math.floor(Math.random()*COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
+      const f=flags[fi], col=pl.col, v=pl.v;
+      if(hauntBlock(fi,'敵の数字カード')) return;
       const ac={kind:'troop',color:col,value:v,uid:uid(),temp:true,autoPlaced:true,autoFresh:true}; f.cards.push(ac);   // 中身は普通の数字カード。ただし「敵が置いた」とわかるよう赤い枠と「敵」の印を付け、置いた直後は光らせる
       setTimeout(()=>{ ac.autoFresh=false; try{ render(); }catch(e){} },2200);
-      hint(`🔢 敵が勝手に旗${pk.i+1}へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
+      hint(`🔢 敵が勝手に旗${fi+1}へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
       try{ render(); }catch(e){}
     }
   } else if(type==='pfield'){
@@ -4336,6 +4368,7 @@ function usePlead(handIdx){
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
   const ns={}; Object.keys(enemySched).forEach(k=>{ const t=+k; ns[t>enemyTurn?t+PLEAD_TURNS:t]=enemySched[k]; }); enemySched=ns;
+  { const np={}; Object.keys(autoPlan).forEach(k=>{ const t=+k; np[t>enemyTurn?t+PLEAD_TURNS:t]=autoPlan[k]; }); autoPlan=np; }   // 敵の数字カードの予定も一緒にずれる
   const moved=left;
   try{ dlog('action',{name:'plead_card',delay:PLEAD_TURNS,moved:moved.length}); }catch(e){}
   advanceTurn(used);
@@ -4604,7 +4637,7 @@ function renderUpcoming(){
       html+=`<div class="fc ${info.cls}" data-ev="rage"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
       html+=`<div class="fc"><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
-      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}"><b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small><small class="fc-cd">あと${k+nClk}</small></div>`; }
+      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}"><b>${info.icon}</b><small>${ev==='autonum'?(()=>{ try{ const pl=getAutoPlan(t); return CNAME[pl.col]+pl.v; }catch(e){ return EVENT_SHORT[ev]; } })():(EVENT_SHORT[ev]||info.label)}</small><small class="fc-cd">あと${k+nClk}</small></div>`; }
       else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
     }
@@ -4809,6 +4842,7 @@ function render(){
   const smap=CHARACTER.combo?superMults():{}, hmap=CHARACTER.combo?hostMults():{};
   { const cb=document.getElementById('carryBadge'); if(cb){ const ks=Object.keys(carryMap); if(ks.length||hostCarry>0){ cb.style.display='flex'; cb.innerHTML=ks.map(c=>`${miniIcon(EMBLEM[c],CFILL[c])}×${carryMap[c]}`).concat(hostCarry>0?[`🔗×${hostCarry}`]:[]).join(' '); } else cb.style.display='none'; } }
   const toTrigger=[];
+  const autoFc=autoForecast();
   flags.forEach((f,i)=>{
     const d=document.createElement('div');
     const locked=isLocked(f);
@@ -4897,6 +4931,7 @@ function render(){
       }catch(e){}
     }
     d.onclick=()=>tapFlag(i);
+    if(autoFc[i]&&autoFc[i].length&&!f.closed){ const w=document.createElement('div'); w.className='auto-fc'; w.innerHTML=autoFc[i].slice(0,2).map(x=>`<span class="afc${x.k<=1?' near':''}">🔢あと${x.k} <i style="color:${CFILL[x.col]}">${miniIcon(EMBLEM[x.col],CFILL[x.col])}${x.v}</i></span>`).join(''); d.appendChild(w); }   // 予定：旗の右上に「あとNターンで何が置かれるか」
     board.appendChild(d);
   });
   if(toTrigger.length){
@@ -5696,7 +5731,7 @@ function advanceToNextStage(){
     if(finalHp<=0) chainedKill=true;
     bossHp=finalHp;
   }
-  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
+  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; autoPlan={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
   playerHp=playerHpMax; monAtkMult=1; plAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
