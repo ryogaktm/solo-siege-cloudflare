@@ -2191,7 +2191,7 @@ function applyComboPenalty(n){   // 敵のカードを消した代償
   comboLoss(pen,`💥 敵のカードを${n}枚消した代償で、スーパーコンボが−${pen}された！`);
 }
 function makePanicField(){ return {kind:'monster',sub:'pfield',enemyCard:true,accumulatedBonus:0,uid:uid()}; }
-function makeColorField(){ return {kind:'monster',sub:'cfield',color:COLORS[Math.floor(Math.random()*COLORS.length)],enemyCard:true,accumulatedBonus:0,uid:uid()}; }
+function makeColorField(){ return {kind:'monster',sub:'cfield',color:GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)],enemyCard:true,accumulatedBonus:0,uid:uid()}; }
 const wipeCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed);   // 空の旗にも使える
 const bombCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.bomb);
 function bombBoom(i){
@@ -2482,7 +2482,8 @@ function getAutoPlan(t,type){
   if(type!=='autonum') return autoPlan[t]={type,flag:null};
   const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
   if(nl&&nl.length){ const pk2=nl[autoSeq%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カードを順番に
-  else { col=COLORS[Math.floor(Math.random()*COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
+  else { col=GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
+  if(!GAME_COLORS.includes(col)) col=GAME_COLORS[(v+autoSeq)%GAME_COLORS.length];   // 敵ごとの固定カードにオレンジがあっても、今のゲームにオレンジは無いので別の色にする
   autoSeq++; return autoPlan[t]={type,col,v,flag:null};
 }
 function autoTargetIdx(pl){   // 予定の旗が埋まった・封鎖された等で置けなくなったら、別の旗へ移す
@@ -2578,7 +2579,7 @@ function applyEnemyEvent(type,target){
     hint(had?'❄ いてつくはどう！ 敵にかけた効果が消し飛んだ！':'❄ いてつくはどう！（効果はなかった）',true); playSfx('warn');
   } else if(type==='colhalf'||type==='colnull'){
     const ks=Object.keys(carryMap), cols=ks.length?ks.slice().sort((a,b)=>carryMap[b]-carryMap[a]):flags.filter(f=>f.symbolColor).map(f=>f.symbolColor);
-    const col=cols.length?cols[0]:COLORS[Math.floor(Math.random()*COLORS.length)];
+    const col=(cols.length&&GAME_COLORS.includes(cols[0]))?cols[0]:GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)];
     const nl=type==='colnull', tn=nl?DIS_PARAM.colnullTurns:DIS_PARAM.halfTurns;
     dis.halfColor=col; dis.halfUntil=enemyTurn+tn; dis.halfMul=nl?0:0.5;
     hint(`🎨 敵が${CNAME[col]}の力を封じた！ ${CNAME[col]}のコンボ${nl?'が無効':'威力が半分'}（あと${tn}ターン）`,true); playSfx('warn');

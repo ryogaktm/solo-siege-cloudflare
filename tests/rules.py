@@ -170,5 +170,7 @@ with sync_playwright() as p:
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); inPrep=false; openAccModal(); await new Promise(r=>setTimeout(r,300));
       const b=document.querySelector('#accModal .reward-box').getBoundingClientRect(), u=document.getElementById('accUpper').getBoundingClientRect(); document.getElementById('accModal').style.display='none'; return {bh:b.height,uh:u.height}}""")
     check('戦闘中にアクセサリー画面（🎒）を開いても、中身が見える（空の枠にならない）',r['bh']>300 and r['uh']>200,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); let bad=0, n=0; WAVES.forEach((w,i)=>{ stageIndex=i; for(let k=0;k<12;k++){ autoPlan={}; autoSeq=k; const pl=getAutoPlan(100+k,'autonum'); n++; if(pl.col==='orange'||!GAME_COLORS.includes(pl.col)) bad++; } }); for(let k=0;k<200;k++){ if(makeColorField().color==='orange') bad++; } return {bad,n}}""")
+    check('敵が置く数字カード・カラフルフィールドに、今のゲームには無いオレンジが使われない',r['bad']==0,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
