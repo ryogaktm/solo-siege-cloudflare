@@ -156,5 +156,16 @@ with sync_playwright() as p:
       const want={...autoPlan[11]}, tgt=autoTargetIdx(autoPlan[11]); enemyTurn=11; applyEnemyEvent('autonum'); const c=flags[tgt].cards.find(c=>c.autoPlaced); o.fire=!!c&&c.color===want.col&&c.value===want.v; o.cleared=!autoPlan[11];
       return o}""")
     check('敵の数字カード：旗の右上に「あとNターン・色と数字」が出る／旗が埋まると別の旗へ移る／命乞いで一緒にずれる／予定どおりに置かれる',r['k']==3 and r['badge'] and r['moved'] and r['shift'] and r['fire'] and r['cleared'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false;
+      const o={}, mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
+      for(const ev of ['minus','ghost','deatheater','assassin']){
+        flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0;f.bomb=0}); haunt={}; flags[1].cards=[mk('red',3),mk('red',4)]; enemyTurn=5; enemySched={8:ev}; autoPlan={}; render();
+        const fc=autoForecast(), fi=+Object.keys(fc)[0]; const has=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); const tgt=autoTargetIdx(autoPlan[8]);
+        enemyTurn=8; const before=flags.map(f=>f.cards.length).join(); applyEnemyEvent(ev); const after=flags.map(f=>f.cards.length).join();
+        o[ev]={has, fi, tgt, changed: ev==='ghost'?(haunt[tgt]>0):(before!==after), onTgt: ev==='ghost'?true:flags[tgt].cards.length!==(+before.split(',')[tgt])};
+      }
+      return o}""")
+    ok=all(r[k]['has'] and r[k]['fi']==r[k]['tgt'] and r[k]['changed'] and r[k]['onTgt'] for k in ['minus','ghost','deatheater','assassin'])
+    check('旗を狙う妨害（マイナスの武器・ワームホール・デスイーター・暗殺）：旗の右上に予定が出て、予定の旗に発動する',ok,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
