@@ -2253,8 +2253,9 @@ function enemyAtkAt(t){
   const fk=FLAG_COUNT/BALANCE.flagCountAtkBase;
   return Math.round((w.atk + w.grow*te)*fk*mult*monAtkMult);
 }
-const ACC_PARAM={quickTurns:12, quickMul:5};   // 早撃ちのブーツ：このターン以内に全部の旗を完成させて攻撃すると、総攻撃力がこの倍になる（倍の腕輪で増え分が2倍）
-function quickMult(t){ return (hasAcc('quick_boots')&&t<=ACC_PARAM.quickTurns)?(1+(ACC_PARAM.quickMul-1)*accX()):1; }
+const ACC_PARAM={quickTurns:12, quickMul:5, quickMulNoRole:2};   // 早撃ちのブーツ：このターン以内に全部の旗を完成させて攻撃すると、総攻撃力がこの倍になる（倍の腕輪で増え分が2倍）
+function quickMult(t,noRole){ return (hasAcc('quick_boots')&&t<=ACC_PARAM.quickTurns)?(1+((noRole?ACC_PARAM.quickMulNoRole:ACC_PARAM.quickMul)-1)*accX()):1; }   // 全部の旗が役ありなら×5、役のない旗が混ざっていれば×2（12ターン以内）
+const hasNoRoleFlag=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&!f.baseCombo);
 function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
 function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
@@ -2262,7 +2263,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=val(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn)*(dis.halfNext?0.5:1)*plAtkMult;
+  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult;
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -3384,9 +3385,9 @@ function checkWaveOutcome(){
   try{ const nm={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
-  const qm=quickMult(atkTurn), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
+  const noRoleQ=hasNoRoleFlag(), qm=quickMult(atkTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
   if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
-  if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成 → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
+  if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
   const pAtk=rawAtk*(halved?0.5:1)*plAtkMult, eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   const diff=pAtk-eAtk;
@@ -6694,7 +6695,7 @@ function buildAccDefs(){
   L.push({id:'gold_s',name:'銅の指輪',icon:'🥉',desc:'役に立たないが、売るとお金になる'});
   L.push({id:'gold_m',name:'銀の指輪',icon:'🥈',desc:'役に立たないが、売ると高い'});
   L.push({id:'gold_l',name:'金の指輪',icon:'🥇',desc:'役に立たないが、売るととても高い'});
-  L.push({id:'quick_boots',name:'早撃ちのブーツ',icon:'👢',desc:`${ACC_PARAM.quickTurns}ターンまでに全部の旗を完成させて攻撃すると、総攻撃力が${ACC_PARAM.quickMul}倍になる`});
+  L.push({id:'quick_boots',name:'早撃ちのブーツ',icon:'👢',desc:`${ACC_PARAM.quickTurns}ターンまでに全部の旗を完成させて攻撃すると、総攻撃力が${ACC_PARAM.quickMul}倍になる（全部の旗が役ありの時だけ。役のない旗が混ざっていると${ACC_PARAM.quickMulNoRole}倍）`});
   L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、時間が止まる（敵も、ターンも進まない。連続では使えない）'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));

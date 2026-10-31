@@ -138,5 +138,7 @@ with sync_playwright() as p:
       renderBattle(); o.before=document.querySelectorAll('.modal-bg[style*="10003"]').length; const aid=accSeq++; accOwned.push({aid,id:'sp_double'}); accEq.push(aid); renderBattle(); o.alert=document.querySelectorAll('.modal-bg[style*="10003"]').length; o.txt=(document.querySelector('.modal-bg[style*="10003"]')||{}).innerText||'';
       return o}""")
     check('戦闘の最初に取得条件の一覧が出る／戦闘中に特殊技の回数の上限が上がるとアラートが出る',r['cond'] and r['before']==0 and r['alert']==1 and '回' in r['txt'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const aid=accSeq++; accOwned.push({aid,id:'quick_boots'}); accEq.push(aid); const o={ok:quickMult(10,false), no:quickMult(10,true), late:quickMult(13,false)}; return o}""")
+    check('早撃ちブーツ：12ターン以内に、全部役ありなら×5・役のない旗が混ざれば×2・13ターン以降は倍にならない',r['ok']==5 and r['no']==2 and r['late']==1,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
