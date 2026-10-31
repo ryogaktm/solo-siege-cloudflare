@@ -1347,19 +1347,23 @@
         <button class="tabbtn subtabbtn active" data-subtab="basic">基本</button>
         <button class="tabbtn subtabbtn" data-subtab="placement">配置</button>
         <button class="tabbtn subtabbtn" data-subtab="enemy">敵</button>
+        <button class="tabbtn subtabbtn" data-subtab="curse">呪い</button>
+        <button class="tabbtn subtabbtn" data-subtab="skill">特殊技</button>
         <button class="tabbtn subtabbtn" data-subtab="exchange">デッキ</button>
         <button class="tabbtn subtabbtn" data-subtab="shop">お店</button>
       </div>
       <div class="subpage" data-subpage="basic" id="howtoBasic"></div>
       <div class="subpage" data-subpage="placement" id="howtoPlacement" style="display:none;"></div>
       <div class="subpage" data-subpage="enemy" id="howtoEnemy" style="display:none;"></div>
+      <div class="subpage" data-subpage="curse" id="howtoCurse" style="display:none;"></div>
+      <div class="subpage" data-subpage="skill" id="howtoSkill" style="display:none;"></div>
       <div class="subpage" data-subpage="exchange" id="howtoExchange" style="display:none;"></div>
       <div class="subpage" data-subpage="shop" id="howtoShop" style="display:none;"></div>
     </div>
 
     <div class="toppage" data-toppage="cards" style="display:none;">
       <p style="font-size:12px; line-height:1.7; color:var(--cream-2); margin:2px 0 10px;">
-        カードは4種類：<b style="color:var(--gold)">部隊</b>（6色×1〜10）、<b style="color:var(--gold)">万能</b>（青♾️はどこでも、赤♾️は3枚目のみ、色・数字の条件を完全無視）、<b style="color:var(--gold)">軍師</b>（発動効果を持つ特殊カード）、<b style="color:var(--gold)">装備</b>（旗をふさぐ障害）。詳しくは下のタブから。
+        カードは4種類：<b style="color:var(--gold)">部隊</b>（6色×1〜10）、<b style="color:var(--gold)">万能</b>（青♾️はどこでも、赤♾️は3枚目のみ、色・数字の条件を完全無視）、<b style="color:var(--gold)">軍師</b>（発動効果を持つ特殊カード。呪いを消す「聖水」もここ）、<b style="color:var(--gold)">装備</b>（旗をふさぐ障害）。敵に押し付けられる「呪いカード」は、遊び方の「呪い」タブへ。詳しくは下のタブから。
       </p>
       <div class="tabbar subtabbar">
         <button class="tabbtn subtabbtn active" data-subtab="yaku">役</button>
@@ -5147,10 +5151,22 @@ function buildHowtoPage(){
     [{color:'green',value:4},{color:'blue',value:5},{color:'blue',value:6}],
     '役の例','緑4→青5→青6。4→5→6と数字がつながっているので「連番（スカーミッシュ）」の役が成立し、得点×3。');
 
-  fillPage('howtoEnemy', `<div class="howto-section" id="howtoEnemySec"><p>画面の「敵の予測」には、これから先の敵の動きが表示される。何もなければその時点での<b style="color:var(--danger)">敵の攻撃力</b>、特殊行動があれば印がつく。印をタップすると、どんな攻撃が来るかが分かる。</p><p style="margin-top:8px;">敵は最初から攻撃力を持っていて、役を揃えて戦力で上回らないと差分で負けてしまう。ターンが進むほど攻撃力は上がり、厳しい行動も増える。<b style="color:var(--gold)">攻撃するとターンはリセット</b>されるので、その前に攻撃しよう。</p><p style="margin-top:8px;">敵ごとに得意な特殊行動がちがう（同じ技ばかり出す敵もいる）。<b>序盤の敵は、旗やカードに仕掛ける妨害だけ</b>で、プレイで対処できる。防御（次の攻撃が半分）やコンボを減らす技は、強い敵になってから出てくる。</p><p style="margin-top:10px;"><b style="color:var(--gold)">敵の特殊行動の一覧</b></p>${Object.keys(EVENT_DESC).filter(k=>EVENT_INFO[k]).map(k=>`<p style="margin-top:6px;"><b>${EVENT_INFO[k].icon} ${EVENT_INFO[k].label}</b>：${EVENT_DESC[k]()}</p>`).join('')}</div>`);
+  fillPage('howtoEnemy', `<div class="howto-section" id="howtoEnemySec"><p>画面の「敵の予測」には、これから先の敵の動きが表示される。何もなければその時点での<b style="color:var(--danger)">敵の攻撃力</b>、特殊行動があれば印がつく。印をタップすると、どんな攻撃が来るかが分かる。</p><p style="margin-top:8px;">敵は最初から攻撃力を持っていて、役を揃えて戦力で上回らないと差分で負けてしまう。ターンが進むほど攻撃力は上がり、厳しい行動も増える。<b style="color:var(--gold)">攻撃するとターンはリセット</b>されるので、その前に攻撃しよう。</p><p style="margin-top:8px;">敵ごとに得意な特殊行動がちがう（同じ技ばかり出す敵もいる）。<b>序盤の敵は、旗やカードに仕掛ける妨害だけ</b>で、プレイで対処できる。防御（次の攻撃が半分）やコンボを減らす技は、強い敵になってから出てくる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">次の敵の決まり方</b>：敵を倒すと、<b>倒した時の攻撃力が高いほど、より強い敵へ飛ぶ</b>（弱い敵を何度も倒さなくていい）。攻撃力が足りないと、少しずつしか進まない。戦いごとにHPは全回復する。</p><p style="margin-top:10px;"><b style="color:var(--gold)">敵の特殊行動の一覧</b></p>${Object.keys(EVENT_DESC).filter(k=>EVENT_INFO[k]).map(k=>`<p style="margin-top:6px;"><b>${EVENT_INFO[k].icon} ${EVENT_INFO[k].label}</b>：${EVENT_DESC[k]()}</p>`).join('')}</div>`);
 
 
-  fillPage('howtoShop', `<div class="howto-section" id="howtoShopSec"><p>敵を倒すと<b style="color:var(--gold)">次の戦いの準備</b>画面になる。ここでお金を使って強くなれる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">お金の入り方</b>：旗で役を作るたびに入る（${Object.entries(YAKU_GOLD).filter(([k,v])=>v>0).map(([k,v])=>`${k}${v}G`).join('、')}）。アクセサリーに書かれた条件を達成した時にも入る。コガネムシを使うキャラなら、特殊技「コガネモチ」で100G。持っているアクセサリーを売ってもお金になる（売値は買値の約3割）。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーを買う</b>：装備すると毎回効く。付けられるのは${3}つまで。装備枠がいっぱいの時は、どれかを外して付け替える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">デッキを買う</b>：使い捨てのカードなどを山札に加える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">手付金</b>：アクセサリーのお金が足りない時だけ、半額を手付金として払って<b>取り置き</b>できる。取り置いた品は、品揃えが入れ替わっても棚に残り、残りの金額を払えば買える。お金が足りている時は、手付金は出ない。</p><p style="margin-top:8px;"><b style="color:var(--gold)">山札確認</b>：今の山札に何が入っているかを確認できる。</p></div>`);
+  fillPage('howtoShop', `<div class="howto-section" id="howtoShopSec"><p>敵を倒すと<b style="color:var(--gold)">次の戦いの準備</b>画面になる。ここでお金を使って強くなれる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">お金の入り方</b>：旗で役を作るたびに入る（${Object.entries(YAKU_GOLD).filter(([k,v])=>v>0).map(([k,v])=>`${k}${v}G`).join('、')}）。アクセサリーに書かれた条件を達成した時にも入る。コガネムシを使うキャラなら、特殊技「コガネモチ」で100G。持っているアクセサリーを売ってもお金になる（売値は買値の約3割）。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーを買う</b>：装備すると毎回効く。付けられるのは${3}つまで。装備枠がいっぱいの時は、どれかを外して付け替える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">デッキを買う</b>：使い捨てのカードなどを山札に加える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">手付金</b>：アクセサリーのお金が足りない時だけ、半額を手付金として払って<b>取り置き</b>できる。取り置いた品は、品揃えが入れ替わっても棚に残り、残りの金額を払えば買える。お金が足りている時は、手付金は出ない。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーの入手</b>：お店で買うほか、戦闘中に書かれた条件を満たすと貰えるものもある（例：<b>早撃ちのブーツ</b>＝12ターン以内に旗を全部完成させて攻撃すると、総攻撃力が×5になる。条件達成で入手でき、買うこともできる）。ショップには今の山札と、付けているアクセサリーも表示される。</p><p style="margin-top:8px;"><b style="color:var(--gold)">山札確認</b>：今の山札に何が入っているかを確認できる。</p></div>`);
+  fillPage('howtoCurse', `<div class="howto-section"><p>敵は妨害として、手札に<b style="color:var(--danger)">呪いカード</b>を押し付けてくる。呪いカードは普通には捨てられず、使うか、シャッフルで山札に戻すしかない（補充・差し替えで消すと<b>スーパーコンボ−5</b>）。持っているだけで手札を1枠ふさぐ。</p>
+    <p style="margin-top:8px;"><b style="color:var(--gold)">呪いカードの種類</b></p>
+    <p style="margin-top:6px;"><b>☠ 毒</b>：使うと${DIS_PARAM.poisonTurns}ターン、置く数字カードが−1される。</p>
+    <p style="margin-top:6px;"><b>🔒 封鎖</b>：使うと好きな旗を1つ封鎖できる（置いてあるカードは墓地へ）。</p>
+    <p style="margin-top:6px;"><b>💣 時限ボム</b>：旗に置くと、${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないとスーパーコンボ−${DIS_PARAM.bombPenalty}。</p>
+    <p style="margin-top:6px;"><b>🌑 暗闇</b>：使うと${DIS_PARAM.darkTurns}ターン、攻撃の予測が見えなくなる。</p>
+    <p style="margin-top:6px;"><b>🚫 無効の呪い</b>：使うと${DIS_PARAM.nullTurns}ターン、軍師カードの効果が無効になる。</p>
+    <p style="margin-top:6px;"><b>💥 全滅</b>：使うと選んだ旗（空の旗でもOK、完成前のみ）のカードがすべて消える。旗に置かれた呪いも一緒に消える。</p>
+    <p style="margin-top:6px;"><b>💀 カラフルフィールド／🌀 パニックフィールド／➖ マイナスの武器</b>：旗に置く敵のカード。特定の色しか置けなくなる／数字が逆転する／旗の合計が減る。</p>
+    <p style="margin-top:10px;"><b style="color:var(--gold)">💧 聖水（軍師カード）</b>：発動後、<b>手札の呪いカード</b>か、<b>呪いが乗った旗</b>（敵の装備・ボム・封鎖・ワームホール）をタップすると取り除ける。スーパーコンボのペナルティはない。呪いが無い時は使えない。</p>
+    <p style="margin-top:8px;"><b style="color:var(--gold)">🧪 薬（特殊技）</b>：毒と封鎖を止め、手札と旗の呪いをまとめて消す（「特殊技」タブ）。</p></div>`);
+  fillPage('howtoSkill', `<div class="howto-section"><p>画面の特殊技ボタンから使える。使える技と回数は、キャラやアクセサリー、プレイモンスターによって変わる。</p>`+Object.values(SPEC_INFO).map(x=>`<p style="margin-top:8px;"><b>${x.title}</b>：${x.desc}</p>`).join('')+`<p style="margin-top:8px;"><b>バレットタイムの注意</b>：連続では使えない。今のバレットタイムが終わるまで待つ必要があり、使うとアラートが出る。</p></div>`);
   fillPage('howtoExchange', `<div class="howto-section" id="howtoExchangeSec"><p>手札のカードをタップすると説明が見られる。ドラッグで旗に置いてみよう。</p><p style="margin-top:8px;">${FN}つの旗が全て埋まると自動で戦力が確定し、旗が空の状態に戻る。同時に<b style="color:var(--gold)">大山札</b>にある全てのカードがシャッフルされ、そこから40枚が山札に補充されてプレイが続く。<b style="color:var(--danger)">必要戦力に届いていなくても終了にはならず、そのまま次の敵と続けて戦う</b>。ヘッダーには次に引かれるカードが先読みで表示される。</p></div>`);
 
   fillPage('howtoCombo', `<div class="howto-section" id="howtoComboSec"><p>旗を封鎖すると<b style="color:var(--gold)">最後（3枚目）に置いたカードの色</b>がその旗の「象徴」になる。（役が揃った旗の）象徴の色が同じ旗がWAVE終了時に2つ以上あると、<b style="color:#f2a0cc">スーパーコンボ</b>が発動し、つながった旗は先に閉じた順に×2、×3、×4…と倍率が上がる（役が無い旗は対象外）。攻撃のあとも連続は続き、次のシートは続きの倍率から（色が違ってもOK）。決まらない攻撃や次の敵でリセット。<b style="color:var(--gold)">ボスを倒してステージをクリアすると</b>、報酬選択のチャンスが1回もらえ、「いつでもシャッフル＋1（上限3）」「軍師カード2枚 or ♾️カード2枚（ランダム）」「手札のスペース+1（上限3）」から好きなものを選べる。獲得したカード（軍師・♾️）は次のステージの山札に確実に加わり、<b style="color:#e8b8d8">★マーク付きの特別な見た目</b>になる。使われるまで何ステージ経っても山札に残り続けるが、<b style="color:var(--danger)">一度使うと二度と戻ってこない</b>。</p></div>`);
@@ -6035,7 +6051,7 @@ const SPEC_INFO={
   punch:{title:'👊 殴る',desc:'敵にすぐ50ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   guard:{title:'🛡 防御',desc:'次に受けるHPのダメージが半分になります。'},
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
-  cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
+  cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効／全滅の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
 function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
