@@ -106,5 +106,12 @@ with sync_playwright() as p:
       CHARACTER=makeMonChar(i,'ジャックランタン'); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
       Math.random=()=>0.9; specUse('mon'); await sleep(100); document.getElementById('confirmYes').click(); await sleep(1500); o.lose=gameEnded&&playerHp===0; Math.random=rnd; return o}""")
     check('ジャックランタン：トリックオアトリートは1戦1回・1/2で敵が死に1/2で自分が死ぬ',r['max']==1 and r['win'] and r['again']==0 and r['lose'],r)
+    r=ev("""async()=>{ const i=WAVES.findIndex(w=>w.baseId==='何匹かのスライム'); CHARACTER=makeMonChar(i,'何匹かのスライム'); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      const o={kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind, stock0:hpStock, hp0:playerHp}; specUse('mon'); await new Promise(r=>setTimeout(r,200));
+      o.stock1=hpStock; o.hp1=playerHp; o.atk=plAtkMult;
+      // ストックがあればHP0で復活／無ければ死ぬ
+      playerHp=0; o.rev=tryRevive(); o.hpRev=playerHp; o.stock2=hpStock; o.revNone=tryRevive();
+      return o}""")
+    check('スライム：細胞分裂でHP・攻撃力が半分になり体力ストック+1／ストックで1回復活（初期は0）',r['kind']=='cell' and r['stock0']==0 and r['stock1']==1 and r['hp1']==-(-r['hp0']//2) and r['atk']==0.5 and r['rev'] and r['hpRev']>0 and r['stock2']==0 and not r['revNone'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

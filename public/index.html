@@ -1138,7 +1138,7 @@
   <div class="stage" id="stage">
     <div class="stage-bg" id="stageBg"></div>
     <div class="st-row st-hp">
-      <div class="st-side pl"><span class="hp-icon">♥</span><div class="phpbar"><div class="phpfill" id="playerHpFill"></div><div class="pred-seg" id="phpPred" style="display:none"></div></div><div class="hp-num"><b id="playerHpNum">100</b>/<span id="playerHpMax">100</span></div></div>
+      <div class="st-side pl"><span class="hp-icon">♥</span><div class="phpbar"><div class="phpfill" id="playerHpFill"></div><div class="pred-seg" id="phpPred" style="display:none"></div></div><div class="hp-num"><b id="playerHpNum">100</b>/<span id="playerHpMax">100</span><span id="playerHpStock" style="display:none;margin-left:4px;color:#ff6b9a;font-weight:700;"></span></div></div>
       <div class="st-side en"><span class="hp-icon foe">💀</span><div class="boss-hp-bar"><div class="boss-hp-fill" id="bossHpFill"></div><div class="pred-seg boss" id="bossPred" style="display:none"></div></div><div class="boss-hp-num"><b id="bossHpNum">200</b>/<span id="bossHpMax">200</span></div></div>
     </div>
     <div class="st-row st-atk">
@@ -1587,7 +1587,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
-  'スライム':{kind:'shuffle'},
+  'スライム':{kind:'cell',name:'細胞分裂',icon:'🧫',desc:'体を分裂させる。体力と攻撃力が半分になる代わりに、体力ストックが1増える。（体力ストックは、HPが0になった時に1つ消費して体力全回復で復活できる。ゲームを通して持ち越し／攻撃力はその戦いの間だけ半分）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
@@ -1968,7 +1968,9 @@ let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0, lastPower=0;
 const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
-let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
+let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
+let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／ゲームを通して持ち越し）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
+function tryRevive(){ if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
@@ -2254,7 +2256,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=val(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn)*(dis.halfNext?0.5:1);
+  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn)*(dis.halfNext?0.5:1)*plAtkMult;
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -2624,7 +2626,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
+  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -3367,7 +3369,7 @@ function checkWaveOutcome(){
   const qm=quickMult(atkTurn), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
   if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
   if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成 → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
-  const pAtk=rawAtk*(halved?0.5:1), eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
+  const pAtk=rawAtk*(halved?0.5:1)*plAtkMult, eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   const diff=pAtk-eAtk;
   const dealt=Math.max(0,diff), taken=Math.max(0,-diff);
@@ -3394,6 +3396,8 @@ function checkWaveOutcome(){
   if(synFx){ try{ synFx(); }catch(e){} }
   dlog('attack_calc',{stage:stageIndex+1, wave:waveAttempt, flags:dbgFlags0, scoreBefore:dbgScore0, superBonus:synergyBonus, superDetail:dbgSyn?dbgSyn.details:[], superMultUsed:dbgSyn&&dbgSyn.bonus>0?[].concat.apply([],dbgSyn.details.map(d=>d.mults)):null, superCarryAfter:carryTxt(), poison:atkPoison, atkTurn:atkTurn, enemyTurnNow:enemyTurn, pAtk:pAtk, eAtk:eAtk, eAtkNow:currentEnemyAtk(), diff:diff, dealt:dealt, taken:taken, dmgMult:damageMult(), takenReal:takenReal, rolesAllDone:allRolesDone(), sealPenalty:sealPenalty, pHpBefore:dbgP0, pHpAfter:playerHp, eHpBefore:dbgB0, eHpAfter:bossHp, defeated:defeated});
   hint(`${halved?`🛡敵の防御で攻撃が半分に！（${rawAtk}→${pAtk}）\n`:''}攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
+  let revivedNow=false;
+  if(!defeated && playerHp<=0 && hpStock>0){ revivedNow=tryRevive(); }
   if(!defeated && playerHp<=0){
     setTimeout(()=>{
       triggerPlayerHitFX(takenReal+sealPenalty, ()=>{
@@ -4176,6 +4180,7 @@ function takePenalty(msg){
   screenShake();
   hint(`${msg}敵の攻撃力の1/5（${d}）のダメージ！`,true);
   renderBattle();
+  if(playerHp<=0 && tryRevive()){ renderBattle(); return true; }
   if(playerHp<=0){
     gameEnded=true; busy=true;
     setTimeout(()=>triggerDefeatFX(()=>{ playerLost(Math.max(0,d-preHp)); }), 400);
@@ -4642,6 +4647,7 @@ function renderBattle(){
   { const fp=document.getElementById('fighterPl'); if(fp) fp.classList.toggle('buzz',buzzTurns>0); }
   document.getElementById('playerHpNum').textContent=Math.round(playerHp);
   document.getElementById('playerHpMax').textContent=playerHpMax;
+  { const hs=document.getElementById('playerHpStock'); if(hs){ hs.style.display=hpStock>0?'':'none'; hs.textContent='💖×'+hpStock; hs.title='体力ストック：HPが0になっても1つ消費して復活'; } }
   // 最後の旗を埋めた（=これから攻撃が確定する）局面では、実際の攻撃計算と同じ「直前の一手の時点」の値を表示する
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
@@ -5634,7 +5640,7 @@ function advanceToNextStage(){
   }
   haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
-  playerHp=playerHpMax; monAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; monAtkMult=1; plAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -6028,7 +6034,8 @@ function strikeBoss(dmg,text,name){
 }
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
-  if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); monAtkMult*=2; spec.mon++; hint('エサになった…体力が半分になり、敵の攻撃力が2倍になった！',true); playSfx('warn'); }
+  if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
+  else if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); monAtkMult*=2; spec.mon++; hint('エサになった…体力が半分になり、敵の攻撃力が2倍になった！',true); playSfx('warn'); }
   else if(m.kind==='spider'){
     if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
@@ -7532,7 +7539,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
-    const st={v:1, lad:8, topUsed, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck, grandDeck, hand:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -7576,7 +7583,7 @@ function resumeGame(){
     }
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
   foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
-  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed;
+  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1;
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
