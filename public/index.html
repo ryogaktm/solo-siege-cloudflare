@@ -3794,8 +3794,9 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
 function inGraveZone(x,y){
   const g=document.getElementById('gravePileBtn'), d=document.getElementById('deckPileBtn'); if(!g) return false;
   const gr=g.getBoundingClientRect(), dr=d?d.getBoundingClientRect():gr;
-  const left=Math.min(gr.left,dr.left)-150, bottom=Math.max(gr.bottom,dr.bottom)+70;
-  return [y,y-30].some(yy=>x>=left && yy<=bottom);
+  // 山札・墓地の山のまわり（画面端にあって掴みにくいので少し広め）だけを捨てる範囲にする。以前は「山より上の画面全体」が範囲で、旗を外して離すと手札が捨てられていた
+  const right=Math.max(gr.right,dr.right)+50, left=Math.min(gr.left,dr.left)-50, top=Math.min(gr.top,dr.top)-50, bottom=Math.max(gr.bottom,dr.bottom)+60;
+  return [y,y-30].some(yy=>x>=left && x<=right && yy>=top && yy<=bottom);
 }
 function discardDraw(handIdx,okPen){
   const card=hand[handIdx]; if(!card||busy) return false;
