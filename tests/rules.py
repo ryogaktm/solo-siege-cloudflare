@@ -298,8 +298,8 @@ with sync_playwright() as p:
       const rnd=Math.random; Math.random=()=>0.1; bashDmg=1000; monSkillUse(); Math.random=rnd; o.next=bashDmg; o.n=flags.reduce((n,f)=>n+f.cards.length,0); return o}""")
     check('斧：当たると 盤面の数字カードの枚数×0.3倍（最低1.2倍）になる',abs(r['empty']-1.2)<1e-9 and abs(r['full']-0.3*r['n'])<1e-6 and r['next']==round(1000*0.3*r['n']),r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; render(); advanceTurn(null); advanceTurn(null);
-      const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; busy=false; render(); const c=document.getElementById('axeChip'); const o={txt:c?c.textContent:'', rect:c?c.getBoundingClientRect().width:0};
-      resetBattleRound(); render(); o.after=document.getElementById('axeChip').textContent; return o}""")
-    check('斧：攻撃力と命中率の今の数字と推移が画面に出る（新waveで命中率の推移は戻る）','攻撃力 240' in r['txt'] and '命中率 60％' in r['txt'] and '200→240' in r['txt'] and '70→65→60％' in r['txt'] and '命中率 70％' in r['after'] and '命中率の推移 70％' in r['after'],r)
+      const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; busy=false; render(); const o={btn:document.getElementById('specMonL').textContent, chip:!!document.getElementById('axeChip'), info:specInfoFor('mon').desc};
+      resetBattleRound(); render(); o.after=document.getElementById('specMonL').textContent; return o}""")
+    check('斧：特殊技のボタンに攻撃力と命中率が並び、説明に推移が出る（浮かぶ表示は出さない）','240' in r['btn'] and '60％' in r['btn'] and not r['chip'] and '200→240' in r['info'] and '70→65→60' in r['info'] and '70％' in r['after'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
