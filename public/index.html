@@ -1620,6 +1620,8 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'手札を、ランダムなマークの「10」のカードで上限いっぱいにする（今の手札は墓地へ。呪いのカードも、ペナルティなしで10に書き換わる）。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
   'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   'コウモリ':{kind:'blind',name:'ブラインド',icon:'🌫',desc:'好きな旗を3ターンの間、黒い煙で覆います。カードは置けますが中身が見えなくなり、その間その旗は敵の妨害の対象から外れます。'},
+  '野盗':{kind:'bash',name:'物理で殴る',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージは2倍になり、使えば使うほど増えていきます（外れた時は変わりません）。敵のHPが0になればそのままステージクリアです。'},
+  'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、55％の確率で無効にします。（妨害が来るまで待機します。外れても待機は終わります）'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
@@ -1793,7 +1795,7 @@ const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファ�
 const ENEMY_SCALE=0.9;
 const HUMAN_INS=36; let HUMAN_IDX=38; const HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
 const INTRO_LEADER=1, INTRO_KING=2;   // ミジンコで始めた時の最初の2戦の敵   // 真ん中に出す人間（0始まりの位置）
-const DISP_NAME={'ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'ゴブリン','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'オーク','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'野盗','ゴブリンの戦士団':'ゴブリンの戦士','ホブゴブリンの群れ':'ホブゴブリン','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'呪われた農夫','オークの斥候隊':'オークの斥候','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
+const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'ゴブリン','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'オーク','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'野盗','ゴブリンの戦士団':'ゴブリンの戦士','ホブゴブリンの群れ':'ホブゴブリン','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'呪われた農夫','オークの斥候隊':'オークの斥候','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
 /* ===== モンスターを足す時の置き場 =====
    ここに { name:'新モンスター名', after:'この敵の次に入れる（今いる敵の名前）', spr:'MON_ARCHに足した絵のキー' } を書くと、
    前後の敵の強さの間（幾何平均）に1体入る。敵の特殊技・妨害は ENEMY_CFG、特殊技(自分で使う時)は MON_SKILL、表示名は DISP_NAME に足す。
@@ -1913,7 +1915,7 @@ const TACTIC_EXTRA = {
   rehire:'発動すると、墓地にあるカードから1枚を選んで手札に戻せます。強かった部隊や装備をもう一度使いたい時に。',
   guidance:'発動すると、まずカードを戻したい旗をタップ。旗に2枚以上ある場合（完成した旗も）はどのカードを戻すか選べる（1枚しかない場合は自動でそれが選ばれる）。選んだカードが手札に戻ります。完成していた旗は未封鎖に戻る。',
   blank:'白紙のカード。何の効果もありません。手札に邪魔なら、墓地へドラッグして捨てて引き直しましょう（1ターン消費）。',
-  curse_poison:'使うと毒をあびて、5ターンの間、フィールドに出す数字カード（装備も）が−1されます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
+  curse_poison:'使うと毒をあびて、5ターンの間、毎ターン2ダメージを受けます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
   curse_seal:'使うと好きな旗を1つ選んで封鎖できます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
   conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
   revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて反転します（1↔10、2↔9、3↔8、4↔7、5↔6。7なら4、2なら9）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
@@ -1997,6 +1999,7 @@ function tryRevive(){ if(!(hpStock>0)) return false; hpStock--; playerHp=playerH
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
+let jamArmed=false, bashDmg=200;   // jamArmed＝アサシンの行動封じ待機中／bashDmg＝野盗の物理で殴るの次のダメージ（当たるたびに2倍）
 let bulletLeft=0;   // バレットタイムの残りターン（この間は時間が止まり、ターンも進まない）
 let enemyFreeze=0, enemyPoisonPer=0, hpBonus=0, specBonusK={}, specProg={}, specPlusBought=0;   // specBonusK＝ストアで買った「特殊技+1」（持ち技ごと）／specPlusBought＝買った回数（値段が上がる）
 //   // 反射の手鏡：敵の停止ターン数／敵が受ける毒（毎ターンの減少量）／栄養ドリンクの体力加算
@@ -2022,12 +2025,13 @@ const EVENT_INFO={
   wipe:{icon:'💥',label:'全滅（旗のカードが消える）',cls:'ev-dis'},
   assassin:{icon:'🗡',label:'暗殺（旗のカードが1枚墓地へ）',cls:'ev-dis'},
   blind:{icon:'🌫',label:'ブラインド（旗を黒い煙で覆う）',cls:'ev-dis'},
+  punch:{icon:'👊',label:'物理攻撃（70%で70ダメージ）',cls:'ev-dis'},
   comboreset:{icon:'💥',label:'コンボリセット',cls:'ev-dis'},
   colhalf:{icon:'🎨',label:'色コンボ半減',cls:'ev-dis'}
 };
 /* ===== 呪いカード（毒・封鎖）：山札に混ざり、捨てられず、使うと効果が発動する ===== */
 const CURSE_DEF={
-  poison:{type:'curse_poison',name:'毒',short:'☠毒',desc:'使うと5ターンの間、フィールドに出す数字カード（装備も）が−1される。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
+  poison:{type:'curse_poison',name:'毒',short:'☠毒',desc:'使うと5ターンの間、毎ターン2ダメージを受ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
   seal:{type:'curse_seal',name:'封鎖',short:'🔒封鎖',desc:'使うと好きな旗を1つ封鎖できる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
   bomb:{type:'curse_bomb',name:'時限ボム',short:'💣ボム',desc:'旗に置くと、5ターン以内にその旗で役を揃えないと爆発してスーパーコンボ−20。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
   dark:{type:'curse_dark',name:'暗闇',short:'🌑暗闇',desc:'使うと数ターンの間、攻撃の予測表示が半分に見えなくなる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
@@ -2037,7 +2041,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=3;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={jamRate:0.55, bashRate:0.7, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -2053,9 +2057,9 @@ const DIS_TIERS=[
   [LADDER_N-6,['half','bomb','comboreset','autonum','cfield','pfield','autonum','colnull','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']]
 ];
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
-const DIS_OFF=[];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
-const EVENT_SHORT={blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
+const DIS_OFF=['dark'];   // 停止したい行動の名前を入れると、その行動は出なくなる
+const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
+const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -2069,8 +2073,8 @@ function makeMinusEq(){ const r=isMidGame()?DIS_PARAM.minusRangeMid:DIS_PARAM.mi
 // dis=その敵が使う妨害を順番に繰り返す／nums=敵の数字カード(autonum)で出す固定カード[色,数字]（順番に出る）。自由に書き換えてOK
 const ENEMY_CFG={
   'コウモリ':{dis:['blind','autonum','minus'],fav:['blind','blind','blind','blind'],gap:4},   // lv16：ブラインドを頻繁に（間隔4ターン、ブラインドが約6割）
-  '野盗':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv18
-  '巨大ムカデ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv19
+  '野盗':{dis:['punch','half','colnull','autonum','guard','autonum','comboreset'],fav:['punch','punch']},   // lv18：物理で殴る（70%で70ダメージ）   // lv18
+  'アサシン':{dis:['assassin','autonum','minus'],fav:['assassin','assassin','assassin']},   // lv19（旧・巨大ムカデ）：暗殺
   '沼のリザードマン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv20
   'ゴブリン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv21
   'ゴブリンの戦士':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv22
@@ -2524,6 +2528,11 @@ function autoForecast(){   // 旗ごとの「あとNターンで何のカード�
 function applyEnemyEvent(type,target){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
   if(DIS_NAME[type]){ disFired++; disCount[type]=(disCount[type]||0)+1; disLast=type; }
+  if(jamArmed && type!=='rage' && DIS_NAME[type]){   // アサシンの行動封じ：次に来る妨害を、一定の確率で無効にする
+    jamArmed=false;
+    if(Math.random()<DIS_PARAM.jamRate){ hint('🔇 行動封じ成功！ 敵の妨害を無効にした！',true); playSfx('place'); try{ render(); }catch(e){} return; }
+    hint('🔇 行動封じは効かなかった…',true);
+  }
   if(type==='guard'||type==='bguard'){
     dis.guardN=type==='guard'?1:10; dis.guardUntil=enemyTurn+(type==='guard'?DIS_PARAM.guardTurns:DIS_PARAM.bguardTurns);
     hint(`⬇ 敵の妨害！ コンボが−${dis.guardN}される（あと${dis.guardUntil-enemyTurn}ターン）`,true); playSfx('warn');
@@ -2570,6 +2579,9 @@ function applyEnemyEvent(type,target){
       try{ dlog('deatheater',{flag:fi+1,card:dbgCardStr(c)}); }catch(e){}
       hint(`👹 デスイーター！ 旗${fi+1}の1枚目（${cardDisplayName(c)}）を食べられた…`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
     }
+  } else if(type==='punch'){
+    if(Math.random()<DIS_PARAM.punchRate){ const pd=buzzGate(DIS_PARAM.punchDmg); if(pd>0) hurtPlayer(pd,`👊 敵に殴られた！ ${pd}ダメージ！`); playSfx('warn'); }
+    else { hint('👊 敵が殴りかかってきた！…でも外れた！',true); playSfx('warn'); }
   } else if(type==='blind'){
     const bpl=takeAutoPlan('blind'), bfi=autoTargetIdx(bpl);
     if(bfi<0){ hint('敵が旗を煙で覆おうとしたが、対象の旗がなかった。',true); }
@@ -2612,8 +2624,8 @@ function applyEnemyEvent(type,target){
   } else if(type==='rage'){
     hint(`敵が怒り狂った！攻撃力が${BALANCE.rageMultiplier}倍に！（現在${currentEnemyAtk()}）`,true); playSfx('warn');
   } else if(type==='poison'){
-    dis.poisonUntil=turnCounter+DIS_PARAM.poisonTurns;
-    hint(`☠ 毒をあびた…${DIS_PARAM.poisonTurns}ターンの間、フィールドに出す数字カード（装備も）が−1される！`,true); playSfx('warn');
+    dis.venomUntil=turnCounter+DIS_PARAM.poisonTurns;
+    hint(`☠ 毒をあびた…${DIS_PARAM.poisonTurns}ターンの間、毎ターン${DIS_PARAM.venomDmg}ダメージを受ける！`,true); playSfx('warn');
   } else if(type==='seal'){
     const cand=sealCands().filter(({i})=>target!==undefined ? i===target : i!==lastFi);
     const sealedNow=flags.filter(f=>isLocked(f)).length;
@@ -2732,7 +2744,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
+  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; bashDmg=DIS_PARAM.bashBase; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -3060,7 +3072,7 @@ function advanceTurn(usedCard){
   prevSnap={t:enemyTurn,pp:poisonPenalty};
   const bt=bulletLeft>0;   // バレットタイム中は時間が止まる：ターンも、敵も、毒・封鎖・ボムの時間も進まない
   if(bt){ bulletLeft--; if(enemyFreeze>0) enemyFreeze--; }
-  else { turnCounter++; if(buzzTurns>0) buzzTurns--; }
+  else { turnCounter++; if(buzzTurns>0) buzzTurns--; if(!gameEnded&&playerHp>0&&turnCounter<=(dis.venomUntil||0)&&(dis.venomUntil||0)>0&&!nullOn()){ const vd=buzzGate(DIS_PARAM.venomDmg); if(vd>0) hurtPlayer(vd,`☠ 毒で${vd}ダメージ！（あと${dis.venomUntil-turnCounter}ターン）`); } }
   if(!bt) flags.forEach(f=>{ if(f.lockedUntil && f.lockedUntil<=turnCounter) f.lockedUntil=0; });
   let stepped=!bt && (!hasAcc('glass') || turnCounter%2===0);   // 背水のピアス：敵は2ターンに1回しか動かない
   if(!bt && enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
@@ -4306,6 +4318,13 @@ function confirmReplace(){
     setTimeout(()=>{ busy=false; endCheck(); render(); hint(''); if(enN) applyComboPenalty(enN); }, drawn.length*60+380);
   },280);
 }
+function hurtPlayer(d,msg){   // 敵の効果などで、HPが直接減る（ふんばり・体力ストックの復活・敗北まで面倒を見る）
+  const preHp=playerHp; playerHp=Math.max(0,playerHp-d);
+  screenShake(); hint(msg,true); renderBattle();
+  if(playerHp<=0 && tryRevive()){ renderBattle(); return true; }
+  if(playerHp<=0){ gameEnded=true; busy=true; setTimeout(()=>triggerDefeatFX(()=>{ playerLost(Math.max(0,d-preHp)); }), 400); return false; }
+  return true;
+}
 function penaltyDamage(){ return Math.max(1, Math.round(currentEnemyAtk()/5)); }
 function takePenalty(msg){
   const d=buzzGate(penaltyDamage()), preHp=playerHp;
@@ -4626,7 +4645,7 @@ function fmtCompact(n){   // 大きい数は 3.4k / 12.3k / 4.5M / 1.2B のよ�
 
 const EVENT_DESC={
   rage:()=>`敵が怒り狂い、攻撃力が${BALANCE.rageMultiplier}倍になる。`,
-  poison:()=>`山札にある「毒」の呪いカード。引いて使うと${DIS_PARAM.poisonTurns}ターンの間、フィールドに出す数字カード（装備も）が−1される。捨てられない。`,
+  poison:()=>`山札にある「毒」の呪いカード。引いて使うと${DIS_PARAM.poisonTurns}ターンの間、毎ターン${DIS_PARAM.venomDmg}ダメージを受ける。捨てられない。`,
   seal:()=>`山札にある「封鎖」の呪いカード。使うと好きな旗を1つ封鎖できる。捨てられない。`,
   half:()=>'敵が防御の構え。次のあなたの攻撃のダメージが半分になる。',
   colnull:()=>`特定の色の力を${DIS_PARAM.colnullTurns}ターン封じる。その色のコンボが無効になる。`,
@@ -4641,6 +4660,7 @@ const EVENT_DESC={
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
   wipe:()=>'「全滅」のカードを手札に押し付ける。使うと選んだ旗のカード（呪いも）がすべて消える。空の旗にも使える（使わずに持っていることはできるが、捨てられない）。聖水で消せる。',
   dark:()=>`「暗闇」のカードを手札に押し付ける。使うと${DIS_PARAM.darkTurns}ターンの間、攻撃の予測表示が見えなくなる。`,
+  punch:()=>`ターンになると強制的に発動。${Math.round(DIS_PARAM.punchRate*100)}%の確率で、あなたに${DIS_PARAM.punchDmg}ダメージ（外れることもある）。`,
   blind:()=>`ターンになると強制的に発動。ランダムな旗（完成済み・封鎖中・すでに煙に覆われた旗は対象外）を前もって決め（旗の右上に予告が出る）、${DIS_PARAM.blindTurns}ターンの間、黒い煙で覆う。カードは置けるが、中身が見えなくなる。煙の間、その旗は敵の他の妨害の対象からも外れる。`,
   assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）を前もって決め（旗の右上に表示）、その旗のカードからランダムに1枚を墓地へ送る。敵が置いたカードや装備も対象。',
   deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
@@ -5196,7 +5216,7 @@ function curseInfo(c){
   if(c.type==='curse_dark') return `使うと<b style="color:var(--danger)">${DIS_PARAM.darkTurns}ターン</b>の間、攻撃の予測表示が半分に見えなくなる。`;
   if(c.type==='curse_minus') return `使って旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる（役・コンボも付かない）。`;
   const per=WAVES[stageIndex].poison||(2+WAVES[stageIndex].tier);
-  if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">${DIS_PARAM.poisonTurns}ターンの間</b>、フィールドに出す数字カード（装備も）が<b style="color:var(--danger)">−1</b>される。「🧪薬」で止められます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
+  if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">${DIS_PARAM.poisonTurns}ターンの間</b>、<b style="color:var(--danger)">毎ターン${DIS_PARAM.venomDmg}ダメージ</b>を受ける。「🧪薬」で止められます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
   return `使うと好きな旗を1つ選んで、<b style="color:var(--danger)">${BALANCE.sealTurns}ターンの間</b>使えなくなる（置いてあったカードはそのまま残るが、追加で置けない）。封鎖が解けるまでに攻撃が来ると追加ダメージを受けます。「🧪薬」ですぐに解除できます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。`;
 }
 function cardInfoContent(c){
@@ -5371,7 +5391,7 @@ function buildHowtoPage(){
   fillPage('howtoShop', `<div class="howto-section" id="howtoShopSec"><p>敵を倒すと<b style="color:var(--gold)">次の戦いの準備</b>画面になる。ここでお金を使って強くなれる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">お金の入り方</b>：旗で役を作るたびに入る（${Object.entries(YAKU_GOLD).filter(([k,v])=>v>0).map(([k,v])=>`${k}${v}G`).join('、')}）。アクセサリーに書かれた条件を達成した時にも入る。コガネムシを使うキャラなら、特殊技「コガネモチ」で100G。持っているアクセサリーを売ってもお金になる（売値は買値の約3割）。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーを買う</b>：装備すると毎回効く。付けられるのは${3}つまで。装備枠がいっぱいの時は、どれかを外して付け替える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">デッキを買う</b>：使い捨てのカードなどを山札に加える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">手付金</b>：アクセサリーのお金が足りない時だけ、半額を手付金として払って<b>取り置き</b>できる。取り置いた品は、品揃えが入れ替わっても棚に残り、残りの金額を払えば買える。お金が足りている時は、手付金は出ない。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーの入手</b>：お店で買うほか、戦闘中に書かれた条件を満たすと貰えるものもある（例：<b>早撃ちのブーツ</b>＝12ターン以内に旗を全部完成させて攻撃すると、総攻撃力が×5になる。条件達成で入手でき、買うこともできる）。ショップには今の山札と、付けているアクセサリーも表示される。</p><p style="margin-top:8px;"><b style="color:var(--gold)">山札確認</b>：今の山札に何が入っているかを確認できる。</p></div>`);
   fillPage('howtoCurse', `<div class="howto-section"><p>敵は妨害として、手札に<b style="color:var(--danger)">呪いカード</b>を押し付けてくる。呪いカードは普通には捨てられず、使うか、シャッフルで山札に戻すしかない（補充・差し替えで消すと<b>スーパーコンボ−5</b>）。持っているだけで手札を1枠ふさぐ。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">呪いカードの種類</b></p>
-    <p style="margin-top:6px;"><b>☠ 毒</b>：使うと${DIS_PARAM.poisonTurns}ターン、置く数字カードが−1される。</p>
+    <p style="margin-top:6px;"><b>☠ 毒</b>：使うと${DIS_PARAM.poisonTurns}ターン、毎ターン${DIS_PARAM.venomDmg}ダメージを受ける。</p>
     <p style="margin-top:6px;"><b>🔒 封鎖</b>：使うと好きな旗を1つ封鎖できる（置いてあるカードは墓地へ）。</p>
     <p style="margin-top:6px;"><b>💣 時限ボム</b>：旗に置くと、${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないとスーパーコンボ−${DIS_PARAM.bombPenalty}。</p>
     <p style="margin-top:6px;"><b>🌑 暗闇</b>：使うと${DIS_PARAM.darkTurns}ターン、攻撃の予測が見えなくなる。</p>
@@ -5800,7 +5820,7 @@ function advanceToNextStage(){
     if(finalHp<=0) chainedKill=true;
     bossHp=finalHp;
   }
-  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
+  haunt={}; jamArmed=false; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
   playerHp=playerHpMax; monAtkMult=1; plAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
@@ -6168,7 +6188,7 @@ function specUse(kind){
     if(poisonPer<=0 && sealed===0 && !dn && !dOn){ hint('毒も封鎖も妨害も受けていないので、薬は不要です。',true); return; }
     const was=[poisonPer>0?'毒':'', sealed>0?'封鎖':'', (dn||dOn)?'妨害':''].filter(Boolean).join('と');
     haunt={}; poisonPer=0; flags.forEach(f=>{ f.lockedUntil=0; f.bomb=0; if(!f.closed) f.cards=f.cards.filter(c=>!isEnemyEq(c)); }); spec.cure++;
-    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; dis.halfNext=false; syncGuardFx();   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
+    dis.guardUntil=0; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; dis.venomUntil=0; dis.halfNext=false; syncGuardFx();   // 防御・色半減・暗闇・無効を解除し、手札の妨害カードと旗の呪いの装備も消す
     { const before=hand.length; hand=hand.filter(c=>!isDisC(c)); autoRefill(before-hand.length); }
     hint(`薬を使った！${was}が消えた。`); playSfx('shuffle');
   } else if(kind==='bullet'){
@@ -6203,6 +6223,16 @@ function strikeBoss(dmg,text,name){
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
   if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
+  else if(m.kind==='bash'){
+    const hit=Math.random()<DIS_PARAM.bashRate; spec.mon++;
+    if(!hit){ hint('🪓 物理で殴る…外れた！',true); playSfx('warn'); render(); return; }
+    const D=bashDmg; bashDmg=Math.min(bashDmg*2,1e15);
+    strikeBoss(Math.min(D,bossHp), `🪓 物理で殴る！ 命中！ 敵に${fmtCompact(D)}ダメージ。次は${fmtCompact(bashDmg)}。`, 'bash'); return;
+  }
+  else if(m.kind==='jam'){
+    if(jamArmed){ hint('すでに行動封じが待機中です。',true); return; }
+    jamArmed=true; spec.mon++; hint('🔇 行動封じ！ 次に来る敵の妨害を、55％の確率で無効にする。',true); playSfx('combo'); render(); return;
+  }
   else if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); monAtkMult*=2; spec.mon++; hint('エサになった…体力が半分になり、敵の攻撃力が2倍になった！',true); playSfx('warn'); }
   else if(m.kind==='spider'){
     if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
@@ -6425,6 +6455,7 @@ MON_ARCH.k_shadow=["................", "...KKKKKKKKKK...", "..KpppPPPPpppK..", "
 MON_ARCH.k_called=["................", "...KKKKKKKKKK...", "..KnnnnNNnnnnK..", ".KnNNNNNNNNNNnK.", "KKKKKKKKKKKKKKKK", "..KSSSSSSSSSSK..", "..KSKSSSSSSKSK..", "..KSSSSSSSSSSK..", "..KSSKKKKKWWRK..", ".KttTTTTTTTTttK.", "KttTKTTTTTTKTttK", "KttTKTTTTTTKTttK", "KtTTKTTTTTTKTTtK", ".KKKTTTTTTTTKKK.", "...KttK..KttK...", "...KKKK..KKKK..."];
 Object.assign(SPR,MON_ARCH);
 SPR.gunman=["................",".....KKKKK......","....KNNNNNK.....","....KNNNNNK.....",".KKKnnnnnnnKKK..","...KSSSSSSSK....","...KSKSSSKSK....","...KRRRRRRRK....","..KBBBBBBBBBK...",".KBBBBBBBBBBBK..",".KBBBBBBBBBBSggg",".KBBBBBBBBBBBK..","..KDDDDDDDDDK...","...KDDK..KDDK...","...KNNK..KNNK...","..KKKKK.KKKKK..."];   // ガンマン（ポンチョにカウボーイハット、右手にリボルバー）
+Object.assign(SPR,{assassin:["................", "......KKKK......", ".....KGGGGK.....", "....KGGGGGGK....", "....KGKKKKGK....", "....KGKRKRGK....", "....KGKKKKGK....", ".....KGGGGK.....", "....KRRRRRRK...w", "...KGGGGGGGGK.wg", "..KGGGGGGGGGKKw.", "..KGGKGGGGKGGK..", "...KKKGGGGKKK...", ".....KGGGGK.....", ".....KGKKGK.....", "....KKKK.KKKK..."]});   // アサシン（旧・巨大ムカデ）
 Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
 SPR.general_halo=SPR.general.map((r,i)=>i===0?'....yYYYYYYy....':r);   // 輪っか付き（元の身体）
 SPR.daphnia_leader=SPR.daphnia.map(r=>r.split('').map(c=>c==='C'?'E':c==='y'?'R':c).join(''));   // 緑のリーダー
@@ -6438,7 +6469,7 @@ const MON_SPR={
 'ハエの群れ':['fly'],'蚊':['mosquito'],'カエルの群れ':['frog'],'ミミズの群れ':['worm'],'アリの行列':['ant'],'コガネムシの群れ':['beetle'],
 '何匹かのスライム':['slime'],
 '野ネズミの群れ':['rat'],'毒キノコの群れ':['mushroom'],'大グモの巣':['spider'],'コボルトの一団':['kobold'],'洞窟のヘビ':['snake',{E:'T',e:'t'}],
-'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['gunman'],'野盗の一団':['bandit'],'巨大ムカデ':['centipede'],'沼のリザードマン':['lizardman'],
+'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['gunman'],'野盗の一団':['bandit'],'巨大ムカデ':['assassin'],'沼のリザードマン':['lizardman'],
 'ゴブリンの集団':['goblin'],'ゴブリンの戦士団':['goblin_warrior'],'ホブゴブリンの群れ':['hobgoblin'],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
 '骸骨戦士の集団':['skeleton'],'骸骨弓兵団':['skel_archer'],'動く鎧の群れ':['armor'],'死霊術師の一団':['necromancer'],'呪われた農夫たち':['farmer'],
 'オークの軍勢':['orc'],'トロルの群れ':['troll'],'山賊王の軍':['bandit_king'],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['mercenary'],
@@ -7700,7 +7731,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-01a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-01b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -7725,7 +7756,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
-    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -7769,7 +7800,7 @@ function resumeGame(){
     }
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
   foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
-  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0;
+  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase;
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }

@@ -221,5 +221,24 @@ with sync_playwright() as p:
       const n0=hand.length; useGuidance(hand.findIndex(x=>x.uid===g.uid)); const p1=pending&&pending.type; tapFlag(0);
       return {p1,inHand:hand.some(x=>x.uid===c.uid),flagLeft:flags[0].cards.length,usedGone:!hand.some(x=>x.uid===g.uid),pend:pending}}""")
     check('撤収：旗のカードが手札に戻り、撤収カードは使われる',r['p1']=='guidance' and r['inHand'] and r['flagLeft']==0 and r['usedGone'] and r['pend'] is None,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const o={}; busy=false; pending=null; gameEnded=false;
+      // 毒：5ターン、毎ターン2ダメージ
+      playerHp=100; playerHpMax=100; applyEnemyEvent('poison'); const hp0=playerHp; advanceTurn(null); advanceTurn(null); o.venom=hp0-playerHp; o.venomOn=turnCounter<=dis.venomUntil;
+      for(let k=0;k<6;k++) advanceTurn(null); o.venomEnd=(hp0-playerHp);
+      // 暗闇は妨害に出ない
+      o.noDark=!WAVES.some(w=>disList(w).includes('dark'));
+      // 物理攻撃：当たれば70、外れれば0
+      playerHp=100; const rnd=Math.random; Math.random=()=>0.1; applyEnemyEvent('punch'); o.hit=100-playerHp; playerHp=100; Math.random=()=>0.9; applyEnemyEvent('punch'); o.miss=100-playerHp; Math.random=rnd;
+      // 行動封じ：次の妨害を無効にする
+      jamArmed=true; Math.random=()=>0.1; dis.halfNext=false; applyEnemyEvent('half'); o.jamOk=!dis.halfNext&&!jamArmed; jamArmed=true; Math.random=()=>0.9; applyEnemyEvent('half'); o.jamNg=dis.halfNext; Math.random=rnd;
+      // 名前・特殊技・絵
+      const w=WAVES.find(x=>x.baseId==='巨大ムカデ'); o.name=w.name; o.dis=disList(w).slice(0,1); o.spr=monSprKey(w);
+      const ma=makeMonChar(WAVES.indexOf(w)); o.jamKind=ma.monSkill&&ma.monSkill.kind;
+      const mb=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); o.bashKind=mb.monSkill&&mb.monSkill.kind; o.bandit=WAVES.find(x=>x.baseId==='野盗の一団').name;
+      return o}""")
+    check('毒は毎ターン2ダメージ／暗闇は出ない／野盗の物理攻撃・アサシンの行動封じ',
+          r['venom']==4 and r['venomOn'] and r['venomEnd']==10 and r['noDark'] and r['hit']==70 and r['miss']==0 and r['jamOk'] and r['jamNg'] and r['name']=='アサシン' and r['dis']==['assassin'] and r['spr']=='assassin' and r['jamKind']=='jam' and r['bashKind']=='bash',r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; const rnd=Math.random; bossHp=1e9; Math.random=()=>0.9; monSkillUse(); o.missDmg=bashDmg; o.d0=bossHp; Math.random=()=>0.1; monSkillUse(); o.hitDmg=bashDmg; o.dealt=1e9-bossHp; Math.random=rnd; return o}""")
+    check('野盗の物理で殴る：外れても倍にならず、当たると200ダメージで次は400',r['missDmg']==200 and r['dealt']==200 and r['hitDmg']==400,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
