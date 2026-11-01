@@ -241,7 +241,7 @@ with sync_playwright() as p:
     check('毒は毎ターン2ダメージ／暗闇は出ない／野盗の物理攻撃・アサシンの行動封じ',
           r['venom']==4 and r['venomOn'] and r['venomEnd']==10 and r['noDark'] and r['hit']==70 and r['miss']==0 and r['jamOk'] and r['jamNg'] and r['name']=='アサシン' and r['dis']==['assassin'] and r['spr']=='assassin' and r['jamKind']=='jam' and r['bashKind']=='bash',r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; const rnd=Math.random; bossHp=1e9; Math.random=()=>0.9; monSkillUse(); o.missDmg=bashDmg; o.d0=bossHp; Math.random=()=>0.1; monSkillUse(); o.hitDmg=bashDmg; o.dealt=1e9-bossHp; Math.random=rnd; return o}""")
-    check('野盗の物理で殴る：外れても倍にならず、当たると200ダメージで次は400',r['missDmg']==200 and r['dealt']==200 and r['hitDmg']==400,r)
+    check('バイキングの斧で攻撃：外れても倍にならず、当たると200ダメージで次は400',r['missDmg']==200 and r['dealt']==200 and r['hitDmg']==400,r)
     r=ev("""()=>{ const w=WAVES.find(x=>x.name==='沼のリザードマン'); const dl=disList(w), wt=disWeights(w,dl), tot=Object.values(wt).reduce((a,b)=>a+b,0);
       CHARACTER=makeMonChar(WAVES.indexOf(w)); init(); flags.forEach(f=>{f.cards=[];f.closed=false}); busy=false; pending=null; const o={share:wt.pfield/tot, first:dl[0], kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind};
       monSkillUse(); o.pend=pending&&pending.type; tapFlag(2); o.placed=flags.map(f=>!!(flagMonster(f)&&flagMonster(f).sub==='pfield')); o.pendEnd=pending;
@@ -285,5 +285,8 @@ with sync_playwright() as p:
       const lo={kind:'troop',color:'red',value:9,uid:uid()}, hi={kind:'troop',color:'red',value:2,uid:uid()};
       o.nine=satisfiesMonster(lo,flags[0]); o.two=satisfiesMonster(hi,flags[0]); return o}""")
     check('パニックフィールド：自分の装備の上にも置ける／逆転後の数字で置ける・置けないを判定（装備8：2→9は可、9→2は不可）',r['c0'] and not r['c1'] and r['pf'] and r['sub']=='number' and r['cards']==1 and r['two'] and not r['nine'],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; render(); const o={}; o.name=CHARACTER.monSkill.name; o.l0=document.getElementById('specMonL').textContent;
+      const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; o.msg=(document.getElementById('hint')||{}).textContent||''; o.next=bashDmg; o.info=specInfoFor('mon').desc; busy=false; render(); o.l1=document.getElementById('specMonL').textContent; return o}""")
+    check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '400' in r['l1'] and '攻撃力が400に上がった' in r['msg'] and '400' in r['info'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

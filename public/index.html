@@ -1619,7 +1619,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'手札を、ランダムなマークの「10」のカードで上限いっぱいにする（今の手札は墓地へ。呪いのカードも、ペナルティなしで10に書き換わる）。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
   'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   'コウモリ':{kind:'blind',name:'ブラインド',icon:'🌫',desc:'好きな旗を3ターンの間、黒い煙で覆います。カードは置けますが中身が見えなくなり、その間その旗は敵の妨害の対象から外れます。'},
-  'バイキング':{kind:'bash',name:'物理で殴る',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージは2倍になり、使えば使うほど増えていきます（外れた時は変わりません）。敵のHPが0になればそのままステージクリアです。'},
+  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージは2倍になり、使えば使うほど増えていきます（外れた時は変わりません）。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、70％の確率で消します（予測レーンから消えます）。外れても、特殊技の回数が残っていれば何度でも使えます。'},
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
@@ -4893,7 +4893,7 @@ function render(){
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
-    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.name||'')); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
+    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg):(ms.name||''))); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
   { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
     if(mb&&ms&&ms.kind==='swallow'&&stomach.length&&specEnabled('mon')){ if(!chip){ chip=document.createElement('div'); chip.id='stomachChip'; chip.style.cssText='position:fixed;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#8ff0c4;text-shadow:0 1px 3px #000'; document.body.appendChild(chip); }
       chip.innerHTML='<span>飲み込み中</span>'; chip.appendChild(cardEl(stomach[0],true)); const r=mb.getBoundingClientRect(); chip.style.left=(r.left+r.width/2)+'px'; chip.style.transform='translateX(-50%)'; chip.style.bottom=(innerHeight-r.top+4)+'px'; }
@@ -6249,9 +6249,9 @@ function monSkillUse(){
   if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
   else if(m.kind==='bash'){
     const hit=Math.random()<DIS_PARAM.bashRate; spec.mon++;
-    if(!hit){ hint('🪓 物理で殴る…外れた！',true); playSfx('warn'); render(); return; }
+    if(!hit){ hint(`🪓 斧で攻撃…外れた！（次のダメージは${fmtCompact(bashDmg)}のまま）`,true); playSfx('warn'); render(); return; }
     const D=bashDmg; bashDmg=Math.min(bashDmg*2,1e15);
-    strikeBoss(Math.min(D,bossHp), `🪓 物理で殴る！ 命中！ 敵に${fmtCompact(D)}ダメージ。次は${fmtCompact(bashDmg)}。`, 'bash'); return;
+    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。攻撃力が${fmtCompact(bashDmg)}に上がった！`, 'bash'); return;
   }
   else if(m.kind==='jam'){
     const jt=nextDisTurn(); if(jt==null){ hint('この先に妨害の予定がありません。',true); return; }   // 消す相手がいない時は、使わずに済む
@@ -6368,7 +6368,7 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効／全滅の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.kind==='bash'&&k==='mon') return {title:(m.icon||'')+' '+m.name,desc:m.desc+`（いまの次のダメージ：${fmtCompact(bashDmg)}）`}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
