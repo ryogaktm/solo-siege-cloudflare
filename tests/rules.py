@@ -300,7 +300,7 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; hand=[0,1,2,3].map(()=>({kind:'troop',color:'red',value:3,uid:uid()})); render(); advanceTurn(null); advanceTurn(null);
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; busy=false; render(); const o={btn:document.getElementById('specMonL').textContent, chip:!!document.getElementById('axeChip'), info:specInfoFor('mon').desc};
       resetBattleRound(); render(); o.after=document.getElementById('specMonL').textContent; return o}""")
-    check('斧：特殊技のボタンに攻撃力と命中率が並び、説明に推移が出る（浮かぶ表示は出さない）','240' in r['btn'] and '60％' in r['btn'] and '×' in r['btn'] and not r['chip'] and '200→240' in r['info'] and '70→65→60' in r['info'] and '70％' in r['after'],r)
+    check('斧：特殊技のボタンに攻撃力と命中率が並び、説明に推移が出る（浮かぶ表示は出さない）','240' in r['btn'] and '50％' in r['btn'] and '×' in r['btn'] and not r['chip'] and '200→240' in r['info'] and '70→65→60→50' in r['info'] and '70％' in r['after'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e12; displayedBossHp=1e12; const o={}; const rnd=Math.random; Math.random=()=>0.1;
       hand=[]; bashDmg=500; monSkillUse(); o.zero=bashDmg; busy=false; monSkillUse(); o.back=bashDmg; o.msg=(document.getElementById('hint')||{}).textContent||''; Math.random=rnd; return o}""")
     check('斧：手札0枚で当てると次は0、その0を撃つと初期値200に戻る',r['zero']==0 and r['back']==200 and '初期値' in r['msg'],r)
@@ -311,6 +311,7 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); const o={}; o.base=specMax('mon'); specBonusK.mon=9; o.cap=specMax('mon'); return o}""")
     r=ev("()=>Object.values(MON_SKILL).filter(m=>m.kind&&!['punch','bullet'].includes(m.kind)).map(m=>m.name).filter(n=>SPEC_CAP[n]==null)")
     check('モンスター技はすべて技ごとの上限値を持つ',r==[],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); specBonusK.mon=9; return {cap:specMax('mon')} }""")
     check('特殊技の回数は上限5回を超えない',r['cap']<=5,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
