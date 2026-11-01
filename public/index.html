@@ -201,7 +201,7 @@
   .fighter.mo .spr{ animation-delay:-.4s; }
   @keyframes stepIdle{ 0%{ transform:translateY(0); } 25%{ transform:translateY(-2px); } 50%{ transform:translateY(0); } 75%{ transform:translateY(-2px); } }
   .spr .fr{ visibility:hidden; }
-  .spr .frA{ animation:frA var(--cyc,.8s) steps(1) infinite; }
+  .spr .frA{ visibility:visible; animation:frA var(--cyc,.8s) steps(1) infinite; }   /* アニメが止まっても基本の絵は必ず見えるように（敵が消える不具合の対策） */
   .spr .frL{ animation:frL var(--cyc,.8s) steps(1) infinite; }
   .spr .frR{ animation:frR var(--cyc,.8s) steps(1) infinite; }
   .fighter.mo .spr .fr{ animation-delay:-.4s; }
@@ -2042,7 +2042,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=3;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={jamRate:0.55, bashRate:0.7, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={jamRate:0.55, bashRate:0.7, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:16, earlyEvery:0.8, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -2267,7 +2267,7 @@ function genSchedule(){
     t+=w.gap; // 一定間隔
   }
   { const dl=disList(w);   // 妨害行動（月の民撃破後のみ）：攻撃×2とは別の枠に、最初の攻撃×2の半gap後から gap×every おきに入れる
-    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const ec=ENEMY_CFG[w.name]||{}; const gp=ec.gap?Math.max(2,ec.gap):Math.max(2,Math.round(w.gap*DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1)));  /* 火星人より弱い敵は妨害の間隔が倍 */ const tds=[]; for(let td=(ec.first||DIS_PARAM.startTurn); td<90; td+=gp){ if(!sched[td]) tds.push(td); } const seq=pickDisSeq(dl,tds.length,w); tds.forEach((td,i)=>{ sched[td]=seq[i]; }); } }
+    if(dl.length){ const soft=(!w.boss && w.lv<DIS_PARAM.softLv); const ec=ENEMY_CFG[w.name]||{}; const early=(!w.boss && w.lv<DIS_PARAM.earlyLv); /* 最初のほうの敵は妨害をゆっくり（初手の6ターン目からは出さない） */ const gp=ec.gap?Math.max(2,ec.gap):Math.max(2,Math.round(w.gap*(early?DIS_PARAM.earlyEvery:DIS_PARAM.every*(soft?DIS_PARAM.softEvery:1))));  /* 火星人より弱い敵は妨害の間隔が倍 */ const tds=[]; for(let td=(ec.first||(early?w.first+Math.round(w.gap/2):DIS_PARAM.startTurn)); td<90; td+=gp){ if(!sched[td]) tds.push(td); } const seq=pickDisSeq(dl,tds.length,w); tds.forEach((td,i)=>{ sched[td]=seq[i]; }); } }
   if(w.enrageAt>0){ for(let k=0;k<3;k++) sched[w.enrageAt+k]='rage'; } // 終盤の敵は一定ターンを過ぎると3連続で攻撃力×2（狂暴化）
   return sched;
 }
@@ -2452,7 +2452,7 @@ function enemyEventFX(type){
     const isDis=isDisEv(type)&&!['poison','seal'].includes(type);   // 妨害技：毎回はっきりわかるよう、画面全体の赤い点滅＋大きな帯で知らせる
     if(st){ ['fx-rage','fx-poison','fx-seal','fx-dis'].forEach(c=>st.classList.remove(c)); re(st,isDis?'fx-dis':'fx-'+type); }
     if(bn){ bn.classList.remove('dis'); if(isDis) bn.classList.add('dis'); bn.textContent=isDis?'⚠ 妨害！ '+txt:txt; re(bn,'show'); }
-    if(mo && type==='rage') re(mo,'enraged');
+    if(mo && type==='rage'){ re(mo,'enraged'); setTimeout(()=>mo.classList.remove('enraged'),1000); }
   }catch(e){}
 }
 function sealCands(){
@@ -7745,7 +7745,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-01b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-01c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

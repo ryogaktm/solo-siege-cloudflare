@@ -245,5 +245,13 @@ with sync_playwright() as p:
       monSkillUse(); o.pend=pending&&pending.type; tapFlag(2); o.placed=flags.map(f=>!!(flagMonster(f)&&flagMonster(f).sub==='pfield')); o.pendEnd=pending;
       return o}""")
     check('沼のリザードマン：パニックフィールドが妨害の約半分以上／特殊技で好きな旗にパニックフィールドを置ける',r['share']>=0.5 and r['first']=='pfield' and r['kind']=='pfsk' and r['pend']=='pfpick' and r['placed']==[False,False,True,False][:len(r['placed'])] and r['pendEnd'] is None,r)
+    r=ev("""()=>{ const o={}; const first=w=>{ stageIndex=WAVES.indexOf(w); const sc=genSchedule(); const ks=Object.keys(sc).map(Number).filter(t=>isDisEv(sc[t])).sort((a,b)=>a-b); return ks[0]; };
+      const ns=WAVES.filter(w=>!w.boss&&disList(w).length);
+      o.early=ns.filter(w=>w.lv<DIS_PARAM.earlyLv).map(w=>[w.name,first(w)]); o.late=ns.filter(w=>w.lv>=DIS_PARAM.earlyLv&&w.lv<DIS_PARAM.softLv).map(w=>[w.name,first(w)]);
+      const st=document.createElement('style'); st.textContent='*{animation:none!important}'; document.head.appendChild(st);
+      const d=document.createElement('div'); d.innerHTML=spriteSVG('slime',50,'',true); document.body.appendChild(d); o.frA=getComputedStyle(d.querySelector('.frA')).visibility; d.remove(); st.remove(); return o}""")
+    check('序盤（earlyLv未満）の敵は最初の妨害が10ターン目以降',all((f or 99)>=10 for n,f in r['early']),r['early'])
+    check('earlyLv以降の敵は最初の妨害が6ターン目前後から出る',any((f or 99)<=7 for n,f in r['late']),r['late'][:6])
+    check('動く敵の絵：アニメが止まっても基本の絵は見える（敵が消えない）',r['frA']=='visible',r['frA'])
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
