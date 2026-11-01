@@ -2148,6 +2148,7 @@ function disList(w){
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   if((w.boss||w.lv>=DIS_PARAM.wipeLv) && r.length && !r.includes('wipe')) r=[...r,'wipe'];   // 全滅カード：どの敵も出す
   if((w.boss||w.lv>=DIS_PARAM.assassinLv) && r.length && !r.includes('assassin')) r=[...r,'assassin'];   // 暗殺：どの敵も出す（旗のカードが1枚墓地へ）
+  if(!w.boss && w.lv>=DIS_PARAM.harshLv && w.lv%2===0 && r.includes('colnull') && !r.includes('colhalf')) r=[...r.slice(0,r.indexOf('colnull')+1),'colhalf',...r.slice(r.indexOf('colnull')+1)];   // 色コンボ半減：色封じを持つ敵のうち偶数レベルの敵に割り当てる（誰も使っていなかった妨害の再分配。個別に変えるときはENEMY_CFGのdisに書く）
   r=r.filter(k=>!DIS_OFF.includes(k));
   { const ia=r.indexOf('autonum'); if(ia>1){ r=r.slice(); r.splice(ia,1); r.splice(1,0,'autonum'); } }   // 数字カードは2番目に前倒し（戦闘の前半から出す）
   if(!w.boss && w.lv<DIS_PARAM.harshLv){   // 序盤は、プレイでどうにかできる「旗（シート）の妨害」だけ。防御・コンボ系は出さない
@@ -2156,7 +2157,7 @@ function disList(w){
   }
   return r;
 }
-const HARSH_DIS=['half','guard','bguard','comboreset','colnull','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
+const HARSH_DIS=['half','guard','bguard','comboreset','colnull','colhalf','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
 const SHEET_DIS=[['autonum',3],['cfield',8],['pfield',10],['minus',12],['bomb',20],['assassin',22],['deatheater',24],['ghost',26],['minusrain',28]];   // [技, 出始めのlv]：旗やカードに関わる妨害
 const SOFT_DIS=['autonum','cfield','pfield','minus','null','dark','bomb','wipe','assassin'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
@@ -7790,7 +7791,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

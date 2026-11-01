@@ -315,5 +315,7 @@ with sync_playwright() as p:
     check('特殊技の回数は上限5回を超えない',r['cap']<=5,r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; o.before=specMax('mon'); specProg.mon=0; spec.mon=1; render(); const bt=document.getElementById('specMon'); o.gp1=bt.style.getPropertyValue('--gp'); o.has=bt.hasAttribute('data-gp'); advanceToNextStage(); o.mid=specMax('mon'); o.prog=specProg.mon; spec.mon=1; advanceToNextStage(); o.after=specMax('mon'); specBonusK.mon=9; spec.mon=9; advanceToNextStage(); o.cap=specMax('mon'); return o}""")
     check('特殊技：使った回数を戦いをまたいで貯め、上限に届いたら+1（ゲージで見える・上限5まで）',r['has'] and abs(float(r['gp1'])-1/r['before'])<1e-6 and r['prog']==1 and r['mid']==r['before'] and r['after']==r['before']+1 and r['cap']<=5,r)
+    r=ev("()=>WAVES.filter(w=>!w.boss&&disList(w).includes('colhalf')).map(w=>w.lv)")
+    check('色コンボ半減が、色封じを持つ偶数レベルの敵（lv30以上）に割り当てられている',len(r)>=5 and all(l>=30 and l%2==0 for l in r),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
