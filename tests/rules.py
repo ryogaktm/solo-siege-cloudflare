@@ -255,5 +255,11 @@ with sync_playwright() as p:
     check('動く敵の絵：アニメが止まっても基本の絵は見える（敵が消えない）',r['frA']=='visible',r['frA'])
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=hand.find(x=>x.sub==='cfield'); return {col, got:c&&c.color, left:(autoQ.cfield||[]).length}}""")
     check('カラフルフィールド：予測で決めた色がそのまま手札に来る',r['col']==r['got'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false});
+      flags[0].cards=[{kind:'troop',color:'red',value:5,uid:uid()},{kind:'monster',sub:'number',value:8,uid:uid()}];
+      flags[1].cards=[{kind:'monster',sub:'number',value:-3,uid:uid(),enemyCard:true}];
+      const cf=makeColorField('blue'); hand.push(cf); const t=targetsFor(cf); const o={t0:t.includes(0),t1:t.includes(1),t2:t.includes(2)};
+      playOnFlag(hand.indexOf(cf),0,null,true); const m=flagMonster(flags[0]); o.sub=m&&m.sub; o.col=m&&m.color; o.troop=flags[0].cards.filter(c=>c.kind==='troop').length; return o}""")
+    check('カラフルフィールド：自分の装備の上に置ける（装備は外れる）／敵のマイナス装備の上には置けない',r['t0'] and not r['t1'] and r['t2'] and r['sub']=='cfield' and r['col']=='blue' and r['troop']==1,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
