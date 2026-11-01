@@ -1619,7 +1619,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'手札を、ランダムなマークの「10」のカードで上限いっぱいにする（今の手札は墓地へ。呪いのカードも、ペナルティなしで10に書き換わる）。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
   'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   'コウモリ':{kind:'blind',name:'ブラインド',icon:'🌫',desc:'好きな旗を3ターンの間、黒い煙で覆います。カードは置けますが中身が見えなくなり、その間その旗は敵の妨害の対象から外れます。'},
-  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」になります（0枚なら0倍で、次の攻撃は0になります）。外れてもダメージは変わりません。命中率は1ターン進むごとに5％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
+  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」になります（0枚なら0倍で、次の攻撃は0。その0の攻撃を撃つと、初期値の200に戻ります）。外れてもダメージは変わりません。命中率は1ターン進むごとに5％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、70％の確率で消します（予測レーンから消えます）。外れても、特殊技の回数が残っていれば何度でも使えます。'},
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
@@ -6259,8 +6259,8 @@ function monSkillUse(){
   else if(m.kind==='bash'){
     const hit=Math.random()<bashRateNow; spec.mon++;
     if(!hit){ hint(`🪓 斧で攻撃…外れた！（命中率${Math.round(bashRateNow*100)}％／次のダメージは${fmtCompact(bashDmg)}のまま）`,true); playSfx('warn'); render(); return; }
-    const D=bashDmg, bm=bashMulNow(); bashDmg=Math.min(Math.round(bashDmg*bm),1e15); bashHist.push(bashDmg); if(bashHist.length>30) bashHist.shift();
-    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。攻撃力が${fmtCompact(bashDmg)}に上がった！（×${Math.round(bm*100)/100}）`, 'bash', D); return;
+    const D=bashDmg, bm=bashMulNow(), wasZero=(D<=0); bashDmg=wasZero?DIS_PARAM.bashBase:Math.min(Math.round(bashDmg*bm),1e15); /* 0になった攻撃を撃ち終えたら、初期値（200）に戻る */ bashHist.push(bashDmg); if(bashHist.length>30) bashHist.shift();
+    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。${wasZero?`攻撃力が初期値の${fmtCompact(bashDmg)}に戻った。`:`攻撃力が${fmtCompact(bashDmg)}に上がった！（×${Math.round(bm*100)/100}）`}`, 'bash', D); return;
   }
   else if(m.kind==='jam'){
     const jt=nextDisTurn(); if(jt==null){ hint('この先に妨害の予定がありません。',true); return; }   // 消す相手がいない時は、使わずに済む
@@ -7073,7 +7073,13 @@ function runGoalToast(){
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
 }
-function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) setTimeout(()=>{ if(!gameEnded&&!inPrep&&battleGoals.length&&!document.querySelector('.modal-bg[style*="display: flex"]')) openCondModal(); },700); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
+function condWhenReady(n){   // 取得条件は、戦闘画面が見えるのを待たずに、最初から出す（ほかの画面が開いている間は、閉じた瞬間に出す）
+  if(gameEnded||inPrep||!battleGoals.length||n>300) return;
+  const startDeck=(document.getElementById('dbTitle')||{}).textContent==='最初の山札';   // ゲーム開始直後は、最初の山札の画面より先に条件を出す（戦闘画面が見えてから出ないように）
+  if([...document.querySelectorAll('.modal-bg')].some(m=>m.style.display==='flex'&&m.id!=='condModal'&&!(startDeck&&m.id==='deckBuildModal'))) return setTimeout(()=>condWhenReady(n+1),60);
+  openCondModal();
+}
+function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) condWhenReady(0); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
 function grantSpecialAcc(id,msg){
   const d=accDef(id); if(!d||accOwned.some(o=>o.id===id)) return false;
   accOwned.push({aid:accSeq++,id:id}); goalToastQ.push(msg.replace('{n}',d.name)); runGoalToast(); return true;

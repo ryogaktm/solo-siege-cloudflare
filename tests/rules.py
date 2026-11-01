@@ -301,5 +301,10 @@ with sync_playwright() as p:
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; busy=false; render(); const o={btn:document.getElementById('specMonL').textContent, chip:!!document.getElementById('axeChip'), info:specInfoFor('mon').desc};
       resetBattleRound(); render(); o.after=document.getElementById('specMonL').textContent; return o}""")
     check('斧：特殊技のボタンに攻撃力と命中率が並び、説明に推移が出る（浮かぶ表示は出さない）','240' in r['btn'] and '60％' in r['btn'] and '×' in r['btn'] and not r['chip'] and '200→240' in r['info'] and '70→65→60' in r['info'] and '70％' in r['after'],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e12; displayedBossHp=1e12; const o={}; const rnd=Math.random; Math.random=()=>0.1;
+      hand=[]; bashDmg=500; monSkillUse(); o.zero=bashDmg; busy=false; monSkillUse(); o.back=bashDmg; o.msg=(document.getElementById('hint')||{}).textContent||''; Math.random=rnd; return o}""")
+    check('斧：手札0枚で当てると次は0、その0を撃つと初期値200に戻る',r['zero']==0 and r['back']==200 and '初期値' in r['msg'],r)
+    r=ev("""()=>{ document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); gameEnded=false; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='洞窟のヘビ')); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; init(); const o={}; o.ids=[...document.querySelectorAll('.modal-bg')].filter(m=>getComputedStyle(m).display!=='none').map(m=>m.id); return o}""")
+    check('ゲーム開始と同時に取得条件の画面が出る（戦闘画面が見えてから出ない）','condModal' in r['ids'] and 'deckBuildModal' in r['ids'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
