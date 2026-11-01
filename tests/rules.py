@@ -179,5 +179,10 @@ with sync_playwright() as p:
       const saved=JSON.stringify(autoQ); autoQ={}; autoQ=JSON.parse(saved); const c3=sig();
       return {c1,c2,c3}}""")
     check('敵の数字カードの予定は、リセット（ラウンドの組み直し）やセーブ・ロードをまたいでも固定',r['c1']==r['c2']==r['c3'] if False else (r['c1']==r['c2'] and r['c2']==r['c3']),r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false}); enemyTurn=5; enemySched={8:'pfield'}; autoQ={}; autoSeq=0; render();
+      const a=autoForecast(), fi=+Object.keys(a)[0], hand0=hand.length; enemyTurn=7; applyEnemyEvent('pfield');
+      const on=flags.map((f,i)=>flagMonster(f)&&flagMonster(f).sub==='pfield'?i:-1).filter(i=>i>=0);
+      return {fi,on,handSame:hand.length===hand0}}""")
+    check('パニックフィールドは手札ではなく、予告した旗に直接置かれる',r['on']==[r['fi']] and r['handSame'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

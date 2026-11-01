@@ -2463,14 +2463,15 @@ function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾
 }
 /* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
 let autoQ={}, autoSeq=0;   // autoQ[種類]=[予定,...]：その種類の「これから来る予定」を順番に持つ。敵の攻撃でラウンドがリセットされても、発動するまで同じ予定（カード・旗）が残る
-const FLAG_EVS=['autonum','minus','ghost','deatheater','assassin'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
-const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'1枚目食う'},assassin:{icon:'🗡',txt:()=>'暗殺'}};
+const FLAG_EVS=['autonum','minus','ghost','deatheater','assassin','pfield'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
+const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'1枚目食う'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'}};
 function evCands(type){
   return flags.map((f,i)=>({f,i})).filter(({f,i})=>{
     if(f.closed) return false;
     if(type==='ghost') return !(haunt[i]>0);
     if(isLocked(f)) return false;
     if(type==='autonum') return !flagMonster(f)&&f.cards.length<=1;
+    if(type==='pfield') return !flagMonster(f)&&f.cards.length<3;   // パニックフィールド：モンスター系カードが無く、空きのある旗
     if(type==='minus'){ const m=flagMonster(f); return f.cards.length<3&&(!m||m.sub==='number'||m.sub==='combined'); }
     return f.cards.length>0;   // デスイーター・暗殺：カードのある旗
   });
@@ -2529,7 +2530,13 @@ function applyEnemyEvent(type,target){
       try{ render(); }catch(e){}
     }
   } else if(type==='pfield'){
-    giveHandCard(makePanicField()); hint('🌀 パニックフィールドを押し付けられた！ 旗に置くと、次にその旗へ置くカードの数字が逆転（革命）する。',true); playSfx('warn');
+    const ppl=takeAutoPlan('pfield'), pfi=autoTargetIdx(ppl);
+    if(pfi<0){ hint('敵がパニックフィールドを置こうとしたが、置ける旗がなかった。',true); }
+    else if(!hauntBlock(pfi,'敵のパニックフィールド')){
+      const pf=makePanicField(); pf.accumulatedBonus=0; pf.autoFresh=true; flags[pfi].cards.push(pf);
+      setTimeout(()=>{ pf.autoFresh=false; try{ render(); }catch(e){} },2200);
+      hint(`🌀 敵が旗${pfi+1}にパニックフィールドを置いた！ 次にその旗へ置くカードの数字が逆転（革命）する。`,true); playSfx('warn'); try{ render(); }catch(e){}
+    }
   } else if(type==='half'){
     dis.halfNext=true; shieldAlert(); syncGuardFx(); hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
   } else if(type==='minus'){
@@ -4594,7 +4601,7 @@ const EVENT_DESC={
   bguard:()=>`コンボが−10される状態が${DIS_PARAM.bguardTurns}ターン続く。`,
   bomb:()=>`「時限ボム」のカードを手札に押し付ける。旗に置くと${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないと爆発し、スーパーコンボが−${DIS_PARAM.bombPenalty}される。`,
   cfield:()=>'「カラフルフィールド」のカードを手札に押し付ける。旗に置くと、その旗には特定の色のカードしか置けなくなる。',
-  pfield:()=>'「パニックフィールド」のカードを手札に押し付ける。旗に置くと、次にその旗へ置くカードの数字が逆転（革命）する。',
+  pfield:()=>'敵が「パニックフィールド」を空いている旗にランダムで置く。その旗では、次に置くカードの数字が逆転（革命）する。',
   autonum:()=>'敵が勝手に旗へ数字カードを1枚置く（空き・1枚以下の旗が対象）。',
   minus:()=>'「マイナスの武器」を旗に置く。その旗の数字の合計が減る。プラスの武器を重ねれば減らせる。',
   null:()=>`「無効の呪い」のカードを手札に押し付ける。使うと${DIS_PARAM.nullTurns}ターンの間、軍師カードの効果が無効になる。`,
