@@ -240,8 +240,8 @@ with sync_playwright() as p:
       return o}""")
     check('毒は毎ターン2ダメージ／暗闇は出ない／野盗の物理攻撃・アサシンの行動封じ',
           r['venom']==4 and r['venomOn'] and r['venomEnd']==10 and r['noDark'] and r['hit']==70 and r['miss']==0 and r['jamOk'] and r['jamNg'] and r['name']=='アサシン' and r['dis']==['assassin'] and r['spr']=='assassin' and r['jamKind']=='jam' and r['bashKind']=='bash',r)
-    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; const rnd=Math.random; bossHp=1e9; Math.random=()=>0.9; monSkillUse(); o.missDmg=bashDmg; o.rate=bashRateNow; o.d0=bossHp; Math.random=()=>0.1; monSkillUse(); o.hitDmg=bashDmg; o.dealt=1e9-bossHp; Math.random=rnd; return o}""")
-    check('バイキングの斧で攻撃：外れるとダメージは変わらず命中率が5％下がる／当たると200ダメージで次は1.5倍の300',r['missDmg']==200 and abs(r['rate']-0.65)<1e-9 and r['dealt']==200 and r['hitDmg']==300,r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; const rnd=Math.random; bossHp=1e9; Math.random=()=>0.9; monSkillUse(); o.missDmg=bashDmg; o.rate=bashRateNow; o.d0=bossHp; advanceTurn(null); advanceTurn(null); o.rate2=bashRateNow; resetBattleRound(); o.rate3=bashRateNow; Math.random=()=>0.1; monSkillUse(); o.hitDmg=bashDmg; o.dealt=1e9-bossHp; Math.random=rnd; return o}""")
+    check('バイキングの斧で攻撃：外れてもダメージは変わらない・命中率は1ターンごとに5％下がり新waveで70％に戻る／当たると200ダメージで次は1.5倍の300',r['missDmg']==200 and abs(r['rate']-0.7)<1e-9 and abs(r['rate2']-0.6)<1e-9 and abs(r['rate3']-0.7)<1e-9 and r['dealt']==200 and r['hitDmg']==300,r)
     r=ev("""()=>{ const w=WAVES.find(x=>x.name==='沼のリザードマン'); const dl=disList(w), wt=disWeights(w,dl), tot=Object.values(wt).reduce((a,b)=>a+b,0);
       CHARACTER=makeMonChar(WAVES.indexOf(w)); init(); flags.forEach(f=>{f.cards=[];f.closed=false}); busy=false; pending=null; const o={share:wt.pfield/tot, first:dl[0], kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind};
       monSkillUse(); o.pend=pending&&pending.type; tapFlag(2); o.placed=flags.map(f=>!!(flagMonster(f)&&flagMonster(f).sub==='pfield')); o.pendEnd=pending;
@@ -290,5 +290,8 @@ with sync_playwright() as p:
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '300' in r['l1'] and '攻撃力が300に上がった' in r['msg'] and '300' in r['info'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=100; displayedBossHp=100; bashDmg=1000000; const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; return {p:lastPower,d:lastDealt}}""")
     check('斧で攻撃で倒した時、ジャンプの基準には敵HPで切らない本当のダメージが使われる',r['p']==1000000 and r['d']==999900,r)
+    r=ev("""()=>{ const keep=dbgLog; dbgLog=[]; dbgLog.push({seq:1,type:'game_start',time:'x'}); for(let b=0;b<9;b++){ dbgLog.push({seq:10+b*3,type:'turn'}); dbgLog.push({seq:11+b*3,type:'stage_advance',b}); }
+      const rec=dbgRecent(), n=rec.filter(e=>e.type==='stage_advance').length, first=rec[0].type; dbgLog=keep; return {n,first,len:rec.length}}""")
+    check('デバッグログの書き出しは直近5戦まで（開始の行は残る）',r['n']<=5 and r['first']=='game_start',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
