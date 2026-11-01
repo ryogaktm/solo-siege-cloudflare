@@ -5823,12 +5823,11 @@ function advanceToNextStage(){
   dlog('stage_advance',{from:stageIndex+1});
   clearKO();
   stageIndex=(nextStageIdx>=0)?nextStageIdx:Math.min(stageIndex+1, LADDER_N-1); foughtIdx.add(stageIndex);
-  try{   // 持ち技を使い切るとレベルアップ：戦いをまたいで使った回数をためて、上限に届いたら使用回数が+1（上限2なら、今回1回＋次回1回でも上がる）
-    (CHARACTER.sp||[]).forEach(k=>{
-      if(k==='shuffle') return;
-      specProg[k]=(specProg[k]||0)+(spec[k]||0);
-      let up=0; if(specMax(k)>=specCapFor(k)) specProg[k]=0; while(specMax(k)>0 && specMax(k)<specCapFor(k) && specProg[k]>=specMax(k) && up<5){ specProg[k]-=specMax(k); specBonusK[k]=(specBonusK[k]||0)+1; up++; }
-      if(up) dlog('spec_levelup',{k,max:specMax(k),prog:specProg[k]});
+  try{   // 持ち技を回数ぶん使い切ると、次の戦いから回数が+1（上限まで。デフォルトの仕様）
+    spTargets().forEach(t=>{ const k=t.k; if(k==='shuffle') return;
+      const mx=specMax(k); if(mx<=0||mx>=specCapFor(k)||(spec[k]||0)<mx) return;
+      if(t.acc) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[k]=(specBonusK[k]||0)+1;
+      dlog('spec_levelup',{k,max:specMax(k)}); hint(`✨ ${t.label}を使い切った！ 次の戦いから回数が${specMax(k)}回になる`,true);
     });
   }catch(e){}
   spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
@@ -7523,9 +7522,6 @@ function renderShop_(){
       apply:()=>{ shopOnce.hand=true; handSlotBonus++; hint('手札の上限が1枚増えた！'); }});
     items.push({key:'slotplus',icon:'💍',name:'アクセサリー枠+1',desc:'アクセサリーを付けられる数が1つ増える（ずっと続く・1回だけ）',price:300,sold:!!shopOnce.slot,
       apply:()=>{ shopOnce.slot=true; accSlotBonus++; ACC_SLOTS++; hint('アクセサリーの装備枠が1つ増えた！'); }});
-    spTargets().forEach(t=>{ const own=!!t.acc;
-      items.push({key:'spplus_'+(own?t.acc.aid:'d'+t.k),icon:'✨',name:`特殊技+1（${t.label}）`,desc:own?`このアクセサリーが与える技の回数が毎戦+1回（1回だけ買える。このアクセサリーに付く。外すと効果も外れる）`:`持ち技の回数が毎戦+1回（ずっと続く・1回だけ）`,price:spPlusPrice(),sold:own?((t.acc.spb||0)>=1||specMax(t.k)>=specCapFor(t.k)):((specBonusK[t.k]||0)>=1||specMax(t.k)>=specCapFor(t.k)),   // 1つの技につき、ゲーム全体で1回だけ
-        apply:()=>{ if(own?((t.acc.spb||0)>=1):((specBonusK[t.k]||0)>=1)) return; if(specMax(t.k)>=specCapFor(t.k)){ hint('これ以上は増えない（上限'+specCapFor(t.k)+'回）'); return; } if(own) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[t.k]=(specBonusK[t.k]||0)+1; specPlusBought++; hint(`特殊技+1！（${t.label}）`); }}); });
     if(!deckOffer.cards) deckOffer.cards=rollDeckCards();
     deckOffer.cards.forEach((cc,ci)=>{
       const t=TACTICS.find(x=>x.type===cc.type); if(!t) return;
@@ -7547,7 +7543,6 @@ function renderShop_(){
   items.forEach((x,i)=>{ x.tab=i<nDeck?'deck':'acc'; });
   // 個数：＋で1→2…、−で減らす。上限は品ごと（交換は何回でも、それ以外は1個まで）
   items.forEach(x=>{ x.max=x.sold?0:((x.special||x.multi)?99:1); });
-  { const spSel=items.find(y=>y.key.startsWith('spplus_')&&buyQty[y.key]>0); if(spSel) items.forEach(y=>{ if(y.key.startsWith('spplus_')&&y!==spSel) y.max=0; }); }   // 値段が上がっていくので、1回の買い物では1つだけ
   Object.keys(buyQty).forEach(k=>{ const x=items.find(y=>y.key===k); if(!x||buyQty[k]<=0||buyQty[k]>x.max) delete buyQty[k]; });
   const chosen=items.filter(x=>x.tab===kind&&buyQty[x.key]>0).map(x=>({...x,qty:buyQty[x.key]})), n=chosen.reduce((t,x)=>t+x.qty,0), tot=chosen.reduce((t,x)=>t+x.price*x.qty,0), short=tot>gold;
   if(items.length){
@@ -7781,7 +7776,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

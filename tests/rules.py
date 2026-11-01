@@ -313,5 +313,7 @@ with sync_playwright() as p:
     check('モンスター技はすべて技ごとの上限値を持つ',r==[],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); specBonusK.mon=9; return {cap:specMax('mon')} }""")
     check('特殊技の回数は上限5回を超えない',r['cap']<=5,r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); const o={}; o.before=specMax('mon'); spec.mon=specMax('mon'); advanceToNextStage(); o.after=specMax('mon'); spec.mon=1; const m=specMax('mon'); advanceToNextStage(); o.keep=(specMax('mon')===m); specBonusK.mon=9; spec.mon=9; advanceToNextStage(); o.cap=specMax('mon'); o.shop=!!(typeof buildShopItems==='function'); return o}""")
+    check('特殊技：回数を使い切ると次の戦いから+1（使い切らなければ増えない・上限5まで）',r['after']==r['before']+1 and r['keep'] and r['cap']<=5,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
