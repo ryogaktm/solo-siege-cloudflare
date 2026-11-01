@@ -2043,7 +2043,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=3;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={jamRate:0.7, bashRate:0.7, bashPerCard:0.3, bashMulMin:0, bashTurnDown:0.05, bashRateMin:0.1, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:13, earlyEvery:0.8, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={jamRate:0.7, bashRate:0.7, bashPerCard:0.3, bashMulMin:0, bashTurnDown:0.05, bashHitDown:0.1, bashRateMin:0.1, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:13, earlyEvery:0.8, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
@@ -5827,7 +5827,7 @@ function advanceToNextStage(){
     (CHARACTER.sp||[]).forEach(k=>{
       if(k==='shuffle') return;
       specProg[k]=(specProg[k]||0)+(spec[k]||0);
-      let up=0; while(specMax(k)>0 && specProg[k]>=specMax(k) && up<5){ specProg[k]-=specMax(k); specBonusK[k]=(specBonusK[k]||0)+1; up++; }
+      let up=0; if(specMax(k)>=specCapFor(k)) specProg[k]=0; while(specMax(k)>0 && specMax(k)<specCapFor(k) && specProg[k]>=specMax(k) && up<5){ specProg[k]-=specMax(k); specBonusK[k]=(specBonusK[k]||0)+1; up++; }
       if(up) dlog('spec_levelup',{k,max:specMax(k),prog:specProg[k]});
     });
   }catch(e){}
@@ -6259,8 +6259,8 @@ function monSkillUse(){
   else if(m.kind==='bash'){
     const hit=Math.random()<bashRateNow; spec.mon++;
     if(!hit){ hint(`🪓 斧で攻撃…外れた！（命中率${Math.round(bashRateNow*100)}％／次のダメージは${fmtCompact(bashDmg)}のまま）`,true); playSfx('warn'); render(); return; }
-    const D=bashDmg, bm=bashMulNow(), wasZero=(D<=0); bashDmg=wasZero?DIS_PARAM.bashBase:Math.min(Math.round(bashDmg*bm),1e15); /* 0になった攻撃を撃ち終えたら、初期値（200）に戻る */ bashHist.push(bashDmg); if(bashHist.length>30) bashHist.shift();
-    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。${wasZero?`攻撃力が初期値の${fmtCompact(bashDmg)}に戻った。`:`攻撃力が${fmtCompact(bashDmg)}に上がった！（×${Math.round(bm*100)/100}）`}`, 'bash', D); return;
+    const D=bashDmg, bm=bashMulNow(), wasZero=(D<=0); bashRateNow=Math.max(DIS_PARAM.bashRateMin,bashRateNow-DIS_PARAM.bashHitDown); bashRateHist.push(bashRateNow); if(bashRateHist.length>30) bashRateHist.shift(); /* 当たると命中率が10％下がる（外れたら据え置き） */ bashDmg=wasZero?DIS_PARAM.bashBase:Math.min(Math.round(bashDmg*bm),1e15); /* 0になった攻撃を撃ち終えたら、初期値（200）に戻る */ bashHist.push(bashDmg); if(bashHist.length>30) bashHist.shift();
+    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。${wasZero?`攻撃力が初期値の${fmtCompact(bashDmg)}に戻った。`:`攻撃力が${fmtCompact(bashDmg)}に上がった！（×${Math.round(bm*100)/100}）`} 命中率が${Math.round(bashRateNow*100)}％に下がった。`, 'bash', D); return;
   }
   else if(m.kind==='jam'){
     const jt=nextDisTurn(); if(jt==null){ hint('この先に妨害の予定がありません。',true); return; }   // 消す相手がいない時は、使わずに済む
@@ -6980,7 +6980,10 @@ function superMultFor(sym,raw){
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
 function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
-function specMax(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
+const SPEC_CAP={all:5};   // 特殊技の回数の上限（技ごとに変えたいときは SPEC_CAP.beg=3 のように足す）
+function specCapFor(k){ return SPEC_CAP[k]!=null?SPEC_CAP[k]:SPEC_CAP.all; }
+function specMax(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
+function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
 function spTargets(){   // 「特殊技+1」を付けられる先：最初から持っている技と、装備中のアクセサリーが与えている技
   const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; if(k==='mon'&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return; const ms=CHARACTER.monSkill; out.push({k,acc:null,label:k==='mon'?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
   accEq.forEach(aid=>{ const o=accOwned.find(x=>x.aid===aid); if(o&&o.id.startsWith('sp_')&&o.id!=='sp_double'&&o.id!=='sp_shuffle'){ const d=accDef(o.id); if(d) out.push({k:o.id.slice(3),acc:o,label:d.name}); } });
@@ -7517,8 +7520,8 @@ function renderShop_(){
     items.push({key:'slotplus',icon:'💍',name:'アクセサリー枠+1',desc:'アクセサリーを付けられる数が1つ増える（ずっと続く・1回だけ）',price:300,sold:!!shopOnce.slot,
       apply:()=>{ shopOnce.slot=true; accSlotBonus++; ACC_SLOTS++; hint('アクセサリーの装備枠が1つ増えた！'); }});
     spTargets().forEach(t=>{ const own=!!t.acc;
-      items.push({key:'spplus_'+(own?t.acc.aid:'d'+t.k),icon:'✨',name:`特殊技+1（${t.label}）`,desc:own?`このアクセサリーが与える技の回数が毎戦+1回（1回だけ買える。このアクセサリーに付く。外すと効果も外れる）`:`持ち技の回数が毎戦+1回（ずっと続く・1回だけ）`,price:spPlusPrice(),sold:own?((t.acc.spb||0)>=1):((specBonusK[t.k]||0)>=1),   // 1つの技につき、ゲーム全体で1回だけ
-        apply:()=>{ if(own?((t.acc.spb||0)>=1):((specBonusK[t.k]||0)>=1)) return; if(own) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[t.k]=(specBonusK[t.k]||0)+1; specPlusBought++; hint(`特殊技+1！（${t.label}）`); }}); });
+      items.push({key:'spplus_'+(own?t.acc.aid:'d'+t.k),icon:'✨',name:`特殊技+1（${t.label}）`,desc:own?`このアクセサリーが与える技の回数が毎戦+1回（1回だけ買える。このアクセサリーに付く。外すと効果も外れる）`:`持ち技の回数が毎戦+1回（ずっと続く・1回だけ）`,price:spPlusPrice(),sold:own?((t.acc.spb||0)>=1||specMax(t.k)>=specCapFor(t.k)):((specBonusK[t.k]||0)>=1||specMax(t.k)>=specCapFor(t.k)),   // 1つの技につき、ゲーム全体で1回だけ
+        apply:()=>{ if(own?((t.acc.spb||0)>=1):((specBonusK[t.k]||0)>=1)) return; if(specMax(t.k)>=specCapFor(t.k)){ hint('これ以上は増えない（上限'+specCapFor(t.k)+'回）'); return; } if(own) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[t.k]=(specBonusK[t.k]||0)+1; specPlusBought++; hint(`特殊技+1！（${t.label}）`); }}); });
     if(!deckOffer.cards) deckOffer.cards=rollDeckCards();
     deckOffer.cards.forEach((cc,ci)=>{
       const t=TACTICS.find(x=>x.type===cc.type); if(!t) return;
@@ -7774,7 +7777,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-01d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
