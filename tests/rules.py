@@ -309,6 +309,8 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e12; displayedBossHp=1e12; const o={}; const rnd=Math.random; bashRateNow=0.7; Math.random=()=>0.99; monSkillUse(); o.miss=bashRateNow; busy=false; Math.random=()=>0.1; monSkillUse(); o.hit=bashRateNow; Math.random=rnd; return o}""")
     check('斧：当たると命中率が10％下がり、外れたら据え置き',abs(r['miss']-0.7)<1e-9 and abs(r['hit']-0.6)<1e-9,r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); const o={}; o.base=specMax('mon'); specBonusK.mon=9; o.cap=specMax('mon'); return o}""")
+    r=ev("()=>Object.values(MON_SKILL).filter(m=>m.kind&&!['punch','bullet'].includes(m.kind)).map(m=>m.name).filter(n=>SPEC_CAP[n]==null)")
+    check('モンスター技はすべて技ごとの上限値を持つ',r==[],r)
     check('特殊技の回数は上限5回を超えない',r['cap']<=5,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

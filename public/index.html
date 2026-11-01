@@ -6980,8 +6980,12 @@ function superMultFor(sym,raw){
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
 function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
-const SPEC_CAP={all:5, beg:5, punch:5, guard:5, cure:5, bullet:5, mon:5, shuffle:5};   // 特殊技の回数の上限（技ごとに個別の値。後から技ごとに数字を変える。書いてない技はallを使う）
-function specCapFor(k){ return SPEC_CAP[k]!=null?SPEC_CAP[k]:SPEC_CAP.all; }
+const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の値（書いてない技はallを使う）。後から技ごとに数字を変える
+  beg:5, punch:5, guard:5, cure:5, bullet:5, shuffle:5,   // 基本の持ち技
+  'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
+  'ブラインド':5, '斧で攻撃':5, '行動封じ':5, 'パニックフィールド':5, '毒の牙':5};
+function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||k; }
+function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_CAP.all; }
 function specMax(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
 function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
 function spTargets(){   // 「特殊技+1」を付けられる先：最初から持っている技と、装備中のアクセサリーが与えている技
@@ -7777,7 +7781,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
