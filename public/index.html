@@ -6980,7 +6980,7 @@ function superMultFor(sym,raw){
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
 function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
-const SPEC_CAP={all:5};   // 特殊技の回数の上限（技ごとに変えたいときは SPEC_CAP.beg=3 のように足す）
+const SPEC_CAP={all:5, beg:5, punch:5, guard:5, cure:5, bullet:5, mon:5, shuffle:5};   // 特殊技の回数の上限（技ごとに個別の値。後から技ごとに数字を変える。書いてない技はallを使う）
 function specCapFor(k){ return SPEC_CAP[k]!=null?SPEC_CAP[k]:SPEC_CAP.all; }
 function specMax(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
 function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
@@ -7777,7 +7777,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
