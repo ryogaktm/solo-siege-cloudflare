@@ -1107,7 +1107,6 @@
     <div class="title-highscore">ハイスコア<div class="title-hs-row"><b id="titleHighScore">0</b><div class="title-hs-enemy" id="titleHsEnemy"></div></div></div>
     <button class="btn title-startbtn" id="titleResumeBtn" style="display:none">つづきから</button>
     <button class="btn title-startbtn" id="titleStartBtn">はじめる</button>
-    <button class="btn ghost title-howtobtn" id="titleCharBtn" style="display:none">キャラ選択</button>
     <button class="btn ghost title-howtobtn" id="titleHowtoBtn">遊び方</button>
     <button class="btn ghost title-howtobtn" id="titleXferBtn" style="display:none">データ引き継ぎ</button>
     <button class="btn ghost title-howtobtn" id="titleDbgBtn" style="opacity:.7;">🐞 デバッグログ</button>
@@ -6604,7 +6603,6 @@ function buildTitleScene(){
 }
 function titleHsText(){ const v=loadOverallHighScore(); return rk(v); }
 function updateTitleHs(){
-  try{ const cb=document.getElementById('titleCharBtn'); if(cb) cb.style.display=kingOpen()?'':'none'; }catch(e){}
   const v=loadOverallHighScore(), el=document.getElementById('titleHighScore'), en=document.getElementById('titleHsEnemy');
   if(el) el.textContent=rk(v);
   if(!en) return;
@@ -6743,13 +6741,6 @@ function monPopup(ch,d,sprHtml,go){
 }
 try{ buildTitleScene(); updateTitleHs(); }catch(e){ console.error(e); }
 document.getElementById('titleStartBtn').onclick=()=>{
-  ensureAudio();
-  document.getElementById('titleScreen').style.display='none';
-  if(kingOpen()){ const ch=curMonChar(); if(ch.mon===HUMAN_MON&&!bodyBack()) lsSet('soloSiegeBodyBack','1'); startAs(ch); return; }   // ミジンコキング開放後は、選んでおいたモンスターで即スタート
-  buildCharList();
-  document.getElementById('charScreen').style.display='flex';
-};
-document.getElementById('titleCharBtn').onclick=()=>{
   ensureAudio();
   document.getElementById('titleScreen').style.display='none';
   buildCharList();
