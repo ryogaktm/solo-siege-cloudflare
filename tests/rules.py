@@ -240,5 +240,10 @@ with sync_playwright() as p:
           r['venom']==4 and r['venomOn'] and r['venomEnd']==10 and r['noDark'] and r['hit']==70 and r['miss']==0 and r['jamOk'] and r['jamNg'] and r['name']=='アサシン' and r['dis']==['assassin'] and r['spr']=='assassin' and r['jamKind']=='jam' and r['bashKind']=='bash',r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; const rnd=Math.random; bossHp=1e9; Math.random=()=>0.9; monSkillUse(); o.missDmg=bashDmg; o.d0=bossHp; Math.random=()=>0.1; monSkillUse(); o.hitDmg=bashDmg; o.dealt=1e9-bossHp; Math.random=rnd; return o}""")
     check('野盗の物理で殴る：外れても倍にならず、当たると200ダメージで次は400',r['missDmg']==200 and r['dealt']==200 and r['hitDmg']==400,r)
+    r=ev("""()=>{ const w=WAVES.find(x=>x.name==='沼のリザードマン'); const dl=disList(w), wt=disWeights(w,dl), tot=Object.values(wt).reduce((a,b)=>a+b,0);
+      CHARACTER=makeMonChar(WAVES.indexOf(w)); init(); flags.forEach(f=>{f.cards=[];f.closed=false}); busy=false; pending=null; const o={share:wt.pfield/tot, first:dl[0], kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind};
+      monSkillUse(); o.pend=pending&&pending.type; tapFlag(2); o.placed=flags.map(f=>!!(flagMonster(f)&&flagMonster(f).sub==='pfield')); o.pendEnd=pending;
+      return o}""")
+    check('沼のリザードマン：パニックフィールドが妨害の約半分以上／特殊技で好きな旗にパニックフィールドを置ける',r['share']>=0.5 and r['first']=='pfield' and r['kind']=='pfsk' and r['pend']=='pfpick' and r['placed']==[False,False,True,False][:len(r['placed'])] and r['pendEnd'] is None,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
