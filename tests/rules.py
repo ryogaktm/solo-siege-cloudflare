@@ -184,5 +184,9 @@ with sync_playwright() as p:
       const on=flags.map((f,i)=>flagMonster(f)&&flagMonster(f).sub==='pfield'?i:-1).filter(i=>i>=0);
       return {fi,on,handSame:hand.length===hand0}}""")
     check('パニックフィールドは手札ではなく、予告した旗に直接置かれる',r['on']==[r['fi']] and r['handSame'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false}); enemyTurn=0; enemySched={8:'minus'}; autoQ={}; render();
+      const pl=autoQ.minus&&autoQ.minus[0]; const cell=[...document.querySelectorAll('#upcomingRow2 .fc[data-ev="minus"]')][0];
+      return {v:pl&&pl.v, txt:cell?cell.textContent:null}}""")
+    check('妨害レーンのマイナスの武器に、数字（予定の値）が出る',r['txt'] is not None and str(r['v']) in r['txt'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
