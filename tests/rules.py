@@ -272,5 +272,9 @@ with sync_playwright() as p:
       try{ render(); }catch(e){ errs.push(String(e)); } const fc=autoForecast(); const txt=Object.values(fc).flat().filter(x=>x.type==='cfield').length;
       const lab=document.querySelector('.auto-fc')&&document.querySelector('.auto-fc').textContent; return {errs,txt,lab}}""")
     check('カラフルフィールドの予測が旗の右上に出て、描画でエラーにならない（進行不能の再発防止）',not r['errs'] and r['txt']==1 and r['lab'] and 'カラフル' in r['lab'],r)
+    r=ev("""()=>{ try{ lsSet('soloSiegeMons',JSON.stringify(WAVES.filter(w=>!w.boss).map(w=>w.baseId))); }catch(e){} document.getElementById('appRoot').style.display='none'; document.getElementById('titleScreen').style.display='flex'; CHARACTER=null;
+      document.getElementById('titleStartBtn').click(); const o={char:getComputedStyle(document.getElementById('charScreen')).display, noBtn:!document.getElementById('titleCharBtn')};
+      document.getElementById('charDecide').click(); o.title=getComputedStyle(document.getElementById('titleScreen')).display; o.app=getComputedStyle(document.getElementById('appRoot')).display; o.started=!!CHARACTER; return o}""")
+    check('はじめる→必ずキャラ選択→決定でゲーム開始（タイトルへ戻らない／タイトルにキャラ選択ボタンなし）',r['char']=='flex' and r['noBtn'] and r['title']=='none' and r['app']!='none' and r['started'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

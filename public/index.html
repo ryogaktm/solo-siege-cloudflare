@@ -1129,7 +1129,7 @@
     <div class="mon-grid" id="monGrid"></div>
     
   </div>
-  <div class="char-foot" id="charFoot" style="display:none"><button class="btn ghost" id="charCancel">キャンセル</button><button class="btn primary" id="charDecide">決定</button></div>
+  <div class="char-foot" id="charFoot" style="display:none"><button class="btn ghost" id="charCancel">キャンセル</button><button class="btn primary" id="charDecide">この子ではじめる</button></div>
 </div>
 <div class="app" id="appRoot" style="display:none;">
   <div class="topbar">
@@ -6686,8 +6686,9 @@ function buildCharList(){
       picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); renderCurPanel(null);
     };
     document.getElementById('charDecide').onclick=()=>{
-      if(picked){ lsSet(SEL_KEY,picked.id); lsSet('soloSiegeWeakOk',isWeakId(picked.id)?'1':''); if(picked.haloOn) lsSet('soloSiegeBodyBack','1'); }
-      toTitle();
+      const id=picked?picked.id:curMonId(), ch=picked?picked.ch:curMonChar();   // 決定したら、そのキャラでそのままゲームを始める
+      lsSet(SEL_KEY,id); lsSet('soloSiegeWeakOk',isWeakId(id)?'1':''); if(ch.mon===HUMAN_MON&&!bodyBack()) lsSet('soloSiegeBodyBack','1');
+      startAs(ch);
     };
   }
 }
