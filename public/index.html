@@ -6227,13 +6227,13 @@ function specUse(kind){
     const T0=(CHARACTER.monSkill&&CHARACTER.monSkill.slow)||SLOW_TURNS;
     slowWins.push([enemyTurn,enemyTurn+T0]); dlog('action',{name:'punch_slow'});
     const D=(CHARACTER.monSkill&&CHARACTER.monSkill.dmg)||50; spec.punch++;   // ダメージはそのまま（コボルト100／ほか50）に、攻撃力の上昇抑制をプラス
-    strikeBoss(Math.min(D,bossHp), `👊 殴った！ 敵に${D}ダメージ。さらに${T0}ターンの間、敵の攻撃力の上昇が半分になった。`, 'punch'); return;
+    strikeBoss(Math.min(D,bossHp), `👊 殴った！ 敵に${D}ダメージ。さらに${T0}ターンの間、敵の攻撃力の上昇が半分になった。`, 'punch', D); return;
   }
   dlog('action',{name:'spec_'+kind});
   render();
 }
-function strikeBoss(dmg,text,name){
-  busy=true; lastDealt=Math.max(0,dmg-Math.max(0,bossHp-dmg)); lastPower=Math.max(0,dmg); bossHp=Math.max(0,bossHp-dmg);
+function strikeBoss(dmg,text,name,raw){   // raw＝敵のHPで切り捨てる前の本当のダメージ（次の敵のジャンプには、こちらを使う）
+  busy=true; lastDealt=raw!=null?Math.max(0,raw-bossHp):Math.max(0,dmg-Math.max(0,bossHp-dmg)); lastPower=Math.max(0,raw!=null?raw:dmg); bossHp=Math.max(0,bossHp-dmg);
   hint(text); playSfx('equipment');
   dlog('action',{name:name,eHpAfter:bossHp});
   const killed=bossHp<=0;
@@ -6251,7 +6251,7 @@ function monSkillUse(){
     const hit=Math.random()<DIS_PARAM.bashRate; spec.mon++;
     if(!hit){ hint(`🪓 斧で攻撃…外れた！（次のダメージは${fmtCompact(bashDmg)}のまま）`,true); playSfx('warn'); render(); return; }
     const D=bashDmg; bashDmg=Math.min(bashDmg*2,1e15);
-    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。攻撃力が${fmtCompact(bashDmg)}に上がった！`, 'bash'); return;
+    strikeBoss(Math.min(D,bossHp), `🪓 斧で攻撃！ 命中！ 敵に${fmtCompact(D)}ダメージ。攻撃力が${fmtCompact(bashDmg)}に上がった！`, 'bash', D); return;
   }
   else if(m.kind==='jam'){
     const jt=nextDisTurn(); if(jt==null){ hint('この先に妨害の予定がありません。',true); return; }   // 消す相手がいない時は、使わずに済む

@@ -288,5 +288,7 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; render(); const o={}; o.name=CHARACTER.monSkill.name; o.l0=document.getElementById('specMonL').textContent;
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; o.msg=(document.getElementById('hint')||{}).textContent||''; o.next=bashDmg; o.info=specInfoFor('mon').desc; busy=false; render(); o.l1=document.getElementById('specMonL').textContent; return o}""")
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '400' in r['l1'] and '攻撃力が400に上がった' in r['msg'] and '400' in r['info'],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=100; displayedBossHp=100; bashDmg=1000000; const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; return {p:lastPower,d:lastDealt}}""")
+    check('斧で攻撃で倒した時、ジャンプの基準には敵HPで切らない本当のダメージが使われる',r['p']==1000000 and r['d']==999900,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
