@@ -2461,7 +2461,7 @@ function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾
     el.innerHTML='<span style="font-size:min(22px,5.2vw);white-space:nowrap">🛡 敵が防御！ 次の攻撃は半分</span>'; el.className='ev-sweep'; void el.offsetWidth; el.className='ev-sweep go shield'; }catch(e){}
 }
 /* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
-let autoPlan={}, autoSeq=0;   // autoPlan[発動ターン]={type,flag,(col,v)}
+let autoQ={}, autoSeq=0;   // autoQ[種類]=[予定,...]：その種類の「これから来る予定」を順番に持つ。敵の攻撃でラウンドがリセットされても、発動するまで同じ予定（カード・旗）が残る
 const FLAG_EVS=['autonum','minus','ghost','deatheater','assassin'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
 const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'1枚目食う'},assassin:{icon:'🗡',txt:()=>'暗殺'}};
 function evCands(type){
@@ -2475,17 +2475,18 @@ function evCands(type){
   });
 }
 const autoCands=()=>evCands('autonum');
-function getAutoPlan(t,type){
-  if(autoPlan[t]) return autoPlan[t];
-  type=type||'autonum';
-  if(type==='minus') return autoPlan[t]={type,v:makeMinusEq().value,flag:null};
-  if(type!=='autonum') return autoPlan[t]={type,flag:null};
+function newAutoPlan(type){
+  if(type==='minus') return {type,v:makeMinusEq().value,flag:null};
+  if(type!=='autonum') return {type,flag:null};
   const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
   if(nl&&nl.length){ const pk2=nl[autoSeq%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カードを順番に
   else { col=GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)]; v=1+Math.floor(Math.random()*(isMidGame()?DIS_PARAM.numMaxMid:10)); }
   if(!GAME_COLORS.includes(col)) col=GAME_COLORS[(v+autoSeq)%GAME_COLORS.length];   // 敵ごとの固定カードにオレンジがあっても、今のゲームにオレンジは無いので別の色にする
-  autoSeq++; return autoPlan[t]={type,col,v,flag:null};
+  autoSeq++; return {type,col,v,flag:null};
 }
+const evOrd=(t,type,baseT)=>Object.keys(enemySched).filter(k=>+k>baseT&&+k<=t&&enemySched[k]===type).length-1;   // その種類の、これから来る何番目の予定か
+function planAt(type,ord){ const q=(autoQ[type]=autoQ[type]||[]); while(q.length<=ord) q.push(newAutoPlan(type)); return q[Math.max(0,ord)]; }
+function takeAutoPlan(type){ const q=(autoQ[type]=autoQ[type]||[]); return q.length?q.shift():newAutoPlan(type); }   // 発動：先頭の予定を使う
 function autoTargetIdx(pl){   // 予定の旗が埋まった・封鎖された等で置けなくなったら、別の旗へ移す
   const cand=evCands(pl.type||'autonum');
   if(pl.flag!==null&&cand.some(c=>c.i===pl.flag)) return pl.flag;
@@ -2500,7 +2501,7 @@ function autoForecast(){   // 旗ごとの「あとNターンで何のカード�
       const t=baseT+enemyOffs(k,pend0,baseT);
       const stepped=!hasAcc('glass')||(k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,baseT)>enemyOffs(k-1,pend0,baseT));
       const et=enemySched[t]; if(!stepped||!FLAG_EVS.includes(et)) continue;
-      const pl=getAutoPlan(t,et), fi=autoTargetIdx(pl); if(fi<0) continue;
+      const pl=planAt(et,evOrd(t,et,baseT)), fi=autoTargetIdx(pl); if(fi<0) continue;
       (out[fi]=out[fi]||[]).push({k:k+nClk,type:et,col:pl.col,v:pl.v});
     }
   }catch(e){} return out;
@@ -2516,7 +2517,7 @@ function applyEnemyEvent(type,target){
   } else if(type==='cfield'){
     const cf=makeColorField(); giveHandCard(cf); hint(`💀 カラフルフィールド（${CNAME[cf.color]}）を押し付けられた！ 旗に置くとその旗には${CNAME[cf.color]}のカードしか置けない（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn');
   } else if(type==='autonum'){
-    const pl=getAutoPlan(enemyTurn), fi=autoTargetIdx(pl); delete autoPlan[enemyTurn];
+    const pl=takeAutoPlan('autonum'), fi=autoTargetIdx(pl);
     if(fi<0){ hint('敵が数字カードを置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); }
     else {
       const f=flags[fi], col=pl.col, v=pl.v;
@@ -2531,7 +2532,7 @@ function applyEnemyEvent(type,target){
   } else if(type==='half'){
     dis.halfNext=true; shieldAlert(); syncGuardFx(); hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
   } else if(type==='minus'){
-    { const mpl=getAutoPlan(enemyTurn,'minus'), mfi=autoTargetIdx(mpl); delete autoPlan[enemyTurn]; const me=makeMinusEq(); me.value=mpl.v; const cand=mfi<0?[]:[{f:flags[mfi],i:mfi}]; if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(hauntBlock(flags.indexOf(f),'マイナスの武器')) return; if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
+    { const mpl=takeAutoPlan('minus'), mfi=autoTargetIdx(mpl); const me=makeMinusEq(); me.value=mpl.v; const cand=mfi<0?[]:[{f:flags[mfi],i:mfi}]; if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(hauntBlock(flags.indexOf(f),'マイナスの武器')) return; if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
   } else if(type==='null'){
     giveHandCard(makeCurse('null')); hint('🚫 無効の呪いを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='wipe'){
@@ -2539,7 +2540,7 @@ function applyEnemyEvent(type,target){
   } else if(type==='dark'){
     giveHandCard(makeCurse('dark')); hint('🌑 暗闇のカードを手札に押し付けられた！',true); playSfx('warn');
   } else if(type==='deatheater'){
-    const dpl=getAutoPlan(enemyTurn,'deatheater'), dfi=autoTargetIdx(dpl); delete autoPlan[enemyTurn];
+    const dpl=takeAutoPlan('deatheater'), dfi=autoTargetIdx(dpl);
     const cand=dfi<0?[]:[flags[dfi]];   // 封鎖中の旗は狙われない（封鎖で防げる）
     if(!cand.length){ hint('👹 デスイーターが現れたが、食べるカードがなかった（封鎖中の旗は守られる）。',true); }
     else {
@@ -2549,7 +2550,7 @@ function applyEnemyEvent(type,target){
       hint(`👹 デスイーター！ 旗${fi+1}の1枚目（${cardDisplayName(c)}）を食べられた…`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
     }
   } else if(type==='assassin'){
-    const apl=getAutoPlan(enemyTurn,'assassin'), afi=autoTargetIdx(apl); delete autoPlan[enemyTurn];   // 完成済み・封鎖中の旗は狙われない。予定の旗の中から、ランダムに1枚
+    const apl=takeAutoPlan('assassin'), afi=autoTargetIdx(apl);   // 完成済み・封鎖中の旗は狙われない。予定の旗の中から、ランダムに1枚
     const picks=[]; if(afi>=0) flags[afi].cards.forEach((c,ci)=>picks.push({f:flags[afi],i:afi,c,ci}));
     if(!picks.length){ hint('🗡 暗殺者が現れたが、狙えるカードがなかった。',true); try{ stageDmgPop('monster','🗡 暗殺…空振り',''); }catch(e){} }
     else {
@@ -2560,7 +2561,7 @@ function applyEnemyEvent(type,target){
       hint(`🗡 暗殺！ 旗${pk.i+1}の「${nm}」が墓地へ送られた…`,true); playSfx('warn'); try{ stageDmgPop('monster','🗡 暗殺！ 旗'+(pk.i+1)+' '+nm+'が墓地へ',''); screenShake(); render(); }catch(e){}
     }
   } else if(type==='ghost'){
-    const gpl=getAutoPlan(enemyTurn,'ghost'), gfi=autoTargetIdx(gpl); delete autoPlan[enemyTurn];
+    const gpl=takeAutoPlan('ghost'), gfi=autoTargetIdx(gpl);
     const cand=gfi<0?[]:[gfi];
     if(!cand.length){ hint('🕳 ワームホールが現れたが、開ける旗がなかった。',true); }
     else { const i=cand[Math.floor(Math.random()*cand.length)]; haunt[i]=5;
@@ -4388,7 +4389,6 @@ function usePlead(handIdx){
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
   const ns={}; Object.keys(enemySched).forEach(k=>{ const t=+k; ns[t>enemyTurn?t+PLEAD_TURNS:t]=enemySched[k]; }); enemySched=ns;
-  { const np={}; Object.keys(autoPlan).forEach(k=>{ const t=+k; np[t>enemyTurn?t+PLEAD_TURNS:t]=autoPlan[k]; }); autoPlan=np; }   // 敵の数字カードの予定も一緒にずれる
   const moved=left;
   try{ dlog('action',{name:'plead_card',delay:PLEAD_TURNS,moved:moved.length}); }catch(e){}
   advanceTurn(used);
@@ -4657,7 +4657,7 @@ function renderUpcoming(){
       html+=`<div class="fc ${info.cls}" data-ev="rage"><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
       html+=`<div class="fc"><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
-      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}">${ev==='autonum'?(()=>{ try{ const pl=getAutoPlan(t); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}${pl.v}</b>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]}</small>`; } })():`<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`}<small class="fc-cd">あと${k+nClk}</small></div>`; }
+      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}">${ev==='autonum'?(()=>{ try{ const pl=planAt('autonum',evOrd(t,'autonum',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}${pl.v}</b>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]}</small>`; } })():`<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`}<small class="fc-cd">あと${k+nClk}</small></div>`; }
       else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
     }
@@ -5751,7 +5751,7 @@ function advanceToNextStage(){
     if(finalHp<=0) chainedKill=true;
     bossHp=finalHp;
   }
-  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; autoPlan={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
+  haunt={}; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
   playerHp=playerHpMax; monAtkMult=1; plAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
@@ -7663,7 +7663,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
-    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:CHARACTER.mon||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec, guardOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -7707,7 +7707,7 @@ function resumeGame(){
     }
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
   foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
-  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1;
+  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0;
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }

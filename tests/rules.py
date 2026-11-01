@@ -146,21 +146,21 @@ with sync_playwright() as p:
       return {has:!!el, fresh:!!document.querySelector('.pcard.auto-new'), flag:!!c, normal:c&&c.kind==='troop'&&c.temp}}""")
     check('敵が置いた数字カードに赤い枠と「敵」の印が付き、置いた直後は光る（中身は普通の数字カード）',r['has'] and r['fresh'] and r['flag'] and r['normal'],r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false;
-      flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0}); enemyTurn=5; enemySched={8:'autonum'}; autoPlan={}; autoSeq=0; render();
-      const o={}; const fc=autoForecast(); const fi=+Object.keys(fc)[0]; o.k=fc[fi]&&fc[fi][0].k; o.badge=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); const pl={...autoPlan[8]};
+      flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0}); enemyTurn=5; enemySched={8:'autonum'}; autoQ={}; autoSeq=0; render();
+      const o={}; const fc=autoForecast(); const fi=+Object.keys(fc)[0]; o.k=fc[fi]&&fc[fi][0].k; o.badge=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); 
       // 予定の旗が埋まったら、別の旗へ移る（移った先に表示される）
       flags[fi].cards=[{kind:'troop',color:'red',value:3,uid:uid()},{kind:'troop',color:'red',value:4,uid:uid()}]; render(); const fc2=autoForecast(); const fi2=+Object.keys(fc2)[0]; o.moved=fi2!==fi && !!document.querySelector('.flag[data-index="'+fi2+'"] .auto-fc');
       // 命乞いで3ターン遅れると予定も一緒にずれる
-      hand[0]=Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='plead'),{uid:uid()}); usePlead(0); await new Promise(r=>setTimeout(r,500)); o.shift=!!autoPlan[11]&&!autoPlan[8]; o.k2=(Object.values(autoForecast())[0]||[{}])[0].k;
+      hand[0]=Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='plead'),{uid:uid()}); usePlead(0); await new Promise(r=>setTimeout(r,500)); o.shift=(autoQ.autonum||[]).length===1; o.k2=(Object.values(autoForecast())[0]||[{}])[0].k;
       // 発動すると予定どおりのカードが予定の旗に置かれる
-      const want={...autoPlan[11]}, tgt=autoTargetIdx(autoPlan[11]); enemyTurn=11; applyEnemyEvent('autonum'); const c=flags[tgt].cards.find(c=>c.autoPlaced); o.fire=!!c&&c.color===want.col&&c.value===want.v; o.cleared=!autoPlan[11];
+      const want={...autoQ.autonum[0]}, tgt=autoTargetIdx(autoQ.autonum[0]); enemyTurn=11; applyEnemyEvent('autonum'); const c=flags[tgt].cards.find(c=>c.autoPlaced); o.fire=!!c&&c.color===want.col&&c.value===want.v; o.cleared=(autoQ.autonum||[]).length===0;
       return o}""")
     check('敵の数字カード：旗の右上に「あとNターン・色と数字」が出る／旗が埋まると別の旗へ移る／命乞いで一緒にずれる／予定どおりに置かれる',r['k']==3 and r['badge'] and r['moved'] and r['shift'] and r['fire'] and r['cleared'],r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false;
       const o={}, mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
       for(const ev of ['minus','ghost','deatheater','assassin']){
-        flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0;f.bomb=0}); haunt={}; flags[1].cards=[mk('red',3),mk('red',4)]; enemyTurn=5; enemySched={8:ev}; autoPlan={}; render();
-        const fc=autoForecast(), fi=+Object.keys(fc)[0]; const has=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); const tgt=autoTargetIdx(autoPlan[8]);
+        flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0;f.bomb=0}); haunt={}; flags[1].cards=[mk('red',3),mk('red',4)]; enemyTurn=5; enemySched={8:ev}; autoQ={}; render();
+        const fc=autoForecast(), fi=+Object.keys(fc)[0]; const has=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); const tgt=autoTargetIdx(autoQ[ev][0]);
         enemyTurn=8; const before=flags.map(f=>f.cards.length).join(); applyEnemyEvent(ev); const after=flags.map(f=>f.cards.length).join();
         o[ev]={has, fi, tgt, changed: ev==='ghost'?(haunt[tgt]>0):(before!==after), onTgt: ev==='ghost'?true:flags[tgt].cards.length!==(+before.split(',')[tgt])};
       }
@@ -170,7 +170,15 @@ with sync_playwright() as p:
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); inPrep=false; openAccModal(); await new Promise(r=>setTimeout(r,300));
       const b=document.querySelector('#accModal .reward-box').getBoundingClientRect(), u=document.getElementById('accUpper').getBoundingClientRect(); document.getElementById('accModal').style.display='none'; return {bh:b.height,uh:u.height}}""")
     check('戦闘中にアクセサリー画面（🎒）を開いても、中身が見える（空の枠にならない）',r['bh']>300 and r['uh']>200,r)
-    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); let bad=0, n=0; WAVES.forEach((w,i)=>{ stageIndex=i; for(let k=0;k<12;k++){ autoPlan={}; autoSeq=k; const pl=getAutoPlan(100+k,'autonum'); n++; if(pl.col==='orange'||!GAME_COLORS.includes(pl.col)) bad++; } }); for(let k=0;k<200;k++){ if(makeColorField().color==='orange') bad++; } return {bad,n}}""")
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); let bad=0, n=0; WAVES.forEach((w,i)=>{ stageIndex=i; for(let k=0;k<12;k++){ autoSeq=k; const pl=newAutoPlan('autonum'); n++; if(pl.col==='orange'||!GAME_COLORS.includes(pl.col)) bad++; } }); for(let k=0;k<200;k++){ if(makeColorField().color==='orange') bad++; } return {bad,n}}""")
     check('敵が置く数字カード・カラフルフィールドに、今のゲームには無いオレンジが使われない',r['bad']==0,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false}); enemyTurn=5; enemySched={8:'autonum',12:'autonum'}; autoQ={}; autoSeq=0; render();
+      const a=autoForecast(), fi=+Object.keys(a)[0], c1=JSON.stringify([a[fi][0].col,a[fi][0].v,fi]);
+      // 攻撃でラウンドがリセットされ、予定が組み直されても、同じ予定（カード・旗）のまま
+      enemyTurn=0; enemySched={3:'autonum',9:'autonum'}; render(); const b=autoForecast(), fj=+Object.keys(b)[0], c2=JSON.stringify([b[fj][0].col,b[fj][0].v,fj]);
+      // セーブ・ロードの間も（autoQ をそのまま持ち越す）
+      const saved=JSON.stringify(autoQ); autoQ={}; autoQ=JSON.parse(saved); const c=autoForecast(), fk=+Object.keys(c)[0], c3=JSON.stringify([c[fk][0].col,c[fk][0].v,fk]);
+      return {c1,c2,c3}}""")
+    check('敵の数字カードの予定は、リセット（ラウンドの組み直し）やセーブ・ロードをまたいでも固定',r['c1']==r['c2']==r['c3'] if False else (r['c1']==r['c2'] and r['c2']==r['c3']),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
