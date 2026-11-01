@@ -229,10 +229,12 @@ with sync_playwright() as p:
       o.noDark=!WAVES.some(w=>disList(w).includes('dark'));
       // 物理攻撃：当たれば70、外れれば0
       playerHp=100; const rnd=Math.random; Math.random=()=>0.1; applyEnemyEvent('punch'); o.hit=100-playerHp; playerHp=100; Math.random=()=>0.9; applyEnemyEvent('punch'); o.miss=100-playerHp; Math.random=rnd;
-      // 行動封じ：次の妨害を無効にする
-      jamArmed=true; Math.random=()=>0.1; dis.halfNext=false; applyEnemyEvent('half'); o.jamOk=!dis.halfNext&&!jamArmed; jamArmed=true; Math.random=()=>0.9; applyEnemyEvent('half'); o.jamNg=dis.halfNext; Math.random=rnd;
-      // 名前・特殊技・絵
       const w=WAVES.find(x=>x.baseId==='巨大ムカデ'); o.name=w.name; o.dis=disList(w).slice(0,1); o.spr=monSprKey(w);
+      // 行動封じ：次の妨害を無効にする
+      { const keepC=CHARACTER, wj=WAVES.find(x=>x.baseId==='巨大ムカデ'); CHARACTER=makeMonChar(WAVES.indexOf(wj)); init(); busy=false; pending=null; enemyTurn=2; enemySched={5:'rage',6:'half',10:'minus'}; const smon=spec.mon;
+        Math.random=()=>0.9; monSkillUse(); o.jamNg=enemySched[6]==='half'&&spec.mon===smon+1;   // 外れ：消えない・もう一度使える
+        Math.random=()=>0.1; monSkillUse(); o.jamOk=enemySched[6]===undefined&&enemySched[10]==='minus'&&enemySched[5]==='rage'&&spec.mon===smon+2; Math.random=rnd; CHARACTER=keepC; }
+      // 名前・特殊技・絵
       const ma=makeMonChar(WAVES.indexOf(w)); o.jamKind=ma.monSkill&&ma.monSkill.kind;
       const mb=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); o.bashKind=mb.monSkill&&mb.monSkill.kind; o.bandit=WAVES.find(x=>x.baseId==='野盗の一団').name;
       return o}""")
