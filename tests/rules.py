@@ -216,5 +216,10 @@ with sync_playwright() as p:
       return o}""")
     check('ブラインド：敵の予告→旗が煙に覆われ、煙の間は他の妨害の対象外／コウモリの特殊技で好きな旗を覆える',
           r['on'][r['fi']] and r['on'].count(True)==1 and r['smoke']==1 and not r['cand'] and not r['candMinus'] and not r['after'] and r['skill']=='blind' and r['pend']=='blindpick' and r['skillOn']==[False,True,False,False][:len(r['skillOn'])] and r['batDis'][0]=='blind',r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false}); busy=false; pending=null;
+      const c={kind:'troop',color:'red',value:7,uid:uid()}; flags[0].cards.push(c); const g={kind:'tactic',type:'guidance',name:'撤収',uid:uid()}; hand.push(g);
+      const n0=hand.length; useGuidance(hand.findIndex(x=>x.uid===g.uid)); const p1=pending&&pending.type; tapFlag(0);
+      return {p1,inHand:hand.some(x=>x.uid===c.uid),flagLeft:flags[0].cards.length,usedGone:!hand.some(x=>x.uid===g.uid),pend:pending}}""")
+    check('撤収：旗のカードが手札に戻り、撤収カードは使われる',r['p1']=='guidance' and r['inHand'] and r['flagLeft']==0 and r['usedGone'] and r['pend'] is None,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
