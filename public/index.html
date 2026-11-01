@@ -2359,18 +2359,15 @@ function dbgReset(){
 }
 window.addEventListener('pagehide',()=>{ dbgSave(); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) dbgSave(); });
-const DBG_RECENT_BATTLES=5;   // 書き出すログは、直近のこの戦数まで（ゲーム開始・ステージ移動の区切りで数える）
+const DBG_RECENT_GAMES=5;   // 書き出すログは、直近のこのゲーム数まで（ゲーム開始の区切りで数える）
 function dbgRecent(){
-  const idx=[]; dbgLog.forEach((e,i)=>{ if(e.type==='game_start'||e.type==='stage_advance') idx.push(i); });
-  if(idx.length<=DBG_RECENT_BATTLES) return dbgLog;
-  const from=idx[idx.length-DBG_RECENT_BATTLES], out=dbgLog.slice(from);
-  let gs=-1; for(let i=from;i>=0;i--){ if(dbgLog[i].type==='game_start'){ gs=i; break; } }
-  if(gs>=0&&gs<from) out.unshift(dbgLog[gs]);   // どのゲーム（版・キャラ）か分かるように、開始の行は残す
-  return out;
+  const idx=[]; dbgLog.forEach((e,i)=>{ if(e.type==='game_start') idx.push(i); });
+  if(idx.length<=DBG_RECENT_GAMES) return dbgLog;
+  return dbgLog.slice(idx[idx.length-DBG_RECENT_GAMES]);
 }
 function dbgText(){
   const rec=dbgRecent();
-  const lines=['# SOLO SIEGE debug log  exported '+new Date().toISOString()+'  entries='+rec.length+'（直近'+DBG_RECENT_BATTLES+'戦まで／全体'+dbgLog.length+'件）',
+  const lines=['# SOLO SIEGE debug log  exported '+new Date().toISOString()+'  entries='+rec.length+'（直近'+DBG_RECENT_GAMES+'ゲームまで／全体'+dbgLog.length+'件）',
     '# 1行1イベント(JSON)。type: place/turn/flag_closed/attack_calc/enemy_event/action/stage_advance ...',''];
   rec.forEach(e=>lines.push(JSON.stringify(e)));
   return lines.join('\n');

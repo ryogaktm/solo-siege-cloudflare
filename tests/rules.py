@@ -290,9 +290,9 @@ with sync_playwright() as p:
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '240' in r['l1'] and '攻撃力が240に上がった' in r['msg'] and '240' in r['info'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=100; displayedBossHp=100; bashDmg=1000000; const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; return {p:lastPower,d:lastDealt}}""")
     check('斧で攻撃で倒した時、ジャンプの基準には敵HPで切らない本当のダメージが使われる',r['p']==1000000 and r['d']==999900,r)
-    r=ev("""()=>{ const keep=dbgLog; dbgLog=[]; dbgLog.push({seq:1,type:'game_start',time:'x'}); for(let b=0;b<9;b++){ dbgLog.push({seq:10+b*3,type:'turn'}); dbgLog.push({seq:11+b*3,type:'stage_advance',b}); }
-      const rec=dbgRecent(), n=rec.filter(e=>e.type==='stage_advance').length, first=rec[0].type; dbgLog=keep; return {n,first,len:rec.length}}""")
-    check('デバッグログの書き出しは直近5戦まで（開始の行は残る）',r['n']<=5 and r['first']=='game_start',r)
+    r=ev("""()=>{ const keep=dbgLog; dbgLog=[]; for(let g=0;g<8;g++){ dbgLog.push({seq:g*10,type:'game_start',time:'g'+g}); dbgLog.push({seq:g*10+1,type:'turn'}); dbgLog.push({seq:g*10+2,type:'stage_advance'}); }
+      const rec=dbgRecent(), n=rec.filter(e=>e.type==='game_start').length, first=rec[0].time, txt=dbgText().split('\\n')[0]; dbgLog=keep; return {n,first,txt}}""")
+    check('デバッグログの書き出しは直近5ゲームまで',r['n']==5 and r['first']=='g3' and '5ゲーム' in r['txt'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; flags.forEach(f=>{f.cards=[];f.closed=false});
       const o={empty:bashMulNow()}; flags.forEach(f=>{ for(let k=0;k<3;k++) f.cards.push({kind:'troop',color:'red',value:3,uid:uid()}); }); o.full=bashMulNow()*1;
       const rnd=Math.random; Math.random=()=>0.1; bashDmg=1000; monSkillUse(); Math.random=rnd; o.next=bashDmg; o.n=flags.reduce((n,f)=>n+f.cards.length,0); return o}""")
