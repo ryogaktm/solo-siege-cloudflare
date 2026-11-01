@@ -1619,7 +1619,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'手札を、ランダムなマークの「10」のカードで上限いっぱいにする（今の手札は墓地へ。呪いのカードも、ペナルティなしで10に書き換わる）。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
   'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   'コウモリ':{kind:'blind',name:'ブラインド',icon:'🌫',desc:'好きな旗を3ターンの間、黒い煙で覆います。カードは置けますが中身が見えなくなり、その間その旗は敵の妨害の対象から外れます。'},
-  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」（最低×1.2）になり、使えば使うほど増えていきます。外れてもダメージは変わりません。命中率は1ターン進むごとに5％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
+  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」になります（0枚なら0倍で、次の攻撃は0になります）。外れてもダメージは変わりません。命中率は1ターン進むごとに5％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、70％の確率で消します（予測レーンから消えます）。外れても、特殊技の回数が残っていれば何度でも使えます。'},
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
@@ -1999,7 +1999,7 @@ function tryRevive(){ if(!(hpStock>0)) return false; hpStock--; playerHp=playerH
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
-const bashMulNow=()=>Math.max(DIS_PARAM.bashMulMin, hand.filter(c=>c&&c.kind==='troop').length*DIS_PARAM.bashPerCard);   // 斧：当たった時にダメージが何倍になるか（手札の数字カードの枚数×0.3、最低でも増える）
+const bashMulNow=()=>Math.max(DIS_PARAM.bashMulMin, hand.filter(c=>c&&c.kind==='troop').length*DIS_PARAM.bashPerCard);   // 斧：当たった時にダメージが何倍になるか（手札の数字カードの枚数×0.3。0枚なら0倍＝次の攻撃は0）
 function nextDisTurn(){ const pend0=!!prevSnap&&flags.length>0&&flags.every(f=>f.closed), base=pend0?prevSnap.t:enemyTurn; const ks=Object.keys(enemySched).map(Number).filter(t=>t>base&&isDisEv(enemySched[t])&&DIS_NAME[enemySched[t]]).sort((a,b)=>a-b); return ks[0]; }   // 次に来る妨害（攻撃力×2は含めない）の発動ターン
 let jamArmed=false, bashDmg=200, bashRateNow=0.7, bashHist=[200], bashRateHist=[0.7];   // bashHist＝斧のダメージの推移／bashRateHist＝斧の命中率の推移（新waveで戻る）   // jamArmed＝アサシンの行動封じ待機中／bashDmg＝バイキングの物理で殴るの次のダメージ（当たるたびに2倍）
 let bulletLeft=0;   // バレットタイムの残りターン（この間は時間が止まり、ターンも進まない）
@@ -2043,7 +2043,7 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=3;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={jamRate:0.7, bashRate:0.7, bashPerCard:0.3, bashMulMin:1.2, bashTurnDown:0.05, bashRateMin:0.1, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:13, earlyEvery:0.8, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={jamRate:0.7, bashRate:0.7, bashPerCard:0.3, bashMulMin:0, bashTurnDown:0.05, bashRateMin:0.1, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:13, earlyEvery:0.8, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
 // half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
