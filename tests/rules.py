@@ -276,5 +276,12 @@ with sync_playwright() as p:
       document.getElementById('titleStartBtn').click(); const o={char:getComputedStyle(document.getElementById('charScreen')).display, noBtn:!document.getElementById('titleCharBtn')};
       document.getElementById('charDecide').click(); await new Promise(r=>setTimeout(r,1000)); o.title=getComputedStyle(document.getElementById('titleScreen')).display; o.app=getComputedStyle(document.getElementById('appRoot')).display; o.started=!!CHARACTER; return o}""")
     check('はじめる→必ずキャラ選択→決定でゲーム開始（タイトルへ戻らない／タイトルにキャラ選択ボタンなし）',r['char']=='flex' and r['noBtn'] and r['title']=='none' and r['app']!='none' and r['started'],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='沼のリザードマン')); init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false});
+      flags[0].cards=[{kind:'monster',sub:'number',value:8,uid:uid()}]; flags[1].cards=[{kind:'monster',sub:'number',value:-3,uid:uid(),enemyCard:true}];
+      const o={c0:pfCands().includes(0), c1:pfCands().includes(1)}; monSkillUse(); o.pend=pending&&pending.type; tapFlag(0);
+      const m=flagMonster(flags[0]); o.pf=!!(m&&m.pf); o.sub=m&&m.sub; o.cards=flags[0].cards.length;
+      const lo={kind:'troop',color:'red',value:9,uid:uid()}, hi={kind:'troop',color:'red',value:2,uid:uid()};
+      o.nine=satisfiesMonster(lo,flags[0]); o.two=satisfiesMonster(hi,flags[0]); return o}""")
+    check('パニックフィールド：自分の装備の上にも置ける／逆転後の数字で置ける・置けないを判定（装備8：2→9は可、9→2は不可）',r['c0'] and not r['c1'] and r['pf'] and r['sub']=='number' and r['cards']==1 and r['two'] and not r['nine'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

@@ -1621,7 +1621,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'コウモリ':{kind:'blind',name:'ブラインド',icon:'🌫',desc:'好きな旗を3ターンの間、黒い煙で覆います。カードは置けますが中身が見えなくなり、その間その旗は敵の妨害の対象から外れます。'},
   'バイキング':{kind:'bash',name:'物理で殴る',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージは2倍になり、使えば使うほど増えていきます（外れた時は変わりません）。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、55％の確率で無効にします。（妨害が来るまで待機します。外れても待機は終わります）'},
-  '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（装備のある旗・3枚埋まった旗・完成した旗には置けません）'},
+  '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
@@ -2204,6 +2204,7 @@ function applyComboPenalty(n){   // 敵のカードを消した代償
   const pen=DIS_PARAM.removePenalty*n;
   comboLoss(pen,`💥 敵のカードを${n}枚消した代償で、スーパーコンボが−${pen}された！`);
 }
+const pfCands=()=>{ const base=evCands('pfield').map(c=>c.i); flags.forEach((f,i)=>{ const m=flagMonster(f); if(!f.closed&&!isLocked(f)&&m&&!m.enemyCard&&!m.pf&&(m.sub==='number'||m.sub==='combined')&&m.value>0&&!base.includes(i)) base.push(i); }); return base; };   // パニックフィールドは、自分の力の装備の上にも置ける（装備は残り、数字の逆転が乗る）
 function makePanicField(){ return {kind:'monster',sub:'pfield',enemyCard:true,accumulatedBonus:0,uid:uid()}; }
 function makeColorField(col){ return {kind:'monster',sub:'cfield',color:col||GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)],enemyCard:true,accumulatedBonus:0,uid:uid()}; }
 const wipeCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed);   // 空の旗にも使える
@@ -2957,8 +2958,9 @@ function wildColor(c){
 function satisfiesMonster(card, f){
   const m=flagMonster(f); if(!m) return true;
   if(isWildCard(card)) return true;
-  if(m.sub==='combined') return val(card)>=m.value && card.color===m.color;
-  if(m.sub==='number') return val(card)>=m.value;
+  const vv=(m.pf&&card.kind==='troop')?11-val(card):val(card);   // パニックフィールドが乗っている旗は、逆転後の数字で判定する
+  if(m.sub==='combined') return vv>=m.value && card.color===m.color;
+  if(m.sub==='number') return vv>=m.value;
   if(m.sub==='mark'||m.sub==='cfield') return card.color===m.color;
   return true;
 }
@@ -3808,7 +3810,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   busy=true; picked=null; lastFi=fi;
   { const m0=flagMonster(f), msgs=[];
     if(card.kind==='troop'){
-      if(m0 && m0.sub==='pfield'){ if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value; msgs.push(`🌀 革命！ 数字が${card.origValue}→${card.value}に逆転した`); }
+      if(m0 && (m0.sub==='pfield'||m0.pf)){ if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value; msgs.push(`🌀 革命！ 数字が${card.origValue}→${card.value}に逆転した`); }
       if(poisonOn() && card.value>1){ if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で数字が−1（${card.value}）`); }
     } else if(card.kind==='monster' && card.sub==='number' && !card.enemyCard && card.value>0 && poisonOn()){
       if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で装備の数字が−1（${card.value}）`);
@@ -3875,7 +3877,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       const newAccumulated = priorBonus+addedBonus;
       const keep = (card.enemyCard && !existingMon.enemyCard) ? existingMon : card;   // 敵のカードを重ねるときは、こちらの装備のuidを残す
       const bothEnemy = !!card.enemyCard && !!existingMon.enemyCard;
-      const placed={kind:'monster', sub, value, color, uid:keep.uid, accumulatedBonus:newAccumulated};
+      const placed={kind:'monster', sub, value, color, uid:keep.uid, accumulatedBonus:newAccumulated}; if(existingMon.pf) placed.pf=true;
       if(bothEnemy) placed.enemyCard=true;
       const midx=f.cards.indexOf(existingMon);
       const cancelled = (sub==='number' && value===0);
@@ -4543,6 +4545,7 @@ function paintCard(d, c, mini){
 function cardEl(c, mini){
   const d=document.createElement('div');
   paintCard(d, c, mini);
+  if(c&&c.pf&&c.kind==='monster') d.insertAdjacentHTML('beforeend','<span style="position:absolute;right:1px;bottom:1px;font-size:calc(var(--slot-w,60px)*.34);line-height:1;filter:drop-shadow(0 1px 2px #000)">🌀</span>');   // パニックフィールドが乗っている装備
   return d;
 }
 function upcomingChipLabel(c){
@@ -4927,7 +4930,7 @@ function render(){
   let targets=[];
   if(pending&&pending.type==='guidance') targets=guidanceTargets(pending.step);
   else if(pending&&pending.type==='skillplace') targets=targetsFor(pending.card);
-  else if(pending&&pending.type==='pfpick') targets=evCands('pfield').map(c=>c.i);
+  else if(pending&&pending.type==='pfpick') targets=pfCands();
   else if(pending&&pending.type==='blindpick') targets=evCands('blind').map(c=>c.i);
   else if(pending&&pending.type==='sealpick') targets=(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).map(c=>c.i);
   else if(pending&&pending.type==='holy') targets=holyFlagCands().map(c=>c.i);
@@ -5925,8 +5928,9 @@ function tapFlag(i){
     doCurse(hi,i); return;
   }
   if(pending&&pending.type==='pfpick'){
-    if(!evCands('pfield').some(c=>c.i===i)){ hint('その旗には置けません。',true); return; }
-    const pf=makePanicField(); pf.accumulatedBonus=0; pf.enemyCard=false; flags[i].cards.push(pf); spec.mon++; pending=null; lastFi=i; playSfx('place');
+    if(!pfCands().includes(i)){ hint('その旗には置けません。',true); return; }
+    const em=flagMonster(flags[i]);
+    if(em){ em.pf=true; } else { const pf=makePanicField(); pf.accumulatedBonus=0; pf.enemyCard=false; flags[i].cards.push(pf); } spec.mon++; pending=null; lastFi=i; playSfx('place');
     hint(`🌀 パニックフィールド！ 旗${i+1}に次に置くカードの数字が逆転する。`,true); render(); return;
   }
   if(pending&&pending.type==='blindpick'){
@@ -6290,7 +6294,7 @@ function monSkillUse(){
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=BUZZ_TURNS; spec.mon++; hint(`ブーン！体が分身して光った。${BUZZ_TURNS}ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）`,true); playSfx('warn'); }
   else if(m.kind==='pfsk'){
-    if(!evCands('pfield').length){ hint('パニックフィールドを置ける旗がありません。',true); return; }
+    if(!pfCands().length){ hint('パニックフィールドを置ける旗がありません。',true); return; }
     pending={type:'pfpick'}; picked=null; render(); hint('パニックフィールドを置く旗をタップしてください。（やめるなら✕キャンセル）',true); return;
   }
   else if(m.kind==='blind'){
