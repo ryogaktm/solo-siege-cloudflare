@@ -3032,7 +3032,6 @@ function targetsFor(card){
     }
     else if(card.kind==='monster' && (card.sub==='cfield'||card.sub==='pfield')){
       if(!mon && f.cards.length<3) out.push(i);
-      else if(card.sub==='cfield' && mon && !mon.enemyCard && (mon.sub==='number'||mon.sub==='combined'||mon.sub==='mark')) out.push(i);   // カラフルフィールドは自分の装備の上にも置ける（装備は外れて墓地へ）
     }
     else if(card.kind==='monster' && card.sub!=='necro'){
       if(mon && (mon.sub==='cfield'||mon.sub==='pfield')){ /* 敵のフィールドカードの旗には装備を重ねられない */ }
@@ -3850,19 +3849,6 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   if(card.kind==='monster'){
     hand.splice(handIdx,1);
     const existingMon=flagMonster(f);
-    if(existingMon && card.sub==='cfield'){   // 装備の上に置く：装備は外れて墓地へ行き、カラフルフィールドに替わる
-      const midx=f.cards.indexOf(existingMon);
-      f.cards[midx]={kind:'monster', sub:'cfield', color:card.color, uid:card.uid, enemyCard:true, accumulatedBonus:0};
-      if(!existingMon.enemyCard){ delete existingMon.accumulatedBonus; graveyard.push(existingMon); }
-      playSfx('equipment'); advanceTurn(card);
-      const refilled=autoRefill(1);
-      render(); layoutHand(false);
-      flyToUid(card.uid, fromRect, ()=>{
-        if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect);
-        busy=false; hint(`${monsterName(card)}が装備の上に置かれた。装備は外れた。`); endCheck(); render();
-      });
-      return true;
-    }
     if(existingMon){
       const priorBonus = monsterBonusFor(existingMon);
       const addedBonus = card.sub==='number' ? card.value : 5;
@@ -7760,7 +7746,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-01e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-01d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
