@@ -204,5 +204,17 @@ with sync_playwright() as p:
       const t=[...g.querySelectorAll('.mon-tile')].map(e=>({n:e.querySelector('b').textContent.replace(/\\s/g,''),a:e.classList.contains('alien')}));
       const ix=n=>t.findIndex(x=>x.n===n); return {n:t.length,aliens:t.filter(x=>x.a).map(x=>x.n),moonAfterSpider:ix('月の民')>ix('大グモ')&&ix('月の民')<ix('コボルト'),marsBetween:ix('火星人')>ix('呪われた農夫')&&ix('火星人')<ix('骸骨戦士'),lastNotAlien:!t[t.length-1].a||t[t.length-1].n==='太陽神'} }""")
     check('モンスター一覧：宇宙人は強さの位置に並び（下に固まらない）、背景色で見分けられる',len(r['aliens'])>=5 and r['moonAfterSpider'] and r['marsBetween'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false;f.blindUntil=0}); enemyTurn=5; enemySched={8:'blind'}; autoQ={}; autoSeq=0; render();
+      const a=autoForecast(), fi=+Object.keys(a)[0]; enemyTurn=7; applyEnemyEvent('blind'); const o={fi,on:flags.map(f=>blindOn(f)),smoke:document.querySelectorAll('.smoke').length};
+      // 煙の間は、他の妨害の対象から外れる
+      o.cand=evCands('autonum').map(c=>c.i).includes(fi); o.candMinus=evCands('assassin').map(c=>c.i).includes(fi);
+      enemyTurn=7+DIS_PARAM.blindTurns; o.after=blindOn(flags[fi]);
+      // コウモリの特殊技：旗をタップして煙で覆う
+      enemyTurn=2; flags.forEach(f=>{f.blindUntil=0}); CHARACTER=makeMonChar(WAVES.findIndex(w=>w.baseId==='コウモリの群れ'));
+      o.skill=CHARACTER.monSkill&&CHARACTER.monSkill.kind; monSkillUse(); o.pend=pending&&pending.type; tapFlag(1); o.skillOn=flags.map(f=>blindOn(f));
+      const bat=WAVES.find(w=>w.name==='コウモリ'); o.batDis=disList(bat).slice(0,3);
+      return o}""")
+    check('ブラインド：敵の予告→旗が煙に覆われ、煙の間は他の妨害の対象外／コウモリの特殊技で好きな旗を覆える',
+          r['on'][r['fi']] and r['on'].count(True)==1 and r['smoke']==1 and not r['cand'] and not r['candMinus'] and not r['after'] and r['skill']=='blind' and r['pend']=='blindpick' and r['skillOn']==[False,True,False,False][:len(r['skillOn'])] and r['batDis'][0]=='blind',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
