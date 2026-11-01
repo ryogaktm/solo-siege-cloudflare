@@ -1605,7 +1605,7 @@ let CHARACTER = CHARACTERS[2];
 const MON_SP_KINDS=['punch','guard','cure','guard','bullet','shuffle'];   // 命乞いは軍師カードになったので、その枠は防御に（並びを変えないため枠は残す）
 const MON_SP_LABEL={punch:'👊殴る',guard:'🛡防御',cure:'🧪薬',beg:'🙏命乞い',bullet:'⏱バレットタイム',shuffle:'🔄シャッフル'};
 const MON_SKILL={   // モンスターが自分のキャラになった時の特殊技（kind 無し＝毎ターン働く常時効果）
-  'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、5ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
+  'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、1ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
   'スライム':{kind:'cell',name:'細胞分裂',icon:'🧫',desc:'体を分裂させる。体力と攻撃力が半分になる代わりに、体力ストックが1増える。（体力ストックは、HPが0になった時に1つ消費して体力全回復で復活できる。ゲームを通して持ち越し／攻撃力はその戦いの間だけ半分）'},
@@ -1990,6 +1990,7 @@ let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0, lastPower=0;
 const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
+const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／ゲームを通して持ち越し）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
 function tryRevive(){ if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
@@ -6222,7 +6223,7 @@ function monSkillUse(){
     return;
   }
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
-  else if(m.kind==='buzz'){ buzzTurns=5; spec.mon++; hint('ブーン！体が分身して光った。5ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）',true); playSfx('warn'); }
+  else if(m.kind==='buzz'){ buzzTurns=BUZZ_TURNS; spec.mon++; hint(`ブーン！体が分身して光った。${BUZZ_TURNS}ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）`,true); playSfx('warn'); }
   else if(m.kind==='blind'){
     if(!evCands('blind').length){ hint('煙を置ける旗がありません。',true); return; }
     pending={type:'blindpick'}; picked=null; render(); hint('煙で覆う旗をタップしてください。（やめるなら✕キャンセル）',true); return;
