@@ -173,11 +173,10 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); let bad=0, n=0; WAVES.forEach((w,i)=>{ stageIndex=i; for(let k=0;k<12;k++){ autoSeq=k; const pl=newAutoPlan('autonum'); n++; if(pl.col==='orange'||!GAME_COLORS.includes(pl.col)) bad++; } }); for(let k=0;k<200;k++){ if(makeColorField().color==='orange') bad++; } return {bad,n}}""")
     check('敵が置く数字カード・カラフルフィールドに、今のゲームには無いオレンジが使われない',r['bad']==0,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false}); enemyTurn=5; enemySched={8:'autonum',12:'autonum'}; autoQ={}; autoSeq=0; render();
-      const a=autoForecast(), fi=+Object.keys(a)[0], c1=JSON.stringify([a[fi][0].col,a[fi][0].v,fi]);
-      // 攻撃でラウンドがリセットされ、予定が組み直されても、同じ予定（カード・旗）のまま
-      enemyTurn=0; enemySched={3:'autonum',9:'autonum'}; render(); const b=autoForecast(), fj=+Object.keys(b)[0], c2=JSON.stringify([b[fj][0].col,b[fj][0].v,fj]);
-      // セーブ・ロードの間も（autoQ をそのまま持ち越す）
-      const saved=JSON.stringify(autoQ); autoQ={}; autoQ=JSON.parse(saved); const c=autoForecast(), fk=+Object.keys(c)[0], c3=JSON.stringify([c[fk][0].col,c[fk][0].v,fk]);
+      const sig=()=>{ const a=autoForecast(); const q=autoQ.autonum[0]; return JSON.stringify([q.col,q.v,q.flag]); };
+      const c1=sig();
+      enemyTurn=0; enemySched={3:'autonum',9:'autonum'}; render(); const c2=sig();
+      const saved=JSON.stringify(autoQ); autoQ={}; autoQ=JSON.parse(saved); const c3=sig();
       return {c1,c2,c3}}""")
     check('敵の数字カードの予定は、リセット（ラウンドの組み直し）やセーブ・ロードをまたいでも固定',r['c1']==r['c2']==r['c3'] if False else (r['c1']==r['c2'] and r['c2']==r['c3']),r)
     b.close()
