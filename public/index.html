@@ -2485,7 +2485,7 @@ function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾
 /* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
 let autoQ={}, autoSeq=0;   // autoQ[種類]=[予定,...]：その種類の「これから来る予定」を順番に持つ。敵の攻撃でラウンドがリセットされても、発動するまで同じ予定（カード・旗）が残る
 const FLAG_EVS=['autonum','minus','ghost','deatheater','assassin','pfield','cfield','blind'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
-const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'1枚目食う'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'},cfield:{icon:'💀',txt:pl=>'カラフル'+CNAME[pl.col].replace('旗','')},blind:{icon:'🌫',txt:()=>'ブラインド'}};
+const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'1枚目食う'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'},cfield:{icon:'💀',txt:pl=>'カラフル'+((CNAME[pl&&pl.col]||'').replace('旗',''))},blind:{icon:'🌫',txt:()=>'ブラインド'}};
 const blindOn=f=>(f.blindUntil||0)>enemyTurn;   // ブラインド：黒い煙で覆われている旗（カードは置けるが中身が見えない）
 function evCands(type){
   return flags.map((f,i)=>({f,i})).filter(({f,i})=>{
@@ -5035,7 +5035,7 @@ function render(){
     }
     if(blindOn(f)&&!f.closed){ const sm=document.createElement('div'); sm.className='smoke'; sm.innerHTML=`<span>🌫 あと${f.blindUntil-enemyTurn}ターン</span>`; d.appendChild(sm); }
     d.onclick=()=>tapFlag(i);
-    if(autoFc[i]&&autoFc[i].length&&!f.closed){ const w=document.createElement('div'); w.className='auto-fc'; w.innerHTML=autoFc[i].slice(0,2).map(x=>x.type==='autonum'||!x.type?`<span class="afc${x.k<=1?' near':''}">🔢あと${x.k} <i style="color:${CFILL[x.col]}">${miniIcon(EMBLEM[x.col],CFILL[x.col])}${x.v}</i></span>`:`<span class="afc${x.k<=1?' near':''}">${EVFC_LABEL[x.type].icon}あと${x.k} ${EVFC_LABEL[x.type].txt({v:x.v})}</span>`).join(''); d.appendChild(w); }   // 予定：旗の右上に「あとNターンで何が置かれるか」
+    if(autoFc[i]&&autoFc[i].length&&!f.closed){ const w=document.createElement('div'); w.className='auto-fc'; w.innerHTML=autoFc[i].slice(0,2).map(x=>x.type==='autonum'||!x.type?`<span class="afc${x.k<=1?' near':''}">🔢あと${x.k} <i style="color:${CFILL[x.col]}">${miniIcon(EMBLEM[x.col],CFILL[x.col])}${x.v}</i></span>`:`<span class="afc${x.k<=1?' near':''}">${EVFC_LABEL[x.type].icon}あと${x.k} ${EVFC_LABEL[x.type].txt({v:x.v,col:x.col})}</span>`).join(''); d.appendChild(w); }   // 予定：旗の右上に「あとNターンで何が置かれるか」
     board.appendChild(d);
   });
   if(toTrigger.length){

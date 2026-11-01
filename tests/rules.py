@@ -268,5 +268,9 @@ with sync_playwright() as p:
       applyEnemyEvent('bomb'); const b=hand.find(c=>c.type==='curse_bomb'); o.fuse=b&&b.fuse; o.max=DIS_PARAM.bombFuse;
       for(let i=0;i<DIS_PARAM.bombFuse;i++) tickBombs(); o.gone=!hand.some(c=>c.type==='curse_bomb'); o.carry=carryMap.red; return o}""")
     check('ボム：手札に来た時点でカウント開始、置かずに持っていると爆発して消える／カラフルは手札に無い色',r['col'] and r['fuse']==r['max'] and r['gone'] and r['carry']==30-20,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; autoQ={}; const errs=[]; const t=enemyTurn+3; enemySched={}; enemySched[t]='cfield';
+      try{ render(); }catch(e){ errs.push(String(e)); } const fc=autoForecast(); const txt=Object.values(fc).flat().filter(x=>x.type==='cfield').length;
+      const lab=document.querySelector('.auto-fc')&&document.querySelector('.auto-fc').textContent; return {errs,txt,lab}}""")
+    check('カラフルフィールドの予測が旗の右上に出て、描画でエラーにならない（進行不能の再発防止）',not r['errs'] and r['txt']==1 and r['lab'] and 'カラフル' in r['lab'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
