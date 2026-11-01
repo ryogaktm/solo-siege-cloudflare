@@ -255,5 +255,13 @@ with sync_playwright() as p:
     check('動く敵の絵：アニメが止まっても基本の絵は見える（敵が消えない）',r['frA']=='visible',r['frA'])
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=hand.find(x=>x.sub==='cfield'); return {col, got:c&&c.color, left:(autoQ.cfield||[]).length}}""")
     check('カラフルフィールド：予測で決めた色がそのまま手札に来る',r['col']==r['got'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false});
+      flags[0].cards=[makeColorField('blue')]; flags[1].cards=[makeColorField('red')];
+      const w={kind:'monster',sub:'number',value:8,uid:uid()}, mk={kind:'monster',sub:'number',value:-3,uid:uid()}; hand.push(w,mk);
+      const o={w0:targetsFor(w).includes(0), neg:targetsFor(mk).includes(0)}; playOnFlag(hand.indexOf(w),0,null,true);
+      const m=flagMonster(flags[0]); o.sub=m&&m.sub; o.val=m&&m.value; o.col=m&&m.color;
+      const ok=hand.find(c=>c.kind==='troop'); const lo={kind:'troop',color:'blue',value:3,uid:uid()}, hi={kind:'troop',color:'blue',value:9,uid:uid()}, wr={kind:'troop',color:'red',value:9,uid:uid()};
+      o.lo=satisfiesMonster(lo,flags[0]); o.hi=satisfiesMonster(hi,flags[0]); o.wr=satisfiesMonster(wr,flags[0]); return o}""")
+    check('カラフルフィールドの上に力の装備を重ねると「その色で、その数字以上」になる',r['w0'] and not r['neg'] and r['sub']=='combined' and r['val']==8 and r['col']=='blue' and not r['lo'] and r['hi'] and not r['wr'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

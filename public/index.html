@@ -3034,7 +3034,8 @@ function targetsFor(card){
       if(!mon && f.cards.length<3) out.push(i);
     }
     else if(card.kind==='monster' && card.sub!=='necro'){
-      if(mon && (mon.sub==='cfield'||mon.sub==='pfield')){ /* 敵のフィールドカードの旗には装備を重ねられない */ }
+      if(mon && mon.sub==='cfield' && card.sub==='number' && card.value>0){ out.push(i); }   // カラフルフィールドの上に力の装備を重ねると、「その色で、その数字以上」の条件になる
+      else if(mon && (mon.sub==='cfield'||mon.sub==='pfield')){ /* 敵のフィールドカードの旗には、それ以外の装備は重ねられない */ }
       else if(mon){
         if(card.sub==='number'){
           const existingNum = (mon.sub==='number'||mon.sub==='combined') ? mon.value : -Infinity;
@@ -3746,7 +3747,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   if(!targetsFor(card).includes(fi)){
     if(card.kind==='monster'){
       const existingMon=flagMonster(f);
-      if(existingMon && (existingMon.sub==='cfield'||existingMon.sub==='pfield')) hint('敵のフィールドカードの旗には、装備を重ねられません。',true); else
+      if(existingMon && (existingMon.sub==='cfield'||existingMon.sub==='pfield')) hint(existingMon.sub==='cfield'?'カラフルフィールドの旗に重ねられるのは、力の装備（数字）だけです。':'パニックフィールドの旗には、装備を重ねられません。',true); else
       if(existingMon && card.sub==='number' && (existingMon.sub==='number'||existingMon.sub==='combined') && card.value<existingMon.value){
         hint(`重ねるなら${existingMon.value}以上の力の装備が必要です。`,true);
       } else if(card.sub==='mark'){
