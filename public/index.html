@@ -164,6 +164,8 @@
   .mon-grid.wide{ grid-template-columns:repeat(4,1fr); gap:6px; }
   .mon-grid.wide .mon-tile{ padding:6px 2px; }
   .mon-grid.wide .mon-tile b{ font-size:9.5px; }
+  .mon-tile.alien{ background:linear-gradient(160deg,rgba(96,52,170,.62),rgba(24,70,126,.55)); border-color:#a58cf5; }   /* 宇宙人は背景色を変えて、並びの中で見分けられるように */
+  .mon-tile.alien b{ color:#e2d4ff; }
   .mon-tile.locked{ opacity:.28; cursor:default; filter:grayscale(.6); }
   .cur-panel{ position:sticky; top:0; z-index:6; display:flex; align-items:center; gap:8px; padding:10px; margin-bottom:10px; background:rgba(10,16,12,.96); border:1px solid rgba(226,192,106,.5); border-radius:10px; text-align:left; box-shadow:0 4px 12px rgba(0,0,0,.5); }
   .cp-box{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; }
@@ -3512,30 +3514,33 @@ function playerLost(over){   // 負けたらそこで終わり（降格はしな
 }
 /* 宇宙人の贈り物：一定のレベル以上の敵に負けると、その段階の宇宙人が現れて能力を授ける（戦わない）。レベルはここで調整 */
 const ALIEN_GIFTS=[{id:'月の民',lv:13},{id:'火星人',lv:26},{id:'水星人',lv:38},{id:'金星人',lv:50},{id:'土星人',lv:LADDER_N-10},{id:'太陽神',lv:LADDER_N}];
-function alienGiftList(){   // 今回の負けで授かる宇宙人（順番に。まだ授かっていない・出さない設定でない・前の宇宙人を授かった後）
-  const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList(), out=[];
-  for(const g of ALIEN_GIFTS){
-    if(HIDDEN_BOSSES.includes(g.id)) continue;
-    if(beat.includes(g.id)) continue;
-    if(lostLv<g.lv) break;
-    out.push(g.id);
-  }
-  return out;
+let alienEnc=null;   // 負けた後に現れた宇宙人との戦い {id, reason}
+function alienEncounterId(){   // 今回の負けで現れる宇宙人（出現ラインに届いていて、まだ現れていない一番手前の1人）
+  const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList();
+  for(const g of ALIEN_GIFTS){ if(HIDDEN_BOSSES.includes(g.id)||beat.includes(g.id)) continue; return lostLv>=g.lv?g.id:null; }
+  return null;
 }
-function alienGifts(next){   // 授ける宇宙人がいれば会話画面を出して、閉じたら next()。いなければ false
-  let ids=[]; try{ ids=alienGiftList(); }catch(e){}
-  if(!ids.length) return false;
-  const lostName=WAVES[stageIndex]?WAVES[stageIndex].name:'強敵';
-  const ov=document.createElement('div'); ov.className='modal-bg'; ov.style.cssText='display:flex;z-index:99999;background:rgba(8,8,14,.96);flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px';
-  const wi=id=>WAVES.find(w=>w.id===id);
-  const rows=ids.map(id=>{ const w=wi(id); let spr=''; try{ spr=spriteSVG(monSprKey(w),72,''); }catch(e){}
-    const moon=id==='月の民'; return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">${dispName(id)}</div><div style="font-size:12.5px;opacity:.9;line-height:1.6">${moon?'コンボの制限が解除された！<br>':''}「${dispName(id)}」の能力を授かった。次のゲームから仲間に選べる。</div></div>`; }).join('');
-  ov.innerHTML=`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">${lostName}に敗れた…<br>そこへ、宇宙人が現れた。<br>「キミ、なかなか見込みがあるね。<br>ボクの力を貸してあげよう」</div><div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-height:40vh;overflow-y:auto">${rows}</div><button class="btn" id="alienOk" style="width:auto;padding:10px 28px">ありがとう</button>`;
-  document.body.appendChild(ov);
-  try{ playSfx('combo'); }catch(e){}
-  ids.forEach(id=>{ try{ alienBeatAdd(id); unlockMon(id); }catch(e){} });
-  document.getElementById('alienOk').onclick=()=>{ ov.remove(); try{ newMonQueue.length=0; }catch(e){} next(); };
+const ALIEN_SURGERY={'月の民':'コンボの制限が解除された！（倍率の上限なし・次の戦いへの持ち越しもできる）'};   // 手術で得られる強化。火星人以降は未実装なので、入れたらここへ書く
+function alienOverlay(inner){ const ov=document.createElement('div'); ov.className='modal-bg'; ov.style.cssText='display:flex;z-index:99999;background:rgba(8,8,14,.96);flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px'; ov.innerHTML=inner; document.body.appendChild(ov); try{ playSfx('combo'); }catch(e){} return ov; }
+function alienAppear(reason){   // 負けた後、出現ラインに届いていてまだ現れていない宇宙人がいれば、現れて戦いになる。いなければ false
+  let id=null; try{ id=alienEncounterId(); }catch(e){}
+  if(!id) return false;
+  const w=WAVES.find(x=>x.id===id), lostName=WAVES[stageIndex]?WAVES[stageIndex].name:'強敵';
+  let spr=''; try{ spr=spriteSVG(monSprKey(w),96,''); }catch(e){}
+  const ov=alienOverlay(`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">${lostName}に敗れた…<br>そこへ、宇宙人が現れた。</div>${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">${dispName(id)}</div><div style="font-size:13px;line-height:1.8;opacity:.92">「キミ、なかなか見込みがあるね。<br>ボクと勝負しよう。<br>勝っても負けても、キミの身体を手術してあげる」</div><button class="btn" id="alienGo" style="width:auto;padding:10px 28px">戦う</button>`);
+  document.getElementById('alienGo').onclick=()=>{
+    ov.remove(); alienEnc={id,reason};
+    gameEnded=false; victory=false; busy=false; waveAdvancing=false; pending=null;
+    nextStageIdx=WAVES.findIndex(x=>x.id===id); battleNo=MAX_BATTLES-1; advanceToNextStage();
+  };
   return true;
+}
+function alienSurgery(id,next){   // 宇宙人との戦いが終わった（勝っても負けても）：手術を受けて強化される
+  const w=WAVES.find(x=>x.id===id); let spr=''; try{ spr=spriteSVG(monSprKey(w),96,''); }catch(e){}
+  const eff=ALIEN_SURGERY[id]||'能力が強化された！（強化の内容は準備中）';
+  const ov=alienOverlay(`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">「いいデータが取れたよ。<br>さあ、手術を始めよう」</div>${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">🩺 ${dispName(id)}の手術を受けた</div><div style="font-size:13px;line-height:1.8">${eff}<br><span style="opacity:.85">「${dispName(id)}」の能力を授かった。次のゲームから仲間に選べる。</span></div><button class="btn" id="alienOk" style="width:auto;padding:10px 28px">ありがとう</button>`);
+  try{ alienBeatAdd(id); unlockMon(id); }catch(e){}
+  document.getElementById('alienOk').onclick=()=>{ ov.remove(); try{ newMonQueue.length=0; }catch(e){} next(); };
 }
 const isWeakBody=()=>!!CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー');
 function weakBodyFinale(wave){   // 弱い体は、1回敵を倒すと調子に乗って一番強い敵に本当に挑む（負けてゲームオーバー）
@@ -3555,6 +3560,10 @@ function finishWaveOutcome(defeated, wave){
   if(defeated){
     unlockMonAndBelow(wave);
     if(isWeakBody()&&!wave.boss){ weakBodyFinale(wave); return; }
+    if(wave.boss&&alienEnc){   // 負けた後に現れた宇宙人に勝った：手術を受けて、元の結果画面へ
+      const a=alienEnc; gameEnded=true; victory=false; hint(`${wave.name}を倒した！`,true);
+      setTimeout(()=>alienSurgery(a.id,()=>{ alienEnc=null; showEnd(a.reason,true); }),900); return;
+    }
     if(wave.boss){
       const wasRes=comboRestricted(); alienBeatAdd(wave.id);
       const endIt=()=>{ gameEnded=true; victory=true; showEnd('finalvictory'); };
@@ -5496,7 +5505,10 @@ function populateResultModal(){
 }
 function showEnd(reason,giftDone){
   closeStrayModals();
-  if(!giftDone && (reason==='hpzero'||reason==='deckout')){ if(alienGifts(()=>showEnd(reason,true))) return; }
+  if(!giftDone && (reason==='hpzero'||reason==='deckout')){
+    if(alienEnc){ const a=alienEnc; gameEnded=true; victory=false; alienSurgery(a.id,()=>{ alienEnc=null; showEnd(a.reason,true); }); return; }   // 宇宙人との戦いに負けた
+    if(alienAppear(reason)) return;
+  }
   dlog('end',{reason:reason}); recordRunResult(reason);
   render();
   bestTotal=Math.max(bestTotal,totalScore);
@@ -6537,6 +6549,9 @@ function buildCharList(){
     else if(i===0||got.includes(w.baseId)) defs.push({id:w.baseId,i});
     if(i===HUMAN_IDX){ const g=got.includes('ネクロマンサー'); if(g||wide) defs.push({id:'ネクロマンサー',i,locked:!g}); }
   });
+  { const keyOf=d=>{ const w=WAVES[d.i]; if(d.id==='ネクロマンサー') return w.lv+0.1; if(w.boss){ const g=ALIEN_GIFTS.find(x=>x.id===w.baseId); return (g?g.lv:99)+0.5; } return w.lv; };   // 宇宙人は、出てくる強さ（ALIEN_GIFTSのlv）のすぐ後ろに並べる
+    defs.forEach((d,n)=>{ d.k=keyOf(d); d.n=n; d.alien=!!WAVES[d.i].boss&&d.id!=='ネクロマンサー'; });
+    defs.sort((a,b)=>a.k-b.k||a.n-b.n); }
   document.getElementById('monLabel').style.display='none';
   const scr=document.getElementById('charScreen'); scr.classList.toggle('wide-sel',wide);
   document.getElementById('spiritStage').style.display=wide?'none':'';
@@ -6549,7 +6564,7 @@ function buildCharList(){
   const prevId=wide?curMonId():hasLeader?defs[0].id:((defs.some(x=>x.id===lsGet(SEL_KEY)))?lsGet(SEL_KEY):(defs[0]&&defs[0].id));   // 前回選んだキャラ（なければ先頭）に印を付ける
   if(wide) renderCurPanel(null);
   defs.forEach(d=>{
-    const i=d.i, ch=makeMonChar(i,d.id), el=document.createElement('button'); el.className='mon-tile'+(d.locked?' locked':'')+((!d.locked&&d.id===prevId)?' cur':'');
+    const i=d.i, ch=makeMonChar(i,d.id), el=document.createElement('button'); el.className='mon-tile'+(d.alien?' alien':'')+(d.locked?' locked':'')+((!d.locked&&d.id===prevId)?' cur':'');
     const haloOn=(ch.mon===HUMAN_MON&&!bodyBack());
     const spr=()=>monIconHtml(ch,d.id,i,wide?40:48);
     el.innerHTML=`<span class="mon-spr">${spr()}</span><b>${ch.name.replace('そこらへんの','そこらへんの<br>').replace('史上最強の','史上最強の<br>')}</b>${wide?'':`<small>${ch.sp.length?MON_SP_LABEL[ch.sp[0]]:'&nbsp;'}</small>`}`;

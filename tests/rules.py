@@ -188,5 +188,21 @@ with sync_playwright() as p:
       const pl=autoQ.minus&&autoQ.minus[0]; const cell=[...document.querySelectorAll('#upcomingRow2 .fc[data-ev="minus"]')][0];
       return {v:pl&&pl.v, txt:cell?cell.textContent:null}}""")
     check('妨害レーンのマイナスの武器に、数字（予定の値）が出る',r['txt'] is not None and str(r['v']) in r['txt'],r)
+    JS_ENC="""(mode)=>{ CHARACTER=CHARACTERS[2]; init(); lsSet('soloSiegeAlienBeat','[]');
+      stageIndex=WAVES.findIndex(w=>w.lv===20); battleNo=2; alienEnc=null; playerHp=0; gameEnded=true;
+      showEnd('hpzero'); const o={appear:!!document.getElementById('alienGo')};
+      document.getElementById('alienGo').onclick(); o.enc=alienEnc&&alienEnc.id; o.stage=WAVES[stageIndex].id; o.alive=playerHp>0&&!gameEnded; o.cards=flags.length>0&&hand.length>0;
+      if(mode==='lose'){ playerHp=0; playerLost(0); } else { bossHp=0; finishWaveOutcome(true,WAVES[stageIndex]); }
+      return new Promise(res=>setTimeout(()=>{ o.surg=!!document.getElementById('alienOk'); if(o.surg) document.getElementById('alienOk').onclick();
+        o.beat=alienBeatList().includes('月の民'); o.unres=!comboRestricted(); o.encCleared=alienEnc===null; o.ended=gameEnded; res(o); },1300)); }"""
+    for mode in ('lose','win'):
+        r=pg.evaluate(JS_ENC,mode)
+        check('負けた後に宇宙人が現れて戦い、'+('負け' if mode=='lose' else '勝ち')+'でも手術を受けて強化される（月の民：コンボ制限解除）',
+              r['appear'] and r['enc']=='月の民' and r['stage']=='月の民' and r['alive'] and r['cards'] and r['surg'] and r['beat'] and r['unres'] and r['encCleared'] and r['ended'],r)
+    pg.evaluate("localStorage.setItem('soloSiegeAlienBeat',JSON.stringify(['月の民']))")
+    r=pg.evaluate("""()=>{ unlockMon('ミジンコキング'); ['月の民','火星人','水星人','金星人','太陽神'].forEach(unlockMon); buildCharList(); const g=document.getElementById('monGrid');
+      const t=[...g.querySelectorAll('.mon-tile')].map(e=>({n:e.querySelector('b').textContent.replace(/\\s/g,''),a:e.classList.contains('alien')}));
+      const ix=n=>t.findIndex(x=>x.n===n); return {n:t.length,aliens:t.filter(x=>x.a).map(x=>x.n),moonAfterSpider:ix('月の民')>ix('大グモ')&&ix('月の民')<ix('コボルト'),marsBetween:ix('火星人')>ix('呪われた農夫')&&ix('火星人')<ix('骸骨戦士'),lastNotAlien:!t[t.length-1].a||t[t.length-1].n==='太陽神'} }""")
+    check('モンスター一覧：宇宙人は強さの位置に並び（下に固まらない）、背景色で見分けられる',len(r['aliens'])>=5 and r['moonAfterSpider'] and r['marsBetween'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
