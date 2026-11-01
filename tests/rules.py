@@ -263,5 +263,10 @@ with sync_playwright() as p:
       const ok=hand.find(c=>c.kind==='troop'); const lo={kind:'troop',color:'blue',value:3,uid:uid()}, hi={kind:'troop',color:'blue',value:9,uid:uid()}, wr={kind:'troop',color:'red',value:9,uid:uid()};
       o.lo=satisfiesMonster(lo,flags[0]); o.hi=satisfiesMonster(hi,flags[0]); o.wr=satisfiesMonster(wr,flags[0]); return o}""")
     check('カラフルフィールドの上に力の装備を重ねると「その色で、その数字以上」になる',r['w0'] and not r['neg'] and r['sub']=='combined' and r['val']==8 and r['col']=='blue' and not r['lo'] and r['hi'] and not r['wr'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; busy=false; pending=null; carryMap={red:30}; hand=[{kind:'troop',color:'red',value:3,uid:uid()},{kind:'troop',color:'blue',value:4,uid:uid()}];
+      const o={}; o.col=GAME_COLORS.filter(c=>!hand.some(h=>h.color===c)).includes(newAutoPlan('cfield').col);
+      applyEnemyEvent('bomb'); const b=hand.find(c=>c.type==='curse_bomb'); o.fuse=b&&b.fuse; o.max=DIS_PARAM.bombFuse;
+      for(let i=0;i<DIS_PARAM.bombFuse;i++) tickBombs(); o.gone=!hand.some(c=>c.type==='curse_bomb'); o.carry=carryMap.red; return o}""")
+    check('ボム：手札に来た時点でカウント開始、置かずに持っていると爆発して消える／カラフルは手札に無い色',r['col'] and r['fuse']==r['max'] and r['gone'] and r['carry']==30-20,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

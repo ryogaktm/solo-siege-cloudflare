@@ -2034,7 +2034,7 @@ const EVENT_INFO={
 const CURSE_DEF={
   poison:{type:'curse_poison',name:'毒',short:'☠毒',desc:'使うと5ターンの間、毎ターン2ダメージを受ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
   seal:{type:'curse_seal',name:'封鎖',short:'🔒封鎖',desc:'使うと好きな旗を1つ封鎖できる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。シャッフルでのみ山札に戻せる。'},
-  bomb:{type:'curse_bomb',name:'時限ボム',short:'💣ボム',desc:'旗に置くと、5ターン以内にその旗で役を揃えないと爆発してスーパーコンボ−20。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
+  bomb:{type:'curse_bomb',name:'時限ボム',short:'💣ボム',desc:'手札に来た時点から5ターンのカウント。その間に旗へ置いて役を揃えないと（持っていても）爆発してスーパーコンボ−20。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
   dark:{type:'curse_dark',name:'暗闇',short:'🌑暗闇',desc:'使うと数ターンの間、攻撃の予測表示が半分に見えなくなる。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。'},
   minus:{type:'curse_minus',name:'マイナスの武器',short:'➖武器',desc:'（旧）'},
   wipe:{type:'curse_wipe',name:'全滅',short:'💥全滅',desc:'使うと好きな旗を1つ選び、そこのカードを全て墓地へ送る（自分のカードが消える）。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。聖水で消せる。'},
@@ -2215,6 +2215,12 @@ function bombBoom(i){
   comboLoss(DIS_PARAM.bombPenalty,`💥 F${i+1}のボムが爆発！ 役が揃わなかった代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`);
 }
 function tickBombs(){
+  hand.filter(c=>c&&c.type==='curse_bomb').forEach(c=>{   // 手札に渡った時点から導火線は進む。手札に持ったままでも、時間が来れば爆発する
+    c.fuse=(c.fuse==null?DIS_PARAM.bombFuse:c.fuse)-1;
+    if(c.fuse<=0){ hand.splice(hand.indexOf(c),1);
+      if(nullOn()) hint('🚫 手札のボムは無効化されて不発だった。',true);
+      else comboLoss(DIS_PARAM.bombPenalty,`💥 手札のボムが爆発！ 置かずに持っていた代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`); }
+  });
   flags.forEach((f,i)=>{ if(f.bomb&&!f.closed){ f.bomb--; if(f.bomb<=0) bombBoom(i); } });
 }
 function askComboPenalty(n, ok){
@@ -2497,7 +2503,10 @@ function evCands(type){
 const autoCands=()=>evCands('autonum');
 function newAutoPlan(type){
   if(type==='minus') return {type,v:makeMinusEq().value,flag:null};
-  if(type==='cfield') return {type,col:GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)],flag:null};   // カラフルフィールドの色も、予測レーンの時点で決めておく
+  if(type==='cfield'){   // 手札にいちばん少ない色を選ぶ（守りにくい盤面を意図的に作り、溜まったスーパーコンボを減らす）
+    const cnt=Object.fromEntries(GAME_COLORS.map(c=>[c,0])); hand.forEach(c=>{ if(c&&c.kind==='troop'&&cnt[c.color]!=null) cnt[c.color]++; });
+    const mn=Math.min(...GAME_COLORS.map(c=>cnt[c])), pool=GAME_COLORS.filter(c=>cnt[c]===mn);
+    return {type,col:pool[Math.floor(Math.random()*pool.length)],flag:null}; }   // カラフルフィールドの色も、予測レーンの時点で決めておく
   if(type!=='autonum') return {type,flag:null};
   const nl=(ENEMY_CFG[WAVES[stageIndex].name]||{}).nums; let col,v;
   if(nl&&nl.length){ const pk2=nl[autoSeq%nl.length]; col=pk2[0]; v=pk2[1]; }   // 敵ごとの固定カードを順番に
@@ -2539,7 +2548,7 @@ function applyEnemyEvent(type,target){
     dis.guardN=type==='guard'?1:10; dis.guardUntil=enemyTurn+(type==='guard'?DIS_PARAM.guardTurns:DIS_PARAM.bguardTurns);
     hint(`⬇ 敵の妨害！ コンボが−${dis.guardN}される（あと${dis.guardUntil-enemyTurn}ターン）`,true); playSfx('warn');
   } else if(type==='bomb'){
-    giveHandCard(makeCurse('bomb')); hint(`💣 時限ボムを手札に押し付けられた！ 旗に置くと、${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないとスーパーコンボ−${DIS_PARAM.bombPenalty}。`,true); playSfx('warn');
+    { const bc0=makeCurse('bomb'); bc0.fuse=DIS_PARAM.bombFuse; giveHandCard(bc0); } hint(`💣 時限ボムを手札に押し付けられた！ もうカウントが始まっている。${DIS_PARAM.bombFuse}ターン以内に旗へ置いて役を揃えないと（置かずに持っていても）スーパーコンボ−${DIS_PARAM.bombPenalty}。`,true); playSfx('warn');
   } else if(type==='cfield'){   // カラフルフィールド：手札ではなく、敵が旗に直接置く（色は予測レーンで見えている色）
     const cpl=takeAutoPlan('cfield'), cfi=autoTargetIdx(cpl);
     if(cfi<0){ hint('敵がカラフルフィールドを置こうとしたが、置ける旗がなかった。',true); }
@@ -4424,7 +4433,7 @@ function doCurse(handIdx, target){
   else if(kind==='bomb'){
     const bf=flags[target];
     if(nullOn()) hint('🚫 ボムは無効化された。',true);
-    else if(bf&&!bf.closed){ bf.bomb=DIS_PARAM.bombFuse; hint(`💣 F${target+1}にボムを置いた！ ${bf.bomb}ターン以内にこの旗で役を揃えないと、スーパーコンボ−${DIS_PARAM.bombPenalty}！`,true); playSfx('warn'); }
+    else if(bf&&!bf.closed){ bf.bomb=Math.max(1,used.fuse==null?DIS_PARAM.bombFuse:used.fuse); hint(`💣 F${target+1}にボムを置いた！ ${bf.bomb}ターン以内にこの旗で役を揃えないと、スーパーコンボ−${DIS_PARAM.bombPenalty}！`,true); playSfx('warn'); }
   }
   else if(kind==='dark'&&nullOn()){ hint('🚫 暗闇は無効化された。',true); }
   else if(kind==='dark'){ dis.darkUntil=turnCounter+DIS_PARAM.darkTurns; hint(`🌑 暗闇…！ ${DIS_PARAM.darkTurns}ターン、攻撃の予測が半分にしか見えない。`,true); playSfx('warn'); }
@@ -4525,7 +4534,7 @@ function paintCard(d, c, mini){
     }
   } else {
     d.className='pcard tactic'+(isCurse(c)?' curse':'')+(mini?' mini':'');
-    d.innerHTML=`<div class="ttitle">${c.short||c.name}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#f0a38a">${EMBLEM.tactic}</svg></div>`;
+    d.innerHTML=`<div class="ttitle">${c.short||c.name}${c.type==='curse_bomb'&&c.fuse!=null?` あと${c.fuse}`:''}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#f0a38a">${EMBLEM.tactic}</svg></div>`;
   }
   if(c.enemyPlaced) d.classList.add('enemy');
   if(c.autoPlaced){ d.classList.add('auto-enemy'); if(c.autoFresh) d.classList.add('auto-new'); }
@@ -4661,7 +4670,7 @@ const EVENT_DESC={
   colhalf:()=>`特定の色のコンボ威力が一定ターン半分になる。`,
   guard:()=>`コンボが−1される状態が${DIS_PARAM.guardTurns}ターン続く。`,
   bguard:()=>`コンボが−10される状態が${DIS_PARAM.bguardTurns}ターン続く。`,
-  bomb:()=>`「時限ボム」のカードを手札に押し付ける。旗に置くと${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないと爆発し、スーパーコンボが−${DIS_PARAM.bombPenalty}される。`,
+  bomb:()=>`「時限ボム」のカードを手札に押し付ける。手札に来た時点からカウントが始まり、${DIS_PARAM.bombFuse}ターン以内に旗へ置いて役を揃えないと（持っていても）爆発し、スーパーコンボが−${DIS_PARAM.bombPenalty}される。`,
   cfield:()=>'ランダムな旗に「カラフルフィールド」を直接置く（色は予測レーンで分かる）。その旗には特定の色のカードしか置けなくなる。',
   pfield:()=>'敵が「パニックフィールド」を空いている旗にランダムで置く。その旗では、次に置くカードの数字が逆転（革命）する。',
   autonum:()=>'敵が勝手に旗へ数字カードを1枚置く（空き・1枚以下の旗が対象）。',
@@ -5404,7 +5413,7 @@ function buildHowtoPage(){
     <p style="margin-top:8px;"><b style="color:var(--gold)">呪いカードの種類</b></p>
     <p style="margin-top:6px;"><b>☠ 毒</b>：使うと${DIS_PARAM.poisonTurns}ターン、毎ターン${DIS_PARAM.venomDmg}ダメージを受ける。</p>
     <p style="margin-top:6px;"><b>🔒 封鎖</b>：使うと好きな旗を1つ封鎖できる（置いてあるカードは墓地へ）。</p>
-    <p style="margin-top:6px;"><b>💣 時限ボム</b>：旗に置くと、${DIS_PARAM.bombFuse}ターン以内にその旗で役を揃えないとスーパーコンボ−${DIS_PARAM.bombPenalty}。</p>
+    <p style="margin-top:6px;"><b>💣 時限ボム</b>：手札に来た時点からカウントが始まり、${DIS_PARAM.bombFuse}ターン以内に旗へ置いて役を揃えないと（持っていても）スーパーコンボ−${DIS_PARAM.bombPenalty}。</p>
     <p style="margin-top:6px;"><b>🌑 暗闇</b>：使うと${DIS_PARAM.darkTurns}ターン、攻撃の予測が見えなくなる。</p>
     <p style="margin-top:6px;"><b>🚫 無効の呪い</b>：使うと${DIS_PARAM.nullTurns}ターン、軍師カードの効果が無効になる。</p>
     <p style="margin-top:6px;"><b>💥 全滅</b>：使うと選んだ旗（空の旗でもOK、完成前のみ）のカードがすべて消える。旗に置かれた呪いも一緒に消える。</p>
