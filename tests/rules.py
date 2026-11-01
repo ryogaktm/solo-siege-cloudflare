@@ -293,13 +293,13 @@ with sync_playwright() as p:
     r=ev("""()=>{ const keep=dbgLog; dbgLog=[]; for(let g=0;g<8;g++){ dbgLog.push({seq:g*10,type:'game_start',time:'g'+g}); dbgLog.push({seq:g*10+1,type:'turn'}); dbgLog.push({seq:g*10+2,type:'stage_advance'}); }
       const rec=dbgRecent(), n=rec.filter(e=>e.type==='game_start').length, first=rec[0].time, txt=dbgText().split('\\n')[0]; dbgLog=keep; return {n,first,txt}}""")
     check('デバッグログの書き出しは直近5ゲームまで',r['n']==5 and r['first']=='g3' and '5ゲーム' in r['txt'],r)
-    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; flags.forEach(f=>{f.cards=[];f.closed=false});
-      const o={empty:bashMulNow()}; flags.forEach(f=>{ for(let k=0;k<3;k++) f.cards.push({kind:'troop',color:'red',value:3,uid:uid()}); }); o.full=bashMulNow()*1;
-      const rnd=Math.random; Math.random=()=>0.1; bashDmg=1000; monSkillUse(); Math.random=rnd; o.next=bashDmg; o.n=flags.reduce((n,f)=>n+f.cards.length,0); return o}""")
-    check('斧：当たると 盤面の数字カードの枚数×0.3倍（最低1.2倍）になる',abs(r['empty']-1.2)<1e-9 and abs(r['full']-0.3*r['n'])<1e-6 and r['next']==round(1000*0.3*r['n']),r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9;
+      const T=n=>({kind:'troop',color:'red',value:3,uid:uid()}); hand=[T(),T(),T(),T(),T(),{kind:'tactics',type:'holy',uid:uid()}]; const o={five:bashMulNow()}; hand=[T()]; o.one=bashMulNow();
+      hand=[T(),T(),T(),T(),T(),T()]; const rnd=Math.random; Math.random=()=>0.1; bashDmg=1000; monSkillUse(); Math.random=rnd; o.next=bashDmg; return o}""")
+    check('斧：当たると 手札の数字カードの枚数×0.3倍（5枚で1.5倍・戦術カードは数えない・最低1.2倍）',abs(r['five']-1.5)<1e-9 and abs(r['one']-1.2)<1e-9 and r['next']==1800,r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; render(); advanceTurn(null); advanceTurn(null);
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; busy=false; render(); const o={btn:document.getElementById('specMonL').textContent, chip:!!document.getElementById('axeChip'), info:specInfoFor('mon').desc};
       resetBattleRound(); render(); o.after=document.getElementById('specMonL').textContent; return o}""")
-    check('斧：特殊技のボタンに攻撃力と命中率が並び、説明に推移が出る（浮かぶ表示は出さない）','240' in r['btn'] and '60％' in r['btn'] and '×1.2' in r['btn'] and not r['chip'] and '200→240' in r['info'] and '70→65→60' in r['info'] and '70％' in r['after'],r)
+    check('斧：特殊技のボタンに攻撃力と命中率が並び、説明に推移が出る（浮かぶ表示は出さない）','240' in r['btn'] and '60％' in r['btn'] and '×' in r['btn'] and not r['chip'] and '200→240' in r['info'] and '70→65→60' in r['info'] and '70％' in r['after'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

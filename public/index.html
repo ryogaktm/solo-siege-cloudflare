@@ -1619,7 +1619,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '四天王候補生首席':{kind:'top',name:'首席アタック',icon:'🎓',desc:'手札を、ランダムなマークの「10」のカードで上限いっぱいにする（今の手札は墓地へ。呪いのカードも、ペナルティなしで10に書き換わる）。1回のゲームに1回だけ（戦いごとではなく、ゲーム全体で1回）。'},
   'ジャックランタン':{kind:'trick',name:'トリックオアトリート',icon:'🎃',desc:'「お菓子をくれなきゃ、いたずらしちゃうぞ！」2分の1の確率で敵が死に、残りの2分の1で自分が死ぬ。1回の戦いで1回だけ。ふんばるピアスやブーンでも防げない。'},
   'コウモリ':{kind:'blind',name:'ブラインド',icon:'🌫',desc:'好きな旗を3ターンの間、黒い煙で覆います。カードは置けますが中身が見えなくなり、その間その旗は敵の妨害の対象から外れます。'},
-  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「盤面の数字カードの枚数×0.3倍」（最低×1.2）になり、使えば使うほど増えていきます。外れてもダメージは変わりません。命中率は1ターン進むごとに5％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
+  'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」（最低×1.2）になり、使えば使うほど増えていきます。外れてもダメージは変わりません。命中率は1ターン進むごとに5％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、70％の確率で消します（予測レーンから消えます）。外れても、特殊技の回数が残っていれば何度でも使えます。'},
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
@@ -1999,7 +1999,7 @@ function tryRevive(){ if(!(hpStock>0)) return false; hpStock--; playerHp=playerH
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
-const bashMulNow=()=>Math.max(DIS_PARAM.bashMulMin, flags.reduce((n,f)=>n+f.cards.filter(c=>c&&(c.kind==='troop'||isAlexanderCard(c)||isDariusCard(c))).length,0)*DIS_PARAM.bashPerCard);   // 斧：当たった時にダメージが何倍になるか（盤面の数字カードの枚数×0.3、最低でも増える）
+const bashMulNow=()=>Math.max(DIS_PARAM.bashMulMin, hand.filter(c=>c&&c.kind==='troop').length*DIS_PARAM.bashPerCard);   // 斧：当たった時にダメージが何倍になるか（手札の数字カードの枚数×0.3、最低でも増える）
 function nextDisTurn(){ const pend0=!!prevSnap&&flags.length>0&&flags.every(f=>f.closed), base=pend0?prevSnap.t:enemyTurn; const ks=Object.keys(enemySched).map(Number).filter(t=>t>base&&isDisEv(enemySched[t])&&DIS_NAME[enemySched[t]]).sort((a,b)=>a-b); return ks[0]; }   // 次に来る妨害（攻撃力×2は含めない）の発動ターン
 let jamArmed=false, bashDmg=200, bashRateNow=0.7, bashHist=[200], bashRateHist=[0.7];   // bashHist＝斧のダメージの推移／bashRateHist＝斧の命中率の推移（新waveで戻る）   // jamArmed＝アサシンの行動封じ待機中／bashDmg＝バイキングの物理で殴るの次のダメージ（当たるたびに2倍）
 let bulletLeft=0;   // バレットタイムの残りターン（この間は時間が止まり、ターンも進まない）
@@ -6377,7 +6377,7 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効／全滅の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.kind==='bash'&&k==='mon') return {title:(m.icon||'')+' '+m.name,desc:m.desc+`（いまの命中率：${Math.round(bashRateNow*100)}％／次のダメージ：${fmtCompact(bashDmg)}／当たると今の盤面で×${Math.round(bashMulNow()*100)/100}）\n攻撃力の推移：${bashHist.slice(-8).map(v=>fmtCompact(v)).join('→')}\n命中率の推移：${bashRateHist.slice(-10).map(v=>Math.round(v*100)).join('→')}％`}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+function specInfoFor(k){ const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.kind==='bash'&&k==='mon') return {title:(m.icon||'')+' '+m.name,desc:m.desc+`（いまの命中率：${Math.round(bashRateNow*100)}％／次のダメージ：${fmtCompact(bashDmg)}／当たると今の手札で×${Math.round(bashMulNow()*100)/100}）\n攻撃力の推移：${bashHist.slice(-8).map(v=>fmtCompact(v)).join('→')}\n命中率の推移：${bashRateHist.slice(-10).map(v=>Math.round(v*100)).join('→')}％`}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
