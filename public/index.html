@@ -1796,7 +1796,7 @@ const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファ�
 const ENEMY_SCALE=0.9;
 const HUMAN_INS=36; let HUMAN_IDX=38; const HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
 const INTRO_LEADER=1, INTRO_KING=2;   // ミジンコで始めた時の最初の2戦の敵   // 真ん中に出す人間（0始まりの位置）
-const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'若いオーク','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'オーク','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'バイキング','ゴブリンの戦士団':'ゴブリン','ホブゴブリンの群れ':'ミイラ','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'呪われた農夫','オークの斥候隊':'オークの斥候','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
+const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'若いオーク','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'メデューサ','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'バイキング','ゴブリンの戦士団':'ゴブリン','ホブゴブリンの群れ':'ミイラ','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'呪われた農夫','オークの斥候隊':'ドラキュラ','オークの戦士長':'狼男','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
 /* ===== モンスターを足す時の置き場 =====
    ここに { name:'新モンスター名', after:'この敵の次に入れる（今いる敵の名前）', spr:'MON_ARCHに足した絵のキー' } を書くと、
    前後の敵の強さの間（幾何平均）に1体入る。敵の特殊技・妨害は ENEMY_CFG、特殊技(自分で使う時)は MON_SKILL、表示名は DISP_NAME に足す。
@@ -1815,7 +1815,7 @@ const EXTRA_MONSTERS=[
   {name:'四天王の元締め',after:'四天王を超えた男',base:'暗黒の四天王',t:0.778,spr:'k_boss'},
   {name:'最強の四天王',after:'四天王の元締め',base:'暗黒の四天王',t:0.889,spr:'k_best'}
 ], MON_SPR_EXTRA={};
-const REMOVED_MONSTERS=['オークの斥候隊','オークの戦士長'];   // ここに名前を入れると、その敵は出なくなる
+const REMOVED_MONSTERS=[];   // ここに名前を入れると、その敵は出なくなる
 const WAVES=(()=>{
   const base=BALANCE.enemies.map((e,i)=>i===0?{...e}:{...e,hp:e.hp*10,atk:e.atk*10,grow:Math.round(e.grow*100)/10});
   const out=[];
@@ -2089,7 +2089,7 @@ const ENEMY_CFG={
   '死霊術師':{dis:['half','colnull','autonum','guard','comboreset','autonum','minusrain'],nums:[['red',1],['green',4],['orange',3]]},   // lv30
   'ジャックランタン':{dis:['colnull','half','autonum','guard','comboreset','autonum','minusrain'],nums:[['blue',1],['yellow',1],['purple',1]]},   // lv31
   '海賊王':{dis:['bomb','autonum','cfield','half','minus','guard','autonum'],nums:[['blue',7],['yellow',3],['red',6]]},   // lv35
-  'オーク':{dis:['colnull','half','autonum','guard','comboreset','autonum','minusrain'],nums:[['yellow',1],['purple',3],['blue',1]]},   // lv33
+  'メデューサ':{dis:['colnull','half','autonum','guard','comboreset','autonum','minusrain'],nums:[['yellow',1],['purple',3],['blue',1]]},   // lv33
   '空賊王':{dis:['pfield','autonum','colnull','guard','minus','half','autonum'],nums:[['orange',5],['green',8],['purple',4]]},   // lv36
   'トロル':{dis:['half','colnull','autonum','guard','comboreset','autonum','minusrain'],nums:[['purple',1],['blue',1],['yellow',1]]},   // lv35
   '山賊王':{dis:['colnull','half','autonum','guard','comboreset','autonum','minusrain'],nums:[['red',1],['green',2],['orange',3]]},   // lv36
@@ -6467,6 +6467,7 @@ MON_ARCH.k_shadow=["................", "...KKKKKKKKKK...", "..KpppPPPPpppK..", "
 MON_ARCH.k_called=["................", "...KKKKKKKKKK...", "..KnnnnNNnnnnK..", ".KnNNNNNNNNNNnK.", "KKKKKKKKKKKKKKKK", "..KSSSSSSSSSSK..", "..KSKSSSSSSKSK..", "..KSSSSSSSSSSK..", "..KSSKKKKKWWRK..", ".KttTTTTTTTTttK.", "KttTKTTTTTTKTttK", "KttTKTTTTTTKTttK", "KtTTKTTTTTTKTTtK", ".KKKTTTTTTTTKKK.", "...KttK..KttK...", "...KKKK..KKKK..."];
 Object.assign(SPR,MON_ARCH);
 SPR.gunman=["................",".....KKKKK......","....KNNNNNK.....","....KNNNNNK.....",".KKKnnnnnnnKKK..","...KSSSSSSSK....","...KSKSSSKSK....","...KRRRRRRRK....","..KBBBBBBBBBK...",".KBBBBBBBBBBBK..",".KBBBBBBBBBBSggg",".KBBBBBBBBBBBK..","..KDDDDDDDDDK...","...KDDK..KDDK...","...KNNK..KNNK...","..KKKKK.KKKKK..."];   // ガンマン（ポンチョにカウボーイハット、右手にリボルバー）
+Object.assign(SPR,{dracula:["................", ".....KKKKKK.....", "....KKKKKKKK....", "....KwwKKwwK....", "....KwRwwRwK....", "....KwwwwwwK....", "....KwWwwWwK....", ".....KwwwwK.....", "..KKKRRwwRRKKK..", ".KRRKRRRRRRKRRK.", "KRRRKRrRRrRKRRRK", "KRrRKRRRRRRKRrRK", "KRRRKKRRRRKKRRRK", ".KRRK.KRRK.KRRK.", "..KK..KKKK..KK..", "................"],medusa:["T..T..T..T..T..T", ".TtTtTTTTtTtTtT.", "..KTTTTTTTTTTK..", "...KEEEEEEEEK...", "...KEfKEEKfEK...", "...KEEEEEEEEK...", "...KEEmmmmEEK...", "....KEEEEEEK....", "...KKPPEEPPKK...", "..KPPPPPPPPPPK..", ".KEKPPpPPpPPKEK.", ".KEKPPPPPPPPKEK.", "..KKPPpPPpPPKK..", "...KPPPPPPPPK...", "...KPPKKKKPPK...", "...KKKK..KKKK..."],werewolf:["................", ".KK..........KK.", ".KNK........KNK.", ".KNNK..KK..KNNK.", "..KNNKNNNNKNNK..", "..KNNNNNNNNNNK..", "..KNfKNNNNKfNK..", "...KNNNNNNNNK...", "....KNNKKNNK....", ".....KNnnNK.....", "....KKNWWNKK....", "..KKNNKNNKNNKK..", ".KNwNKNNNNKNwNK.", "KNNNKKGNNGKKNNNK", ".KKK.KNNNNK.KKK.", "...KKKK..KKKK..."]});   // ドラキュラ・メデューサ・狼男（旧・オーク系の3体）
 Object.assign(SPR,{orc_young:["................", ".....KKKKKK.....", "....KOOOOOOK....", "...KOOOOOOOOK...", "..KOOWKOOKWOOK..", "..KOOWKOOKWOOK..", "..KOOOOOOOOOOK..", "...KOWOOOOWOK...", "....KOKKKKOK....", "..KKKOOOOOOKKK..", ".KOOKOOooOOKOOK.", ".KOOKKnnnnKKOOK.", "..KK.KnNNnK.KK..", ".....KOOKOOK....", "....KOOK.KOOK...", "....KKK...KKK..."],mummy:["................", "....KKKKKKK.....", "...KwwwwwwwK....", "...KwgwwwgwK....", "...KKKRKKRKK....", "...KwwwwwwwK....", "....KwgwgwK.....", "..KKKwwwwwKKK...", ".KwwKgwwwgKwwK..", ".KwgKwwgwwKwgK..", "KwwwKwwwwwKwwwK.", "KgKKKgwwgwKKKgK.", "....KwwwwwK.....", "....KwgKgwK.....", "....KwwKwwK.....", "...KKKK.KKKK...."]});   // 若いオーク・ミイラ（旧・ゴブリン系の2体）
 Object.assign(SPR,{assassin:["................", "......KKKK......", ".....KGGGGK.....", "....KGGGGGGK....", "....KGKKKKGK....", "....KGKRKRGK....", "....KGKKKKGK....", ".....KGGGGK.....", "....KRRRRRRK...w", "...KGGGGGGGGK.wg", "..KGGGGGGGGGKKw.", "..KGGKGGGGKGGK..", "...KKKGGGGKKK...", ".....KGGGGK.....", ".....KGKKGK.....", "....KKKK.KKKK..."]});   // アサシン（旧・巨大ムカデ）
 Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
@@ -6485,7 +6486,7 @@ const MON_SPR={
 'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['gunman'],'野盗の一団':['bandit'],'巨大ムカデ':['assassin'],'沼のリザードマン':['lizardman'],
 'ゴブリンの集団':['orc_young'],'ゴブリンの戦士団':['goblin'],'ホブゴブリンの群れ':['mummy'],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
 '骸骨戦士の集団':['skeleton'],'骸骨弓兵団':['skel_archer'],'動く鎧の群れ':['armor'],'死霊術師の一団':['necromancer'],'呪われた農夫たち':['farmer'],
-'オークの軍勢':['orc'],'トロルの群れ':['troll'],'山賊王の軍':['bandit_king'],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['mercenary'],
+'オークの軍勢':['medusa'],'オークの斥候隊':['dracula'],'オークの戦士長':['werewolf'],'トロルの群れ':['troll'],'山賊王の軍':['bandit_king'],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['mercenary'],
 '暗黒騎士団':['darkknight'],'暗黒騎士の精鋭':['elite_knight'],'魔術師団':['mage',{P:'B',p:'b'}],'小竜の群れ':['drakelet'],'火を吹くワイバーン':['wyvern'],'竜騎士団':['dragoon'],
 '古龍':['dragon'],'氷の古竜':['ice_dragon'],'雷を操る竜':['thunder_dragon'],'双頭の竜':['twin_dragon'],'山を砕く巨竜':['colossus_dragon'],'巨人の先遣隊':['giant_scout'],
 '地平線いっぱいの巨人族':['giant'],'嵐の巨人族':['storm_giant'],'炎の巨人王':['fire_giant_king'],'悪魔の斥候':['imp'],'地獄の番犬':['hound'],'悪魔の軍団':['demon',{P:'R',p:'r'}],
