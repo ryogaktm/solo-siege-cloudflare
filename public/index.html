@@ -6788,7 +6788,7 @@ function buildAccDefs(){
   return L;
 }
 const ACC_DEFS_ALL=buildAccDefs();
-const ACC_OFF=['sp_shuffle','sp_beg','sp_punch','sp_guard','sp_cure','sp_bullet'];   // 一旦取り下げ：特殊技が使えるようになるアクセサリー（持っている分の効果は残る。消したい時はここを空に戻すと復活）
+const ACC_OFF=['reflect_mirror','sp_shuffle','sp_beg','sp_punch','sp_guard','sp_cure','sp_bullet'];   // 一旦取り下げ：特殊技が使えるようになるアクセサリー（持っている分の効果は残る。消したい時はここを空に戻すと復活）
 const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id));
 const cashName=n=>n<=60?'小さな換金袋':n<=150?'換金のお守り':n<=300?'換金の宝飾':'換金の金塊';
 const cashDef=n=>({id:'cash_'+n,name:`${cashName(n)}（${n}G）`,icon:'💰',desc:`役に立たないが、売ると${n}Gになる`,cashVal:n});
