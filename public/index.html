@@ -2068,7 +2068,7 @@ function makeMinusEq(){ const r=isMidGame()?DIS_PARAM.minusRangeMid:DIS_PARAM.mi
 // 例) 'ゾンビ':{dis:['half','autonum'], gap:8},
 // dis=その敵が使う妨害を順番に繰り返す／nums=敵の数字カード(autonum)で出す固定カード[色,数字]（順番に出る）。自由に書き換えてOK
 const ENEMY_CFG={
-  'コウモリ':{dis:['blind','autonum','minus'],gap:4},   // lv16：ブラインドを頻繁に（間隔4ターン、先頭のブラインドが一番多い）
+  'コウモリ':{dis:['blind','autonum','minus'],fav:['blind','blind','blind','blind'],gap:4},   // lv16：ブラインドを頻繁に（間隔4ターン、ブラインドが約6割）
   '野盗':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv18
   '巨大ムカデ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv19
   '沼のリザードマン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv20
@@ -7700,7 +7700,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-10-31b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-01a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
