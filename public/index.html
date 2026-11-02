@@ -3818,7 +3818,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       return true;
     } }
   // 3枚目で「役なし（ホスト）」になる置き方は、最終確認を出す
-  if(!noAsk && !isWeakBody() && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
+  if(!noAsk && !(isWeakBody()&&tutStepNow()===0) && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
     const tmp={cards:f.cards.concat(card.kind==='troop'?[card]:[{kind:'wild',color:'wild',label:card.short,uid:card.uid}])};
     const ev=evaluate(tmp);
     if(ev && ev.mult===1){
@@ -7870,7 +7870,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
