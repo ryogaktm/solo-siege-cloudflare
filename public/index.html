@@ -2416,6 +2416,7 @@ const carryTxt=()=>Object.keys(carryMap).map(c=>c[0]+'×'+carryMap[c]).join(',')
 let spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}, guardOn=false; // spec = 使用済み回数
 // スーパーコンボ＝象徴の色が同じ「役の旗」が2つ以上つながったとき、その旗を「閉じた順」に ×2, ×3, ×4… と掛ける。
 // 前の攻撃から続いている場合は carryCount（これまでにつながった旗の数）の続きから数える（例：2つ決めた後は次の旗が×4）。
+const SUPER_PARAM={single:true, keepSkipped:true};   // single＝役のある旗は1つだけでもスーパーコンボが成立（つながりが無くても貯まる）／keepSkipped＝その色の役が無かったwaveがあっても、貯まった倍数は消えない（飛び飛びでも続く）。元に戻すときは両方false
 let closeSeqCounter=0;
 function superMults(){
   if(waveAdvancing && frozenMults && Object.keys(frozenMults).length) return frozenMults;
@@ -2425,7 +2426,7 @@ function superMults(){
   const m={};
   Object.values(groups).forEach(a=>{
     const col=flags[a[0]].symbolColor, cr=carryMap[col];
-    if(a.length<2 && !cr) return;
+    if(a.length<2 && !cr && !SUPER_PARAM.single) return;
     a.sort((x,y)=>(flags[x].closeSeq||0)-(flags[y].closeSeq||0)||x-y);
     a.forEach((i,k)=>{ const mm=superMultFor(col, (cr||1)+k+1); if(mm>1) m[i]=mm; });
   });
@@ -2450,7 +2451,8 @@ function hostNext(){ const h=hostIdxs().length; if(!h) return 0; return (!hostCa
 // 次のwaveへ持ち越される色ごとの連続数（checkWaveOutcome と同じ計算）
 function carryNext(){
   const cnt={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
-  const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?1:(cr||1)+cnt[c]; });
+  const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2&&!SUPER_PARAM.single)?1:(cr||1)+cnt[c]; });
+    if(SUPER_PARAM.keepSkipped) Object.keys(carryMap).forEach(c=>{ if(!(c in nm)) nm[c]=carryMap[c]; });
   return nm;
 }
 // コンボバリアの指輪：コンボが続いている間、受けるダメージが半分（倍の腕輪で1/4）
@@ -3506,7 +3508,8 @@ function checkWaveOutcome(){
   const bMult=barrierMult(), hostNx=hostNext();
   if(CHARACTER.combo){  // 役のあった色は全部、次のwaveへ持ち越し（役の無かった色は消える）
     const cnt={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
-    const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?1:(cr||1)+cnt[c]; });
+    const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2&&!SUPER_PARAM.single)?1:(cr||1)+cnt[c]; });
+    if(SUPER_PARAM.keepSkipped) Object.keys(carryMap).forEach(c=>{ if(!(c in nm)) nm[c]=carryMap[c]; });
     carryMap=nm;
   } else carryMap={};
   hostCarry=hostNx;
@@ -4780,7 +4783,7 @@ function synergyOf(list){
   Object.keys(g).forEach(sym=>{
     const a=g[sym];
     const cr=carryMap[sym];
-    if(a.length<2 && !cr) return;
+    if(a.length<2 && !cr && !SUPER_PARAM.single) return;
     a.sort((x,y)=>x.seq-y.seq);
     a.forEach((x,k)=>{ bonus+=Math.round(x.base*(superMultFor(sym,(cr||1)+k+1)-1)); });
   });
@@ -7791,7 +7794,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

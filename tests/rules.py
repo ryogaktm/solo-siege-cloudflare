@@ -317,5 +317,9 @@ with sync_playwright() as p:
     check('特殊技：使った回数を戦いをまたいで貯め、上限に届いたら+1（ゲージで見える・上限5まで）',r['has'] and abs(float(r['gp1'])-1/r['before'])<1e-6 and r['prog']==1 and r['mid']==r['before'] and r['after']==r['before']+1 and r['cap']<=5,r)
     r=ev("()=>WAVES.filter(w=>!w.boss&&disList(w).includes('colhalf')).map(w=>w.lv)")
     check('色コンボ半減が、色封じを持つ偶数レベルの敵（lv30以上）に割り当てられている',len(r)>=5 and all(l>=30 and l%2==0 for l in r),r)
+    r=ev("""()=>{ CHARACTER=Object.assign({},CHARACTERS[1],{combo:true}); init(); busy=false; const o={}; carryMap={}; flags.forEach(f=>{f.closed=false;f.baseCombo=false;f.symbolColor=null;f.capturedByEnemy=false});
+      flags[0].closed=true; flags[0].baseCombo=true; flags[0].symbolColor='red'; flags[0].closeSeq=1; o.single=superMults()[0]||0; o.next=carryNext().red||0;
+      carryMap={blue:4}; o.keep=carryNext().blue||0; SUPER_PARAM.single=false; SUPER_PARAM.keepSkipped=false; o.offSingle=superMults()[0]||0; o.offKeep=carryNext().blue||0; SUPER_PARAM.single=true; SUPER_PARAM.keepSkipped=true; return o}""")
+    check('スーパーコンボ：役のある旗は1つだけでも成立し、役の無かった色の貯まりも消えない（SUPER_PARAMで元に戻せる）',r['single']>=2 and r['next']==2 and r['keep']==4 and r['offSingle']==0 and r['offKeep']==0,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
