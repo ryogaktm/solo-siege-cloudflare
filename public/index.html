@@ -5260,7 +5260,7 @@ function nowText(){
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
 }
-let tutStep=0, tutT=0;   // ミジンコの案内の段階：0 置く／1 スーパーコンボ（役が揃ったあと）／2 墓地へ捨てる／3 敵の攻撃レーン／4 カード予測レーン（1と3は3ターンずつ）
+let tutStep=0, tutT=0;   // ミジンコの案内の段階：0 置く／1 スーパーコンボ（役が揃ったあと）／2 墓地へ捨てる／3 敵の攻撃レーン／4 カード予測レーン（1・3・4は3ターンずつ。4のあとは0に戻ってくり返す）
 const TUT_STEP_TURNS=3;
 function tutStepNow(){
   const combos=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo).length;
@@ -5269,7 +5269,8 @@ function tutStepNow(){
   else if(tutStep===0&&combos>=1){ tutStep=1; tutT=turnCounter; }
   else if(tutStep===1&&turnCounter-tutT>=TUT_STEP_TURNS) tutStep=2;
   else if(tutStep===2&&combos>=2){ tutStep=3; tutT=turnCounter; }
-  else if(tutStep===3&&turnCounter-tutT>=TUT_STEP_TURNS) tutStep=4;
+  else if(tutStep===3&&turnCounter-tutT>=TUT_STEP_TURNS){ tutStep=4; tutT=turnCounter; }
+  else if(tutStep===4&&turnCounter-tutT>=TUT_STEP_TURNS){ tutStep=0; tutDiscarded=false; tutT=turnCounter; }   // 最後まで行ったら、最初に戻ってくり返す
   return tutStep;
 }
 function tutText(){
@@ -7867,7 +7868,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

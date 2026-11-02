@@ -347,5 +347,7 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const o={}; flags[0].closed=true; flags[0].baseCombo=false; updateTelops(); o.t=document.getElementById('telopNow').textContent;
       flags[0].cards=[{kind:'troop',color:'red',value:1,uid:uid()},{kind:'troop',color:'blue',value:5,uid:uid()}]; flags[0].closed=false; hand=[{kind:'troop',color:'green',value:9,uid:uid()}]; picked=0; playOnFlag(0,0,null); o.ask=[...document.querySelectorAll('.modal-bg')].some(m=>getComputedStyle(m).display!=='none'&&m.textContent.includes('役なしになります')); return o}""")
     check('ミジンコ：役無しでもシートが1つ完成したら「同じ色か数、または連番…」を出し、役なしの確認は出さない',r['t']=='同じ色か数、または連番にして置くと更に攻撃力アップ！' and not r['ask'],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; flags.forEach(f=>{f.closed=false;f.baseCombo=false;f.cards=[]}); tutStep=4; tutT=turnCounter; tutDiscarded=true; updateTelops(); const o={a:tutStep}; turnCounter+=TUT_STEP_TURNS; updateTelops(); o.b=tutStep; o.d=tutDiscarded; o.t=document.getElementById('telopNow').textContent; return o}""")
+    check('ミジンコの案内：カード予測のあと、最初（置く）に戻ってくり返す',r['a']==4 and r['b']==0 and not r['d'] and r['t'].startswith('手札のカードをドラッグして'),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
