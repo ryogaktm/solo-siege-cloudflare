@@ -3817,7 +3817,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       return true;
     } }
   // 3枚目で「役なし（ホスト）」になる置き方は、最終確認を出す
-  if(!noAsk && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
+  if(!noAsk && !isWeakBody() && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
     const tmp={cards:f.cards.concat(card.kind==='troop'?[card]:[{kind:'wild',color:'wild',label:card.short,uid:card.uid}])};
     const ev=evaluate(tmp);
     if(ev && ev.mult===1){
@@ -5275,7 +5275,8 @@ function tutText(){
   if(st===2) return 'ターン毎に敵の攻撃力は上がっていくぞ！\n時々2倍になるから注意が必要だ！';
   if(st===3) return '次くるカードが解るぞ！\n次の手を考える時の参考にしよう！';
   if(st===4) return 'シート同士で同じマークを揃えたら\n攻撃力が倍になるぞ！';
-  return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートに３枚づつカードを置こう。同じ色か数、または連番にして置くと攻撃力アップ！`;
+  if(flags.some(f=>f.closed&&!f.capturedByEnemy)) return '同じ色か数、または連番にして置くと更に攻撃力アップ！';   // 役無しでもシートが1つ完成したら
+  return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートになんでも良いから３枚づつカードを置こう。`;
 }
 const tutorialComboDone=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo);   // 役を完成させた（ミジンコの案内を、捨てて交換へ切り替える）
 const tutorialOn=()=>!!CHARACTER&&(isWeakBody()||introOn);   // ミジンコで始めた最初の戦い（ミジンコ〜リーダー〜キング）
@@ -7863,7 +7864,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

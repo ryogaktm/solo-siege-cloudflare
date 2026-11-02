@@ -323,7 +323,7 @@ with sync_playwright() as p:
     check('スーパーコンボ：旗が1つだけなら×1のまま／役の無かった色の貯まりは消えない（SUPER_PARAMで元に戻せる）',r['single']==1 and r['next']==1 and r['keep']==4 and r['offKeep']==0,r)
     r=ev("""()=>{ const o={}; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; updateTelops(); o.on=document.querySelector('.telops').style.display; o.txt=document.getElementById('telopNow').textContent;
       CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); updateTelops(); o.off=document.querySelector('.telops').style.display; return o}""")
-    check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and '連番' in r['txt'] and r['txt']=='手札のカードをドラッグして４枚のシートに３枚づつカードを置こう。同じ色か数、または連番にして置くと攻撃力アップ！' and len(r['txt'])<=60 and r['off']=='none',r)
+    check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and r['txt']=='手札のカードをドラッグして４枚のシートになんでも良いから３枚づつカードを置こう。' and r['off']=='none',r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const o={}; updateTelops(); o.d0=document.getElementById('tutArrow').dataset.deg; o.t0=document.getElementById('telopNow').textContent;
       flags[0].closed=true; flags[0].baseCombo=true; flags[0].symbolColor='red'; updateTelops(); o.d1=document.getElementById('tutArrow').dataset.deg; o.t1=document.getElementById('telopNow').textContent; return o}""")
     check('ミジンコ：役を完成させると、HOWが「墓地に手札のカードを捨てて交換出来るぞ」になり、矢印が墓地の方向を向く',r['t0'].startswith('手札のカード') and r['d0']=='0' and r['t1']=='墓地に手札のカードを捨てて交換出来るぞ' and r['d1']!='0',r)
@@ -344,5 +344,8 @@ with sync_playwright() as p:
     check('後半の敵ほど妨害の間隔が短くなる／毒・封鎖の呪いは最初の山札に入れず、妨害レーンの技になる',r['late']<r['mid']<r['early']==r['base'] and r['pois'] and not r['deckCurse'],r)
     r=ev("""()=>{ const o={}; const top=WAVES.findIndex(x=>x.id==='全てを無に帰すもの'); ['ミジンコ','ミジンコリーダー','ミジンコキング'].forEach(id=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id===id)); stageIndex=top>=0?top:WAVES.length-1; try{ localStorage.removeItem('soloSiegeAlienBeat'); }catch(e){} o[id]=alienEncounterId(); }); return o}""")
     check('ミジンコ・ミジンコリーダーの体では宇宙人が出ない（ミジンコキングは別）',r['ミジンコ'] is None and r['ミジンコリーダー'] is None and r['ミジンコキング'] is not None,r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const o={}; flags[0].closed=true; flags[0].baseCombo=false; updateTelops(); o.t=document.getElementById('telopNow').textContent;
+      flags[0].cards=[{kind:'troop',color:'red',value:1,uid:uid()},{kind:'troop',color:'blue',value:5,uid:uid()}]; flags[0].closed=false; hand=[{kind:'troop',color:'green',value:9,uid:uid()}]; picked=0; playOnFlag(0,0,null); o.ask=[...document.querySelectorAll('.modal-bg')].some(m=>getComputedStyle(m).display!=='none'&&m.textContent.includes('役なしになります')); return o}""")
+    check('ミジンコ：役無しでもシートが1つ完成したら「同じ色か数、または連番…」を出し、役なしの確認は出さない',r['t']=='同じ色か数、または連番にして置くと更に攻撃力アップ！' and not r['ask'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
