@@ -223,7 +223,7 @@ with sync_playwright() as p:
     check('撤収：旗のカードが手札に戻り、撤収カードは使われる',r['p1']=='guidance' and r['inHand'] and r['flagLeft']==0 and r['usedGone'] and r['pend'] is None,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const o={}; busy=false; pending=null; gameEnded=false;
       // 毒：5ターン、毎ターン2ダメージ
-      playerHp=100; playerHpMax=100; applyEnemyEvent('poison'); const hp0=playerHp; advanceTurn(null); advanceTurn(null); o.venom=hp0-playerHp; o.venomOn=turnCounter<=dis.venomUntil;
+      playerHp=100; playerHpMax=100; applyEnemyEvent('poison'); const ci=hand.findIndex(c=>c.type==='curse_poison'); o.gotCard=ci>=0; if(ci>=0){ doCurse(ci,0); busy=false; } const hp0=playerHp; advanceTurn(null); advanceTurn(null); o.venom=hp0-playerHp; o.venomOn=turnCounter<=dis.venomUntil;
       for(let k=0;k<6;k++) advanceTurn(null); o.venomEnd=(hp0-playerHp);
       // 暗闇は妨害に出ない
       o.noDark=!WAVES.some(w=>disList(w).includes('dark'));
@@ -239,7 +239,7 @@ with sync_playwright() as p:
       const mb=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); o.bashKind=mb.monSkill&&mb.monSkill.kind; o.bandit=WAVES.find(x=>x.baseId==='野盗の一団').name;
       return o}""")
     check('毒は毎ターン2ダメージ／暗闇は出ない／野盗の物理攻撃・アサシンの行動封じ',
-          r['venom']==4 and r['venomOn'] and r['venomEnd']==10 and r['noDark'] and r['hit']==70 and r['miss']==0 and r['jamOk'] and r['jamNg'] and r['name']=='アサシン' and r['dis']==['assassin'] and r['spr']=='assassin' and r['jamKind']=='jam' and r['bashKind']=='bash',r)
+          r['gotCard'] and r['venom']==4 and r['venomOn'] and r['venomEnd']==10 and r['noDark'] and r['hit']==70 and r['miss']==0 and r['jamOk'] and r['jamNg'] and r['name']=='アサシン' and r['dis']==['assassin'] and r['spr']=='assassin' and r['jamKind']=='jam' and r['bashKind']=='bash',r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; const rnd=Math.random; bossHp=1e9; hand=[0,1,2,3].map(()=>({kind:'troop',color:'red',value:3,uid:uid()})); Math.random=()=>0.9; monSkillUse(); o.missDmg=bashDmg; o.rate=bashRateNow; o.d0=bossHp; advanceTurn(null); advanceTurn(null); o.rate2=bashRateNow; resetBattleRound(); o.rate3=bashRateNow; Math.random=()=>0.1; monSkillUse(); o.hitDmg=bashDmg; o.dealt=1e9-bossHp; Math.random=rnd; return o}""")
     check('バイキングの斧で攻撃：外れてもダメージは変わらない・命中率は1ターンごとに5％下がり新waveで70％に戻る／当たると200ダメージで次は手札の数字カード数×0.3倍',r['missDmg']==200 and abs(r['rate']-0.7)<1e-9 and abs(r['rate2']-0.6)<1e-9 and abs(r['rate3']-0.7)<1e-9 and r['dealt']==200 and r['hitDmg']==240,r)
     r=ev("""()=>{ const w=WAVES.find(x=>x.name==='沼のリザードマン'); const dl=disList(w), wt=disWeights(w,dl), tot=Object.values(wt).reduce((a,b)=>a+b,0);
@@ -339,5 +339,8 @@ with sync_playwright() as p:
       r['s0'][0]==0 and r['s1'][0]==1 and r['s1'][2]=='flex' and r['s2'][0]==2 and r['s2'][2]=='none' and r['s2'][3] and r['s3'][0]==3 and r['s3'][4] and not r['s3'][3] and '次くるカード' in r['s3'][1] and r['s4'][0]==4 and not r['s4'][4] and 'シート同士で同じマーク' in r['s4'][1],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; tutStep=4; updateTelops(); const sv=document.getElementById('tutFlagArrows'); const o={disp:sv&&sv.style.display, n:document.querySelectorAll('#tutFlagArrows line').length}; tutStep=0; updateTelops(); o.off=document.getElementById('tutFlagArrows').style.display; return o}""")
     check('ミジンコの案内：「同じマーク」の段階で、シート同士を時計回りの矢印でつなぐ（それ以外では消える）',r['disp']!='none' and r['n']>=4 and r['off']=='none',r)
+    r=ev("""()=>{ const o={}; const w=WAVES.filter(x=>!x.boss); const late=w[w.length-1], mid=w.find(x=>x.lv===50), early=w.find(x=>x.lv===30); o.late=disEveryAt(late); o.mid=disEveryAt(mid); o.early=disEveryAt(early); o.base=DIS_PARAM.every;
+      o.pois=disList(late).includes('poison')&&disList(late).includes('seal'); CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); stageIndex=WAVES.indexOf(late); init(); stageIndex=WAVES.indexOf(late); addWaveCurses(); o.deckCurse=activeDeck.some(c=>c.type==='curse_poison'||c.type==='curse_seal'); return o}""")
+    check('後半の敵ほど妨害の間隔が短くなる／毒・封鎖の呪いは最初の山札に入れず、妨害レーンの技になる',r['late']<r['mid']<r['early']==r['base'] and r['pois'] and not r['deckCurse'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
