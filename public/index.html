@@ -822,6 +822,7 @@
   /* ---------- hint (transient warnings only) ---------- */
   .hint{ position:fixed; left:50%; right:auto; top:50%; bottom:auto; transform:translate(-50%,-50%); width:max-content; max-width:94vw; box-sizing:border-box; z-index:45; pointer-events:none; text-align:center; font-size:13px; font-weight:700; color:#fff; line-height:1.5; letter-spacing:.02em; padding:7px 14px; background:rgba(0,0,0,.88); border:1px solid rgba(255,255,255,.35); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.6); }
   .hint:empty{ display:none; }
+  .npc-bubble{ display:none !important; }   /* いったん吹き出しは非表示 */
   .npc-bubble{
     position:fixed; left:50%; bottom:calc(132px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(8px); z-index:45;
     max-width:88%; background:#fff8ec; color:#2a1a10; font-size:12.5px; font-weight:700; line-height:1.4;
@@ -5292,10 +5293,10 @@ function tutFlagArrows(on){   // シート同士を、時計回りの矢印で�
   const pts=els.map(e=>{ const r=e.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height}; });
   const cx=pts.reduce((a,p)=>a+p.x,0)/pts.length, cy=pts.reduce((a,p)=>a+p.y,0)/pts.length;
   pts.sort((a,b)=>Math.atan2(a.y-cy,a.x-cx)-Math.atan2(b.y-cy,b.x-cx));   // 画面では角度が増える向き＝時計回り
-  let h='<defs><marker id="tfaH" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffd75e"/></marker></defs>';
+  let h='<defs><marker id="tfaH" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffd75e"/></marker></defs>';
   pts.forEach((a,i)=>{ const b=pts[(i+1)%pts.length]; const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, ux=dx/d, uy=dy/d;
-    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, hl=Math.min(38,d/2-4);   // シート同士のすき間は狭いので、中点を中心に、シートにかぶる長さの矢印にする
-    h+=`<line x1="${mx-ux*hl}" y1="${my-uy*hl}" x2="${mx+ux*hl}" y2="${my+uy*hl}" stroke="#ffd75e" stroke-width="6" stroke-linecap="round" stroke-dasharray="12 8" marker-end="url(#tfaH)" opacity=".95" style="filter:drop-shadow(0 0 4px rgba(0,0,0,.8))"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></line>`; });
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, hl=Math.min(26,d/2-4);   // シート同士のすき間は狭いので、中点を中心に、シートにかぶる長さの矢印にする
+    h+=`<line x1="${mx-ux*hl}" y1="${my-uy*hl}" x2="${mx+ux*hl}" y2="${my+uy*hl}" stroke="#ffd75e" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 7" marker-end="url(#tfaH)" opacity=".5" style="filter:drop-shadow(0 0 4px rgba(0,0,0,.8))"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></line>`; });
   sv.innerHTML=h;
 }
 function updateTelops(){
@@ -7866,7 +7867,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
