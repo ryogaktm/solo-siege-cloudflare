@@ -553,6 +553,10 @@
   .pcard.back.exclude::before{ border-color:rgba(150,150,150,.5); }
 
   /* ---------- telop ---------- */
+  #tutArrow{ position:fixed; left:0; right:0; z-index:40; display:none; flex-direction:column; align-items:center; pointer-events:none; }
+  #tutArrow i{ font-style:normal; font-size:26px; line-height:.8; color:var(--gold); text-shadow:0 0 8px rgba(255,220,100,.9); opacity:0; animation:tutArrowUp 1.2s ease-in-out infinite; }
+  #tutArrow i:nth-child(1){ animation-delay:.4s; } #tutArrow i:nth-child(2){ animation-delay:.2s; } #tutArrow i:nth-child(3){ animation-delay:0s; }
+  @keyframes tutArrowUp{ 0%{opacity:0; transform:translateY(10px);} 40%{opacity:1;} 100%{opacity:0; transform:translateY(-10px);} }
   .telops{ display:flex; flex-direction:column; gap:6px; margin-bottom:4px; flex:0 0 auto; }
   .telop{
     display:flex; align-items:center; gap:8px; padding:4px 10px; border-radius:7px;
@@ -5245,6 +5249,9 @@ const tutorialOn=()=>!!CHARACTER&&(isWeakBody()||introOn);   // ミジンコで�
 let pendHintTxt='';
 function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
+  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending;   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
+    if(on&&!ar){ ar=document.createElement('div'); ar.id='tutArrow'; ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; document.body.appendChild(ar); }
+    if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'); if(hb){ const r=hb.getBoundingClientRect(); ar.style.top=Math.max(0,r.top-62)+'px'; } } } }
   { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
@@ -7797,7 +7804,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02r';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
