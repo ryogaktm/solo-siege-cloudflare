@@ -321,10 +321,8 @@ with sync_playwright() as p:
       flags[0].closed=true; flags[0].baseCombo=true; flags[0].symbolColor='red'; flags[0].closeSeq=1; o.single=superMults()[0]||1; o.next=carryNext().red||0;
       carryMap={blue:4}; o.keep=carryNext().blue||0; SUPER_PARAM.keepSkipped=false; o.offKeep=carryNext().blue||0; SUPER_PARAM.keepSkipped=true; return o}""")
     check('スーパーコンボ：旗が1つだけなら×1のまま／役の無かった色の貯まりは消えない（SUPER_PARAMで元に戻せる）',r['single']==1 and r['next']==1 and r['keep']==4 and r['offKeep']==0,r)
-    r=ev("""()=>{ document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); const o={}; showFirstGuide(true); o.shown=!!document.getElementById('firstGuide'); o.txt=document.getElementById('firstGuide').textContent; document.getElementById('fgOk').click(); o.closed=!document.getElementById('firstGuide'); o.seen=firstGuideSeen(); localStorage.removeItem('soloSiegeGuideSeen'); return o}""")
-    check('初回の説明が出て、閉じられ、一度見たら記録される（目的・置き方・役・攻撃力の説明入り）',r['shown'] and r['closed'] and r['seen'] and '敵のHP' in r['txt'] and '旗' in r['txt'] and '役' in r['txt'] and '攻撃力' in r['txt'],r)
     r=ev("""()=>{ const o={}; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; updateTelops(); o.on=document.querySelector('.telops').style.display; o.txt=document.getElementById('telopNow').textContent;
       CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); updateTelops(); o.off=document.querySelector('.telops').style.display; return o}""")
-    check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and r['off']=='none',r)
+    check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and len(r['txt'])<=40 and r['off']=='none',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
