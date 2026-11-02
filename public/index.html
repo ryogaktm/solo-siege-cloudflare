@@ -5241,8 +5241,8 @@ function nowText(){
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   if(tutorialOn()){   // ミジンコの間だけ：今の状況に合わせた、短い案内をずっと出す
     const placed=flags.reduce((a,f)=>a+f.cards.length,0), closedN=flags.filter(f=>f.closed).length;
-    if(!placed) return '手札を選んで、光った旗へ置こう！ 敵の⚔はカードを使うたび増える。';
-    if(closedN<flags.length) return '1つの旗にカード3枚で封鎖。全部の旗をそろえて攻撃！';
+    if(!placed) return `手札のカードをドラッグして${flags.length}枚のシートに置こう。同じ色か数を連番にすると、攻撃力アップ！`;
+    if(closedN<flags.length) return '1つのシートにカード3枚で封鎖。全部のシートをそろえて攻撃！ 敵の⚔はカードを使うたび増える。';
     return '全部そろった！ 自分の戦力が敵の⚔を上回った分だけ、敵のHPが減る。';
   }
   return currentHowTip;
@@ -7803,7 +7803,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
