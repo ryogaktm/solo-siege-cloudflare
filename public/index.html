@@ -560,7 +560,7 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06); min-height:40px;
   }
   .telop b{ flex:0 0 auto; font-family:'Cinzel',serif; font-size:10px; letter-spacing:.1em; padding:2px 7px; border-radius:4px; color:#201808; background:var(--glow); }
-  .telop span{ font-size:11.5px; color:#eafff2; font-weight:700; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .telop span{ font-size:11.5px; color:#eafff2; font-weight:700; line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .cancelbtn{
     margin-left:auto; flex:0 0 auto; width:22px; height:22px; border-radius:50%;
     background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3);
@@ -5238,11 +5238,19 @@ function nowText(){
   if(pending&&pending.type==='sealpick') return pending.wipe?'カードを消す旗をタップしよう。':pending.bomb?'ボムを置く旗をタップしよう。':pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
+  if(tutorialOn()){   // ミジンコの間だけ：今の状況に合わせた案内を、ずっと出す
+    const placed=flags.reduce((a,f)=>a+f.cards.length,0), closedN=flags.filter(f=>f.closed).length;
+    if(!placed) return '【はじめに】手札のカードをタップして選び、光った旗へ置こう。旗1つにカード3枚で封鎖！ 敵の攻撃力（⚔）はカードを1枚使うたびに増えるぞ。';
+    if(closedN<flags.length) return `【つづき】3枚そろえた旗は封鎖される（同じ色・連番だと役がついて戦力アップ）。全部の旗（${flags.length}つ）を封鎖すると一斉攻撃！ いまは${closedN}/${flags.length}。`;
+    return '【つづき】全部の旗が封鎖された！ 自分の戦力が敵の攻撃力を上回った分だけ、敵のHPが減る。';
+  }
   return currentHowTip;
 }
+const tutorialOn=()=>!!CHARACTER&&(isWeakBody()||introOn);   // ミジンコで始めた最初の戦い（ミジンコ〜リーダー〜キング）
 let pendHintTxt='';
 function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
+  { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
     if(pending && ['discard','replace_select','guidance','duplicate','fusion','split','sealpick','holy'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
@@ -7817,7 +7825,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
