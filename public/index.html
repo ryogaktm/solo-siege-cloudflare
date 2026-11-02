@@ -5253,9 +5253,15 @@ function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
   { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending;   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
     if(on&&!ar){ ar=document.createElement('div'); ar.id='tutArrow'; ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; document.body.appendChild(ar); }
-    if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'); if(hb){ const r=hb.getBoundingClientRect(); ar.style.top=Math.max(0,r.top-22)+'px'; }
-      let deg=0; if(on&&tutorialComboDone()){ const g=document.getElementById('gravePileBtn'); if(g){ const gr=g.getBoundingClientRect(), ay=parseFloat(ar.style.top)+ar.offsetHeight/2, ax=innerWidth/2; deg=Math.atan2((gr.left+gr.width/2)-ax,-((gr.top+gr.height/2)-ay))*180/Math.PI; } }
-      ar.style.transform=`rotate(${deg}deg)`; ar.dataset.deg=Math.round(deg); } } }
+    if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'), r=hb?hb.getBoundingClientRect():null, g=document.getElementById('gravePileBtn');
+      if(r&&g&&tutorialComboDone()){   // 役を完成させたら、手札から墓地まで届く長い矢印にする
+        const gr=g.getBoundingClientRect(), sx=innerWidth/2, sy=r.top+30, tx=gr.left+gr.width/2, ty=gr.top+gr.height/2, dist=Math.hypot(tx-sx,ty-sy), L=Math.max(60,dist-34), deg=Math.atan2(tx-sx,-(ty-sy))*180/Math.PI, n=Math.max(3,Math.round(L/34));
+        if(ar.dataset.n!==String(n)){ ar.innerHTML=Array.from({length:n},(_,i)=>`<i style="animation-delay:${((n-1-i)*0.12).toFixed(2)}s">▲</i>`).join(''); ar.dataset.n=String(n); }
+        ar.style.cssText=`left:${sx-20}px;right:auto;width:40px;top:${sy-L}px;height:${L}px;justify-content:space-between;transform-origin:50% 100%;transform:rotate(${deg}deg);display:flex`; ar.dataset.deg=Math.round(deg);
+      } else {
+        if(ar.dataset.n!=='3'){ ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; ar.dataset.n='3'; }
+        ar.style.cssText=`display:flex;top:${r?Math.max(0,r.top-22):0}px`; ar.dataset.deg=0;
+      } } } }
   { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
@@ -7808,7 +7814,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
