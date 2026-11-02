@@ -7097,13 +7097,36 @@ function runGoalToast(){
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
 }
+/* ---- 初回だけ出る「最初に何をするか」の説明 ---- */
+function firstGuideSeen(){ try{ return !!localStorage.getItem('soloSiegeGuideSeen'); }catch(e){ return true; } }
+function showFirstGuide(force){
+  if(document.getElementById('firstGuide')) return;
+  const FN=(CHARACTER&&CHARACTER.flags)||4;
+  const bg=document.createElement('div'); bg.id='firstGuide'; bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10001';
+  bg.innerHTML=`<div class="reward-box" style="max-width:360px;text-align:left"><div class="reward-title" style="text-align:center">🃏 はじめての戦い</div>
+    <div class="reward-sub" style="margin-top:8px;line-height:1.75;font-size:13px">
+    <p><b style="color:var(--gold)">① 目的</b>　右上の<b>敵のHP</b>を0にすれば勝ち。</p>
+    <p style="margin-top:6px"><b style="color:var(--gold)">② カードを置く</b>　下の手札をタップして、光った<b>${FN}つの旗</b>へドラッグ（またはタップ）。1つの旗にカードを<b>3枚</b>置くと封鎖される。</p>
+    <p style="margin-top:6px"><b style="color:var(--gold)">③ 役を揃える</b>　3枚が同じ色・連番などだと<b>役</b>になり、戦力が何倍にもなる（役がなくても置ける）。</p>
+    <p style="margin-top:6px"><b style="color:var(--gold)">④ 一斉攻撃</b>　全部の旗を封鎖すると攻撃。自分の戦力が、敵の攻撃力（⚔）を上回った分だけ敵のHPが減る。</p>
+    <p style="margin-top:6px"><b style="color:var(--danger)">⚠ 敵の攻撃力はカードを1枚使うたびに増える</b>。もたもたしないで揃えよう。要らないカードは墓地へドラッグすると1枚捨てて1枚引ける（1ターン使う）。</p>
+    <p style="margin-top:8px;font-size:12px;opacity:.8">詳しい遊び方は、右上の「？」でいつでも読めます。</p></div>
+    <div style="display:flex;margin-top:12px"><button class="btn" id="fgOk" style="flex:1">わかった！ はじめる</button></div></div>`;
+  document.body.appendChild(bg);
+  document.getElementById('fgOk').onclick=()=>{ bg.remove(); try{ localStorage.setItem('soloSiegeGuideSeen','1'); }catch(e){} };
+}
+function firstGuideWhenReady(n){   // 他の画面（取得条件・最初の山札）が閉じたあとに、初回だけ出す
+  if(firstGuideSeen()||navigator.webdriver||gameEnded||inPrep||n>400) return;
+  if([...document.querySelectorAll('.modal-bg')].some(m=>m.style.display==='flex')) return setTimeout(()=>firstGuideWhenReady(n+1),150);
+  showFirstGuide();
+}
 function condWhenReady(n){   // 取得条件は、戦闘画面が見えるのを待たずに、最初から出す（ほかの画面が開いている間は、閉じた瞬間に出す）
   if(gameEnded||inPrep||!battleGoals.length||n>300) return;
   const startDeck=(document.getElementById('dbTitle')||{}).textContent==='最初の山札';   // ゲーム開始直後は、最初の山札の画面より先に条件を出す（戦闘画面が見えてから出ないように）
   if([...document.querySelectorAll('.modal-bg')].some(m=>m.style.display==='flex'&&m.id!=='condModal'&&!(startDeck&&m.id==='deckBuildModal'))) return setTimeout(()=>condWhenReady(n+1),60);
   openCondModal();
 }
-function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) condWhenReady(0); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
+function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) condWhenReady(0); }catch(e){} try{ firstGuideWhenReady(0); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
 function grantSpecialAcc(id,msg){
   const d=accDef(id); if(!d||accOwned.some(o=>o.id===id)) return false;
   accOwned.push({aid:accSeq++,id:id}); goalToastQ.push(msg.replace('{n}',d.name)); runGoalToast(); return true;
@@ -7794,7 +7817,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-02i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-02j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
