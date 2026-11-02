@@ -5241,17 +5241,21 @@ function nowText(){
   if(pending&&pending.type==='pfpick') return 'パニックフィールドを置く旗をタップしよう。';
   if(pending&&pending.type==='sealpick') return pending.wipe?'カードを消す旗をタップしよう。':pending.bomb?'ボムを置く旗をタップしよう。':pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
+  if(tutorialOn()&&tutorialComboDone()) return '墓地に手札のカードを捨てて交換出来るぞ';
   if(tutorialOn()) return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートに３枚づつカードを置こう。同じ色か数、または連番にして置くと攻撃力アップ！`;   // ミジンコの間だけ、この一文をずっと出す（状況で変えない）
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
 }
+const tutorialComboDone=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo);   // 役を完成させた（ミジンコの案内を、捨てて交換へ切り替える）
 const tutorialOn=()=>!!CHARACTER&&(isWeakBody()||introOn);   // ミジンコで始めた最初の戦い（ミジンコ〜リーダー〜キング）
 let pendHintTxt='';
 function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
   { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending;   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
     if(on&&!ar){ ar=document.createElement('div'); ar.id='tutArrow'; ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; document.body.appendChild(ar); }
-    if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'); if(hb){ const r=hb.getBoundingClientRect(); ar.style.top=Math.max(0,r.top-22)+'px'; } } } }
+    if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'); if(hb){ const r=hb.getBoundingClientRect(); ar.style.top=Math.max(0,r.top-22)+'px'; }
+      let deg=0; if(on&&tutorialComboDone()){ const g=document.getElementById('gravePileBtn'); if(g){ const gr=g.getBoundingClientRect(), ay=parseFloat(ar.style.top)+ar.offsetHeight/2, ax=innerWidth/2; deg=Math.atan2((gr.left+gr.width/2)-ax,-((gr.top+gr.height/2)-ay))*180/Math.PI; } }
+      ar.style.transform=`rotate(${deg}deg)`; ar.dataset.deg=Math.round(deg); } } }
   { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
@@ -7804,7 +7808,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

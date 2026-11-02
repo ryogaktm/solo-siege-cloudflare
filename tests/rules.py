@@ -324,5 +324,8 @@ with sync_playwright() as p:
     r=ev("""()=>{ const o={}; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; updateTelops(); o.on=document.querySelector('.telops').style.display; o.txt=document.getElementById('telopNow').textContent;
       CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); updateTelops(); o.off=document.querySelector('.telops').style.display; return o}""")
     check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and '連番' in r['txt'] and r['txt']=='手札のカードをドラッグして４枚のシートに３枚づつカードを置こう。同じ色か数、または連番にして置くと攻撃力アップ！' and len(r['txt'])<=60 and r['off']=='none',r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const o={}; updateTelops(); o.d0=document.getElementById('tutArrow').dataset.deg; o.t0=document.getElementById('telopNow').textContent;
+      flags[0].closed=true; flags[0].baseCombo=true; flags[0].symbolColor='red'; updateTelops(); o.d1=document.getElementById('tutArrow').dataset.deg; o.t1=document.getElementById('telopNow').textContent; return o}""")
+    check('ミジンコ：役を完成させると、HOWが「墓地に手札のカードを捨てて交換出来るぞ」になり、矢印が墓地の方向を向く',r['t0'].startswith('手札のカード') and r['d0']=='0' and r['t1']=='墓地に手札のカードを捨てて交換出来るぞ' and r['d1']!='0',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
