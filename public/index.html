@@ -3593,6 +3593,7 @@ function playerLost(over){   // 負けたらそこで終わり（降格はしな
 const ALIEN_GIFTS=[{id:'月の民',lv:13},{id:'火星人',lv:26},{id:'水星人',lv:38},{id:'金星人',lv:50},{id:'土星人',lv:LADDER_N-10},{id:'太陽神',lv:LADDER_N}];
 let alienEnc=null;   // 負けた後に現れた宇宙人との戦い {id, reason}
 function alienEncounterId(){   // 今回の負けで現れる宇宙人（出現ラインに届いていて、まだ現れていない一番手前の1人）
+  if(isWeakBody()) return null;   // ミジンコ・ミジンコリーダーの体では宇宙人は出ない（最後のミジンコ＝ミジンコキングは別）
   const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList();
   for(const g of ALIEN_GIFTS){ if(HIDDEN_BOSSES.includes(g.id)||beat.includes(g.id)) continue; return lostLv>=g.lv?g.id:null; }
   return null;
@@ -7862,7 +7863,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

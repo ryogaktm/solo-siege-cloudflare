@@ -342,5 +342,7 @@ with sync_playwright() as p:
     r=ev("""()=>{ const o={}; const w=WAVES.filter(x=>!x.boss); const late=w[w.length-1], mid=w.find(x=>x.lv===50), early=w.find(x=>x.lv===30); o.late=disEveryAt(late); o.mid=disEveryAt(mid); o.early=disEveryAt(early); o.base=DIS_PARAM.every;
       o.pois=disList(late).includes('poison')&&disList(late).includes('seal'); CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); stageIndex=WAVES.indexOf(late); init(); stageIndex=WAVES.indexOf(late); addWaveCurses(); o.deckCurse=activeDeck.some(c=>c.type==='curse_poison'||c.type==='curse_seal'); return o}""")
     check('後半の敵ほど妨害の間隔が短くなる／毒・封鎖の呪いは最初の山札に入れず、妨害レーンの技になる',r['late']<r['mid']<r['early']==r['base'] and r['pois'] and not r['deckCurse'],r)
+    r=ev("""()=>{ const o={}; const top=WAVES.findIndex(x=>x.id==='全てを無に帰すもの'); ['ミジンコ','ミジンコリーダー','ミジンコキング'].forEach(id=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id===id)); stageIndex=top>=0?top:WAVES.length-1; try{ localStorage.removeItem('soloSiegeAlienBeat'); }catch(e){} o[id]=alienEncounterId(); }); return o}""")
+    check('ミジンコ・ミジンコリーダーの体では宇宙人が出ない（ミジンコキングは別）',r['ミジンコ'] is None and r['ミジンコリーダー'] is None and r['ミジンコキング'] is not None,r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
