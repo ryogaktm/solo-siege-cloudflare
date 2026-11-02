@@ -557,6 +557,9 @@
   #tutArrow i{ font-style:normal; font-size:42px; line-height:.8; color:var(--gold); text-shadow:0 0 8px rgba(255,220,100,.9); opacity:0; animation:tutArrowUp 1.2s ease-in-out infinite; }
   #tutArrow i:nth-child(1){ animation-delay:.4s; } #tutArrow i:nth-child(2){ animation-delay:.2s; } #tutArrow i:nth-child(3){ animation-delay:0s; }
   @keyframes tutArrowUp{ 0%{opacity:0; transform:translateY(10px);} 40%{opacity:1;} 100%{opacity:0; transform:translateY(-10px);} }
+  #telopNow{ white-space:pre-line; }
+  .upcoming-wrap.tut-glow{ border-radius:10px; animation:tutLane 1.1s ease-in-out infinite; }
+  @keyframes tutLane{ 0%,100%{ box-shadow:0 0 0 2px rgba(255,215,94,.35), 0 0 6px rgba(255,215,94,.3);} 50%{ box-shadow:0 0 0 3px rgba(255,215,94,.95), 0 0 18px rgba(255,215,94,.9);} }
   .telops{ display:flex; flex-direction:column; gap:6px; margin-bottom:4px; flex:0 0 auto; }
   .telop{
     display:flex; align-items:center; gap:8px; padding:4px 10px; border-radius:7px;
@@ -1638,7 +1641,7 @@ function monSpLabel(ch){ const m=ch.monSkill; if(m&&m.name) return (m.icon||'')+
 const MON_KEY='soloSiegeMons';
 function unlockedMons(){ try{ return JSON.parse(lsGet(MON_KEY)||'[]').map(n=>(n==='生え抜きの将軍'||n==='元の体')?HUMAN_MON:n); }catch(e){ return []; } }
 let newMonQueue=[];
-function unlockMonAndBelow(wave){ try{ unlockMon(wave.id); if(wave.boss){ announceNewMons(); return; } const i=WAVES.indexOf(wave); for(let j=0;j<i;j++){ if(WAVES[j]&&!WAVES[j].boss) unlockMon(WAVES[j].id); } backfillMons(); announceNewMons(); }catch(e){} }   // 倒した敵と、それより弱い敵をすべて使えるようにして、新しく増えた分は知らせる
+function unlockMonAndBelow(wave){ try{ unlockMon(wave.id); if(wave.boss){ announceNewMons(); return; } const i=WAVES.indexOf(wave); for(let j=0;j<i;j++){ if(WAVES[j]&&!WAVES[j].boss) unlockMon(WAVES[j].id); } backfillMons(); if(isWeakBody()) newMonQueue.length=0; announceNewMons(); }catch(e){} }   // 倒した敵と、それより弱い敵をすべて使えるようにして、新しく増えた分は知らせる
 function backfillMons(){ try{ let mx=-1; unlockedMons().forEach(n=>{ const i=WAVES.findIndex(w=>w.id===n&&!w.boss); if(i>mx) mx=i; }); for(let j=0;j<mx;j++){ if(WAVES[j]&&!WAVES[j].boss) unlockMon(WAVES[j].id); } }catch(e){} }
 function unlockMon(name){ try{ const L=unlockedMons(); if(!L.includes(name)){ L.push(name); lsSet(MON_KEY,JSON.stringify(L)); newMonQueue.push(name); } }catch(e){} }
 function announceNewMons(){
@@ -1996,6 +1999,7 @@ function loadOverallHighScore(){
 }
 let stageIndex=0, waveAttempt=1, bossHp=0, displayedBossHp=0, victory=false, waveAdvancing=false, freeShuffles=0, rewardPicksRemaining=0, pendingRewardCards=[], handSlotBonus=0;
 let totalWaves=0, immortalKills=0, carryDamage=0;
+let tutDiscarded=false;   // ミジンコの案内：墓地へ捨てて交換できた
 let introOn=false, introAdv=false;   // ミジンコで始めた時だけ、最初にリーダー→キングと戦う
 let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0, lastPower=0;
 const IMMORTAL_KILLS_TO_WIN=2;
@@ -2773,7 +2777,7 @@ function rerollStartDeck(){
 }
 function init(){
   applyEnemyNames();
-  score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   /* ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） */ lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
+  score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; tutDiscarded=false; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   /* ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） */ lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
@@ -3967,7 +3971,7 @@ function discardDraw(handIdx,okPen){
   if(enemyC && !okPen){ askComboPenalty(1,()=>{ const j=hand.indexOf(card); if(j>=0) discardDraw(j,true); }); return false; }
   busy=true;
   hand.splice(handIdx,1);
-  graveyard.push(card);
+  graveyard.push(card); tutDiscarded=true;
   advanceTurn(card);
   playSfx('place');
   const refilled=autoRefill(1);
@@ -5241,6 +5245,7 @@ function nowText(){
   if(pending&&pending.type==='pfpick') return 'パニックフィールドを置く旗をタップしよう。';
   if(pending&&pending.type==='sealpick') return pending.wipe?'カードを消す旗をタップしよう。':pending.bomb?'ボムを置く旗をタップしよう。':pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
+  if(tutorialOn()&&tutDiscarded) return 'ターン毎に敵の攻撃力は上がっていくぞ！\n時々2倍になるから注意が必要だ！';
   if(tutorialOn()&&tutorialComboDone()) return '墓地に手札のカードを捨てて交換出来るぞ';
   if(tutorialOn()) return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートに３枚づつカードを置こう。同じ色か数、または連番にして置くと攻撃力アップ！`;   // ミジンコの間だけ、この一文をずっと出す（状況で変えない）
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
@@ -5251,7 +5256,7 @@ const tutorialOn=()=>!!CHARACTER&&(isWeakBody()||introOn);   // ミジンコで�
 let pendHintTxt='';
 function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
-  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending;   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
+  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending&&!tutDiscarded;   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
     if(on&&!ar){ ar=document.createElement('div'); ar.id='tutArrow'; ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; document.body.appendChild(ar); }
     if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'), r=hb?hb.getBoundingClientRect():null, g=document.getElementById('gravePileBtn');
       if(r&&g&&tutorialComboDone()){   // 役を完成させたら、手札から墓地まで届く長い矢印にする
@@ -5262,6 +5267,7 @@ function updateTelops(){
         if(ar.dataset.n!=='3'){ ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; ar.dataset.n='3'; }
         ar.style.cssText=`display:flex;top:${r?Math.max(0,r.top-22):0}px`; ar.dataset.deg=0;
       } } } }
+  { const uw=document.querySelector('.upcoming-wrap'); if(uw) uw.classList.toggle('tut-glow',tutorialOn()&&tutDiscarded&&!gameEnded); }   // 墓地へ捨てられたら、敵の攻撃レーンを光らせる
   { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
@@ -7814,7 +7820,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

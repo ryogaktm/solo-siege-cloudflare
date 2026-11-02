@@ -327,5 +327,11 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const o={}; updateTelops(); o.d0=document.getElementById('tutArrow').dataset.deg; o.t0=document.getElementById('telopNow').textContent;
       flags[0].closed=true; flags[0].baseCombo=true; flags[0].symbolColor='red'; updateTelops(); o.d1=document.getElementById('tutArrow').dataset.deg; o.t1=document.getElementById('telopNow').textContent; return o}""")
     check('ミジンコ：役を完成させると、HOWが「墓地に手札のカードを捨てて交換出来るぞ」になり、矢印が墓地の方向を向く',r['t0'].startswith('手札のカード') and r['d0']=='0' and r['t1']=='墓地に手札のカードを捨てて交換出来るぞ' and r['d1']!='0',r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const w=WAVES[stageIndex]; finishWaveOutcome(true,w); return [...document.querySelectorAll('.modal-bg')].filter(m=>getComputedStyle(m).display!=='none').map(m=>m.textContent.slice(0,20))}""")
+    pg.wait_for_timeout(1300); r2=ev("()=>[...document.querySelectorAll('.modal-bg')].filter(m=>getComputedStyle(m).display!=='none').map(m=>m.textContent.slice(0,20))")
+    check('ミジンコの勝利後は「準備万端」の画面だけが出る（新モンスターなどのポップアップは出さない）',any('準備万端' in x for x in r2) and not any('新しい' in x for x in r2),r2)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; const o={}; updateTelops(); o.a0=document.getElementById('tutArrow').style.display; o.g0=document.querySelector('.upcoming-wrap').classList.contains('tut-glow');
+      discardDraw(0,true); busy=false; updateTelops(); o.a1=document.getElementById('tutArrow').style.display; o.g1=document.querySelector('.upcoming-wrap').classList.contains('tut-glow'); o.txt=document.getElementById('telopNow').textContent; return o}""")
+    check('ミジンコ：墓地へ捨てたら矢印が消え、敵の攻撃レーンが光り、HOWが攻撃力の説明になる',r['a0']=='flex' and not r['g0'] and r['a1']=='none' and r['g1'] and r['txt']=='ターン毎に敵の攻撃力は上がっていくぞ！\n時々2倍になるから注意が必要だ！',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
