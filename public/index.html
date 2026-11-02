@@ -5260,26 +5260,28 @@ function nowText(){
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
 }
-let tutStep=0, tutT=0;   // ミジンコの案内の段階：0 置く／1 スーパーコンボ（役が揃ったあと）／2 墓地へ捨てる／3 敵の攻撃レーン／4 カード予測レーン（1・3・4は3ターンずつ。4のあとは0に戻ってくり返す）
+let tutStep=0, tutT=0;   // ミジンコの案内の段階：0 置く／1 役の説明（シートが1つ完成したあと）／2 スーパーコンボ（役が揃ったあと）／3 墓地へ捨てる／4 敵の攻撃レーン／5 カード予測レーン（1・2・4・5は3ターンずつ。5のあとは0に戻ってくり返す）
 const TUT_STEP_TURNS=3;
 function tutStepNow(){
-  const combos=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo).length;
+  const combos=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo).length, closed=flags.filter(f=>f.closed&&!f.capturedByEnemy).length;
   if(turnCounter<tutT) tutT=turnCounter;
-  if(tutStep<3&&tutDiscarded){ tutStep=3; tutT=turnCounter; }   // 捨てて交換できたら、敵の攻撃レーンへ
-  else if(tutStep===0&&combos>=1){ tutStep=1; tutT=turnCounter; }
-  else if(tutStep===1&&turnCounter-tutT>=TUT_STEP_TURNS) tutStep=2;
-  else if(tutStep===2&&combos>=2){ tutStep=3; tutT=turnCounter; }
-  else if(tutStep===3&&turnCounter-tutT>=TUT_STEP_TURNS){ tutStep=4; tutT=turnCounter; }
-  else if(tutStep===4&&turnCounter-tutT>=TUT_STEP_TURNS){ tutStep=0; tutDiscarded=false; tutT=turnCounter; }   // 最後まで行ったら、最初に戻ってくり返す
+  const dt=turnCounter-tutT;
+  if(tutStep<4&&tutDiscarded){ tutStep=4; tutT=turnCounter; }   // 捨てて交換できたら、敵の攻撃レーンへ
+  else if(tutStep===0&&closed>=1){ tutStep=1; tutT=turnCounter; }
+  else if(tutStep===1&&dt>=TUT_STEP_TURNS&&combos>=1){ tutStep=2; tutT=turnCounter; }
+  else if(tutStep===2&&dt>=TUT_STEP_TURNS){ tutStep=3; tutT=turnCounter; }
+  else if(tutStep===3&&combos>=2){ tutStep=4; tutT=turnCounter; }
+  else if(tutStep===4&&dt>=TUT_STEP_TURNS){ tutStep=5; tutT=turnCounter; }
+  else if(tutStep===5&&dt>=TUT_STEP_TURNS){ tutStep=0; tutDiscarded=false; tutT=turnCounter; }   // 最後まで行ったら、最初に戻ってくり返す
   return tutStep;
 }
 function tutText(){
   const st=tutStepNow();
-  if(st===1) return 'シート同士で同じマークを揃えたら\n攻撃力が倍になるぞ！';
-  if(st===2) return '墓地に手札のカードを捨てて交換出来るぞ';
-  if(st===3) return 'ターン毎に敵の攻撃力は上がっていくぞ！\n時々2倍になるから注意が必要だ！';
-  if(st===4) return '次くるカードが解るぞ！\n次の手を考える時の参考にしよう！';
-  if(flags.some(f=>f.closed&&!f.capturedByEnemy)) return '同じ色か数、または連番にして置くと更に攻撃力アップ！';   // 役無しでもシートが1つ完成したら
+  if(st===1) return '同じ色か数、または連番にして置くと更に攻撃力アップ！';
+  if(st===2) return 'シート同士で同じマークを揃えたら\n攻撃力が倍になるぞ！';
+  if(st===3) return '墓地に手札のカードを捨てて交換出来るぞ';
+  if(st===4) return 'ターン毎に敵の攻撃力は上がっていくぞ！\n時々2倍になるから注意が必要だ！';
+  if(st===5) return '次くるカードが解るぞ！\n次の手を考える時の参考にしよう！';
   return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートになんでも良いから３枚づつカードを置こう。`;
 }
 const tutorialComboDone=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo);   // 役を完成させた（ミジンコの案内を、捨てて交換へ切り替える）
@@ -5302,10 +5304,10 @@ function tutFlagArrows(on){   // シート同士を、時計回りの矢印で�
 }
 function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
-  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending&&(tutStep===0||tutStep===2);   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
+  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending&&(tutStep===0||tutStep===3);   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
     if(on&&!ar){ ar=document.createElement('div'); ar.id='tutArrow'; ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; document.body.appendChild(ar); }
     if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'), r=hb?hb.getBoundingClientRect():null, g=document.getElementById('gravePileBtn');
-      if(r&&g&&tutStep===2){   // 墓地の段階：手札から墓地まで届く長い矢印にする
+      if(r&&g&&tutStep===3){   // 墓地の段階：手札から墓地まで届く長い矢印にする
         const gr=g.getBoundingClientRect(), sx=innerWidth/2, sy=r.top+30, tx=gr.left+gr.width/2, ty=gr.top+gr.height/2, dist=Math.hypot(tx-sx,ty-sy), L=Math.max(60,dist-34), deg=Math.atan2(tx-sx,-(ty-sy))*180/Math.PI, n=Math.max(3,Math.round(L/34));
         if(ar.dataset.n!==String(n)){ ar.innerHTML=Array.from({length:n},(_,i)=>`<i style="animation-delay:${((n-1-i)*0.12).toFixed(2)}s">▲</i>`).join(''); ar.dataset.n=String(n); }
         ar.style.cssText=`left:${sx-20}px;right:auto;width:40px;top:${sy-L}px;height:${L}px;justify-content:space-between;transform-origin:50% 100%;transform:rotate(${deg}deg);display:flex`; ar.dataset.deg=Math.round(deg);
@@ -5313,9 +5315,9 @@ function updateTelops(){
         if(ar.dataset.n!=='3'){ ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; ar.dataset.n='3'; }
         ar.style.cssText=`display:flex;top:${r?Math.max(0,r.top-22):0}px`; ar.dataset.deg=0;
       } } } }
-  { const uw=document.querySelector('.upcoming-wrap'); if(uw) uw.classList.toggle('tut-glow',tutorialOn()&&tutStep===3&&!gameEnded); }
-  { const nb=document.querySelector('.nextbar'); if(nb) nb.classList.toggle('tut-glow',tutorialOn()&&tutStep===4&&!gameEnded); }   // 3ターンたったら、カード予測のレーンを光らせる   // 墓地へ捨てられたら、敵の攻撃レーンを光らせる
-  tutFlagArrows(tutorialOn()&&tutStep===1&&!gameEnded);   // 同じマークの説明：シート同士を時計回りの矢印でつなぐ
+  { const uw=document.querySelector('.upcoming-wrap'); if(uw) uw.classList.toggle('tut-glow',tutorialOn()&&tutStep===4&&!gameEnded); }
+  { const nb=document.querySelector('.nextbar'); if(nb) nb.classList.toggle('tut-glow',tutorialOn()&&tutStep===5&&!gameEnded); }   // 3ターンたったら、カード予測のレーンを光らせる   // 墓地へ捨てられたら、敵の攻撃レーンを光らせる
+  tutFlagArrows(tutorialOn()&&tutStep===2&&!gameEnded);   // 同じマークの説明：シート同士を時計回りの矢印でつなぐ
   { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
@@ -7868,7 +7870,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
