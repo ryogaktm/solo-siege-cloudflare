@@ -5237,7 +5237,7 @@ function nowText(){
   if(pending&&pending.type==='pfpick') return 'パニックフィールドを置く旗をタップしよう。';
   if(pending&&pending.type==='sealpick') return pending.wipe?'カードを消す旗をタップしよう。':pending.bomb?'ボムを置く旗をタップしよう。':pending.minus?'マイナスにする旗をタップしよう。':'封鎖する旗をタップしよう。';
   if(pending&&pending.type==='fusion') return `融合する部隊カードを2枚タップしよう（${pending.chosen.length}/2）。`;
-  if(tutorialOn()) return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートに置こう。同じ色か数を連番にして置くと攻撃力アップ！`;   // ミジンコの間だけ、この一文をずっと出す（状況で変えない）
+  if(tutorialOn()) return `手札のカードをドラッグして${String(flags.length).replace(/[0-9]/g,d=>String.fromCharCode(d.charCodeAt(0)+65248))}枚のシートに３枚づつカードを置こう。同じ色か数を連番にして置くと攻撃力アップ！`;   // ミジンコの間だけ、この一文をずっと出す（状況で変えない）
   if(picked!==null) return '緑に光っている旗へカードをドラッグ（またはタップ）して置こう。墓地へドラッグすると1枚捨てて1枚引ける（1ターン消費）。';
   return currentHowTip;
 }
