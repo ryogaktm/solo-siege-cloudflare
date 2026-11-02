@@ -323,6 +323,6 @@ with sync_playwright() as p:
     check('スーパーコンボ：旗が1つだけなら×1のまま／役の無かった色の貯まりは消えない（SUPER_PARAMで元に戻せる）',r['single']==1 and r['next']==1 and r['keep']==4 and r['offKeep']==0,r)
     r=ev("""()=>{ const o={}; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; updateTelops(); o.on=document.querySelector('.telops').style.display; o.txt=document.getElementById('telopNow').textContent;
       CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); updateTelops(); o.off=document.querySelector('.telops').style.display; return o}""")
-    check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and '連番' in r['txt'] and r['txt']=='手札のカードをドラッグして４枚のシートに３枚づつカードを置こう。同じ色か数を連番にして置くと攻撃力アップ！' and len(r['txt'])<=60 and r['off']=='none',r)
+    check('ミジンコの間だけ、HOWの案内が常時出る（ほかのモンスターでは出ない）',r['on']=='flex' and '手札' in r['txt'] and '連番' in r['txt'] and r['txt']=='手札のカードをドラッグして４枚のシートに３枚づつカードを置こう。同じ色か数、または連番にして置くと攻撃力アップ！' and len(r['txt'])<=60 and r['off']=='none',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
