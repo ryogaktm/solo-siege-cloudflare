@@ -2017,6 +2017,7 @@ let anyDragActive=false;
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
 const MONSK={orcMin:5, goblinMin:10, goblinKeep:0.1, mummyDiv:5, gargoyleCost:10, gargoyleHp:1/3, zombieCost:10, farmerHeal:100, samuraiMul:100, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false;   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／ゲームを通して持ち越し）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
 function tryRevive(){ if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
@@ -2490,7 +2491,7 @@ function resetBattleRound(){
   frozenMults={}; frozenHost={}; bashRateNow=DIS_PARAM.bashRate; bashRateHist=[bashRateNow];   // 斧の命中率は、攻撃して次のwaveになったら元に戻る
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
   try{ flags.forEach(f=>{ f.blindUntil=0; }); }catch(e){}
-  enemyTurn=0; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
+  enemyTurn=0; warnedDisTurn=-1; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
   try{
@@ -2578,6 +2579,21 @@ function autoForecast(){   // 旗ごとの「あとNターンで何のカード�
     }
   }catch(e){} return out;
 }
+const ENEMY_FLY_MS=650;   // 敵がカードをシートへ差し込む演出の長さ
+function enemyCardFly(fi,card){   // 敵（右上）からカードが飛んできて、シートに差し込まれる
+  try{
+    const mo=document.getElementById('fighterMo'), fl=document.querySelector('.flag[data-index="'+fi+'"]'); if(!mo||!fl||!card) return;
+    card.flying=true; try{ render(); }catch(e){}
+    const fl2=document.querySelector('.flag[data-index="'+fi+'"]')||fl, a=mo.getBoundingClientRect(), b=fl2.getBoundingClientRect();
+    const el=document.createElement('div'); el.className='enemy-fly';
+    el.style.cssText=`position:fixed;z-index:9000;pointer-events:none;width:46px;height:64px;left:${a.left+a.width/2-23}px;top:${a.top+a.height/2-32}px;border-radius:7px;border:2px solid #ff7a68;background:linear-gradient(145deg,#8a2424,#3a0e0e);box-shadow:0 0 14px rgba(255,90,70,.9)`;
+    document.body.appendChild(el);
+    const dx=b.left+b.width/2-(a.left+a.width/2), dy=b.top+b.height/2-(a.top+a.height/2);
+    const done=()=>{ if(!el.isConnected) return; el.remove(); card.flying=false; try{ render(); }catch(e){} };
+    const an=el.animate([{transform:'translate(0,0) scale(.5) rotate(-25deg)',opacity:.3},{transform:`translate(${dx*.55}px,${dy*.55-30}px) scale(1.15) rotate(150deg)`,opacity:1,offset:.55},{transform:`translate(${dx}px,${dy}px) scale(.9) rotate(360deg)`,opacity:1}],{duration:ENEMY_FLY_MS,easing:'ease-in'});
+    an.onfinish=done; setTimeout(done,ENEMY_FLY_MS+400);
+  }catch(e){ try{ card.flying=false; }catch(_){} }
+}
 function applyEnemyEvent(type,target,viaCard){
   dlog('enemy_event',{event:type}); enemyEventFX(type);
   if(DIS_NAME[type]){ disFired++; disCount[type]=(disCount[type]||0)+1; disLast=type; }
@@ -2590,7 +2606,7 @@ function applyEnemyEvent(type,target,viaCard){
     const cpl=takeAutoPlan('cfield'), cfi=autoTargetIdx(cpl);
     if(cfi<0){ hint('敵がカラフルフィールドを置こうとしたが、置ける旗がなかった。',true); }
     else if(!hauntBlock(cfi,'敵のカラフルフィールド')){
-      const cf=makeColorField(cpl.col); cf.autoFresh=true; flags[cfi].cards.push(cf);
+      const cf=makeColorField(cpl.col); cf.autoFresh=true; flags[cfi].cards.push(cf); enemyCardFly(cfi,cf);
       setTimeout(()=>{ cf.autoFresh=false; try{ render(); }catch(e){} },2200);
       hint(`💀 敵が旗${cfi+1}にカラフルフィールド（${CNAME[cf.color]}）を置いた！ その旗には${CNAME[cf.color]}のカードしか置けない（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn'); try{ render(); }catch(e){}
     }
@@ -2600,7 +2616,7 @@ function applyEnemyEvent(type,target,viaCard){
     else {
       const f=flags[fi], col=pl.col, v=pl.v;
       if(hauntBlock(fi,'敵の数字カード')) return;
-      const ac={kind:'troop',color:col,value:v,uid:uid(),temp:true,autoPlaced:true,autoFresh:true}; f.cards.push(ac);   // 中身は普通の数字カード。ただし「敵が置いた」とわかるよう赤い枠と「敵」の印を付け、置いた直後は光らせる
+      const ac={kind:'troop',color:col,value:v,uid:uid(),temp:true,autoPlaced:true,autoFresh:true}; f.cards.push(ac); enemyCardFly(fi,ac);   // 中身は普通の数字カード。ただし「敵が置いた」とわかるよう赤い枠と「敵」の印を付け、置いた直後は光らせる
       setTimeout(()=>{ ac.autoFresh=false; try{ render(); }catch(e){} },2200);
       hint(`🔢 敵が勝手に旗${fi+1}へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
       try{ render(); }catch(e){}
@@ -2609,7 +2625,7 @@ function applyEnemyEvent(type,target,viaCard){
     const ppl=takeAutoPlan('pfield'), pfi=autoTargetIdx(ppl);
     if(pfi<0){ hint('敵がパニックフィールドを置こうとしたが、置ける旗がなかった。',true); }
     else if(!hauntBlock(pfi,'敵のパニックフィールド')){
-      const pf=makePanicField(); pf.accumulatedBonus=0; pf.autoFresh=true; flags[pfi].cards.push(pf);
+      const pf=makePanicField(); pf.accumulatedBonus=0; pf.autoFresh=true; flags[pfi].cards.push(pf); enemyCardFly(pfi,pf);
       setTimeout(()=>{ pf.autoFresh=false; try{ render(); }catch(e){} },2200);
       hint(`🌀 敵が旗${pfi+1}にパニックフィールドを置いた！ 次にその旗へ置くカードの数字が逆転（革命）する。`,true); playSfx('warn'); try{ render(); }catch(e){}
     }
@@ -3155,6 +3171,7 @@ function advanceTurn(usedCard){
       if(e1){ applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; }
     }
   }
+  if(stepped&&!gameEnded){ const nt=enemyTurn+1, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; hint(`⚠ 次のターン、妨害が来る：${inf.icon||''}${inf.label||ne}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ 次のターン ${inf.icon||''}${inf.label||''}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
   dlog('turn',{used:dbgCardStr(usedCard)+(usedCard&&usedCard.kind?'':''), onFlag:lastFi, event:ev||null, enemyAtkNow:currentEnemyAtk()});
   lastFi=-1;
 }
@@ -3829,6 +3846,15 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       document.body.appendChild(bg); busy=true;
       bg.querySelector('#cfNo').onclick=()=>{ bg.remove(); busy=false; picked=null; render(); layoutHand(false); };
       bg.querySelector('#cfYes').onclick=()=>{ bg.remove(); busy=false; const i=hand.findIndex(c=>c.uid===uidK); if(i<0||!playOnFlag(i,fi,fromRect,true)){ picked=null; render(); layoutHand(false); } };
+      return true;
+    } }
+  { const pm=flagMonster(f);   // パニックフィールドの旗：逆転後の数字を、置く前に確認する
+    if(!noAsk && card.kind==='troop' && pm && (pm.sub==='pfield'||pm.pf)){
+      const uidK=card.uid, nv=11-card.value, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+      bg.innerHTML=`<div class="reward-box"><div class="reward-title">🌀 パニックフィールド</div><div class="reward-sub" style="margin-top:8px">置いた時に<b style="color:var(--gold)">${nv}</b>になるけど良いですか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="pfNo" style="flex:1;margin:0;opacity:.8">やめる</button><button class="btn" id="pfYes" style="flex:1;margin:0">置く</button></div></div>`;
+      document.body.appendChild(bg); busy=true;
+      bg.querySelector('#pfNo').onclick=()=>{ bg.remove(); busy=false; picked=null; render(); layoutHand(false); };
+      bg.querySelector('#pfYes').onclick=()=>{ bg.remove(); busy=false; const i=hand.findIndex(c=>c.uid===uidK); if(i<0||!playOnFlag(i,fi,fromRect,true)){ picked=null; render(); layoutHand(false); } };
       return true;
     } }
   // 3枚目で「役なし（ホスト）」になる置き方は、最終確認を出す
@@ -4586,6 +4612,7 @@ function paintCard(d, c, mini){
   }
   if(c.enemyPlaced) d.classList.add('enemy');
   if(c.autoPlaced){ d.classList.add('auto-enemy'); if(c.autoFresh) d.classList.add('auto-new'); }
+  if(c.flying) d.style.visibility='hidden';   // 敵のカードが飛んでくる間は、着くまで見せない
   if(c.voided) d.classList.add('voided');
   if(c.purchased) d.classList.add('purchased');
 }
@@ -7936,7 +7963,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03w';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03x';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

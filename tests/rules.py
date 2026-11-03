@@ -366,5 +366,15 @@ with sync_playwright() as p:
     check('21〜28の特殊技：きれい好き・仲間の壁・財宝・ファイアブレス・蘇り・ためる・銭投げ・収穫祭（足りない時は使えない）',all(r.values()),r)
     r=ev("""()=>{ const o={}; lsSet('soloSiegeAlienBeat','[]'); o.res=comboRestricted(); CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); carryMap={red:3}; nextStageIdx=INTRO_LEADER; advanceToNextStage(); o.mijinko=carryMap.red===3; lsSet('soloSiegeAlienBeat',JSON.stringify(['月の民'])); return o}""")
     check('ミジンコの間はスーパーコンボを次の戦いへ引き継げる',r['mijinko'] and r['res'],r)
+    r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      flags[0].cards=[makePanicField()]; hand=[{kind:'troop',color:'red',value:3,uid:uid()}]; const hl=hand.length; playOnFlag(0,0,null); o.ask=[...document.querySelectorAll('.modal-bg')].some(m=>m.textContent.includes('になるけど良いですか')&&m.textContent.includes('8')); o.notYet=hand.length===hl&&flags[0].cards.length===1;
+      const y=document.getElementById('pfYes'); if(y) y.click(); await new Promise(r=>setTimeout(r,1500)); o.placed=flags[0].cards.some(c=>c.kind==='troop'&&c.value===8);
+      document.querySelectorAll('.modal-bg').forEach(m=>{ if(m.id!=='x') m.style.display='none'; }); busy=false;
+      enemySched={}; enemyTurn=3; enemySched[4]='autonum'; warnedDisTurn=-1; advanceTurn(null); o.warn=warnedDisTurn===enemyTurn+1||warnedDisTurn===4; 
+      return o}""")
+    check('パニックフィールド：数字を置く前に「置いた時に○になるけど良いですか？」を出す／妨害が1ターン前に予告される',r['ask'] and r['notYet'] and r['placed'],r)
+    r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      const f=flags[0]; f.cards=[]; enemySched={}; applyEnemyEvent('autonum'); const c=f.cards.find(x=>x.autoPlaced)||flags.flatMap(g=>g.cards).find(x=>x.autoPlaced); o.flying=!!(c&&c.flying); o.fly=!!document.querySelector('.enemy-fly'); await new Promise(r=>setTimeout(r,ENEMY_FLY_MS+600)); o.after=!document.querySelector('.enemy-fly')&&!(c&&c.flying); return o}""")
+    check('敵がカードを置く時、敵からシートへ飛んでくる演出が出て、あとで消える',r['flying'] and r['fly'] and r['after'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
