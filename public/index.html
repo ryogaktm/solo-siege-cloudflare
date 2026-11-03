@@ -3085,6 +3085,7 @@ function targetsFor(card){
     if(card.kind==='monster' && card.sub==='mark'){   // 色の装備：役が固まった旗の上にも置ける（最後に置いたカードのマークが変わり、役が変わる）
       if(isLocked(f)||f.capturedByEnemy) return;
       const mon0=flagMonster(f);
+      if(mon0&&mon0.sub==='cfield'&&!f.closed){ out.push(i); return; }   // カラフルフィールドの旗には、色の装備でそのフィールドの色を変えられる
       if(f.cards.some(c=>c.kind==='troop') && (!mon0 || mon0.sub==='number' || mon0.color===card.color)) out.push(i);
       return;
     }
@@ -3921,6 +3922,13 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   if(card.kind==='monster' && card.sub==='mark'){
     hand.splice(handIdx,1);
+    { const cfm=flagMonster(f);
+      if(cfm&&cfm.sub==='cfield'){   // カラフルフィールドに色の装備を置くと、フィールドがその色に変わる
+        cfm.color=card.color; graveyard.push(card); playSfx('equipment'); advanceTurn(card);
+        const refilled=autoRefill(1); render(); layoutHand(false);
+        flyToUid(card.uid, fromRect, ()=>{ if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect); busy=false; hint(`カラフルフィールドが${CNAME[card.color]}に変わった！`); endCheck(); render(); });
+        return true;
+      } }
     const tr=f.cards.filter(c=>c.kind==='troop'), tgt=tr[tr.length-1], idxOf=tgt?f.cards.indexOf(tgt)+1:0;
     if(tgt){ if(tgt.origColor===undefined){ tgt.origColor=tgt.color; tgt.origAlt=tgt.altColor; tgt.origMixed=tgt.mixed; } tgt.color=card.color; tgt.altColor=undefined; tgt.mixed=undefined; }   // 色の装備：最後に置いたカード（3枚目）だけが染まる。その色は、その戦いの間だけ（戦いが終わると元の色に戻す）
     graveyard.push(card);
@@ -7963,7 +7971,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03x';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03y';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

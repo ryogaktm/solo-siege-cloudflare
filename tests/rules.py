@@ -376,5 +376,8 @@ with sync_playwright() as p:
     r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
       const f=flags[0]; f.cards=[]; enemySched={}; applyEnemyEvent('autonum'); const c=f.cards.find(x=>x.autoPlaced)||flags.flatMap(g=>g.cards).find(x=>x.autoPlaced); o.flying=!!(c&&c.flying); o.fly=!!document.querySelector('.enemy-fly'); await new Promise(r=>setTimeout(r,ENEMY_FLY_MS+600)); o.after=!document.querySelector('.enemy-fly')&&!(c&&c.flying); return o}""")
     check('敵がカードを置く時、敵からシートへ飛んでくる演出が出て、あとで消える',r['flying'] and r['fly'] and r['after'],r)
+    r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      const cf=makeColorField('red'); flags[0].cards=[cf]; hand=[{kind:'monster',sub:'mark',color:'blue',uid:uid()}]; o.can=targetsFor(hand[0]).includes(0); playOnFlag(0,0,null); await new Promise(r=>setTimeout(r,1500)); o.color=cf.color; o.still=flags[0].cards.length===1&&flags[0].cards[0]===cf; return o}""")
+    check('カラフルフィールドに色の装備を置くと、フィールドがその色に変わる',r['can'] and r['color']=='blue' and r['still'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
