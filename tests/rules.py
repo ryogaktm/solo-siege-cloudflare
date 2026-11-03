@@ -202,7 +202,7 @@ with sync_playwright() as p:
     pg.evaluate("localStorage.setItem('soloSiegeAlienBeat',JSON.stringify(['月の民']))")
     r=pg.evaluate("""()=>{ unlockMon('ミジンコキング'); ['月の民','火星人','水星人','金星人','太陽神'].forEach(unlockMon); buildCharList(); const g=document.getElementById('monGrid');
       const t=[...g.querySelectorAll('.mon-tile')].map(e=>({n:e.querySelector('b').textContent.replace(/\\s/g,''),a:e.classList.contains('alien')}));
-      const ix=n=>t.findIndex(x=>x.n===n); return {n:t.length,aliens:t.filter(x=>x.a).map(x=>x.n),moonAfterSpider:ix('月の民')>ix('大グモ')&&ix('月の民')<ix('コボルト'),marsBetween:ix('火星人')>ix('呪われた農夫')&&ix('火星人')<ix('骸骨戦士'),lastNotAlien:!t[t.length-1].a||t[t.length-1].n==='太陽神'} }""")
+      const ix=n=>t.findIndex(x=>x.n===n); return {n:t.length,aliens:t.filter(x=>x.a).map(x=>x.n),moonAfterSpider:ix('月の民')>ix('大グモ')&&ix('月の民')<ix('コボルト'),marsBetween:ix('火星人')>ix('モンク')&&ix('火星人')<ix('侍'),lastNotAlien:!t[t.length-1].a||t[t.length-1].n==='太陽神'} }""")
     check('モンスター一覧：宇宙人は強さの位置に並び（下に固まらない）、背景色で見分けられる',len(r['aliens'])>=5 and r['moonAfterSpider'] and r['marsBetween'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false;f.blindUntil=0}); enemyTurn=5; enemySched={8:'blind'}; autoQ={}; autoSeq=0; render();
       const a=autoForecast(), fi=+Object.keys(a)[0]; enemyTurn=7; applyEnemyEvent('blind'); const o={fi,on:flags.map(f=>blindOn(f)),smoke:document.querySelectorAll('.smoke').length};
@@ -350,5 +350,19 @@ with sync_playwright() as p:
     check('ミジンコ：役無しでもシートが1つ完成したら「同じ色か数、または連番…」を出す。役なしの確認は、最初の「なんでも良いから」の段階だけ出さない',r['t']=='同じ色か数、または連番にして置くと更に攻撃力アップ！' and not r['ask'] and r['ask2'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; flags.forEach(f=>{f.closed=false;f.baseCombo=false;f.cards=[]}); tutStep=5; tutT=turnCounter; tutDiscarded=true; updateTelops(); const o={a:tutStep}; turnCounter+=TUT_STEP_TURNS; updateTelops(); o.b=tutStep; o.d=tutDiscarded; o.t=document.getElementById('telopNow').textContent; return o}""")
     check('ミジンコの案内：カード予測のあと、最初（置く）に戻ってくり返す',r['a']==5 and r['b']==0 and not r['d'] and r['t'].startswith('手札のカードをドラッグして'),r)
+    r=ev("""()=>{ const o={}; const setup=nm=>{ const i=WAVES.findIndex(w=>dispName(w.id)===nm); CHARACTER=makeMonChar(i,WAVES[i].id); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false; };
+      setup('若いオーク'); carryMap={green:4}; hand=[makeCurse('poison'),{kind:'troop',color:'red',value:3,uid:uid()}]; monSkillUse(); o.orcLow=hand.length>=2&&hand.some(isCurse)&&carryMap.green===4;
+      carryMap={green:10}; monSkillUse(); o.orc=!hand.some(isCurse)&&carryMap.green===8;
+      setup('ゴブリン'); carryMap={yellow:20}; monSkillUse(); o.gob=wallOn&&carryMap.yellow===2;
+      setup('ミイラ'); carryMap={purple:10}; monSkillUse(); o.mum=mummyOn&&carryMap.purple===8;
+      setup('ガーゴイル'); carryMap={red:12}; const hp0=bossHp; monSkillUse(); o.gar=carryMap.red===2&&bossHp<=hp0-Math.floor(hp0/3)+1&&bossHp>=hp0-Math.floor(hp0/3)-1;
+      setup('ガーゴイル'); carryMap={red:9}; const hp1=bossHp; monSkillUse(); o.garLow=bossHp===hp1&&carryMap.red===9;
+      setup('ゾンビ'); carryMap={green:10}; monSkillUse(); o.zom=zombieRevive&&!carryMap.green; playerHp=0; o.zrev=tryRevive()&&playerHp===Math.ceil(playerHpMax/2)&&!zombieRevive;
+      setup('モンク'); monSkillUse(); o.mon=monkQ.join()==='0.5,2';
+      setup('侍'); gold=7; const hp2=bossHp; monSkillUse(); o.sam=gold===0&&bossHp===Math.max(0,hp2-700);
+      setup('農夫'); playerHp=Math.max(1,playerHpMax-500); const h3=playerHp; monSkillUse(); o.farm0=playerHp===h3&&farmerHealAt>0; advanceTurn(null); o.farm=playerHp===h3+MONSK.farmerHeal&&farmerHealAt===0;
+      o.names=['ガーゴイル','モンク','侍','農夫'].map(n=>WAVES.some(w=>dispName(w.id)===n)).every(Boolean);
+      return o}""")
+    check('21〜28の特殊技：きれい好き・仲間の壁・財宝・ファイアブレス・蘇り・ためる・銭投げ・収穫祭（足りない時は使えない）',all(r.values()),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

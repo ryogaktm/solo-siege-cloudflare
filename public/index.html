@@ -1635,6 +1635,14 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」になります（0枚なら0倍で、次の攻撃は0。その0の攻撃を撃つと、初期値の200に戻ります）。外れてもダメージは変わりません。命中率は1ターン進むごとに5％、当たるたびに10％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、70％の確率で消します（予測レーンから消えます）。外れても、特殊技の回数が残っていれば何度でも使えます。'},
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
+  '若いオーク':{kind:'clean',name:'意外ときれい好き',icon:'🧹',desc:'緑のスーパーコンボを5分の1減らす代わりに、手札の妨害札をすべて消します。（緑のスーパーコンボが5以上ないと使えません）'},
+  'ゴブリン':{kind:'wall',name:'仲間の壁',icon:'🧱',desc:'黄色のスーパーコンボを9割失う代わりに、次に受ける敵の攻撃を無効にします。（黄色のスーパーコンボが10以上ないと使えません）'},
+  'ミイラ':{kind:'treasure',name:'過去の財宝',icon:'🏺',desc:'紫のスーパーコンボを5分の1失う代わりに、この戦いで手に入る金系のアクセサリー（銅・銀・金の指輪）の売値が2倍になります。'},
+  'ガーゴイル':{kind:'fire',name:'ファイアブレス',icon:'🔥',desc:'赤のスーパーコンボを10減らす代わりに、敵の今のHPを3分の1減らします。（赤のスーパーコンボが10以上ないと使えません）'},
+  'ゾンビ':{kind:'revive',name:'蘇り',icon:'🧟',desc:'緑のスーパーコンボを10減らす代わりに、この戦いの間、HPが0になっても半分で生き返ります。（緑のスーパーコンボが10以上ないと使えません）'},
+  'モンク':{kind:'charge',name:'ためる',icon:'🧘',desc:'次の攻撃の攻撃力が半分になる代わりに、その次の攻撃の攻撃力が2倍になります。'},
+  '侍':{kind:'coin',name:'銭投げ',icon:'🪙',desc:'所持金×100のダメージを敵に与えます。（所持金は0になります）'},
+  '農夫':{kind:'harvest',name:'収穫祭',icon:'🌾',desc:'次のターンに、HPが100回復します。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
@@ -1808,7 +1816,7 @@ const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファ�
 const ENEMY_SCALE=0.9;
 const HUMAN_INS=36; let HUMAN_IDX=38; const HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
 const INTRO_LEADER=1, INTRO_KING=2;   // ミジンコで始めた時の最初の2戦の敵   // 真ん中に出す人間（0始まりの位置）
-const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'若いオーク','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'骸骨戦士','オークの軍勢':'メデューサ','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'バイキング','ゴブリンの戦士団':'ゴブリン','ホブゴブリンの群れ':'ミイラ','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'骸骨弓兵','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'呪われた農夫','オークの斥候隊':'ドラキュラ','オークの戦士長':'狼男','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
+const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'若いオーク','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'侍','墓場の亡霊':'ガーゴイル','オークの軍勢':'メデューサ','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'地平線いっぱいの巨人','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'バイキング','ゴブリンの戦士団':'ゴブリン','ホブゴブリンの群れ':'ミイラ','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'農夫','動く鎧の群れ':'動く鎧','死霊術師の一団':'死霊術師','呪われた農夫たち':'モンク','オークの斥候隊':'ドラキュラ','オークの戦士長':'狼男','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'精鋭の暗黒騎士','魔術師団':'魔術師','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先遣の巨人','嵐の巨人族':'嵐の巨人','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ'}, dispName=id=>DISP_NAME[id]||id;
 /* ===== モンスターを足す時の置き場 =====
    ここに { name:'新モンスター名', after:'この敵の次に入れる（今いる敵の名前）', spr:'MON_ARCHに足した絵のキー' } を書くと、
    前後の敵の強さの間（幾何平均）に1体入る。敵の特殊技・妨害は ENEMY_CFG、特殊技(自分で使う時)は MON_SKILL、表示名は DISP_NAME に足す。
@@ -2008,8 +2016,10 @@ let anyDragActive=false;
 /* ===== バトル状態 ===== */
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
+const MONSK={orcMin:5, goblinMin:10, goblinKeep:0.1, mummyDiv:5, gargoyleCost:10, gargoyleHp:1/3, zombieCost:10, farmerHeal:100, samuraiMul:100, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false;   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／ゲームを通して持ち越し）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
-function tryRevive(){ if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
+function tryRevive(){ if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
@@ -2095,11 +2105,11 @@ const ENEMY_CFG={
   '若いオーク':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv21
   'ゴブリン':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv22
   'ミイラ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv23
-  '墓場の亡霊':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv24
+  'ガーゴイル':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv24
   'ゾンビ':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv25
-  '呪われた農夫':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv26
-  '骸骨戦士':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv27
-  '骸骨弓兵':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['orange',1],['red',2],['green',3]]},   // lv28
+  'モンク':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv26
+  '侍':{dis:['half','colnull','autonum','guard','autonum','comboreset']},   // lv27
+  '農夫':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['orange',1],['red',2],['green',3]]},   // lv28
   '動く鎧':{dis:['colnull','half','autonum','guard','comboreset','autonum'],nums:[['purple',1],['blue',3],['yellow',1]]},   // lv29
   '死霊術師':{dis:['half','colnull','autonum','guard','comboreset','autonum','minusrain'],nums:[['red',1],['green',4],['orange',3]]},   // lv30
   'ジャックランタン':{dis:['colnull','half','autonum','guard','comboreset','autonum','minusrain'],nums:[['blue',1],['yellow',1],['purple',1]]},   // lv31
@@ -2323,7 +2333,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=val(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult;
+  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1);
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -2791,7 +2801,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
+  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; guardOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -3123,6 +3133,7 @@ function advanceTurn(usedCard){
   const bt=bulletLeft>0;   // バレットタイム中は時間が止まる：ターンも、敵も、毒・封鎖・ボムの時間も進まない
   if(bt){ bulletLeft--; if(enemyFreeze>0) enemyFreeze--; }
   else { turnCounter++; if(buzzTurns>0) buzzTurns--; if(!gameEnded&&playerHp>0&&turnCounter<=(dis.venomUntil||0)&&(dis.venomUntil||0)>0&&!nullOn()){ const vd=buzzGate(DIS_PARAM.venomDmg); if(vd>0) hurtPlayer(vd,`☠ 毒で${vd}ダメージ！（あと${dis.venomUntil-turnCounter}ターン）`); } }
+  if(!bt&&farmerHealAt&&turnCounter>=farmerHealAt&&playerHp>0){ farmerHealAt=0; healPlayer(MONSK.farmerHeal); hint(`🌾 収穫祭！ 体力が${MONSK.farmerHeal}回復した！`,true); playSfx('combo'); }
   if(!bt) flags.forEach(f=>{ if(f.lockedUntil && f.lockedUntil<=turnCounter) f.lockedUntil=0; });
   let stepped=!bt && (!hasAcc('glass') || turnCounter%2===0);   // 背水のピアス：敵は2ターンに1回しか動かない
   if(!bt && enemyFreeze>0){ enemyFreeze--; stepped=false; }   // 反射の手鏡：封鎖を返された敵は動けない
@@ -3538,14 +3549,15 @@ function checkWaveOutcome(){
   const noRoleQ=hasNoRoleFlag(), qm=quickMult(atkTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
   if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
   if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
-  const pAtk=rawAtk*(halved?0.5:1)*plAtkMult, eAtk=enemyAtkAt(atkTurn);   // 敵の防御：次の攻撃は半分
+  const monkM=monkQ.length?monkQ.shift():1, pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM, eAtk=enemyAtkAt(atkTurn);   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   const diff=pAtk-eAtk;
   const dealt=Math.max(0,diff), taken=Math.max(0,-diff);
   const hpBefore=bossHp;
   bossHp=Math.max(0, bossHp-dealt);
   lastDealt=Math.max(0,dealt-hpBefore); lastPower=Math.max(0,pAtk);   // 次の敵を選ぶ基準：倒した時の攻撃力（敵の攻撃力を引く前）
-  const takenReal=buzzGate(Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult));
+  let takenReal=buzzGate(Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult)), wallHit=false;
+  if(wallOn&&takenReal>0){ takenReal=0; wallHit=true; }   // ゴブリン：仲間の壁（次に受ける敵の攻撃を無効）
   playerHp=Math.max(0, playerHp-takenReal);
   totalWaves++;
   const defeated = bossHp<=0;
@@ -3553,7 +3565,9 @@ function checkWaveOutcome(){
   const wave=WAVES[stageIndex];
   waveAdvancing=true; busy=true; window._atkAt=performance.now();
   const sealedCount=flags.filter(f=>isLocked(f)).length;
-  const sealPenalty = sealedCount>0 ? buzzGate(Math.max(1,Math.round(eAtk*BALANCE.sealPenaltyRate*(guardOn?0.5:1)))) : 0;
+  let sealPenalty = sealedCount>0 ? buzzGate(Math.max(1,Math.round(eAtk*BALANCE.sealPenaltyRate*(guardOn?0.5:1)))) : 0;
+  if(wallOn&&sealPenalty>0){ sealPenalty=0; wallHit=true; }
+  if(wallHit){ wallOn=false; try{ stageDmgPop('monster','🧱仲間の壁！ 攻撃を無効','',true); }catch(e){} }
   if(guardOn && (taken>0||sealPenalty>0)) guardOn=false;
   if(sealPenalty>0){ playerHp=Math.max(0, playerHp-sealPenalty); }
   if(playerHp<=0 && hasAcc('endure') && playerHpMax>1 && dbgP0>=playerHpMax*0.8){ playerHp=1; hint('ふんばるピアスが光った！体力1で踏みとどまった！',true); }
@@ -3566,7 +3580,7 @@ function checkWaveOutcome(){
   dlog('attack_calc',{stage:stageIndex+1, wave:waveAttempt, flags:dbgFlags0, scoreBefore:dbgScore0, superBonus:synergyBonus, superDetail:dbgSyn?dbgSyn.details:[], superMultUsed:dbgSyn&&dbgSyn.bonus>0?[].concat.apply([],dbgSyn.details.map(d=>d.mults)):null, superCarryAfter:carryTxt(), poison:atkPoison, atkTurn:atkTurn, enemyTurnNow:enemyTurn, pAtk:pAtk, eAtk:eAtk, eAtkNow:currentEnemyAtk(), diff:diff, dealt:dealt, taken:taken, dmgMult:damageMult(), takenReal:takenReal, rolesAllDone:allRolesDone(), sealPenalty:sealPenalty, pHpBefore:dbgP0, pHpAfter:playerHp, eHpBefore:dbgB0, eHpAfter:bossHp, defeated:defeated});
   hint(`${halved?`🛡敵の防御で攻撃が半分に！（${rawAtk}→${pAtk}）\n`:''}攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
   let revivedNow=false;
-  if(!defeated && playerHp<=0 && hpStock>0){ revivedNow=tryRevive(); }
+  if(!defeated && playerHp<=0 && (hpStock>0||zombieRevive)){ revivedNow=tryRevive(); }
   if(!defeated && playerHp<=0){
     setTimeout(()=>{
       triggerPlayerHitFX(takenReal+sealPenalty, ()=>{
@@ -3580,7 +3594,7 @@ function checkWaveOutcome(){
     const proceed=()=>finishWaveOutcome(defeated, wave);
     if(dealt>0){
       triggerBossAttackFX(dealt, ()=>{ animateBossHp(bossHp, 550).then(()=>{ if(defeated){ fighterKO('monster'); setTimeout(proceed,950); } else proceed(); }); });
-    } else if(taken>0 || sealPenalty>0){
+    } else if(!wallHit && (taken>0 || sealPenalty>0)){
       triggerPlayerHitFX(takenReal+sealPenalty, ()=>{ renderBattle(); setTimeout(proceed, 350); });
     } else {
       proceed();
@@ -5940,7 +5954,7 @@ function advanceToNextStage(){
   }
   haunt={}; jamArmed=false; score=0; displayedScore=0; hostCarry=0; guardOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()) carryMap={};
-  playerHp=playerHpMax; monAtkMult=1; plAtkMult=1; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; monAtkMult=1; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals(); alienFirstFight(wave);
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -6344,6 +6358,49 @@ function strikeBoss(dmg,text,name,raw){   // raw＝敵のHPで切り捨てる前
   }); });
   render();
 }
+function scPay(col,min,loss){   // スーパーコンボを払う（足りなければ払わずに false）
+  const v=carryMap[col]||0;
+  if(v<min){ hint(`${CNAME[col]}のスーパーコンボが${min}以上ないと使えません。（いま${v}）`,true); return false; }
+  const nv=v-loss(v); if(nv>=1) carryMap[col]=nv; else delete carryMap[col];
+  return true;
+}
+function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回数を1つ使う）
+  const k=m.kind;
+  if(k==='clean'){
+    if(!hand.some(isEnemyCard)){ hint('手札に妨害札がありません。',true); return false; }
+    if(!scPay('green',MONSK.orcMin,v=>Math.max(1,Math.floor(v/5)))) return false;
+    const before=hand.length; hand=hand.filter(c=>!isEnemyCard(c)); const gone=before-hand.length; autoRefill(gone);
+    hint(`🧹 きれい好き！ 手札の妨害札を${gone}枚消した。`,true); playSfx('shuffle'); layoutHand(false);
+  } else if(k==='wall'){
+    if(wallOn){ hint('すでに仲間の壁が立っています。',true); return false; }
+    if(!scPay('yellow',MONSK.goblinMin,v=>v-Math.max(1,Math.round(v*MONSK.goblinKeep)))) return false;
+    wallOn=true; hint('🧱 仲間の壁！ 次に受ける敵の攻撃を無効にする。',true); playSfx('combo');
+  } else if(k==='treasure'){
+    if(mummyOn){ hint('すでに財宝を掘り当てています。',true); return false; }
+    if(!scPay('purple',1,v=>Math.max(1,Math.floor(v/MONSK.mummyDiv)))) return false;
+    mummyOn=true; hint('🏺 過去の財宝！ この戦いで手に入る金系のアクセサリーの売値が2倍になる。',true); playSfx('combo');
+  } else if(k==='fire'){
+    if(!(bossHp>0)) return false;
+    if(!scPay('red',MONSK.gargoyleCost,()=>MONSK.gargoyleCost)) return false;
+    const D=Math.max(1,Math.floor(bossHp*MONSK.gargoyleHp)); spec.mon++;
+    strikeBoss(Math.min(D,bossHp),`🔥 ファイアブレス！ 敵のHPを3分の1（${fmtCompact(D)}）減らした。`,'fire',D); return true;
+  } else if(k==='revive'){
+    if(zombieRevive){ hint('すでに蘇りの準備ができています。',true); return false; }
+    if(!scPay('green',MONSK.zombieCost,()=>MONSK.zombieCost)) return false;
+    zombieRevive=true; hint('🧟 蘇りの準備ができた！ HPが0になっても半分で生き返る。',true); playSfx('combo');
+  } else if(k==='charge'){
+    monkQ.push(MONSK.monkHalf,MONSK.monkBoost); hint('🧘 ためる！ 次の攻撃は半分、その次の攻撃は2倍になる。',true); playSfx('shuffle');
+  } else if(k==='coin'){
+    if(!(gold>0)){ hint('所持金がありません。',true); return false; }
+    if(!(bossHp>0)) return false;
+    const D=gold*MONSK.samuraiMul, g0=gold; gold=0; spec.mon++;
+    strikeBoss(Math.min(D,bossHp),`🪙 銭投げ！ ${g0}G を投げて、敵に${fmtCompact(D)}ダメージ。`,'coin',D); try{ saveGame(); }catch(_){} return true;
+  } else if(k==='harvest'){
+    if(farmerHealAt){ hint('すでに収穫祭の準備ができています。',true); return false; }
+    farmerHealAt=turnCounter+1; hint(`🌾 収穫祭！ 次のターンに、体力が${MONSK.farmerHeal}回復する。`,true); playSfx('combo');
+  }
+  spec.mon++; dlog('action',{name:'monskill_'+k}); render(); return true;
+}
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
   if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
@@ -6390,6 +6447,7 @@ function monSkillUse(){
     render(); layoutHand(false); try{ saveGame(); }catch(_){}
     return;
   }
+  else if(['clean','wall','treasure','fire','revive','charge','coin','harvest'].includes(m.kind)){ if(!monSkill2(m)) return; }
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=BUZZ_TURNS; spec.mon++; hint(`ブーン！体が分身して光った。${BUZZ_TURNS}ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）`,true); playSfx('warn'); }
   else if(m.kind==='pfsk'){
@@ -6589,6 +6647,7 @@ SPR.gunman=["................",".....KKKKK......","....KNNNNNK.....","....KNNNNN
 Object.assign(SPR,{dracula:["................", ".....KKKKKK.....", "....KKKKKKKK....", "....KwwKKwwK....", "....KwRwwRwK....", "....KwwwwwwK....", "....KwWwwWwK....", ".....KwwwwK.....", "..KKKRRwwRRKKK..", ".KRRKRRRRRRKRRK.", "KRRRKRrRRrRKRRRK", "KRrRKRRRRRRKRrRK", "KRRRKKRRRRKKRRRK", ".KRRK.KRRK.KRRK.", "..KK..KKKK..KK..", "................"],medusa:["T..T..T..T..T..T", ".TtTtTTTTtTtTtT.", "..KTTTTTTTTTTK..", "...KEEEEEEEEK...", "...KEfKEEKfEK...", "...KEEEEEEEEK...", "...KEEmmmmEEK...", "....KEEEEEEK....", "...KKPPEEPPKK...", "..KPPPPPPPPPPK..", ".KEKPPpPPpPPKEK.", ".KEKPPPPPPPPKEK.", "..KKPPpPPpPPKK..", "...KPPPPPPPPK...", "...KPPKKKKPPK...", "...KKKK..KKKK..."],werewolf:["................", ".KK..........KK.", ".KNK........KNK.", ".KNNK..KK..KNNK.", "..KNNKNNNNKNNK..", "..KNNNNNNNNNNK..", "..KNfKNNNNKfNK..", "...KNNNNNNNNK...", "....KNNKKNNK....", ".....KNnnNK.....", "....KKNWWNKK....", "..KKNNKNNKNNKK..", ".KNwNKNNNNKNwNK.", "KNNNKKGNNGKKNNNK", ".KKK.KNNNNK.KKK.", "...KKKK..KKKK..."]});   // ドラキュラ・メデューサ・狼男（旧・オーク系の3体）
 Object.assign(SPR,{orc_young:["................", ".....KKKKKK.....", "....KOOOOOOK....", "...KOOOOOOOOK...", "..KOOWKOOKWOOK..", "..KOOWKOOKWOOK..", "..KOOOOOOOOOOK..", "...KOWOOOOWOK...", "....KOKKKKOK....", "..KKKOOOOOOKKK..", ".KOOKOOooOOKOOK.", ".KOOKKnnnnKKOOK.", "..KK.KnNNnK.KK..", ".....KOOKOOK....", "....KOOK.KOOK...", "....KKK...KKK..."],mummy:["................", "....KKKKKKK.....", "...KwwwwwwwK....", "...KwgwwwgwK....", "...KKKRKKRKK....", "...KwwwwwwwK....", "....KwgwgwK.....", "..KKKwwwwwKKK...", ".KwwKgwwwgKwwK..", ".KwgKwwgwwKwgK..", "KwwwKwwwwwKwwwK.", "KgKKKgwwgwKKKgK.", "....KwwwwwK.....", "....KwgKgwK.....", "....KwwKwwK.....", "...KKKK.KKKK...."]});   // 若いオーク・ミイラ（旧・ゴブリン系の2体）
 Object.assign(SPR,{assassin:["................", "......KKKK......", ".....KGGGGK.....", "....KGGGGGGK....", "....KGKKKKGK....", "....KGKRKRGK....", "....KGKKKKGK....", ".....KGGGGK.....", "....KRRRRRRK...w", "...KGGGGGGGGK.wg", "..KGGGGGGGGGKKw.", "..KGGKGGGGKGGK..", "...KKKGGGGKKK...", ".....KGGGGK.....", ".....KGKKGK.....", "....KKKK.KKKK..."]});   // アサシン（旧・巨大ムカデ）
+Object.assign(SPR,{"gargoyle":["..K..........K..", "..KK.KKKKKK.KK..", "..KgKKggggKKgK..", ".KgGKgRggRgKGgK.", ".KgGKggggggKGgK.", "KgGGKgKKKKgKGGgK", "KGGGKKggggKKGGGK", "KGGGGKGGGGKGGGGK", "KGGGKKGGGGKKGGGK", ".KGKKGgGGgGKKGK.", ".KKK.KGGGGK.KKK.", ".....KGGGGK.....", "....KGGKKGGK....", "...KGGK..KGGK...", "...KKGK..KGKK...", "....KKK..KKK...."],"monk":["................", ".....KKKKKK.....", "....KSSSSSSK....", "...KSSSSSSSSK...", "...KSKSSSSKSK...", "...KSSSSSSSSK...", "....KSSmmSSK....", ".....KKSSKK.....", "...KKFFFFFFKK...", "..KSKFFFFFFKSK..", "..KSKFFffFFKSK..", "...KKFFFFFFKK...", "....KFFFFFFK....", "....KFFKKFFK....", "....KssKKssK....", "....KKKK.KKKK..."],"samurai":["......KKK.......", ".....KDDDK......", "....KDDDDDK....w", "...KKKKKKKKK..wg", "...KSSSSSSSK.wg.", "...KSKSSSKSKwg..", "...KSSSSSSSKg...", "....KSSmmSKK....", "..KKKRRRRRRKKK..", "..KRKRRrrRRKRK..", ".KSKKRRRRRRKKSK.", "..KKKRRyyRRKKK..", "....KRRRRRRK....", "....KDDKKDDK....", "....KDDK.KDDK...", "....KKKK.KKKK..."]});   // ガーゴイル・モンク・侍
 Object.assign(SPR,{"alien_moon": ["...Y........Y...", "....K......K....", ".....KKKKKK.....", "....KYYYYWYK....", "...KYYyYYYYYK...", "..KYYYYYYyyYYK..", "..KYKKYYYYKKYK..", "..KYKWYYYYKWYK..", "..KYYYYyYYYYYK..", "..KyYYYYYYyYYK..", "...KYYYKKYYYK...", "....KKYYYYKK....", "..KwwwKKKKwwwK..", "..KwgK.KK.KgwK..", "...KK.KggK.KK...", "......KKKK......"], daphnia:["................","...K..K.........","..K.KK.K........",".K...KKKKKKK....","....KCCCCCCCK...","...KCWWCCCCCCK..","..KKCWKCCyyCCCK.","..KWKCCCCyyyCCK.","..KKKCCCCCCCCCK.","...KCCCCCCCCCK..","....KKCCCCCCK...","....K.KKKKKK....","...K...K.K..K...","..K.........K...","................","................"]});
 SPR.general_halo=SPR.general.map((r,i)=>i===0?'....yYYYYYYy....':r);   // 輪っか付き（元の身体）
 SPR.daphnia_leader=SPR.daphnia.map(r=>r.split('').map(c=>c==='C'?'E':c==='y'?'R':c).join(''));   // 緑のリーダー
@@ -6603,8 +6662,8 @@ const MON_SPR={
 '何匹かのスライム':['slime'],
 '野ネズミの群れ':['rat'],'毒キノコの群れ':['mushroom'],'大グモの巣':['spider'],'コボルトの一団':['kobold'],'洞窟のヘビ':['snake',{E:'T',e:'t'}],
 'コウモリの群れ':['bat'],'吸血コウモリの大群':['bat',{p:'r',P:'R'}],'ゴブリンの斥候':['gunman'],'野盗の一団':['bandit'],'巨大ムカデ':['assassin'],'沼のリザードマン':['lizardman'],
-'ゴブリンの集団':['orc_young'],'ゴブリンの戦士団':['goblin'],'ホブゴブリンの群れ':['mummy'],'墓場の亡霊':['ghost'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
-'骸骨戦士の集団':['skeleton'],'骸骨弓兵団':['skel_archer'],'動く鎧の群れ':['armor'],'死霊術師の一団':['necromancer'],'呪われた農夫たち':['farmer'],
+'ゴブリンの集団':['orc_young'],'ゴブリンの戦士団':['goblin'],'ホブゴブリンの群れ':['mummy'],'墓場の亡霊':['gargoyle'],'ゾンビの群れ':['zombie'],'ジャックランタン':['jack'],
+'骸骨戦士の集団':['samurai'],'骸骨弓兵団':['farmer'],'動く鎧の群れ':['armor'],'死霊術師の一団':['necromancer'],'呪われた農夫たち':['monk'],
 'オークの軍勢':['medusa'],'オークの斥候隊':['dracula'],'オークの戦士長':['werewolf'],'トロルの群れ':['troll'],'山賊王の軍':['bandit_king'],'猛牛の戦車隊':['bull'],'暗黒の傭兵団':['mercenary'],
 '暗黒騎士団':['darkknight'],'暗黒騎士の精鋭':['elite_knight'],'魔術師団':['mage',{P:'B',p:'b'}],'小竜の群れ':['drakelet'],'火を吹くワイバーン':['wyvern'],'竜騎士団':['dragoon'],
 '古龍':['dragon'],'氷の古竜':['ice_dragon'],'雷を操る竜':['thunder_dragon'],'双頭の竜':['twin_dragon'],'山を砕く巨竜':['colossus_dragon'],'巨人の先遣隊':['giant_scout'],
@@ -7074,7 +7133,8 @@ function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)
 const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の値（書いてない技はallを使う）。後から技ごとに数字を変える
   beg:5, punch:5, guard:5, cure:5, bullet:5, shuffle:5,   // 基本の持ち技
   'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
-  'ブラインド':5, '斧で攻撃':5, '行動封じ':5, 'パニックフィールド':5, '毒の牙':5};
+  'ブラインド':5, '斧で攻撃':5, '行動封じ':5, 'パニックフィールド':5, '毒の牙':5,
+  '意外ときれい好き':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
 function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||k; }
 function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_CAP.all; }
 function specMax(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
@@ -7424,6 +7484,7 @@ function grantStageReward(){
   try{ lastGoalRes=battleGoals.map(id=>{ const d=accDef(id), g=d&&goalDef(d); return g?{id,ok:!!goalMet(id,true),text:g.text,name:(goalShow(id)||d).name}:null; }).filter(Boolean); }catch(e){ lastGoalRes=[]; }   // 戦闘の結果：この戦いの取得条件を、アクセサリーを渡す前に判定しておく
   const got=acquireNew();
   giveCopperRing(got);
+  if(mummyOn){ accOwned.forEach(o=>{ if(o.id.startsWith('gold_')&&chestAids.includes(o.aid)) o.x2=1; }); mummyOn=false; }   // ミイラの財宝：この戦いで手に入った金系の指輪は売値2倍
   try{ saveGame(); }catch(e){}  // 戦闘が終わったところで保存（やめても準備画面から再開）
   showChest(got,income);
 }
@@ -7451,11 +7512,11 @@ function openChest(got,income){
     box.insertBefore(gb,box.firstChild); }
   const cashO=chestAids.map(a=>accOwned.find(o=>o.aid===a)).filter(Boolean);
   if(cashO.length){
-    const tot=cashO.reduce((t,o)=>t+accSell(accDef(o.id)),0);
+    const tot=cashO.reduce((t,o)=>t+accSellO(o),0);
     const pn=document.createElement('div'); pn.className='reward-option'; pn.style.cssText='cursor:default;flex-direction:column;align-items:stretch;gap:8px;text-align:center';
     pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">換金用アクセサリー${cashO.length}個をまとめて売りますか？（+${tot}G）</div><div style="display:flex;gap:8px"><button class="btn" id="bulkYes" style="flex:1;margin:0">まとめて売る</button><button class="btn" id="bulkNo" style="flex:1;margin:0;opacity:.8">売らない</button></div>`;
     box.appendChild(pn);
-    pn.querySelector('#bulkYes').onclick=()=>{ let sum=0; cashO.forEach(o=>{ const d=accDef(o.id); if(!d||!accOwned.includes(o)) return; sum+=accSell(d); accOwned=accOwned.filter(x=>x!==o); accEq=accEq.filter(a=>a!==o.aid); soldIds.add(o.id); }); gold+=sum; chestAids=[]; try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">売却しました（+${sum}G ／ 所持金 ${gold}G）</div>`; };
+    pn.querySelector('#bulkYes').onclick=()=>{ let sum=0; cashO.forEach(o=>{ const d=accDef(o.id); if(!d||!accOwned.includes(o)) return; sum+=accSellO(o); accOwned=accOwned.filter(x=>x!==o); accEq=accEq.filter(a=>a!==o.aid); soldIds.add(o.id); }); gold+=sum; chestAids=[]; try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">売却しました（+${sum}G ／ 所持金 ${gold}G）</div>`; };
     pn.querySelector('#bulkNo').onclick=()=>{ pn.remove(); };
   }
   const b=document.createElement('button'); b.className='btn'; b.textContent='準備へ'; b.onclick=finishChest; box.appendChild(b);
@@ -7502,11 +7563,12 @@ function prepGo(){
   openRanking(false,{pre:true, onGo:()=>{ inPrep=false; advanceToNextStage(); }, onBack:()=>{ document.getElementById('prepModal').style.display='flex'; }});   // 戦闘前のランキングから、準備画面へ戻れる
 }
 /* ----- ショップ ----- */
+const accSellO=o=>accSell(accDef(o.id))*(o.x2?2:1);   // ミイラの財宝で手に入った指輪は売値2倍
 function sellAccessory(o){
   const d=accDef(o.id); if(!d) return;
   if(accEq.includes(o.aid)) accUnequip(o.aid);
-  accOwned=accOwned.filter(x=>x!==o); soldIds.add(o.id); gold+=accSell(d);
-  hint(`${d.name}を${accSell(d)}Gで売った。`);
+  accOwned=accOwned.filter(x=>x!==o); soldIds.add(o.id); gold+=accSellO(o);
+  hint(`${d.name}を${accSellO(o)}Gで売った。`);
 }
 function openShop(mode){
   let m=document.getElementById('shopModal');
@@ -7519,9 +7581,9 @@ function openShop(mode){
 let sellSel=[];
 function confirmSell(cand){
   const items=sellSel.map(a=>cand.find(o=>o.aid===a)).filter(Boolean); if(!items.length) return;
-  const tot=items.reduce((t,o)=>t+accSell(accDef(o.id)),0), eq=items.filter(o=>accEq.includes(o.aid));
+  const tot=items.reduce((t,o)=>t+accSellO(o),0), eq=items.filter(o=>accEq.includes(o.aid));
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
-  bg.innerHTML=`<div class="reward-box"><div class="reward-title">売却の確認</div><div class="reward-sub" style="text-align:left;margin-top:8px">${items.map(o=>`・${accDef(o.id).name}（${accSell(accDef(o.id))}G）`).join('<br>')}</div>${eq.length?`<div style="margin-top:10px;padding:8px 10px;border:2px solid #e0584a;border-radius:10px;background:rgba(224,88,74,.16);color:#ffb4aa;font-weight:800;font-size:13px;text-align:left">⚠ 装備中のアクセサリーが含まれています<br>${eq.map(o=>accDef(o.id).name).join('、')}<br>売ると装備が外れます</div>`:''}<div class="reward-sub" style="margin-top:8px"><b>合計 +${tot}G</b><br>一度売ると、もう手に入りません。本当に売りますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="csNo" style="flex:1">やめる</button><button class="btn" id="csYes" style="flex:1">売る</button></div></div>`;
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">売却の確認</div><div class="reward-sub" style="text-align:left;margin-top:8px">${items.map(o=>`・${accDef(o.id).name}（${accSellO(o)}G）`).join('<br>')}</div>${eq.length?`<div style="margin-top:10px;padding:8px 10px;border:2px solid #e0584a;border-radius:10px;background:rgba(224,88,74,.16);color:#ffb4aa;font-weight:800;font-size:13px;text-align:left">⚠ 装備中のアクセサリーが含まれています<br>${eq.map(o=>accDef(o.id).name).join('、')}<br>売ると装備が外れます</div>`:''}<div class="reward-sub" style="margin-top:8px"><b>合計 +${tot}G</b><br>一度売ると、もう手に入りません。本当に売りますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="csNo" style="flex:1">やめる</button><button class="btn" id="csYes" style="flex:1">売る</button></div></div>`;
   document.body.appendChild(bg);
   bg.querySelector('#csNo').onclick=()=>bg.remove();
   bg.querySelector('#csYes').onclick=()=>{ items.forEach(o=>sellAccessory(o)); sellSel=[]; bg.remove(); renderShop(); refreshPrep(); };
@@ -7597,12 +7659,12 @@ function renderShop_(){
     sellSel=sellSel.filter(a=>cand.some(o=>o.aid===a));
     if(!cand.length){ const e=document.createElement('div'); e.className='reward-sub'; e.textContent='売れるアクセサリーはありません'; body.appendChild(e); }
     else {
-      const tot=sellSel.reduce((t,a)=>{ const o=cand.find(x=>x.aid===a); return t+accSell(accDef(o.id)); },0);
+      const tot=sellSel.reduce((t,a)=>{ const o=cand.find(x=>x.aid===a); return t+accSellO(o); },0);
       const sb=document.createElement('button'); sb.className='btn'; sb.style.cssText='width:100%;margin:4px 0 8px'; sb.disabled=!sellSel.length;
       sb.textContent=sellSel.length?`売る（${sellSel.length}個 / +${tot}G）`:'売る'; sb.onclick=()=>confirmSell(cand); sb.style.margin='0'; const sw=document.createElement('div'); sw.className='shop-act'; sw.appendChild(sb); body.appendChild(sw);
     }
     cand.forEach(o=>{ const d=accDef(o.id), on=sellSel.includes(o.aid);
-      row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name+(accEq.includes(o.aid)?' <span style="display:inline-block;background:#d93a2e;color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:4px;vertical-align:middle">装備中</span>':''),d.desc,`${accSell(d)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
+      row(accIconHtml(d),(on?'☑ ':'☐ ')+d.name+(accEq.includes(o.aid)?' <span style="display:inline-block;background:#d93a2e;color:#fff;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:4px;vertical-align:middle">装備中</span>':''),d.desc,`${accSellO(o)}G`,()=>{ sellSel=on?sellSel.filter(a=>a!==o.aid):sellSel.concat(o.aid); renderShop(); },false); });
     return;
   }
   // ---- 買う（チェックボックス式）----
@@ -7874,7 +7936,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03u';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03v';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
