@@ -5943,7 +5943,7 @@ function decayModifiedCards(cards){
 function advanceWaveAttempt(){
   clearKO();
   waveAttempt++;
-  score=0; displayedScore=0; resetBattleRound();
+  score=0; displayedScore=0; resetBattleRound(); try{ accStat.turn0=turnCounter; }catch(e){}   // 20ターンボーナスは1回の攻撃（wave）の中で仕留めた時だけ：攻撃が終わるたびに数え直す
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
   purgeDeleted();
@@ -7104,7 +7104,7 @@ const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id));
 const cashName=n=>n<=60?'小さな換金袋':n<=150?'換金のお守り':n<=300?'換金の宝飾':'換金の金塊';
 const cashDef=n=>({id:'cash_'+n,name:`${cashName(n)}（${n}G）`,icon:'💰',desc:`役に立たないが、売ると${n}Gになる`,cashVal:n});
 /* ★換金用アクセサリーの条件：ここを書き換える。cash＝売るともらえる金額、tier＝easy(かんたん)/mid/hard、final＝敵を倒した時に判定、avail＝出す条件 */
-const TURN_BONUS={turns:20, cash:250};   // 速く倒したボーナス：この戦闘のターン数がturns以内なら、cash分のお金（数字はここで調整）
+const TURN_BONUS={turns:20, cash:250};   // 速く倒したボーナス：1回の攻撃（wave）のターン数がturns以内なら、cash分のお金（数字はここで調整）
 const BONUS_GOALS=[
   {id:'bn_role1',tier:'easy',cash:15,text:'役のある旗（ホスト以外）を1回完成させる',def:S=>({done:()=>Object.keys(S.roles).some(k=>k!=='ホスト'&&S.roles[k]>0)})},
   {id:'bn_role3',tier:'easy',cash:20,text:'役のある旗（ホスト以外）を3回完成させる',def:S=>({done:()=>Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0)>=3,prog:`${Math.min(3,Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0))} / 3回`})},
@@ -7975,7 +7975,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

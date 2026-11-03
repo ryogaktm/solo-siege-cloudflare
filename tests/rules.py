@@ -255,6 +255,8 @@ with sync_playwright() as p:
     check('序盤（earlyLv未満）の敵は最初の妨害が10ターン目以降',all((f or 99)>=10 for n,f in r['early']),r['early'])
     check('earlyLv以降の敵は最初の妨害が6ターン目前後から出る',any((f or 99)<=7 for n,f in r['late']),r['late'][:6])
     check('動く敵の絵：アニメが止まっても基本の絵は見える（敵が消えない）',r['frA']=='visible',r['frA'])
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); turnCounter=12; render(); const a=document.querySelector('.wt-meta').textContent; advanceWaveAttempt(); render(); return {a,b:document.querySelector('.wt-meta').textContent}}""")
+    check('ターン表示：攻撃（wave）が終わるたびに0へ戻る',('ターン12' in r['a']) and ('ターン0/' in r['b']),r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=flags.map(flagMonster).find(x=>x&&x.sub==='cfield'); return {col, got:c&&c.color, inHand:hand.some(x=>x.sub==='cfield')}}""")
     check('カラフルフィールド：予測した色のまま、旗に直接置かれる',r['col']==r['got'] and not r['inHand'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); carryMap={red:30,blue:30}; const f=flags[0]; f.cards=[]; f.closed=false; f.cards.push(makeColorField('red')); busy=false; pending=null; hand=[{kind:'troop',color:'blue',value:4,uid:uid()}]; playOnFlag(0,0,null,true); return {red:carryMap.red,blue:carryMap.blue}}""")
