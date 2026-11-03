@@ -7929,6 +7929,8 @@ function accEditable(){ return inPrep; }
 function openAccModal(){
   try{ installScrollbars(); updBarsSoon(); }catch(e){}
   if(typeof gameEnded!=='undefined' && gameEnded) return;
+  if(!inPrep && waveAdvancing) return;   // 敵を倒した直後（結果の演出中）に開くと、すぐ閉じられて一瞬映るだけになるので開かない
+  { const cm=document.getElementById('chestModal'); if(cm&&cm.style.display==='flex') return; }
   renderAccModal(); document.getElementById('accModal').style.display='flex';
 }
 function renderAccModal(){
@@ -7994,7 +7996,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
