@@ -5304,7 +5304,7 @@ function tutFlagArrows(on){   // シート同士を、時計回りの矢印で�
 }
 function updateTelops(){
   document.getElementById('telopNow').textContent=nowText();
-  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending&&(tutStep===0||tutStep===3);   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
+  { let ar=document.getElementById('tutArrow'); const on=tutorialOn()&&!gameEnded&&!pending&&(tutStep<=1||tutStep===3);   // ミジンコの間だけ、手札からシートへ向かう矢印をずっと出す
     if(on&&!ar){ ar=document.createElement('div'); ar.id='tutArrow'; ar.innerHTML='<i>▲</i><i>▲</i><i>▲</i>'; document.body.appendChild(ar); }
     if(ar){ ar.style.display=on?'flex':'none'; if(on){ const hb=document.querySelector('.handbar'), r=hb?hb.getBoundingClientRect():null, g=document.getElementById('gravePileBtn');
       if(r&&g&&tutStep===3){   // 墓地の段階：手札から墓地まで届く長い矢印にする
@@ -7876,7 +7876,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03q';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03r';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
