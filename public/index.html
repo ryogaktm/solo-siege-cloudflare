@@ -5362,7 +5362,7 @@ function cardInfoContent(c){
       return `<p><b>${c.value}の呪いの装備</b></p><p>敵に押し付けられた装備。旗に置くと、その旗の数字に<b style="color:var(--danger)">${c.value}</b>が加算される（役の倍率もコンボも掛かる）。プラスの力の装備を重ねると相殺でき（例：+7の装備に−4を置くと+3）、全滅・誘導でも取り除ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。</p>`;
     }
     if(c.sub==='number'){
-      return `<p><b>${c.value}以上の力の装備</b></p><p>旗に置くと、その旗には強さ${c.value}以上のカードしか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、<b>装備だけが墓地へ送られ</b>（置いたカードはそのまま残ります）、その後は制限なく普通に置けるようになります。旗の数字に<b>+${monsterBonusFor(c)}</b>が加算（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。別の<b>数の装備</b>（今の数字以上）を重ねると<b style="color:var(--gold)">条件がさらに厳しくなり</b>、<b style="color:var(--danger)">換装ボーナスはこれまで重ねた分の合計</b>になります。♾️カードは条件を完全に無視できるため、どんな数字の装備でも満たせます。</p>`;
+      return `<p><b>${c.value}以上の力の装備</b></p><p>${c.value}以上の数しか置けない。置くと<b>+${monsterBonusFor(c)}</b>加点される。</p>`;
     }
     return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に最後に置いたカード（3枚目）の<b>マークが${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。役が固まった旗にも使え、<b>役やスーパーコンボも変わります</b>。同色の役を作りたいときに。</p>`;
   }
@@ -5599,7 +5599,7 @@ function buildMonsterList(){
   const wrap=document.getElementById('monsterList'); if(wrap.childElementCount) return;
   const entries=[
     {card:{kind:'monster',sub:'number',value:7,uid:'mon-num'},
-     name:'力の装備', desc:'旗に置かれると、その旗には「表示された数字以上」の部隊しか置けなくなります。条件を満たすカードを1枚置くと即座に換装成功、装備だけが墓地へ送られます（置いたカードはそのまま残る）。その後は制限なく普通に置けるようになります。その旗の数字に、装備の数字が足されます（普通の数字と同じ扱いで、役の倍率もスーパーコンボも掛かります）。'},
+     name:'力の装備', desc:'表示された数字以上の数しか置けない。置くと加点される。'},
     {card:{kind:'monster',sub:'mark',color:'blue',uid:'mon-mark'},
      name:'色の装備', desc:'カードが置いてある旗（役が固まった旗も可）にドラッグすると、最後に置いたカード（3枚目）のマークが装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままで、役やスーパーコンボも変わります。'}
   ];
@@ -7876,7 +7876,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03r';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03s';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
