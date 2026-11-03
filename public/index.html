@@ -5922,6 +5922,7 @@ function advanceToNextStage(){
     });
   }catch(e){}
   spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
+  tutStep=0; tutT=turnCounter; tutDiscarded=false;   // ミジンコの案内は、1戦ごとに最初からやり直す
   introAdv=false; battleNo++;   // ミジンコの最初の2戦も「第〇戦」に数える（4戦で終わる）
   nextStageIdx=-1;
   waveAttempt=1;
@@ -7873,7 +7874,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03t';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03u';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
