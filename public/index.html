@@ -1919,24 +1919,24 @@ function pickJump(over){
   return r;
 }
 const TACTIC_EXTRA = {
-  alexander:'どの旗にもいつでも置ける万能カード（青♾️）。色・数字の条件を完全に無視できます（装備の色・数字条件も無視）。',
-  darius:'旗の3枚目としてしか置けない万能カード（赤♾️）。色・数字の条件を完全に無視できます（装備の色・数字条件も無視）。先に2枚置いてから使いましょう。',
-  scout:'発動すると部隊を3枚引き、その中から2枚を選んで捨てます（捨てたカードは墓地へ）。欲しい色や数字を探したい時に。',
-  shuffle:'発動すると、このカード自身はまず墓地へ送られます。その後、残った手札から好きな枚数（0枚でも可）を選んで墓地へ送り、その枚数だけ山札から新しく引けます。手詰まりを一新したい時に。ヘッダーの「いつでもシャッフル」とは別物で、こちらは手札もカードも消費します。',
-  holy:'発動後、取り除きたい呪いをタップ。手札にある呪いのカード（毒・封鎖・ボム・暗闇・無効・全滅・敵の装備やフィールド）なら、そのカードが消えます。旗をタップすると、その旗の敵の装備・ボム・封鎖・ワームホールが消えます。スーパーコンボのペナルティはありません。',
-  wipe:'指定した旗のカードをすべて墓地へ送り、その旗を空にします。敵に封鎖された旗（封鎖も解ける）や、呪いの装備の乗った旗にも使えます。閉じた旗にも使え、その場合は獲得済みの戦力も取り消されて未封鎖に戻ります。',
-  rehire:'発動すると、墓地にあるカードから1枚を選んで手札に戻せます。強かった部隊や装備をもう一度使いたい時に。',
-  guidance:'発動すると、まずカードを戻したい旗をタップ。旗に2枚以上ある場合（完成した旗も）はどのカードを戻すか選べる（1枚しかない場合は自動でそれが選ばれる）。選んだカードが手札に戻ります。完成していた旗は未封鎖に戻る。',
-  blank:'白紙のカード。何の効果もありません。手札に邪魔なら、墓地へドラッグして捨てて引き直しましょう（1ターン消費）。',
-  curse_poison:'使うと毒をあびて、5ターンの間、毎ターン2ダメージを受けます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
-  curse_seal:'使うと好きな旗を1つ選んで封鎖できます。<b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。',
-  conscript:'発動すると、今の盤面の状態ですぐに攻撃します。すでに閉じている旗の役は有効で、スーパーコンボも引き継がれます。閉じていない旗は得点になりません。敵の攻撃力が膨らむ前に、早めに決着をつけたい時に。',
-  revolution:'発動すると、このカードを除く今の手札にある部隊カードの数字がすべて反転します（1↔10、2↔9、3↔8、4↔7、5↔6。7なら4、2なら9）。低い数字を高い数字に変えたい時に。戦いが終わると元の数字に戻ります。',
-  split:'発動後、手札の部隊カードを1枚タップ。そのカードがランダムに2枚へ分裂します（合計は変わりません。8なら2と6、3と5など。1だけは1と1の2枚になります）。増えた1枚は、その戦いの間だけ使えます。',
-  plead:'発動すると、これから予定されている敵の技（攻撃力×2・狂暴化・妨害技のすべて）が'+PLEAD_TURNS+'ターン遅れます。ただしターンは普通に進み、敵の攻撃力もいつも通り上がっていきます（遅れるのは「技の発動」だけ）。時間を稼いで、旗を揃える余裕を作りたい時に。（すでに起きた効果は戻りません）',
-  inspire:'発動すると、このカードを除く今の手札にある部隊・力の装備の数字がすべて+3されます（最大10まで）。強い役や換装条件を狙いやすくなります。',
-  duplicate:'発動後、複製したい手札のカードをタップ。そのカードのコピーが手札に加わります（複製もとのカードはそのまま残ります）。コピーはこの戦いの間だけ有効です。',
-  fusion:'発動後、手札の部隊カードを2枚タップして選択。合計値を保ったまま、高い方は必ず10になり、低い方はその余り（合計−10）になります（例：4と8→2と10、6と8→4と10）。合計が10以下の場合は、合計値のカード1枚だけにまとまります（例：2と8→10、6と2→8が1枚）。分裂して2枚になるときは、それぞれ元のカードのマーク（色）のままです。1枚にまとまるときは、数字が高い方のカードのマーク（色）になります（同じ数字なら、手札で左にある方）。',
+  alexander:'どの旗にも置ける万能カード。色・数字の条件を無視する。',
+  darius:'旗の3枚目にだけ置ける万能カード。色・数字の条件を無視する。',
+  scout:'3枚引いて、2枚選んで捨てる。',
+  shuffle:'手札から好きな枚数を墓地へ送り、同じ枚数を引き直す。',
+  holy:'取り除きたい呪いをタップして消す。旗をタップすると、その旗の敵の妨害が消える。ペナルティなし。',
+  wipe:'指定した旗のカードをすべて墓地へ送る。',
+  rehire:'墓地から1枚選んで手札に戻す。',
+  guidance:'旗を選んで、置いたカードを手札に戻す。',
+  blank:'効果なし。墓地へ捨てて引き直そう。',
+  curse_poison:'使うと5ターンの間、毎ターン2ダメージ。普通には捨てられない。',
+  curse_seal:'使うと旗を1つ封鎖できる。普通には捨てられない。',
+  conscript:'今の盤面ですぐ攻撃する。閉じた旗の役だけ得点になる。',
+  revolution:'手札の部隊の数字が反転する（1↔10、2↔9…）。',
+  split:'手札の部隊を1枚選ぶと、ランダムに2枚へ分裂する。',
+  plead:'敵の技が'+PLEAD_TURNS+'ターン遅れる。',
+  inspire:'手札の部隊・力の装備の数字が+3される（最大10）。',
+  duplicate:'手札のカードを1枚選んでコピーする。この戦いの間だけ有効。',
+  fusion:'部隊を2枚選ぶ。高い方が10、低い方が余りになる（合計10以下なら1枚にまとまる）。',
 };
 
 /* ---- monster cards ---- */
@@ -5330,46 +5330,43 @@ function updateTelops(){
 
 /* ---- card info overlay ---- */
 function curseInfo(c){
-  if(c.type==='curse_bomb') return `使って旗を選ぶと、その旗に時限ボムを置く。<b style="color:var(--danger)">${DIS_PARAM.bombFuse}ターン以内</b>にその旗で役を揃えないと爆発し、<b style="color:var(--danger)">スーパーコンボが−${DIS_PARAM.bombPenalty}</b>される。役が揃えば解除できる。`;
-  if(c.type==='curse_null') return `使うと<b style="color:var(--danger)">${DIS_PARAM.nullTurns}ターン</b>の間、軍師カードの効果が無効になる。敵の呪い（毒・封鎖・ボム・暗闇）の効果も無効になる。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
-  if(c.type==='curse_wipe') return `使って旗を1つ選ぶと、その旗に置いたカードが<b style="color:var(--danger)">すべて墓地へ送られます</b>（空の旗にも使えます。置かれた呪いも一緒に消えます。完成前の旗のみ）。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。「💧聖水」ならペナルティなしで消せます。`;
-  if(c.type==='curse_dark') return `使うと<b style="color:var(--danger)">${DIS_PARAM.darkTurns}ターン</b>の間、攻撃の予測表示が半分に見えなくなる。`;
-  if(c.type==='curse_minus') return `使って旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる（役・コンボも付かない）。`;
+  if(c.type==='curse_bomb') return `旗に置くと時限ボム。<b style="color:var(--danger)">${DIS_PARAM.bombFuse}ターン以内</b>に役を揃えないと、スーパーコンボが−${DIS_PARAM.bombPenalty}。`;
+  if(c.type==='curse_null') return `<b style="color:var(--danger)">${DIS_PARAM.nullTurns}ターン</b>の間、軍師カードと敵の呪いの効果が無効になる。普通には捨てられない。`;
+  if(c.type==='curse_wipe') return `旗を選ぶと、その旗のカードがすべて墓地へ送られる。普通には捨てられない。`;
+  if(c.type==='curse_dark') return `<b style="color:var(--danger)">${DIS_PARAM.darkTurns}ターン</b>の間、攻撃の予測が半分見えなくなる。`;
+  if(c.type==='curse_minus') return `旗を選ぶと、その旗の得点が<b style="color:var(--danger)">マイナス</b>になる。`;
   const per=WAVES[stageIndex].poison||(2+WAVES[stageIndex].tier);
-  if(c.type==='curse_poison') return `使うと毒をあびる。<b style="color:var(--danger)">${DIS_PARAM.poisonTurns}ターンの間</b>、<b style="color:var(--danger)">毎ターン${DIS_PARAM.venomDmg}ダメージ</b>を受ける。「🧪薬」で止められます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−${DIS_PARAM.removePenalty}されます）。使うか、シャッフルで山札に戻すしかありません。`;
-  return `使うと好きな旗を1つ選んで、<b style="color:var(--danger)">${BALANCE.sealTurns}ターンの間</b>使えなくなる（置いてあったカードはそのまま残るが、追加で置けない）。封鎖が解けるまでに攻撃が来ると追加ダメージを受けます。「🧪薬」ですぐに解除できます。<br><b style="color:var(--danger)">普通には捨てられません</b>（補充・差し替えで消せますが、スーパーコンボが−5されます）。使うか、シャッフルで山札に戻すしかありません。`;
+  if(c.type==='curse_poison') return `<b style="color:var(--danger)">${DIS_PARAM.poisonTurns}ターン</b>の間、毎ターン${DIS_PARAM.venomDmg}ダメージ。「🧪薬」で止められる。普通には捨てられない。`;
+  return `旗を1つ選んで<b style="color:var(--danger)">${BALANCE.sealTurns}ターン</b>使えなくする。「🧪薬」で解除できる。普通には捨てられない。`;
 }
 function cardInfoContent(c){
   if(isCurse(c)) return `<p><b>${c.name}</b></p><p>${curseInfo(c)}</p>`;
   if(c.kind==='troop'){
     const cname=CNAME[c.color], lo=Math.max(1,c.value-1), hi=Math.min(10,c.value+1);
-    return `<p><b>${cname}・強さ${c.value}</b></p>
-      <p>同じ色（${cname}）を3枚集めると「バタリオン」(×2.5)。さらに<b>連番</b>なら最強の「ウェッジ」(×5)。</p>
-      <p>色を問わず同じ数字「${c.value}」が3枚なら「ファランクス」(×3.5)。<b>同じ色・同じ数字の3枚なら「ロイヤルファランクス」(×10)</b>。</p>
-      <p>色バラでも数字${lo}や${hi}と並べれば「スカーミッシュ」(×3)も狙えます。</p>`;
+    return `<p><b>${cname}・強さ${c.value}</b></p><p>同じ色3枚で「バタリオン」×2.5（連番なら「ウェッジ」×5）。同じ数字3枚で「ファランクス」×3.5（同じ色なら×10）。${lo}や${hi}と並べると「スカーミッシュ」×3。</p>`;
   }
   if(c.kind==='monster'){
     if(c.sub==='necro'){
-      return `<p><b>鍛治職人</b></p><p>発動すると、墓地にある装備が全て山札に戻ります（獲得済みの得点はそのまま）。</p>`;
+      return `<p><b>鍛治職人</b></p><p>墓地の装備がすべて山札に戻る。</p>`;
     }
     if(c.sub==='pfield'){
-      return `<p><b>パニックフィールド</b></p><p>敵に押し付けられたカード。旗に置くと、次にその旗へ置く数字カードの<b style="color:var(--danger)">数字が逆転（革命）</b>する（1↔10、2↔9…。万能カードは変わらない）。その戦いの間だけの変化。全滅・誘導で取り除ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。</p>`;
+      return `<p><b>パニックフィールド</b></p><p>旗に置くと、次にその旗へ置く数字が<b style="color:var(--danger)">逆転</b>する（1↔10…）。捨てられない。</p>`;
     }
     if(c.sub==='cfield'){
-      return `<p><b>${CNAME[c.color]}のカラフルフィールド</b></p><p>敵に押し付けられたカード。旗に置くと、その旗には<b style="color:var(--danger)">${CNAME[c.color]}のカードしか置けなく</b>なる（万能カードは可）。<b>無理に違う色を置くこともできるが、スーパーコンボが−${DIS_PARAM.cfieldPenalty}</b>される。全滅・誘導で取り除ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。</p>`;
+      return `<p><b>${CNAME[c.color]}のカラフルフィールド</b></p><p>旗に置くと、その旗には<b style="color:var(--danger)">${CNAME[c.color]}しか置けなく</b>なる。別の色を置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}。捨てられない。</p>`;
     }
     if(c.sub==='number'&&c.value<0){
-      return `<p><b>${c.value}の呪いの装備</b></p><p>敵に押し付けられた装備。旗に置くと、その旗の数字に<b style="color:var(--danger)">${c.value}</b>が加算される（役の倍率もコンボも掛かる）。プラスの力の装備を重ねると相殺でき（例：+7の装備に−4を置くと+3）、全滅・誘導でも取り除ける。捨てられない（補充・差し替えで消すとスーパーコンボ−5）。</p>`;
+      return `<p><b>${c.value}の呪いの装備</b></p><p>旗の数字に<b style="color:var(--danger)">${c.value}</b>が加算される。プラスの装備で相殺できる。捨てられない。</p>`;
     }
     if(c.sub==='number'){
       return `<p><b>${c.value}以上の力の装備</b></p><p>${c.value}以上の数しか置けない。置くと<b>+${monsterBonusFor(c)}</b>加点される。</p>`;
     }
-    return `<p><b>${CNAME[c.color]}の装備</b></p><p>カードが置いてある旗にドラッグすると、その旗に最後に置いたカード（3枚目）の<b>マークが${CNAME[c.color]}に変わります</b>（数字はそのまま・1ターン消費・装備は墓地へ）。役が固まった旗にも使え、<b>役やスーパーコンボも変わります</b>。同色の役を作りたいときに。</p>`;
+    return `<p><b>${CNAME[c.color]}の装備</b></p><p>旗の3枚目のマークが<b>${CNAME[c.color]}に変わる</b>（1ターン消費）。役やスーパーコンボも変わる。</p>`;
   }
   let extra;
   if(isDariusCard(c)) extra=TACTIC_EXTRA.darius;
   else if(isAlexanderCard(c)) extra=TACTIC_EXTRA.alexander;
-  else extra=TACTIC_EXTRA[c.type]||c.desc||'万能カード。強さ8として扱われ、旗の配置制限を無視できます。';
+  else extra=TACTIC_EXTRA[c.type]||c.desc||'万能カード。強さ8として扱い、配置制限を無視する。';
   if(c.purchased) extra += '<br><b style="color:var(--danger)">景品なので、使ったら無くなります。</b>';
   return `<p><b>${c.name||c.short||cardDisplayName(c)}</b></p><p>${extra}</p>`;
 }
@@ -7876,7 +7873,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03t';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
