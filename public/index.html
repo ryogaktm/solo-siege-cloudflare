@@ -3091,7 +3091,7 @@ function targetsFor(card){
     if(f.closed||isLocked(f)) return;
     const mon=flagMonster(f);
     if(card.kind==='troop'||isAlexanderCard(card)){
-      if(mon){ if((mon.sub==='cfield'&&card.kind==='troop') || (satisfiesMonster(card,f) && fitsFormation(card,f))) out.push(i); }
+      if(mon){ if((mon.sub==='cfield'&&card.kind==='troop') || (mon.sub==='combined'&&card.kind==='troop'&&((mon.pf?11-val(card):val(card))>=mon.value)) || (satisfiesMonster(card,f) && fitsFormation(card,f))) out.push(i); }   // 色の条件だけなら、違う色でも置ける（スーパーコンボが減る）
       else if(f.cards.length<3 && fitsFormation(card,f)) out.push(i);
     }
     else if(isDariusCard(card)){
@@ -3840,7 +3840,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   if(card.type==='curse_bomb'){ picked=null; doCurse(handIdx, fi); return true; }
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
-    if(!noAsk && card.kind==='troop' && cm && cm.sub==='cfield' && !satisfiesMonster(card,f)){
+    if(!noAsk && card.kind==='troop' && cm && (cm.sub==='cfield'||cm.sub==='combined') && !satisfiesMonster(card,f)){
       const uidK=card.uid, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
       bg.innerHTML=`<div class="reward-box"><div class="reward-title">💀 カラフルフィールド</div><div class="reward-sub" style="margin-top:8px">この旗には<b>${CNAME[cm.color]}</b>のカードしか置けません。<br>無理に置くと<b style="color:var(--danger)">スーパーコンボが−${DIS_PARAM.cfieldPenalty}</b>されます。置きますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="cfNo" style="flex:1">やめる</button><button class="btn" id="cfYes" style="flex:1">無理に置く</button></div></div>`;
       document.body.appendChild(bg); busy=true;
@@ -3899,7 +3899,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     }
     hand.splice(handIdx,1);
     const mon=flagMonster(f);
-    const forcedCf = !!(mon && mon.sub==='cfield' && !satisfiesMonster(card,f));
+    const forcedCf = !!(mon && (mon.sub==='cfield'||mon.sub==='combined') && card.kind==='troop' && !satisfiesMonster(card,f));
     const posBefore=f.cards.filter(c=>c.kind==='troop').length;
     if(mon){ const midx=f.cards.indexOf(mon); f.cards[midx]=placed; }
     else { f.cards.push(placed); }
@@ -7970,7 +7970,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03z';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

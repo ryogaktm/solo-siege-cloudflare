@@ -379,5 +379,9 @@ with sync_playwright() as p:
     r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
       const cf=makeColorField('red'); flags[0].cards=[cf]; hand=[{kind:'monster',sub:'mark',color:'blue',uid:uid()}]; o.can=targetsFor(hand[0]).includes(0); playOnFlag(0,0,null); await new Promise(r=>setTimeout(r,1500)); o.color=cf.color; o.still=flags[0].cards.length===1&&flags[0].cards[0]===cf; return o}""")
     check('カラフルフィールドに色の装備を置くと、フィールドがその色に変わる',r['can'] and r['color']=='blue' and r['still'],r)
+    r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
+      flags[0].cards=[{kind:'monster',sub:'combined',color:'red',value:8,enemyCard:false,uid:uid()}]; const lo={kind:'troop',color:'blue',value:5,uid:uid()}, hi={kind:'troop',color:'blue',value:9,uid:uid()}, ok={kind:'troop',color:'red',value:9,uid:uid()};
+      o.hiOk=targetsFor(hi).includes(0); o.loNo=!targetsFor(lo).includes(0); o.okOk=targetsFor(ok).includes(0); return o}""")
+    check('色＋数字の条件の旗：違う色でも数字が足りていれば置ける（数字が足りないカードは置けない）',all(r.values()),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
