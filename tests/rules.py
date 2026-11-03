@@ -364,5 +364,7 @@ with sync_playwright() as p:
       o.names=['ガーゴイル','モンク','侍','農夫'].map(n=>WAVES.some(w=>dispName(w.id)===n)).every(Boolean);
       return o}""")
     check('21〜28の特殊技：きれい好き・仲間の壁・財宝・ファイアブレス・蘇り・ためる・銭投げ・収穫祭（足りない時は使えない）',all(r.values()),r)
+    r=ev("""()=>{ const o={}; lsSet('soloSiegeAlienBeat','[]'); o.res=comboRestricted(); CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); carryMap={red:3}; nextStageIdx=INTRO_LEADER; advanceToNextStage(); o.mijinko=carryMap.red===3; lsSet('soloSiegeAlienBeat',JSON.stringify(['月の民'])); return o}""")
+    check('ミジンコの間はスーパーコンボを次の戦いへ引き継げる',r['mijinko'] and r['res'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
