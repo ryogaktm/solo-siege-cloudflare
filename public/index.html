@@ -2230,9 +2230,9 @@ const minusCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocke
 const isEnemyCard=c=>isCurse(c)||isEnemyEq(c);
 function comboLoss(pen,msg,col){   // 持ち越しのスーパーコンボを下げる（色の指定がなければ、持っている色からランダムに1色）
   let ks=Object.keys(carryMap);
-  if(col) ks=ks.filter(k=>k===col); else if(ks.length) ks=[ks[Math.floor(Math.random()*ks.length)]];
+  if(col==='all'){} else if(col) ks=ks.filter(k=>k===col); else if(ks.length) ks=[ks[Math.floor(Math.random()*ks.length)]];
   ks.forEach(k=>{ carryMap[k]=Math.max(1,carryMap[k]-pen); });
-  hint(msg.replace('スーパーコンボが',ks.length?CNAME[ks[0]]+'のスーパーコンボが':'スーパーコンボが')+(ks.length?'':'（下がるコンボはなかった）'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
+  hint(msg.replace('スーパーコンボが',ks.length&&col!=='all'?CNAME[ks[0]]+'のスーパーコンボが':'スーパーコンボが')+(ks.length?'':'（下がるコンボはなかった）'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
   try{ render(); }catch(e){}
 }
 function applyComboPenalty(n){   // 敵のカードを消した代償
@@ -2247,14 +2247,14 @@ const bombCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked
 function bombBoom(i){
   const f=flags[i]; if(!f) return; f.bomb=0;
   if(nullOn()){ hint('🚫 ボムは無効化されて不発だった。',true); return; }
-  comboLoss(DIS_PARAM.bombPenalty,`💥 F${i+1}のボムが爆発！ 役が揃わなかった代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`);
+  comboLoss(DIS_PARAM.bombPenalty,`💥 F${i+1}のボムが爆発！ 役が揃わなかった代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`,'all');
 }
 function tickBombs(){
   hand.filter(c=>c&&c.type==='curse_bomb').forEach(c=>{   // 手札に渡った時点から導火線は進む。手札に持ったままでも、時間が来れば爆発する
     c.fuse=(c.fuse==null?DIS_PARAM.bombFuse:c.fuse)-1;
     if(c.fuse<=0){ hand.splice(hand.indexOf(c),1);
       if(nullOn()) hint('🚫 手札のボムは無効化されて不発だった。',true);
-      else comboLoss(DIS_PARAM.bombPenalty,`💥 手札のボムが爆発！ 置かずに持っていた代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`); }
+      else comboLoss(DIS_PARAM.bombPenalty,`💥 手札のボムが爆発！ 置かずに持っていた代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`,'all'); }
   });
   flags.forEach((f,i)=>{ if(f.bomb&&!f.closed){ f.bomb--; if(f.bomb<=0) bombBoom(i); } });
 }
@@ -7975,7 +7975,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
