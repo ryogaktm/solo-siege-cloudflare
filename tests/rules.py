@@ -255,8 +255,10 @@ with sync_playwright() as p:
     check('序盤（earlyLv未満）の敵は最初の妨害が10ターン目以降',all((f or 99)>=10 for n,f in r['early']),r['early'])
     check('earlyLv以降の敵は最初の妨害が6ターン目前後から出る',any((f or 99)<=7 for n,f in r['late']),r['late'][:6])
     check('動く敵の絵：アニメが止まっても基本の絵は見える（敵が消えない）',r['frA']=='visible',r['frA'])
-    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=hand.find(x=>x.sub==='cfield'); return {col, got:c&&c.color, onFlag:flags.map(flagMonster).some(x=>x&&x.sub==='cfield'), left:(autoQ.cfield||[]).length}}""")
-    check('カラフルフィールド：予測した色のまま、旗ではなく手札に押し付けられる',r['col']==r['got'] and not r['onFlag'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=flags.map(flagMonster).find(x=>x&&x.sub==='cfield'); return {col, got:c&&c.color, inHand:hand.some(x=>x.sub==='cfield')}}""")
+    check('カラフルフィールド：予測した色のまま、旗に直接置かれる',r['col']==r['got'] and not r['inHand'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); carryMap={red:30,blue:30}; const f=flags[0]; f.cards=[]; f.closed=false; f.cards.push(makeColorField('red')); busy=false; pending=null; hand=[{kind:'troop',color:'blue',value:4,uid:uid()}]; playOnFlag(0,0,null,true); return {red:carryMap.red,blue:carryMap.blue}}""")
+    check('カラフルフィールドに逆らうと、その色のコンボだけ−5',r['red']==25 and r['blue']==30,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false});
       flags[0].cards=[makeColorField('blue')]; flags[1].cards=[makeColorField('red')];
       const w={kind:'monster',sub:'number',value:8,uid:uid()}, mk={kind:'monster',sub:'number',value:-3,uid:uid()}; hand.push(w,mk);
@@ -273,7 +275,7 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; autoQ={}; const errs=[]; const t=enemyTurn+3; enemySched={}; enemySched[t]='cfield';
       try{ render(); }catch(e){ errs.push(String(e)); } const fc=autoForecast(); const txt=Object.values(fc).flat().filter(x=>x.type==='cfield').length;
       const lab=document.querySelector('.auto-fc')&&document.querySelector('.auto-fc').textContent; return {errs,txt,lab}}""")
-    check('カラフルフィールドが予定にあっても、描画でエラーにならない（旗ごとの予告は出ない）',not r['errs'] and r['txt']==0,r)
+    check('カラフルフィールドが予定にあっても、描画でエラーにならない',not r['errs'],r)
     r=ev("""async()=>{ try{ lsSet('soloSiegeMons',JSON.stringify(WAVES.filter(w=>!w.boss).map(w=>w.baseId))); }catch(e){} document.getElementById('appRoot').style.display='none'; document.getElementById('titleScreen').style.display='flex'; CHARACTER=null;
       document.getElementById('titleStartBtn').click(); const o={char:getComputedStyle(document.getElementById('charScreen')).display, noBtn:!document.getElementById('titleCharBtn')};
       document.getElementById('charDecide').click(); await new Promise(r=>setTimeout(r,1000)); o.title=getComputedStyle(document.getElementById('titleScreen')).display; o.app=getComputedStyle(document.getElementById('appRoot')).display; o.started=!!CHARACTER; return o}""")

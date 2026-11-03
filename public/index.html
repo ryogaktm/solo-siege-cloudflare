@@ -2228,10 +2228,11 @@ const nullOn=()=>turnCounter<dis.nullUntil;
 const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus',curse_null:'null',curse_wipe:'wipe'})[c.type]||'seal';
 const minusCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.negated);
 const isEnemyCard=c=>isCurse(c)||isEnemyEq(c);
-function comboLoss(pen,msg){   // 持ち越しのスーパーコンボを下げる
-  const ks=Object.keys(carryMap);
+function comboLoss(pen,msg,col){   // 持ち越しのスーパーコンボを下げる（色の指定がなければ、持っている色からランダムに1色）
+  let ks=Object.keys(carryMap);
+  if(col) ks=ks.filter(k=>k===col); else if(ks.length) ks=[ks[Math.floor(Math.random()*ks.length)]];
   ks.forEach(k=>{ carryMap[k]=Math.max(1,carryMap[k]-pen); });
-  hint(msg+(ks.length?'':'（今は積み上げたコンボがない）'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
+  hint(msg.replace('スーパーコンボが',ks.length?CNAME[ks[0]]+'のスーパーコンボが':'スーパーコンボが')+(ks.length?'':'（下がるコンボはなかった）'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
   try{ render(); }catch(e){}
 }
 function applyComboPenalty(n){   // 敵のカードを消した代償
@@ -2574,7 +2575,7 @@ function autoForecast(){   // 旗ごとの「あとNターンで何のカード�
     for(let k=1;k<=8-nClk;k++){
       const t=baseT+enemyOffs(k,pend0,baseT);
       const stepped=!hasAcc('glass')||(k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,baseT)>enemyOffs(k-1,pend0,baseT));
-      const et=enemySched[t]; if(!stepped||!FLAG_EVS.includes(et)||et==='cfield') continue;   // カラフルフィールドは手札に来るので、旗ごとの予告は出さない
+      const et=enemySched[t]; if(!stepped||!FLAG_EVS.includes(et)) continue;
       const pl=planAt(et,evOrd(t,et,baseT)), fi=autoTargetIdx(pl); if(fi<0) continue;
       (out[fi]=out[fi]||[]).push({k:k+nClk,type:et,col:pl.col,v:pl.v});
     }
@@ -2603,12 +2604,13 @@ function applyEnemyEvent(type,target,viaCard){
     hint(`⬇ 敵の妨害！ コンボが−${dis.guardN}される（あと${dis.guardUntil-enemyTurn}ターン）`,true); playSfx('warn');
   } else if(type==='bomb'){
     { const bc0=makeCurse('bomb'); bc0.fuse=DIS_PARAM.bombFuse; giveHandCard(bc0); } hint(`💣 時限ボムを手札に押し付けられた！ もうカウントが始まっている。${DIS_PARAM.bombFuse}ターン以内に旗へ置いて役を揃えないと（置かずに持っていても）スーパーコンボ−${DIS_PARAM.bombPenalty}。`,true); playSfx('warn');
-  } else if(type==='cfield'){   // カラフルフィールド：旗に直接置くと強すぎるので、手札に押し付ける（色は予測レーンで見えている色）
-    const cpl=takeAutoPlan('cfield'), cf=makeColorField(cpl.col);
-    if(!giveHandCard(cf)){ hint('敵がカラフルフィールドを押し付けようとしたが、手札に入らなかった。',true); }
-    else {
-      enemyCardFly('hand',cf);
-      hint(`💀 敵がカラフルフィールド（${CNAME[cf.color]}）を手札に押し付けた！ 旗に置くと、その旗には${CNAME[cf.color]}のカードしか置けなくなる（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn'); try{ render(); layoutHand(false); }catch(e){}
+  } else if(type==='cfield'){   // カラフルフィールド：敵が旗に直接置く（色は予測レーンで見えている色）
+    const cpl=takeAutoPlan('cfield'), cfi=autoTargetIdx(cpl);
+    if(cfi<0){ hint('敵がカラフルフィールドを置こうとしたが、置ける旗がなかった。',true); }
+    else if(!hauntBlock(cfi,'敵のカラフルフィールド')){
+      const cf=makeColorField(cpl.col); cf.autoFresh=true; flags[cfi].cards.push(cf); enemyCardFly(cfi,cf);
+      setTimeout(()=>{ cf.autoFresh=false; try{ render(); }catch(e){} },2200);
+      hint(`💀 敵が旗${cfi+1}にカラフルフィールド（${CNAME[cf.color]}）を置いた！ その旗には${CNAME[cf.color]}のカードしか置けない（無理に置くと${CNAME[cf.color]}のスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn'); try{ render(); }catch(e){}
     }
   } else if(type==='autonum'){
     const pl=takeAutoPlan('autonum'), fi=autoTargetIdx(pl);
@@ -3844,7 +3846,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
     if(!noAsk && card.kind==='troop' && cm && (cm.sub==='cfield'||cm.sub==='combined') && !satisfiesMonster(card,f)){
       const uidK=card.uid, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
-      bg.innerHTML=`<div class="reward-box"><div class="reward-title">💀 カラフルフィールド</div><div class="reward-sub" style="margin-top:8px">この旗には<b>${CNAME[cm.color]}</b>のカードしか置けません。<br>無理に置くと<b style="color:var(--danger)">スーパーコンボが−${DIS_PARAM.cfieldPenalty}</b>されます。置きますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="cfNo" style="flex:1">やめる</button><button class="btn" id="cfYes" style="flex:1">無理に置く</button></div></div>`;
+      bg.innerHTML=`<div class="reward-box"><div class="reward-title">💀 カラフルフィールド</div><div class="reward-sub" style="margin-top:8px">この旗には<b>${CNAME[cm.color]}</b>のカードしか置けません。<br>無理に置くと<b style="color:var(--danger)">${CNAME[cm.color]}のスーパーコンボが−${DIS_PARAM.cfieldPenalty}</b>されます。置きますか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="cfNo" style="flex:1">やめる</button><button class="btn" id="cfYes" style="flex:1">無理に置く</button></div></div>`;
       document.body.appendChild(bg); busy=true;
       bg.querySelector('#cfNo').onclick=()=>{ bg.remove(); busy=false; picked=null; render(); layoutHand(false); };
       bg.querySelector('#cfYes').onclick=()=>{ bg.remove(); busy=false; const i=hand.findIndex(c=>c.uid===uidK); if(i<0||!playOnFlag(i,fi,fromRect,true)){ picked=null; render(); layoutHand(false); } };
@@ -3908,7 +3910,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     showPlacementComment(card, f, posBefore);
     playSfx('place');
     advanceTurn(placed);
-    if(forcedCf) comboLoss(DIS_PARAM.cfieldPenalty,`💀 カラフルフィールドに逆らった代償で、スーパーコンボが−${DIS_PARAM.cfieldPenalty}された！`);
+    if(forcedCf) comboLoss(DIS_PARAM.cfieldPenalty,`💀 カラフルフィールドに逆らった代償で、スーパーコンボが−${DIS_PARAM.cfieldPenalty}された！`,mon.color);
     if(!mon) closeCheck(fi, false);
     const refilled=autoRefill(1);
     render(); layoutHand(false);
@@ -7973,7 +7975,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
