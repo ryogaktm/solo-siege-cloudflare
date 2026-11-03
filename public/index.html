@@ -7413,6 +7413,12 @@ function closeStrayModals(){   // 戦いが終わった時：開きっぱなし�
 }
 let lastGoalRes=[];   // 直前の戦いの取得条件の結果［{name,text,ok}］
 function grantStageReward(){
+  if(introNoAcc()&&!isWeakBody()){   // ミジンコ導入の途中：宝箱・準備・装備の画面は出さず、そのまま次の戦いへ
+    closeStrayModals(); try{ restoreAllMods(); }catch(e){}
+    try{ flags.forEach(f=>{ graveyard.push(...f.cards.filter(Boolean)); f.cards=[]; }); graveyard.push(...stomach.filter(Boolean)); stomach=[]; flags=freshFlags(); }catch(e){}
+    inPrep=false; try{ saveGame(); }catch(e){}
+    advanceToNextStage(); return;
+  }
   inPrep=true; closeStrayModals();
   playSfx('bossDefeat');
   setTimeout(()=>playSfx('reward'), 350);
@@ -7870,7 +7876,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03q';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
