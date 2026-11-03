@@ -1075,7 +1075,7 @@
     text-shadow:0 0 8px rgba(143,240,196,.8);
   }
   @keyframes combo-boost-pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
-  .flag .badge.monbadge{ background:#e06aa8; color:#2a0a1c; }
+  .flag .badge.monbadge{ background:#e06aa8; color:#2a0a1c; white-space:normal; width:max-content; max-width:calc(100% - 6px); text-align:center; line-height:1.15; }   /* 長い名前は、旗の幅に収まるよう2行に折り返す */
   .flag .badge.timeoutbadge{ background:#5a5a5a; color:#ddd; }
   .flag.locked-turns{ opacity:.55; }
   .flag.locked-turns::after{
@@ -2573,7 +2573,7 @@ function autoForecast(){   // 旗ごとの「あとNターンで何のカード�
     for(let k=1;k<=8-nClk;k++){
       const t=baseT+enemyOffs(k,pend0,baseT);
       const stepped=!hasAcc('glass')||(k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,baseT)>enemyOffs(k-1,pend0,baseT));
-      const et=enemySched[t]; if(!stepped||!FLAG_EVS.includes(et)) continue;
+      const et=enemySched[t]; if(!stepped||!FLAG_EVS.includes(et)||et==='cfield') continue;   // カラフルフィールドは手札に来るので、旗ごとの予告は出さない
       const pl=planAt(et,evOrd(t,et,baseT)), fi=autoTargetIdx(pl); if(fi<0) continue;
       (out[fi]=out[fi]||[]).push({k:k+nClk,type:et,col:pl.col,v:pl.v});
     }
@@ -2582,9 +2582,9 @@ function autoForecast(){   // 旗ごとの「あとNターンで何のカード�
 const ENEMY_FLY_MS=650;   // 敵がカードをシートへ差し込む演出の長さ
 function enemyCardFly(fi,card){   // 敵（右上）からカードが飛んできて、シートに差し込まれる
   try{
-    const mo=document.getElementById('fighterMo'), fl=document.querySelector('.flag[data-index="'+fi+'"]'); if(!mo||!fl||!card) return;
+    const mo=document.getElementById('fighterMo'), fl=(fi==='hand')?document.querySelector('.handbar'):document.querySelector('.flag[data-index="'+fi+'"]'); if(!mo||!fl||!card) return;
     card.flying=true; try{ render(); }catch(e){}
-    const fl2=document.querySelector('.flag[data-index="'+fi+'"]')||fl, a=mo.getBoundingClientRect(), b=fl2.getBoundingClientRect();
+    const fl2=((fi==='hand')?document.querySelector('.handbar'):document.querySelector('.flag[data-index="'+fi+'"]'))||fl, a=mo.getBoundingClientRect(), b=fl2.getBoundingClientRect();
     const el=document.createElement('div'); el.className='enemy-fly';
     el.style.cssText=`position:fixed;z-index:9000;pointer-events:none;width:46px;height:64px;left:${a.left+a.width/2-23}px;top:${a.top+a.height/2-32}px;border-radius:7px;border:2px solid #ff7a68;background:linear-gradient(145deg,#8a2424,#3a0e0e);box-shadow:0 0 14px rgba(255,90,70,.9)`;
     document.body.appendChild(el);
@@ -2602,13 +2602,12 @@ function applyEnemyEvent(type,target,viaCard){
     hint(`⬇ 敵の妨害！ コンボが−${dis.guardN}される（あと${dis.guardUntil-enemyTurn}ターン）`,true); playSfx('warn');
   } else if(type==='bomb'){
     { const bc0=makeCurse('bomb'); bc0.fuse=DIS_PARAM.bombFuse; giveHandCard(bc0); } hint(`💣 時限ボムを手札に押し付けられた！ もうカウントが始まっている。${DIS_PARAM.bombFuse}ターン以内に旗へ置いて役を揃えないと（置かずに持っていても）スーパーコンボ−${DIS_PARAM.bombPenalty}。`,true); playSfx('warn');
-  } else if(type==='cfield'){   // カラフルフィールド：手札ではなく、敵が旗に直接置く（色は予測レーンで見えている色）
-    const cpl=takeAutoPlan('cfield'), cfi=autoTargetIdx(cpl);
-    if(cfi<0){ hint('敵がカラフルフィールドを置こうとしたが、置ける旗がなかった。',true); }
-    else if(!hauntBlock(cfi,'敵のカラフルフィールド')){
-      const cf=makeColorField(cpl.col); cf.autoFresh=true; flags[cfi].cards.push(cf); enemyCardFly(cfi,cf);
-      setTimeout(()=>{ cf.autoFresh=false; try{ render(); }catch(e){} },2200);
-      hint(`💀 敵が旗${cfi+1}にカラフルフィールド（${CNAME[cf.color]}）を置いた！ その旗には${CNAME[cf.color]}のカードしか置けない（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn'); try{ render(); }catch(e){}
+  } else if(type==='cfield'){   // カラフルフィールド：旗に直接置くと強すぎるので、手札に押し付ける（色は予測レーンで見えている色）
+    const cpl=takeAutoPlan('cfield'), cf=makeColorField(cpl.col);
+    if(!giveHandCard(cf)){ hint('敵がカラフルフィールドを押し付けようとしたが、手札に入らなかった。',true); }
+    else {
+      enemyCardFly('hand',cf);
+      hint(`💀 敵がカラフルフィールド（${CNAME[cf.color]}）を手札に押し付けた！ 旗に置くと、その旗には${CNAME[cf.color]}のカードしか置けなくなる（無理に置くとスーパーコンボ−${DIS_PARAM.cfieldPenalty}）。`,true); playSfx('warn'); try{ render(); layoutHand(false); }catch(e){}
     }
   } else if(type==='autonum'){
     const pl=takeAutoPlan('autonum'), fi=autoTargetIdx(pl);
@@ -7971,7 +7970,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-03y';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-03z';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
