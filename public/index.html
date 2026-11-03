@@ -1528,6 +1528,8 @@ const TACTICS = [
   {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など。1は1と1の2枚）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
 ];
+const TACTIC_OFF=['plead'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
+const TACTICS_ON=TACTICS.filter(t=>!TACTIC_OFF.includes(t.type));
 const GLOBAL_TACTIC_TYPES=['scout','shuffle','inspire','rehire','conscript','revolution','plead'];
 const PLEAD_TURNS=3;   // 命乞いカード：敵の大技を遅らせるターン数
 const HAND_MAX_BASE = 6, LOCK_TURNS = 5, WAVE_DRAW = 40;
@@ -2783,7 +2785,7 @@ function randomizeStartDeck(){ // 初期山札は完全ランダム（大山札�
     const cat=c=>c.kind==='troop'?'n':c.kind==='monster'?'e':'t';
     const base={n:GAME_COLORS.length*10,e:0,t:0};
     if(CHARACTER.equipment) MONSTERS.filter(m=>!(m.sub==='mark'&&!GAME_COLORS.includes(m.color))).forEach(m=>{ base.e+=m.count; });
-    TACTICS.forEach(t=>{
+    TACTICS_ON.forEach(t=>{
       if(t.isNew) return;
       if(t.type==='alexander'&&!CHARACTER.blueInf) return;
       if(t.type==='darius'&&!CHARACTER.redInf) return;
@@ -2826,7 +2828,7 @@ function init(){
   resetAccessories();
   grandDeck=[];
   GAME_COLORS.forEach(c=>{ for(let v=1;v<=10;v++) grandDeck.push({kind:'troop',color:c,value:v,uid:uid()}); });
-  TACTICS.forEach(t=>{
+  TACTICS_ON.forEach(t=>{
     if(t.type==='alexander' && !CHARACTER.blueInf) return;
     if(t.type==='darius' && !CHARACTER.redInf) return;
     if(t.type==='conscript'){ if(CHARACTER.id==='novice') return; }
@@ -5634,7 +5636,7 @@ function buildFormationExamples(){
 }
 function buildTacticsList(){
   const wrap=document.getElementById('tacticsList'); if(wrap.childElementCount) return;
-  TACTICS.forEach(t=>{
+  TACTICS_ON.forEach(t=>{
     const row=document.createElement('div'); row.className='formation-example';
     const cardsWrap=document.createElement('div'); cardsWrap.className='ex-cards';
     const el=cardEl({...t, uid:'tac-'+t.type}, false); el.classList.add('xs');
@@ -5802,7 +5804,7 @@ function showEnd(reason,giftDone){
   }
 }
 function rollRewardOptions(){
-  const tacticsPool = TACTICS.filter(t=>t.type!=='alexander'&&t.type!=='darius');
+  const tacticsPool = TACTICS_ON.filter(t=>t.type!=='alexander'&&t.type!=='darius');
   const wildPool = [TACTICS.find(t=>t.type==='alexander'), TACTICS.find(t=>t.type==='darius')].filter(t=>(t.type==='alexander'?CHARACTER.blueInf:CHARACTER.redInf));
   const doubleType = (!CHARACTER.tactics || Math.random()<0.5) ? 'wild' : 'tactics';
   const pool = doubleType==='wild' ? wildPool : tacticsPool;
@@ -7566,7 +7568,7 @@ function finishChest(){ document.getElementById('chestModal').style.display='non
 /* ----- 準備画面 ----- */
 let deckOffer=null;
 function rollDeckOffer(){ const cols=shuffle(GAME_COLORS.slice()); deckOffer={up:cols[0],from:cols[1],to:cols[2],upUsed:false,chUsed:false,drinkUsed:false,cards:rollDeckCards()}; }
-function rollDeckCards(){ return shuffle(TACTICS.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true).map(t=>t.type)).slice(0,2).map(ty=>({type:ty,sold:false})); }
+function rollDeckCards(){ return shuffle(TACTICS_ON.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true).map(t=>t.type)).slice(0,2).map(ty=>({type:ty,sold:false})); }
 let shopBought=false;  // この準備中に、アクセサリー屋で買い物をしたか（買い切りで空になるのはOK、最初から空なのがNG）
 function rollAccStock(){
   shopBought=false;
@@ -7894,7 +7896,7 @@ function startDeleteCards(o,cont){
 function startAddCards(o,cont){
   const mk=(kind,def)=>({kind,...def});
   const num=[]; GAME_COLORS.forEach(c=>{ for(let v=1;v<=10;v++) num.push({kind:'troop',color:c,value:v}); });
-  const tac=TACTICS.map(t=>({kind:'tactics',...t}));
+  const tac=TACTICS_ON.map(t=>({kind:'tactics',...t}));
   const weapon=MONSTERS.filter(m=>m.sub==='number').map(m=>({kind:'monster',sub:m.sub,value:m.value}));
   const armor=MONSTERS.filter(m=>m.sub==='mark'&&GAME_COLORS.includes(m.color)).map(m=>({kind:'monster',sub:m.sub,color:m.color}));
   const necro=MONSTERS.filter(m=>m.sub==='necro').map(m=>({kind:'monster',sub:m.sub}));
@@ -7975,7 +7977,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
