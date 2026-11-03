@@ -4962,7 +4962,7 @@ function renderBattle(){
       const sg=v=>{ const t=fmtCompact(Math.abs(v)); return v>0?`<span class="pm-pos">+${t}</span>`:v<0?`<span class="pm-neg">-${t}</span>`:`<span class="pm-zero">±0</span>`; };   // 敵の攻撃力との差（−＝自分がダメージ、＋＝敵にダメージ）
       const dl=lo-eA, dh=hi-eA;
       sr.innerHTML = `<span class="pm-sw">⚔</span>` + (lo===hi ? `${fmtCompact(hi)}` : `${fmtCompact(lo)}〜${fmtCompact(hi)}`) + `<span class="pm-diff">(${dl===dh?sg(dh):sg(dl)+'〜'+sg(dh)})</span>`
-      + (()=>{ if(pend||!hasAcc('quick_boots')) return ''; const lim=enemyTurn<=ACC_PARAM.quickTurns?ACC_PARAM.quickTurns:enemyTurn<=ACC_PARAM.quickTurns2?ACC_PARAM.quickTurns2:0; if(!lim) return ''; const m=quickMult(enemyTurn,hasNoRoleFlag()); return `<span class="pm-diff" id="quickLimit"> あと${lim-enemyTurn}ターンまでに完成で×${+m.toFixed(2)}</span>`; })(); } }
+      + (()=>{ if(pend||!hasAcc('quick_boots')) return ''; const lim=enemyTurn<=ACC_PARAM.quickTurns?ACC_PARAM.quickTurns:enemyTurn<=ACC_PARAM.quickTurns2?ACC_PARAM.quickTurns2:0; if(!lim) return ''; const m=quickMult(enemyTurn,hasNoRoleFlag()); return `<span class="pm-diff" id="quickLimit" style="display:block;margin:0;font-size:11px;color:#ffd27a"> あと${lim-enemyTurn}ターンまでに完成で×${+m.toFixed(2)}</span>`; })(); } }
   if(!pend){ // 置きかけの旗が完成した場合の見込み（範囲）
     const rng=predictAttackRange(pA);
     if(rng){
@@ -7975,7 +7975,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
