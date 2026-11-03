@@ -2538,7 +2538,8 @@ function evCands(type){
     if(type==='ghost') return !(haunt[i]>0);
     if(isLocked(f)) return false;
     if(type==='autonum') return !flagMonster(f)&&f.cards.length<=1;
-    if(type==='pfield'||type==='cfield') return !flagMonster(f)&&f.cards.length<3;   // パニックフィールド：モンスター系カードが無く、空きのある旗
+    if(type==='pfield'){ const m=flagMonster(f); return m?(!m.enemyCard&&!m.pf&&(m.sub==='number'||m.sub==='combined')&&m.value>0):f.cards.length<3; }   // パニックフィールド：空きのある旗、または自分の力の装備が乗った旗（装備に逆転がかかる。予告した旗に武器を置いても、旗は変わらない）
+    if(type==='cfield') return !flagMonster(f)&&f.cards.length<3;
     if(type==='minus'){ const m=flagMonster(f); return f.cards.length<3&&(!m||m.sub==='number'||m.sub==='combined'); }
     return f.cards.length>0;   // デスイーター・暗殺：カードのある旗
   });
@@ -2624,8 +2625,9 @@ function applyEnemyEvent(type,target,viaCard){
     const ppl=takeAutoPlan('pfield'), pfi=autoTargetIdx(ppl);
     if(pfi<0){ hint('敵がパニックフィールドを置こうとしたが、置ける旗がなかった。',true); }
     else if(!hauntBlock(pfi,'敵のパニックフィールド')){
-      const pf=makePanicField(); pf.accumulatedBonus=0; pf.autoFresh=true; flags[pfi].cards.push(pf); enemyCardFly(pfi,pf);
-      setTimeout(()=>{ pf.autoFresh=false; try{ render(); }catch(e){} },2200);
+      const em=flagMonster(flags[pfi]), pf=(em&&!em.enemyCard)?{}:makePanicField();
+      if(em&&!em.enemyCard){ em.pf=true; enemyCardFly(pfi,pf); }   // 力の装備が乗った旗：装備の上にかかる（数字の逆転）
+      else { pf.accumulatedBonus=0; pf.autoFresh=true; flags[pfi].cards.push(pf); enemyCardFly(pfi,pf); setTimeout(()=>{ pf.autoFresh=false; try{ render(); }catch(e){} },2200); }
       hint(`🌀 敵が旗${pfi+1}にパニックフィールドを置いた！ 次にその旗へ置くカードの数字が逆転（革命）する。`,true); playSfx('warn'); try{ render(); }catch(e){}
     }
   } else if(type==='half'){
@@ -7970,7 +7972,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

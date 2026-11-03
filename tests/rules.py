@@ -383,5 +383,9 @@ with sync_playwright() as p:
       flags[0].cards=[{kind:'monster',sub:'combined',color:'red',value:8,enemyCard:false,uid:uid()}]; const lo={kind:'troop',color:'blue',value:5,uid:uid()}, hi={kind:'troop',color:'blue',value:9,uid:uid()}, ok={kind:'troop',color:'red',value:9,uid:uid()};
       o.hiOk=targetsFor(hi).includes(0); o.loNo=!targetsFor(lo).includes(0); o.okOk=targetsFor(ok).includes(0); return o}""")
     check('色＋数字の条件の旗：違う色でも数字が足りていれば置ける（数字が足りないカードは置けない）',all(r.values()),r)
+    r=ev("""()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false; autoQ={};
+      flags.forEach(f=>{ f.cards=[]; f.closed=false; }); const pl=planAt('pfield',0); pl.flag=1; flags[1].cards=[{kind:'monster',sub:'number',value:6,uid:uid()}];
+      o.stay=autoTargetIdx(pl)===1; applyEnemyEvent('pfield'); o.pf=flagMonster(flags[1]).pf===true&&flags[1].cards.length===1; return o}""")
+    check('パニックフィールドの予告：予告した旗に武器を置いても、予告は他の旗へ移らない（装備に逆転がかかる）',r['stay'] and r['pf'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)
