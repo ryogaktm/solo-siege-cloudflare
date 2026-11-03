@@ -7712,7 +7712,7 @@ function renderShop_(){
   if(!deckOffer) rollDeckOffer();
   const items=[];
   {
-    items.push({key:'swap',head:'山札の入れ替え',icon:'🔀',name:'山札のカードを大山札と交換',desc:'好きな山札のカード1枚を、大山札のランダムなカードと入れ替える',price:SWAP_PRICE,special:true});
+    items.push({key:'swap',head:'山札の入れ替え',icon:'🔀',name:'山札のカードを大山札と交換',desc:'好きな山札のカードを（まとめて）選んで、完全ランダムなカードに入れ替える（同じカードが来ることもある）',price:SWAP_PRICE,special:true});
     items.push({key:'up',icon:miniIcon(EMBLEM[deckOffer.up],CFILL[deckOffer.up]),name:`${CNAME[deckOffer.up]}をランダム3枚+1`,desc:`${CNAME[deckOffer.up]}のカード3枚（ランダム）の数字が+1（最大10）`,price:UP_PRICE,sold:deckOffer.upUsed,
       apply:()=>{ deckOffer.upUsed=true; const n=applyColorPlus3(deckOffer.up); hint(n>0?`${CNAME[deckOffer.up]}のカード${n}枚が+1された！`:`+1できるカードが無かった…`); }});
     items.push({key:'ch',icon:`<span style="display:inline-flex;align-items:center;gap:1px">${miniIcon(EMBLEM[deckOffer.from],CFILL[deckOffer.from])}→${miniIcon(EMBLEM[deckOffer.to],CFILL[deckOffer.to])}</span>`,name:`${CNAME[deckOffer.from]}3枚を${CNAME[deckOffer.to]}に変更`,desc:`${CNAME[deckOffer.from]}のカード3枚（ランダム）が${CNAME[deckOffer.to]}になる`,price:CH_PRICE,sold:deckOffer.chUsed,
@@ -7783,7 +7783,7 @@ function confirmBuy(chosen,tot){
     const boughtAcc=accOwned.filter(o=>o.aid>=seq0);
     if(chosen.some(x=>x.key.startsWith('acc_'))) shopBought=true;
     buySel=[]; buyQty={};
-    if(swap){ swapLeft=swap.qty||1; if(gold<swap.price){ swapLeft=0; renderShop(); refreshPrep(); } else startSwap(); } else { renderShop(); refreshPrep(); }
+    if(swap){ swapLeft=99; if(gold<swap.price){ swapLeft=0; renderShop(); refreshPrep(); } else startSwap(); } else { renderShop(); refreshPrep(); }
     if(boughtAcc.length && !swap) offerEquip(boughtAcc.slice());
   };
 }
@@ -7816,36 +7816,53 @@ const DECK_PRICE_MULT=2.5;  // デッキ屋の値段倍率
 const SWAP_PRICE=Math.round(30*DECK_PRICE_MULT), UP_PRICE=Math.round(50*DECK_PRICE_MULT), CH_PRICE=Math.round(50*DECK_PRICE_MULT);
 const CARD_PRICE={scout:40,shuffle:40,holy:60,rehire:60,plead:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
 const cardPrice=t=>Math.round((CARD_PRICE[t.type]||60)*DECK_PRICE_MULT);
+function swapPool(){   // 入れ替えで来るカードの元：ゲーム開始時の大山札と同じ構成（完全ランダム。同じカードが来ることもある）
+  const a=[];
+  GAME_COLORS.forEach(c=>{ for(let v=1;v<=10;v++) a.push({kind:'troop',color:c,value:v}); });
+  TACTICS_ON.forEach(t=>{
+    if(t.type==='alexander' && !CHARACTER.blueInf) return;
+    if(t.type==='darius' && !CHARACTER.redInf) return;
+    if(t.type==='conscript'){ if(CHARACTER.id==='novice') return; }
+    else if(t.type!=='alexander' && t.type!=='darius' && !CHARACTER.tactics) return;
+    for(let i=0;i<t.count;i++) a.push({kind:'tactics',...t});
+  });
+  if(CHARACTER.equipment) MONSTERS.filter(m=>!(m.sub==='mark' && !GAME_COLORS.includes(m.color))).forEach(m=>{ for(let i=0;i<m.count;i++) a.push({kind:'monster',...m}); });
+  return a;
+}
 function startSwap(){
   const cards=allCardsUnique().filter(deckEligible).filter(c=>c.inDeck).sort(deckSortCmp);
   const items=cards.map(c=>({c,el:()=>cardEl(c,true)}));
+  const n=Math.max(1,Math.min(swapLeft,items.length,Math.floor(gold/SWAP_PRICE)));
   document.getElementById('shopModal').style.display='none';
-  openPicker({title:'交換するカードを選ぶ',sub:'山札から1枚選ぼう（大山札のランダムなカードと入れ替わる）',count:1,tabs:[{name:'山札',items}],okText:'交換する',
+  openPicker({title:'交換するカードを選ぶ',sub:`山札から${n}枚まで選ぼう（完全ランダムなカードに入れ替わる）`,count:n,need:1,tabs:[{name:'山札',items}],okText:'交換する',
     done:sel=>{
-      let swapRes=null;
-      const out=sel[0].c, sk=c=>[c.kind,c.color,c.value,c.sub,c.type].join('|'), cands=grandDeck.filter(c=>deckEligible(c)&&!isCurse(c)&&sk(c)!==sk(out));  // 見た目が同じカードとは交換しない
-      if(!cands.length){ hint('大山札に交換できるカードがない。',true); }
-      else{
-        const inn=cands[Math.floor(Math.random()*cands.length)];
+      const pool=swapPool(), res=[];
+      sel.forEach(it=>{
+        const out=it.c, tpl=pool[Math.floor(Math.random()*pool.length)];
+        const inn={...tpl,uid:uid(),inDeck:true};
         gold-=SWAP_PRICE;
-        [activeDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ const i=arr.indexOf(out); if(i>=0) arr.splice(i,1); });
-        grandDeck=grandDeck.filter(c=>c!==inn);
+        [activeDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ const k=arr.indexOf(out); if(k>=0) arr.splice(k,1); });
         out.inDeck=false; deckUids.delete(out.uid); grandDeck.push(out);
-        inn.inDeck=true; deckUids.add(inn.uid); activeDeck.push(inn); shuffle(activeDeck);
-        hint(`${cardDisplayName(out)} → ${cardDisplayName(inn)} に交換した。`);
-        swapRes={out,inn};
-      }
-      swapLeft=Math.max(0,swapLeft-1);
-      const back=()=>{ if(swapLeft>0 && gold>=SWAP_PRICE && swapRes){ startSwap(); return; } swapLeft=0; document.getElementById('shopModal').style.display='flex'; renderShop(); refreshPrep(); };
-      if(swapRes){ showSwapResult(swapRes.out,swapRes.inn,back); return; }
-      back();
+        deckUids.add(inn.uid); activeDeck.push(inn);
+        res.push({out,inn});
+      });
+      shuffle(activeDeck);
+      hint(res.map(r=>`${cardDisplayName(r.out)} → ${cardDisplayName(r.inn)}`).join(' ／ ')+' に交換した。');
+      swapLeft=Math.max(0,swapLeft-res.length);
+      const back=()=>{ swapLeft=0; document.getElementById('shopModal').style.display='flex'; renderShop(); refreshPrep(); };
+      showSwapResult(res,back);
     }});
 }
-function showSwapResult(out,inn,cont){
+function showSwapResult(res,cont){
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex'; bg.style.zIndex=9999;
-  bg.innerHTML=`<div class="reward-box"><div class="reward-title">交換しました</div><div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px"><div id="srOut" style="opacity:.6"></div><div style="font-size:26px;color:var(--gold)">→</div><div id="srIn"></div></div><div class="reward-sub" style="margin-top:10px">${cardDisplayName(out)} → ${cardDisplayName(inn)}</div><button class="btn" id="srOk" style="margin-top:12px;width:100%">OK</button></div>`;
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">交換しました</div><div id="srList" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;max-height:60vh;overflow:auto"></div><button class="btn" id="srOk" style="margin-top:12px;width:100%">OK</button></div>`;
   document.body.appendChild(bg);
-  bg.querySelector('#srOut').appendChild(cardEl(out,false)); bg.querySelector('#srIn').appendChild(cardEl(inn,false));
+  const L=bg.querySelector('#srList');
+  res.forEach(r=>{ const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:center;gap:12px';
+    const o=document.createElement('div'); o.style.opacity='.6'; o.appendChild(cardEl(r.out,false));
+    const ar=document.createElement('div'); ar.style.cssText='font-size:26px;color:var(--gold)'; ar.textContent='→';
+    const i=document.createElement('div'); i.appendChild(cardEl(r.inn,false));
+    row.append(o,ar,i); L.appendChild(row); });
   bg.querySelector('#srOk').onclick=()=>{ bg.remove(); cont(); };
 }
 /* ----- 汎用ピッカー ----- */
@@ -7977,7 +7994,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
