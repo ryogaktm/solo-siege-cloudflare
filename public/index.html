@@ -3933,9 +3933,11 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     hand.splice(handIdx,1);
     { const cfm=flagMonster(f);
       if(cfm&&cfm.sub==='cfield'){   // カラフルフィールドに色の装備を置くと、フィールドがその色に変わる
-        cfm.color=card.color; graveyard.push(card); playSfx('equipment'); advanceTurn(card);
+        const rm=(cfm.color===card.color);   // 同じ色の装備なら、カラフルフィールドを消せる（違う色ならその色に変わる）
+        if(rm) f.cards=f.cards.filter(c=>c!==cfm); else cfm.color=card.color;
+        graveyard.push(card); playSfx('equipment'); advanceTurn(card);
         const refilled=autoRefill(1); render(); layoutHand(false);
-        flyToUid(card.uid, fromRect, ()=>{ if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect); busy=false; hint(`カラフルフィールドが${CNAME[card.color]}に変わった！`); endCheck(); render(); });
+        flyToUid(card.uid, fromRect, ()=>{ if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect); busy=false; hint(rm?'カラフルフィールドを消した！':`カラフルフィールドが${CNAME[card.color]}に変わった！`); endCheck(); render(); });
         return true;
       } }
     const tr=f.cards.filter(c=>c.kind==='troop'), tgt=tr[tr.length-1], idxOf=tgt?f.cards.indexOf(tgt)+1:0;
@@ -8015,7 +8017,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
