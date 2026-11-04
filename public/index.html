@@ -7439,7 +7439,7 @@ function openCondModal(auto){   // auto＝戦闘の最初に自動で出した�
     const ok=!g.final?goalMet(id,false):(g.boss===undefined&&g.done());
     const dv=goalShow(id)||d;
     const el=document.createElement('div'); el.className='reward-option acc-opt'+(ok?' acc-on':''); el.style.cssText='cursor:pointer;padding:5px 8px;gap:8px;align-items:center';
-    el.innerHTML=`<div class="acc-ico" style="font-size:18px">${ok?'☑':'☐'}</div><div class="acc-ico" style="transform:scale(.8)">${accIconHtml(dv)}</div><div class="acc-txt" style="min-width:0"><div class="reward-name" style="font-size:13px">${dv.name}</div><div class="acc-desc" style="color:var(--gold);font-size:11.5px;line-height:1.3">${g.text}${g.prog?`（${g.prog}）`:''}</div><div class="acc-desc cond-more" style="display:none;font-size:11px;line-height:1.3;margin-top:2px">${dv.desc}</div></div>`;
+    el.innerHTML=`<div class="acc-ico" style="transform:scale(.8)">${accIconHtml(dv)}</div><div class="acc-txt" style="min-width:0"><div class="reward-name" style="font-size:13px">${dv.name}</div><div class="acc-desc" style="color:var(--gold);font-size:11.5px;line-height:1.3">${g.text}${g.prog?`（${g.prog}）`:''}</div><div class="acc-desc cond-more" style="display:none;font-size:11px;line-height:1.3;margin-top:2px">${dv.desc}</div></div>`;
     el.onclick=()=>{ const mo=el.querySelector('.cond-more'); mo.style.display=mo.style.display==='none'?'':'none'; };
     L.appendChild(el);
   });
@@ -8090,7 +8090,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
