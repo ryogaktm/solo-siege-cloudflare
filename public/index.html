@@ -2543,7 +2543,7 @@ function evCands(type){
     if(type==='blind') return !blindOn(f)&&!isLocked(f);
     if(type==='ghost') return !(haunt[i]>0);
     if(isLocked(f)) return false;
-    if(type==='autonum') return !flagMonster(f)&&f.cards.length<=1;
+    if(type==='autonum') return !flagMonster(f)&&f.cards.length<=2;   // 2枚目を置かれても、予告の旗は動かさない（3枚目になる時はそのまま閉じる）
     if(type==='pfield'){ const m=flagMonster(f); return m?(!m.enemyCard&&!m.pf&&(m.sub==='number'||m.sub==='combined')&&m.value>0):f.cards.length<3; }   // パニックフィールド：空きのある旗、または自分の力の装備が乗った旗（装備に逆転がかかる。予告した旗に武器を置いても、旗は変わらない）
     if(type==='cfield') return !flagMonster(f)&&f.cards.length<3;
     if(type==='minus'){ const m=flagMonster(f); return f.cards.length<3&&(!m||m.sub==='number'||m.sub==='combined'); }
@@ -2623,7 +2623,7 @@ function applyEnemyEvent(type,target,viaCard){
     else {
       const f=flags[fi], col=pl.col, v=pl.v;
       if(hauntBlock(fi,'敵の数字カード')) return;
-      const ac={kind:'troop',color:col,value:v,uid:uid(),temp:true,autoPlaced:true,autoFresh:true}; f.cards.push(ac); enemyCardFly(fi,ac);   // 中身は普通の数字カード。ただし「敵が置いた」とわかるよう赤い枠と「敵」の印を付け、置いた直後は光らせる
+      const ac={kind:'troop',color:col,value:v,uid:uid(),temp:true,autoPlaced:true,autoFresh:true}; f.cards.push(ac); enemyCardFly(fi,ac); if(f.cards.length>=3&&!flagMonster(f)) closeCheck(fi,false);   // 中身は普通の数字カード。ただし「敵が置いた」とわかるよう赤い枠と「敵」の印を付け、置いた直後は光らせる
       setTimeout(()=>{ ac.autoFresh=false; try{ render(); }catch(e){} },2200);
       hint(`🔢 敵が勝手に旗${fi+1}へ数字カードを置いた！（${CNAME[col]}の${v}）`,true); playSfx('warn');
       try{ render(); }catch(e){}
@@ -8021,7 +8021,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04t';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
