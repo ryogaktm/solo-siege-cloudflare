@@ -259,7 +259,7 @@ with sync_playwright() as p:
     check('山札の入れ替え：複数まとめて選んで一気に入れ替わる（枚数は変わらない・お金は枚数分）',r['cnt']==3 and r['gold']==0 and r['deckKept'] and r['srRows']==3 and r['n0']==r['n1'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; enemyTurn=5; flags.forEach(f=>{f.cards=[];f.closed=false;f.blindUntil=0}); flags[1].blindUntil=enemyTurn+3; const o={cand:holyFlagCands().map(c=>c.i)}; hand=[{kind:'tactics',type:'holy',name:'聖水',uid:uid()}]; useHoly(0); resolveHolyFlag(1); o.after=blindOn(flags[1]); return o}""")
     check('聖水：ブラインドの煙も取り除ける',r['cand']==[1] and r['after']==False,r)
-    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; hand=[{kind:'tactics',type:'defend',name:'防御',uid:uid()},...hand]; useDefend(0); const o={on:defendOn, sw:document.getElementById('plAtkSw').textContent, inDeck:grandDeck.filter(c=>c.type==='defend').length}; return o}""")
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; hand=[{kind:'tactics',type:'defend',name:'防御',uid:uid()},...hand]; useDefend(0); const o={on:defendOn, sw:document.getElementById('plAtkSw').textContent, inDeck:[...new Set([...grandDeck,...activeDeck,...hand,...graveyard])].filter(c=>c.type==='defend').length-1}; return o}""")
     check('防御カード：使うと剣が盾になり、山札に2枚入っている',r['on']==True and r['sw']=='🛡' and r['inDeck']==2,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; defendOn=true; const hp=bossHp, php=playerHp; prevSnap=null; score=500; enemyTurn=3; const e=enemyAtkAt(3); checkWaveOutcome(); return {used:defendOn, bossSame:bossHp===hp, e, php, php2:playerHp}}""")
     check('防御カード：攻撃力が勝っていても敵のHPは減らず、使用後は解除される',r['used']==False and r['bossSame'],r)
