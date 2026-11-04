@@ -1624,7 +1624,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、1ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
-  'スライム':{kind:'cell',name:'細胞分裂',icon:'🧫',desc:'体を分裂させる。体力と攻撃力が半分になる代わりに、体力ストックが1増える。（体力ストックは、HPが0になった時に1つ消費して体力全回復で復活できる。ゲームを通して持ち越し／攻撃力はその戦いの間だけ半分）'},
+  'スライム':{kind:'cell',name:'細胞分裂',icon:'🧫',desc:'体を分裂させる。体力と攻撃力が半分になる代わりに、体力ストックが1増える。（体力ストックは、HPが0になった時に1つ消費して体力全回復で復活できる。体力ストックも攻撃力も、その戦いの間だけ）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
@@ -7297,7 +7297,7 @@ function condWhenReady(n){   // 取得条件は、戦闘画面が見えるのを
   if(gameEnded||inPrep||!battleGoals.length||n>300) return;
   const startDeck=(document.getElementById('dbTitle')||{}).textContent==='最初の山札';   // ゲーム開始直後は、最初の山札の画面より先に条件を出す（戦闘画面が見えてから出ないように）
   if([...document.querySelectorAll('.modal-bg')].some(m=>m.style.display==='flex'&&m.id!=='condModal'&&!(startDeck&&m.id==='deckBuildModal'))) return setTimeout(()=>condWhenReady(n+1),60);
-  openCondModal();
+  openCondModal(true);
 }
 function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) condWhenReady(0); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
 function grantSpecialAcc(id,msg){
@@ -7356,11 +7356,12 @@ function recordRunResult(reason){
     } else lsSet('soloSiegeWinStreak','0');
   }catch(e){}
 }
-function openCondModal(){
+function openCondModal(auto){   // auto＝戦闘の最初に自動で出した時：下のボタンは「戦う」。条件は1画面に収まるよう1行ずつ（タップで説明）
   let m=document.getElementById('condModal');
   if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='condModal'; m.style.display='none';
-    m.innerHTML='<div class="reward-box"><button class="topback" id="condClose">◀ 戻る</button><div class="reward-title">📋 取得条件一覧</div><div class="reward-sub" id="condSub"></div><div class="reward-options" id="condList" style="flex-direction:column;margin-top:10px"></div></div>';
+    m.innerHTML='<div class="reward-box" style="display:flex;flex-direction:column;max-height:92vh;padding:10px 12px"><div class="reward-title" style="font-size:17px;margin:0">📋 取得条件</div><div class="reward-sub" id="condSub" style="margin:2px 0 6px;font-size:12px"></div><div id="condList" style="display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0"></div><button class="btn primary" id="condClose" style="margin-top:10px;width:100%"></button></div>';
     document.body.appendChild(m); m.querySelector('#condClose').onclick=()=>{ m.style.display='none'; }; }
+  m.querySelector('#condClose').textContent=auto===true?'戦う':'閉じる';
   const L=m.querySelector('#condList'); L.innerHTML='';
   m.querySelector('#condSub').textContent=`${WAVES[stageIndex].name}との戦いで手に入るアクセサリー`;
   if(!battleGoals.length){ const e=document.createElement('div'); e.className='reward-sub'; e.textContent='この戦闘で取れるアクセサリーはありません'; L.appendChild(e); }
@@ -7368,8 +7369,9 @@ function openCondModal(){
     const d=accDef(id); if(!d) return; const g=goalDef(d); if(!g) return;
     const ok=!g.final?goalMet(id,false):(g.boss===undefined&&g.done());
     const dv=goalShow(id)||d;
-    const el=document.createElement('div'); el.className='reward-option acc-opt'+(ok?' acc-on':''); el.style.cursor='default';
-    el.innerHTML=`<div class="acc-ico" style="font-size:22px">${ok?'☑':'☐'}</div><div class="acc-ico">${accIconHtml(dv)}</div><div class="acc-txt"><div class="reward-name">${dv.name}</div><div class="acc-desc">${dv.desc}</div><div class="acc-desc" style="color:var(--gold)">条件：${g.text}${g.prog?`（${g.prog}）`:''}</div></div>`;
+    const el=document.createElement('div'); el.className='reward-option acc-opt'+(ok?' acc-on':''); el.style.cssText='cursor:pointer;padding:5px 8px;gap:8px;align-items:center';
+    el.innerHTML=`<div class="acc-ico" style="font-size:18px">${ok?'☑':'☐'}</div><div class="acc-ico" style="transform:scale(.8)">${accIconHtml(dv)}</div><div class="acc-txt" style="min-width:0"><div class="reward-name" style="font-size:13px">${dv.name}</div><div class="acc-desc" style="color:var(--gold);font-size:11.5px;line-height:1.3">${g.text}${g.prog?`（${g.prog}）`:''}</div><div class="acc-desc cond-more" style="display:none;font-size:11px;line-height:1.3;margin-top:2px">${dv.desc}</div></div>`;
+    el.onclick=()=>{ const mo=el.querySelector('.cond-more'); mo.style.display=mo.style.display==='none'?'':'none'; };
     L.appendChild(el);
   });
   m.style.display='flex';
@@ -8013,13 +8015,13 @@ function openRanking(first,opts){
   const t=L.querySelector(`[data-i="${nxIdx}"]`); if(t) L.scrollTop=t.offsetTop-L.offsetTop-L.clientHeight/2+t.clientHeight/2;
 }
 document.getElementById('prepGo').onclick=prepGo;
-document.getElementById('accCond').onclick=openCondModal;
-document.getElementById('goalBtn').onclick=openCondModal;
+document.getElementById('accCond').onclick=()=>openCondModal();
+document.getElementById('goalBtn').onclick=()=>openCondModal();
 document.getElementById('accClose').onclick=()=>{ document.getElementById('accModal').style.display='none'; if(inPrep) refreshPrep(); };
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04r';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04s';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
