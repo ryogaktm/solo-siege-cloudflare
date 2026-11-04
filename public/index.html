@@ -5962,7 +5962,7 @@ function decayModifiedCards(cards){
   });
 }
 function advanceWaveAttempt(){
-  clearKO();
+  clearKO(); clearPf();
   waveAttempt++;
   score=0; displayedScore=0; resetBattleRound(); try{ accStat.turn0=turnCounter; }catch(e){}   // 20ターンボーナスは1回の攻撃（wave）の中で仕留めた時だけ：攻撃が終わるたびに数え直す
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
@@ -5984,6 +5984,7 @@ function advanceWaveAttempt(){
   hint(`WAVE ${waveAttempt}：${WAVES[stageIndex].name}はまだ健在…次の戦いだ。`);
 }
 function advanceToNextStage(){
+  clearPf();
   dlog('stage_advance',{from:stageIndex+1});
   clearKO();
   stageIndex=(nextStageIdx>=0)?nextStageIdx:Math.min(stageIndex+1, LADDER_N-1); foughtIdx.add(stageIndex);
@@ -7600,7 +7601,8 @@ function rollShopStock(){
   rollDeckOffer();
   rollAccStock();
 }
-function restoreAllMods(){   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
+function clearPf(){ try{ [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(arr) arr.forEach(c=>{ if(c&&c.pf) delete c.pf; }); }); }catch(e){} }   // パニックフィールドの印（装備にかかった🌀）は、その場だけ。山札に戻る時は消す
+function restoreAllMods(){ clearPf();   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
   [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; for(let i=0;i<arr.length;i++){ if(arr[i]&&arr[i].kind==='wild'&&arr[i].base) arr[i]=arr[i].base; } arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } if(c&&c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; } }); });
 }
 function showPrep(keepStock){
@@ -8017,7 +8019,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04q';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -263,6 +263,8 @@ with sync_playwright() as p:
     check('防御カード：使うと剣が盾になり、山札に2枚入っている',r['on']==True and r['sw']=='🛡' and r['inDeck']==2,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; defendOn=true; const hp=bossHp, php=playerHp; prevSnap=null; score=500; enemyTurn=3; const e=enemyAtkAt(3); checkWaveOutcome(); return {used:defendOn, bossSame:bossHp===hp, e, php, php2:playerHp}}""")
     check('防御カード：攻撃力が勝っていても敵のHPは減らず、使用後は解除される',r['used']==False and r['bossSame'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const c={kind:'monster',sub:'number',value:6,uid:uid(),pf:true}; flags[0].cards=[c]; advanceWaveAttempt(); return {pf:!!c.pf}}""")
+    check('パニックフィールドの🌀印は、攻撃が終わったら装備から消える（山札に残らない）',r['pf']==False,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); turnCounter=12; render(); const a=document.querySelector('.wt-meta').textContent; advanceWaveAttempt(); render(); return {a,b:document.querySelector('.wt-meta').textContent}}""")
     check('ターン表示：攻撃（wave）が終わるたびに0へ戻る',('ターン12' in r['a']) and ('ターン0/' in r['b']),r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=flags.map(flagMonster).find(x=>x&&x.sub==='cfield'); return {col, got:c&&c.color, inHand:hand.some(x=>x.sub==='cfield')}}""")
