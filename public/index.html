@@ -707,6 +707,7 @@
   .flag-sum small{ font-size:9px; font-weight:700; opacity:.8; margin-right:3px; }
   .slot .ord{ position:absolute; top:-5px; right:-5px; z-index:6; width:17px; height:17px; border-radius:50%; background:var(--gold); color:#201808; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.6); pointer-events:none; }
   .carry-badge{ position:absolute; top:3px; right:5px; z-index:20; display:flex; align-items:center; gap:4px; padding:3px 9px 3px 6px; border-radius:12px; background:rgba(40,12,34,.88); border:1px solid #f2a0cc; color:#f7c4e0; font-weight:800; font-size:13px; box-shadow:0 0 10px rgba(242,160,204,.45); pointer-events:none; }
+  .pred-box .carry-badge{ position:static; grid-column:1/-1; justify-self:center; margin-top:2px; font-size:12px; padding:2px 8px 2px 5px; }   /* 攻撃力の表示と重ならないよう、予測の下の行に置く */
   .carry-badge small{ font-size:9px; font-weight:700; opacity:.85; }
   .flag .badge{
     position:absolute; top:-9px; left:50%; transform:translateX(-50%); z-index:2;
@@ -2234,7 +2235,7 @@ function comboLoss(pen,msg,col){   // 持ち越しのスーパーコンボを下
   let ks=Object.keys(carryMap);
   if(col==='all'){} else if(col) ks=ks.filter(k=>k===col); else if(ks.length) ks=[ks[Math.floor(Math.random()*ks.length)]];
   ks.forEach(k=>{ carryMap[k]=Math.max(1,carryMap[k]-pen); });
-  hint(msg.replace('スーパーコンボが',ks.length&&col!=='all'?CNAME[ks[0]]+'のスーパーコンボが':'スーパーコンボが')+(ks.length?'':'（下がるコンボはなかった）'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
+  hint(ks.length?msg.replace('スーパーコンボが',col!=='all'?CNAME[ks[0]]+'のスーパーコンボが':'スーパーコンボが'):(col&&col!=='all'?`${CNAME[col]}のスーパーコンボは持っていないので、減らなかった。`:'減らせるスーパーコンボがなかった。'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
   try{ render(); }catch(e){}
 }
 function applyComboPenalty(n){   // 敵のカードを消した代償
@@ -7954,6 +7955,7 @@ function renderAccModal(){
   document.getElementById('accSlotInfo').textContent=`装備枠 ${accEq.length}/${ACC_SLOTS}`;
   { const am=document.getElementById('accModal'); am.classList.toggle('inprep',!!inPrep); if(inPrep) renderShopMini(am,'#accDeckMini'); try{ updBarsSoon(); }catch(_){} }
 }
+try{ const pb0=document.getElementById('predBox'), cb0=document.getElementById('carryBadge'); if(pb0&&cb0&&cb0.parentNode!==pb0) pb0.appendChild(cb0); }catch(e){}
 document.getElementById('accBtn').onclick=openAccModal;
 document.getElementById('prepAcc').onclick=openAccModal;
 document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('いまの山札', allCardsUnique().filter(c=>(deckEligible(c)&&c.inDeck)||c.purchased)); }catch(e){ showCardListModal('山札', activeDeck.concat(hand,graveyard)); } };
@@ -7996,7 +7998,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
