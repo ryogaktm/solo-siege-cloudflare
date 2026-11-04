@@ -1624,7 +1624,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、1ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
-  'スライム':{kind:'cell',name:'細胞分裂',icon:'🧫',desc:'体を分裂させる。体力と攻撃力が半分になる代わりに、体力ストックが1増える。（体力ストックは、HPが0になった時に1つ消費して体力全回復で復活できる。体力ストックも攻撃力も、その戦いの間だけ）'},
+  'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'撤収カードを手札に加えます。（旗のカードを1枚、手札に戻せます）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
@@ -6534,7 +6534,8 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
 }
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
-  if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
+  if(m.kind==='melt'){ giveHandCard({kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}); spec.mon++; hint('🫠 溶かす！ 撤収カードが手札に来た。',true); playSfx('combo'); layoutHand(false); render(); }
+  else if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
   else if(m.kind==='bash'){
     const hit=Math.random()<bashRateNow; spec.mon++;
     if(!hit){ hint(`🪓 斧で攻撃…外れた！（命中率${Math.round(bashRateNow*100)}％／次のダメージは${fmtCompact(bashDmg)}のまま）`,true); playSfx('warn'); render(); return; }
@@ -7264,7 +7265,7 @@ function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(
 function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
 const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の値（書いてない技はallを使う）。後から技ごとに数字を変える
   beg:5, punch:5, guard:5, cure:5, bullet:5, shuffle:5,   // 基本の持ち技
-  'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
+  'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, '溶かす':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
   'ブラインド':5, '斧で攻撃':5, '行動封じ':5, 'パニックフィールド':5, '毒の牙':5,
   '意外ときれい好き':5, '月光':5, '大巨漢':5, '模造品':5, '完全武装':5, '憑依':5, '石化':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
 function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||k; }
@@ -8091,7 +8092,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
