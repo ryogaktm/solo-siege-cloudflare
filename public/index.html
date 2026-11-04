@@ -1518,7 +1518,7 @@ const TACTICS = [
   {type:'darius',name:'赤♾️',short:'赤♾️',desc:'万能・強さ8／3枚目のみ',count:1},
   {type:'scout',name:'補充',short:'補充',desc:'3枚引き2枚捨てる（墓地へ）',count:4},
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ送り、その枚数を山札から引き直す',count:3},
-  {type:'holy',name:'聖水',short:'聖水',desc:'手札の呪いのカード、または旗に置かれた呪い（敵の装備・ボム・封鎖・ワームホール）を1つ選んで取り除く',count:2},
+  {type:'holy',name:'聖水',short:'聖水',desc:'手札の呪いのカード、または旗に置かれた呪い（敵の装備・ボム・封鎖・ワームホール・ブラインド）を1つ選んで取り除く',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地からカードを1枚選んで手札に戻す',count:2},
   {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚、手札に戻す',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
@@ -4075,7 +4075,7 @@ function useDuplicate(handIdx){
   hint('複製したい手札のカードをタップしてください。');
 }
 const holyHandOK=c=>isCurse(c)||isEnemyEq(c);
-const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.closed&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0));
+const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.closed&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)));
 function useHoly(handIdx){
   const others=hand.some((c,i)=>i!==handIdx&&holyHandOK(c));
   if(!others && !holyFlagCands().length) return hint('取り除ける呪いがありません（手札にも旗にも、呪いがありません）。',true);
@@ -4096,8 +4096,8 @@ function resolveHolyHand(idx){
 }
 function resolveHolyFlag(i){
   const f=flags[i]; if(!holyFlagCands().some(x=>x.i===i)) return hint('その旗には取り除ける呪いがありません。',true);
-  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; delete haunt[i];
-  finishHoly(`💧 聖水：F${i+1}の呪い（敵の装備・ボム・封鎖・ワームホール）を取り除いた！`,0);
+  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; delete haunt[i];
+  finishHoly(`💧 聖水：F${i+1}の呪い（敵の装備・ボム・封鎖・ワームホール・ブラインド）を取り除いた！`,0);
 }
 function useRevolution(handIdx){
   if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop')) return hint('手札に数字カードがありません。',true);
@@ -5571,7 +5571,7 @@ function buildHowtoPage(){
     <p style="margin-top:6px;"><b>🚫 無効の呪い</b>：使うと${DIS_PARAM.nullTurns}ターン、軍師カードの効果が無効になる。</p>
     <p style="margin-top:6px;"><b>💥 全滅</b>：使うと選んだ旗（空の旗でもOK、完成前のみ）のカードがすべて消える。旗に置かれた呪いも一緒に消える。</p>
     <p style="margin-top:6px;"><b>💀 カラフルフィールド／🌀 パニックフィールド／➖ マイナスの武器</b>：旗に置く敵のカード。特定の色しか置けなくなる／数字が逆転する／旗の合計が減る。</p>
-    <p style="margin-top:10px;"><b style="color:var(--gold)">💧 聖水（軍師カード）</b>：発動後、<b>手札の呪いカード</b>か、<b>呪いが乗った旗</b>（敵の装備・ボム・封鎖・ワームホール）をタップすると取り除ける。スーパーコンボのペナルティはない。呪いが無い時は使えない。</p>
+    <p style="margin-top:10px;"><b style="color:var(--gold)">💧 聖水（軍師カード）</b>：発動後、<b>手札の呪いカード</b>か、<b>呪いが乗った旗</b>（敵の装備・ボム・封鎖・ワームホール・ブラインド）をタップすると取り除ける。スーパーコンボのペナルティはない。呪いが無い時は使えない。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">🧪 薬（特殊技）</b>：毒と封鎖を止め、手札と旗の呪いをまとめて消す（「特殊技」タブ）。</p></div>`);
   fillPage('howtoSkill', `<div class="howto-section"><p>画面の特殊技ボタンから使える。使える技と回数は、キャラやアクセサリー、プレイモンスターによって変わる。</p>`+Object.values(SPEC_INFO).map(x=>`<p style="margin-top:8px;"><b>${x.title}</b>：${x.desc}</p>`).join('')+`<p style="margin-top:8px;"><b>バレットタイムの注意</b>：連続では使えない。今のバレットタイムが終わるまで待つ必要があり、使うとアラートが出る。</p></div>`);
   fillPage('howtoExchange', `<div class="howto-section" id="howtoExchangeSec"><p>手札のカードをタップすると説明が見られる。ドラッグで旗に置いてみよう。</p><p style="margin-top:8px;">${FN}つの旗が全て埋まると自動で戦力が確定し、旗が空の状態に戻る。同時に<b style="color:var(--gold)">大山札</b>にある全てのカードがシャッフルされ、そこから40枚が山札に補充されてプレイが続く。<b style="color:var(--danger)">必要戦力に届いていなくても終了にはならず、そのまま次の敵と続けて戦う</b>。ヘッダーには次に引かれるカードが先読みで表示される。</p></div>`);
@@ -7998,7 +7998,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-04m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-04n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
