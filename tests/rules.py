@@ -269,6 +269,8 @@ with sync_playwright() as p:
     check('細胞分裂のストック・攻撃力半分は、次の戦いに持ち越さない',r['hs']==(0 if True else 0) and r['pm']==1,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false}); autoQ={}; const pl=planAt('autonum',0); pl.flag=0; flags[0].cards=[{kind:'troop',color:'red',value:3,uid:uid()},{kind:'troop',color:'red',value:4,uid:uid()}]; const fi=autoTargetIdx(pl); return {fi}}""")
     check('敵の数字カードの予告：2枚目を置いても予告の旗は動かない',r['fi']==0,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); enemySched={}; slowWins=[]; const base=enemyAtkAt(10); const w=WAVES[stageIndex]; slowWins=[[0,10]]; const one=enemyAtkAt(10); slowWins=[[0,10],[0,10]]; const two=enemyAtkAt(10); const fk=FLAG_COUNT/BALANCE.flagCountAtkBase; return {base,one,two, okOne:Math.abs((one-w.atk*fk)/(base-w.atk*fk)-0.5)<0.02, okTwo:Math.abs((two-w.atk*fk)/(base-w.atk*fk)-0.25)<0.02, n:slowN(5)}}""")
+    check('殴る：重ね掛けで敵の攻撃力の上昇が1/2→1/4になる',r['okOne'] and r['okTwo'] and r['n']==2,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); turnCounter=12; render(); const a=document.querySelector('.wt-meta').textContent; advanceWaveAttempt(); render(); return {a,b:document.querySelector('.wt-meta').textContent}}""")
     check('ターン表示：攻撃（wave）が終わるたびに0へ戻る',('ターン12' in r['a']) and ('ターン0/' in r['b']),r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); autoQ={}; const pl=planAt('cfield',0); const col=pl.col; const h0=hand.length; applyEnemyEvent('cfield'); const c=flags.map(flagMonster).find(x=>x&&x.sub==='cfield'); return {col, got:c&&c.color, inHand:hand.some(x=>x.sub==='cfield')}}""")
