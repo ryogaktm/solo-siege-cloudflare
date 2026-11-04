@@ -369,10 +369,11 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; flags.forEach(f=>{f.closed=false;f.baseCombo=false;f.cards=[]}); tutStep=5; tutT=turnCounter; tutDiscarded=true; updateTelops(); const o={a:tutStep}; turnCounter+=TUT_STEP_TURNS; updateTelops(); o.b=tutStep; o.d=tutDiscarded; o.t=document.getElementById('telopNow').textContent; return o}""")
     check('ミジンコの案内：カード予測のあと、最初（置く）に戻ってくり返す',r['a']==5 and r['b']==0 and not r['d'] and r['t'].startswith('手札のカードをドラッグして'),r)
     r=ev("""()=>{ const o={}; const setup=nm=>{ const i=WAVES.findIndex(w=>dispName(w.id)===nm); CHARACTER=makeMonChar(i,WAVES[i].id); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false; };
-      setup('若いオーク'); carryMap={green:4}; hand=[makeCurse('poison'),{kind:'troop',color:'red',value:3,uid:uid()}]; monSkillUse(); o.orcLow=hand.length>=2&&hand.some(isCurse)&&carryMap.green===4;
-      carryMap={green:10}; monSkillUse(); o.orc=!hand.some(isCurse)&&carryMap.green===8;
-      setup('ゴブリン'); carryMap={yellow:20}; monSkillUse(); o.gob=wallOn&&carryMap.yellow===2;
-      setup('ミイラ'); carryMap={purple:10}; monSkillUse(); o.mum=mummyOn&&carryMap.purple===8;
+      setup('若いオーク'); carryMap={green:2}; hand=[makeCurse('poison'),{kind:'troop',color:'red',value:3,uid:uid()}]; monSkillUse(); o.orcLow=hand.length>=2&&hand.some(isCurse)&&carryMap.green===2;
+      carryMap={green:10}; monSkillUse(); o.orc=!hand.some(isCurse)&&carryMap.green===7;
+      setup('ゴブリン'); carryMap={yellow:20}; hand=[]; monSkillUse(); monSkillUse(); monSkillUse(); o.gob=carryMap.yellow===20-1-2-4&&hand.filter(c=>c.type==='duplicate').length===3&&copyN===3;
+      resetBattleRound(); o.gobReset=copyN===0; carryMap={yellow:3}; hand=[]; copyN=2; monSkillUse(); o.gobLow=hand.length===0&&carryMap.yellow===3;
+      setup('ミイラ'); carryMap={purple:10}; monSkillUse(); o.mum=mummyOn&&carryMap.purple===7;
       setup('ガーゴイル'); carryMap={red:12}; const hp0=bossHp; monSkillUse(); o.gar=carryMap.red===2&&bossHp<=hp0-Math.floor(hp0/3)+1&&bossHp>=hp0-Math.floor(hp0/3)-1;
       setup('ガーゴイル'); carryMap={red:9}; const hp1=bossHp; monSkillUse(); o.garLow=bossHp===hp1&&carryMap.red===9;
       setup('ゾンビ'); carryMap={green:10}; monSkillUse(); o.zom=zombieRevive&&!carryMap.green; playerHp=0; o.zrev=tryRevive()&&playerHp===Math.ceil(playerHpMax/2)&&!zombieRevive;
@@ -380,8 +381,11 @@ with sync_playwright() as p:
       setup('侍'); gold=7; const hp2=bossHp; monSkillUse(); o.sam=gold===0&&bossHp===Math.max(0,hp2-700);
       setup('農夫'); playerHp=Math.max(1,playerHpMax-500); const h3=playerHp; monSkillUse(); o.farm0=playerHp===h3&&farmerHealAt>0; advanceTurn(null); o.farm=playerHp===h3+MONSK.farmerHeal&&farmerHealAt===0;
       o.names=['ガーゴイル','モンク','侍','農夫'].map(n=>WAVES.some(w=>dispName(w.id)===n)).every(Boolean);
+      setup('騎士'); carryMap={red:5}; const nb={kind:'monster',sub:'number',value:6}; const b0=monsterBonusFor(nb); monSkillUse(); o.arm=armedOn&&carryMap.red===2&&b0===6&&monsterBonusFor(nb)===12; resetBattleRound(); o.armOff=!armedOn&&monsterBonusFor(nb)===6;
+      setup('メデューサ'); carryMap={purple:2}; busy=false; monSkillUse(); const et0=enemyTurn, tc0=turnCounter; o.sto0=stoneLeft===3&&carryMap.purple===1; for(let i=0;i<3;i++) advanceTurn(null); o.sto=enemyTurn===et0&&turnCounter===tc0+3&&stoneLeft===0;
+      setup('ドラキュラ'); playerHp=10; bossHp=1000; score=400; prevSnap={t:0,pp:0}; enemyTurn=0; const hpd=playerHp; try{ checkWaveOutcome(); }catch(e){} o.vamp=playerHp>hpd;
       return o}""")
-    check('21〜28の特殊技：きれい好き・仲間の壁・財宝・ファイアブレス・蘇り・ためる・銭投げ・収穫祭（足りない時は使えない）',all(r.values()),r)
+    check('特殊技21〜33：きれい好き・模造品・財宝・完全武装・石化・吸血・ファイアブレス・蘇り・ためる・銭投げ・収穫祭・ファイアブレス・蘇り・ためる・銭投げ・収穫祭（足りない時は使えない）',all(r.values()),r)
     r=ev("""()=>{ const o={}; lsSet('soloSiegeAlienBeat','[]'); o.res=comboRestricted(); CHARACTER=makeMonChar(WAVES.findIndex(x=>x.id==='ミジンコ')); init(); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); carryMap={red:3}; nextStageIdx=INTRO_LEADER; advanceToNextStage(); o.mijinko=carryMap.red===3; lsSet('soloSiegeAlienBeat',JSON.stringify(['月の民'])); return o}""")
     check('ミジンコの間はスーパーコンボを次の戦いへ引き継げる',r['mijinko'] and r['res'],r)
     r=ev("""async()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
