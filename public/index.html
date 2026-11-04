@@ -1651,6 +1651,8 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '死霊術師':{kind:'possess',name:'憑依',icon:'👻',desc:'紫のスーパーコンボを3消費して、3ターンの間、仲間にしているモンスターの1体に変身します。（見た目も特殊技もそのモンスターになります）'},
   'ドラキュラ':{name:'吸血',icon:'🧛',desc:'攻撃したダメージの半分だけ、HPが回復します。'},
   'メデューサ':{kind:'stone',name:'石化',icon:'🗿',desc:'紫のスーパーコンボを1消費して、3ターンの間、敵の攻撃力の上昇と妨害を止めます。（ターンは進みます）'},
+  '狼男':{kind:'moon',name:'月光',icon:'🌕',desc:'黄色のスーパーコンボを3消費して、その時の手札と予測レーンのカードをすべて数字カードに変えます。この戦いの間、それらを置くと点数が2倍になります。（置く条件の数字は同じ）'},
+  'トロル':{kind:'giant',name:'大巨漢',icon:'💪',desc:'緑のスーパーコンボを1消費して、攻撃力を10000上げます。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.mon):''; }
@@ -2025,7 +2027,7 @@ let anyDragActive=false;
 /* ===== バトル状態 ===== */
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
-const MONSK={orcCost:3, copyBase:1, mummyCost:3, armedCost:3, possessCost:3, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:10, gargoyleHp:1/3, zombieCost:10, farmerHeal:100, samuraiMul:100, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+const MONSK={moonCost:3, moonMul:2, trollCost:1, trollAtk:10000, orcCost:3, copyBase:1, mummyCost:3, armedCost:3, possessCost:3, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:10, gargoyleHp:1/3, zombieCost:10, farmerHeal:100, samuraiMul:100, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
@@ -2345,7 +2347,7 @@ function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
 function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
-  flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=val(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
+  flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
   return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1);
 }
 /* ================= DEBUG LOG ================= */
@@ -2948,11 +2950,12 @@ function startRebuild(){
 }
 
 /* ================= RULES ================= */
+const ptv=c=>val(c)*(c.moon?MONSK.moonMul:1);   // 点数に使う数字（月光で出た数字カードは2倍。置く条件・役の判定は元の数字のまま）
 const val=c=>c.voided?0:c.kind==='wild'?8:(c.kind==='monster'?((c.sub==='number'||c.sub==='combined')?c.value:0):accVal(c));
 const YAKU_GOLD={'スカーミッシュ':8,'バタリオン':8,'ファランクス':12,'ウェッジ':20,'ロイヤルファランクス':40,'ホスト':0};   // 役を作った時に入るお金
 function evaluate(f){
   const cs=f.cards; if(cs.length<3) return null;
-  const sum=cs.reduce((s,c)=>s+(c.enemyPlaced?0:val(c)),0)+(f.eqBonus||0);   // 装備の数字（換装で旗に溜まった分）は普通の数字と同じ扱い：役の倍率もスーパーコンボも掛かる
+  const sum=cs.reduce((s,c)=>s+(c.enemyPlaced?0:ptv(c)),0)+(f.eqBonus||0);   // 装備の数字（換装で旗に溜まった分）は普通の数字と同じ扱い：役の倍率もスーパーコンボも掛かる
   // ♾️（万能）は役を成立させる側に自由に化ける（点数は強さ8のまま）
   const reals=cs.filter(c=>!isWildCard(c));
   const rv=reals.map(val).sort((a,b)=>a-b);
@@ -4896,7 +4899,7 @@ function flagGainRange(f){
   const exist=[]; flags.forEach(g=>{ if(g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor) exist.push({sym:g.symbolColor,base:g.result.base||0,seq:g.closeSeq||0}); });
   const old=synergyOf(exist.map(x=>({...x})));
   const maxSeq=exist.reduce((m,x)=>Math.max(m,x.seq),0);
-  const raw=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:val(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0);
+  const raw=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:ptv(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0);
   let lo=Infinity, hi=-Infinity;
   pr.opts.forEach(o=>{
     const g=o.base+o.bn-raw+synergyOf(exist.map(x=>({...x})).concat([{sym:o.sym,base:o.base,seq:maxSeq+1}]))-old;
@@ -4909,7 +4912,7 @@ function predictAttackRange(pA){
   const exist=[]; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) exist.push({sym:f.symbolColor,base:f.result.base||0,seq:f.closeSeq||0}); });
   const old=synergyOf(exist.map(x=>({...x})));
   const preds=[], worsts=[]; let rawSum=0;
-  flags.forEach(f=>{ try{ const pr=predictFlag(f); if(pr&&!pr.none&&pr.opts&&pr.opts.length){ preds.push(pr.opts); worsts.push(pr.worst||pr.opts[0]); rawSum+=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:val(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0); } }catch(e){} });
+  flags.forEach(f=>{ try{ const pr=predictFlag(f); if(pr&&!pr.none&&pr.opts&&pr.opts.length){ preds.push(pr.opts); worsts.push(pr.worst||pr.opts[0]); rawSum+=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:ptv(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0); } }catch(e){} });
   if(!preds.length) return null;
   let lo=Infinity, hi=-Infinity;
   const maxSeq=exist.reduce((m,x)=>Math.max(m,x.seq),0);
@@ -5021,7 +5024,8 @@ function render(){
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
-    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length); } } }
+    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
+      { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } } } } }
   { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
     if(mb&&ms&&ms.kind==='swallow'&&stomach.length&&specEnabled('mon')){ if(!chip){ chip=document.createElement('div'); chip.id='stomachChip'; chip.style.cssText='position:fixed;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#8ff0c4;text-shadow:0 1px 3px #000'; document.body.appendChild(chip); }
       chip.innerHTML='<span>飲み込み中</span>'; chip.appendChild(cardEl(stomach[0],true)); const r=mb.getBoundingClientRect(); chip.style.left=(r.left+r.width/2)+'px'; chip.style.transform='translateX(-50%)'; chip.style.bottom=(innerHeight-r.top+4)+'px'; }
@@ -5148,7 +5152,7 @@ function render(){
       }
       d.appendChild(st);
       if(!f.closed){
-        const sum=f.cards.reduce((a,c)=>a+((c&&(c.kind==='troop'||c.kind==='wild'))?val(c):0),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0);
+        const sum=f.cards.reduce((a,c)=>a+((c&&(c.kind==='troop'||c.kind==='wild'))?ptv(c):0),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0);
         if(sum>0){ const sm=document.createElement('div'); sm.className='flag-sum'; sm.textContent=sum; d.appendChild(sm); }
       }
     }
@@ -5995,7 +5999,7 @@ function advanceWaveAttempt(){
   hint(`WAVE ${waveAttempt}：${WAVES[stageIndex].name}はまだ健在…次の戦いだ。`);
 }
 function advanceToNextStage(){
-  clearPf(); possessRevert();
+  clearPf(); moonClear(); possessRevert();
   dlog('stage_advance',{from:stageIndex+1});
   clearKO();
   stageIndex=(nextStageIdx>=0)?nextStageIdx:Math.min(stageIndex+1, LADDER_N-1); foughtIdx.add(stageIndex);
@@ -6437,6 +6441,13 @@ function scPay(col,min,loss){   // スーパーコンボを払う（足りなけ
   const nv=v-loss(v); if(nv>=1) carryMap[col]=nv; else delete carryMap[col];
   return true;
 }
+function moonConvert(c){   // 月光：数字カードに変える（戦いが終わると元に戻る）。もとから数字のカードは、点数2倍の印だけ付く
+  if(c.kind==='troop'){ c.moon=true; return; }
+  if(c.moonOrig) return;
+  const o={...c}; delete o.moonOrig; Object.keys(c).forEach(k=>{ if(k!=='uid') delete c[k]; });
+  Object.assign(c,{kind:'troop',color:GAME_COLORS[Math.floor(Math.random()*GAME_COLORS.length)],value:1+Math.floor(Math.random()*10),moon:true,moonOrig:o});
+}
+function moonClear(){ try{ [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(arr) arr.forEach(c=>{ if(!c) return; if(c.moonOrig){ const o=c.moonOrig; Object.keys(c).forEach(k=>{ if(k!=='uid') delete c[k]; }); Object.assign(c,o); } delete c.moon; }); }); }catch(e){} }
 function possessRevert(){
   if(!possessOrig) return;
   Object.assign(CHARACTER,possessOrig); possessOrig=null; possessUntil=0;
@@ -6464,6 +6475,7 @@ function possessPick(){   // 仲間にしているモンスターの中から1�
     G.appendChild(b); });
   bg.querySelector('#psNo').onclick=()=>bg.remove();
 }
+const MONSC={clean:['green',()=>MONSK.orcCost], copy:['yellow',()=>MONSK.copyBase*Math.pow(2,copyN)], treasure:['purple',()=>MONSK.mummyCost], armed:['red',()=>MONSK.armedCost], possess:['purple',()=>MONSK.possessCost], stone:['purple',()=>MONSK.stoneCost], fire:['red',()=>MONSK.gargoyleCost], revive:['green',()=>MONSK.zombieCost], giant:['green',()=>MONSK.trollCost], moon:['yellow',()=>MONSK.moonCost]};   // スーパーコンボを使う特殊技：ボタンに「マーク×数」を出す
 function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回数を1つ使う）
   const k=m.kind;
   if(k==='clean'){
@@ -6477,6 +6489,14 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
     giveHandCard({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true}); copyN++;
     hint(`🪞 模造品！ 複製カードが手札に来た。（黄色−${cost}／次は−${MONSK.copyBase*Math.pow(2,copyN)}）`,true); playSfx('combo'); layoutHand(false);
     dlog('action',{name:'monskill_copy',cost}); render(); return true;   // 回数は使わない（コンボがある限り何度でも）
+  } else if(k==='moon'){
+    if(!scPay('yellow',MONSK.moonCost,()=>MONSK.moonCost)) return false;
+    const n=(hasAcc('clairvoyant')?20:10); let cnt=0;
+    [...hand,...activeDeck.slice(-n)].forEach(c=>{ if(c){ moonConvert(c); cnt++; } });
+    hint(`🌕 月光！ 手札と予測レーンの${cnt}枚が数字カードになった。置くと点数が2倍！`,true); playSfx('combo'); layoutHand(false);
+  } else if(k==='giant'){
+    if(!scPay('green',MONSK.trollCost,()=>MONSK.trollCost)) return false;
+    addScore(MONSK.trollAtk); hint(`💪 大巨漢！ 攻撃力が${fmtCompact(MONSK.trollAtk)}上がった。`,true); playSfx('combo');
   } else if(k==='armed'){
     if(armedOn){ hint('すでに完全武装しています。',true); return false; }
     if(!scPay('red',MONSK.armedCost,()=>MONSK.armedCost)) return false;
@@ -6557,7 +6577,7 @@ function monSkillUse(){
     render(); layoutHand(false); try{ saveGame(); }catch(_){}
     return;
   }
-  else if(['clean','copy','armed','stone','treasure','fire','revive','charge','coin','harvest'].includes(m.kind)){ if(!monSkill2(m)) return; }
+  else if(['clean','copy','armed','stone','moon','giant','treasure','fire','revive','charge','coin','harvest'].includes(m.kind)){ if(!monSkill2(m)) return; }
   else if(m.kind==='possess'){ possessPick(); return; }
   else if(m.kind==='gold'){ gold+=100; spec.mon++; hint('コガネモチ！100G手に入れた。',true); playSfx('combo'); try{ saveGame(); }catch(_){} }
   else if(m.kind==='buzz'){ buzzTurns=BUZZ_TURNS; spec.mon++; hint(`ブーン！体が分身して光った。${BUZZ_TURNS}ターンの間、ダメージを受けても50％で無傷になる…（外れるとHPが0）`,true); playSfx('warn'); }
@@ -7245,7 +7265,7 @@ const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の�
   beg:5, punch:5, guard:5, cure:5, bullet:5, shuffle:5,   // 基本の持ち技
   'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
   'ブラインド':5, '斧で攻撃':5, '行動封じ':5, 'パニックフィールド':5, '毒の牙':5,
-  '意外ときれい好き':5, '模造品':5, '完全武装':5, '憑依':5, '石化':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
+  '意外ときれい好き':5, '月光':5, '大巨漢':5, '模造品':5, '完全武装':5, '憑依':5, '石化':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
 function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||k; }
 function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_CAP.all; }
 function specMax(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
@@ -7653,7 +7673,7 @@ function rollShopStock(){
   rollAccStock();
 }
 function clearPf(){ try{ [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(arr) arr.forEach(c=>{ if(c&&c.pf) delete c.pf; }); }); }catch(e){} }   // パニックフィールドの印（装備にかかった🌀）は、その場だけ。山札に戻る時は消す
-function restoreAllMods(){ clearPf();   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
+function restoreAllMods(){ clearPf(); moonClear();   // 鼓舞などの一時的な数字の増減を、準備画面に入る前に元へ戻す（準備画面の山札＝次の戦いの山札にするため）
   [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(!arr) return; for(let i=0;i<arr.length;i++){ if(arr[i]&&arr[i].kind==='wild'&&arr[i].base) arr[i]=arr[i].base; } arr.forEach(c=>{ if(c&&c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; } if(c&&c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; } }); });
 }
 function showPrep(keepStock){
@@ -8070,7 +8090,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
