@@ -255,6 +255,8 @@ with sync_playwright() as p:
     check('序盤（earlyLv未満）の敵は最初の妨害が10ターン目以降',all((f or 99)>=10 for n,f in r['early']),r['early'])
     check('earlyLv以降の敵は最初の妨害が6ターン目前後から出る',any((f or 99)<=7 for n,f in r['late']),r['late'][:6])
     check('動く敵の絵：アニメが止まっても基本の絵は見える（敵が消えない）',r['frA']=='visible',r['frA'])
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); gold=SWAP_PRICE*3; swapLeft=99; startSwap(); renderPicker(); const cards=document.querySelectorAll('#pickGrid .db-card'); for(let i=0;i<5;i++) cards[i].click(); const o={sel:pk.sel.length,count:pk.count}; pk=null; document.getElementById('pickModal').style.display='none'; return o}""")
+    check('山札の入れ替え：払える枚数まで、画面で実際に複数選べる',r['count']==3 and r['sel']==3,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); gold=SWAP_PRICE*3; swapLeft=99; startSwap(); const its=pk.tabs[0].items; const n0=activeDeck.length+hand.length; const outs=its.slice(0,3); pk.sel=outs.slice(); const cnt=pk.count; pk.done(pk.sel); const o={cnt, gold, deckKept:outs.every(it=>!deckUids.has(it.c.uid)), srRows:document.querySelectorAll('#srList > div').length, n0, n1:activeDeck.length+hand.length}; document.getElementById('srOk').click(); return o}""")
     check('山札の入れ替え：複数まとめて選んで一気に入れ替わる（枚数は変わらない・お金は枚数分）',r['cnt']==3 and r['gold']==0 and r['deckKept'] and r['srRows']==3 and r['n0']==r['n1'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); busy=false; pending=null; enemyTurn=5; flags.forEach(f=>{f.cards=[];f.closed=false;f.blindUntil=0}); flags[1].blindUntil=enemyTurn+3; const o={cand:holyFlagCands().map(c=>c.i)}; hand=[{kind:'tactics',type:'holy',name:'聖水',uid:uid()}]; useHoly(0); resolveHolyFlag(1); o.after=blindOn(flags[1]); return o}""")

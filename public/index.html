@@ -7964,7 +7964,7 @@ function openPicker(cfg){ pk=Object.assign({sel:[],tab:0},cfg); renderPicker(); 
 function renderPicker(){
   document.getElementById('pickTitle').textContent=pk.title;
   const need=Math.min(pk.count, pk.need||pk.count);
-  document.getElementById('pickSub').innerHTML=`${pk.sub} <b>${pk.sel.length}/${need}</b>`;
+  document.getElementById('pickSub').innerHTML=`${pk.sub} <b>${pk.sel.length}/${pk.dup?need:pk.count}</b>`;
   const tabs=document.getElementById('pickTabs'); tabs.innerHTML='';
   if(pk.tabs.length>1) pk.tabs.forEach((t,i)=>{ const b=document.createElement('button'); b.className='pick-tab'+(i===pk.tab?' on':''); b.textContent=t.name; b.onclick=()=>{ pk.tab=i; renderPicker(); }; tabs.appendChild(b); });
   const g=document.getElementById('pickGrid'); g.innerHTML='';
@@ -7980,7 +7980,7 @@ function renderPicker(){
         else if(chosen) { const j=pk.sel.lastIndexOf(it); if(j>=0) pk.sel.splice(j,1); }   // 選び終わっている時：選んだカードをもう一度押すと取り消す
         else pk.sel[pk.sel.length-1]=it;   // 別のカードを押すと、最後に選んだものと入れ替える
       }
-      else if(i>=0) pk.sel.splice(i,1); else if(pk.sel.length<need) pk.sel.push(it);
+      else if(i>=0) pk.sel.splice(i,1); else if(pk.sel.length<pk.count) pk.sel.push(it);   // 選べるのは count 枚まで（need は最低限の枚数）
       renderPicker();
     };
     g.appendChild(el);
@@ -8090,7 +8090,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
