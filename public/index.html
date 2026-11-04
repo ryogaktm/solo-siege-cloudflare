@@ -2326,7 +2326,8 @@ function genSchedule(){
 const SLOW_TURNS=10;   // 殴る：攻撃力の上昇を半分にする期間（ターン）
 let slowWins=[];   // コボルトの殴る：[開始ターン,終了ターン]の間、攻撃力の上昇が半分
 const slowN=k=>slowWins.filter(r=>k>r[0]&&k<=r[1]).length;   // コボルトの殴る：そのターンにかかっている重ね数
-const slowStyle=k=>{ const n=slowN(k); return n?` style="background:rgba(60,140,255,${Math.min(.8,.25*n)});border-color:rgba(130,190,255,.95)"`:''; };
+const slowLabel=(t,first)=>{ const w=slowWins.filter(r=>t>r[0]&&t<=r[1]); if(!w.length) return '⚔'; if(w.some(r=>r[1]===t)) return '終'; return first?('あと'+(Math.max(...w.map(r=>r[1]))-enemyTurn)):'⚔'; };   // 殴るの範囲：効く最後のマスに「終」、最初のマスに残りターン
+const slowStyle=k=>{ const n=slowN(k); return n?` style="background:rgba(60,140,255,${Math.min(.8,.25*n)});border-color:rgba(130,190,255,.95)${slowWins.some(r=>r[1]===k)?';border-right:3px solid #fff':''}"`:''; };
 function enemyAtkAt(t){
   const w=WAVES[stageIndex];
   let mult=1, te=t;
@@ -4857,7 +4858,7 @@ function renderUpcoming(){
       const info=EVENT_INFO[ev];
       html+=`<div class="fc ${info.cls}" data-ev="rage"${slowStyle(t)}><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
-      html+=`<div class="fc"${slowStyle(t)}><small class="fc-sw">⚔</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
+      html+=`<div class="fc"${slowStyle(t)}><small class="fc-sw">${slowLabel(t,k===1)}</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
       if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}">${ev==='autonum'?(()=>{ try{ const pl=planAt('autonum',evOrd(t,'autonum',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}${pl.v}</b>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]}</small>`; } })():ev==='minus'?(()=>{ try{ const pl=planAt('minus',evOrd(t,'minus',baseT)); return `<b>${info.icon}${pl.v}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; } })():ev==='cfield'?(()=>{ try{ const pl=planAt('cfield',evOrd(t,'cfield',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${info.icon}${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; } })():`<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`}<small class="fc-cd">あと${k+nClk}</small></div>`; }
       else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
@@ -8090,7 +8091,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
