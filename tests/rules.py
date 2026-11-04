@@ -107,9 +107,9 @@ with sync_playwright() as p:
       Math.random=()=>0.9; specUse('mon'); await sleep(100); document.getElementById('confirmYes').click(); await sleep(1500); o.lose=gameEnded&&playerHp===0; Math.random=rnd; return o}""")
     check('ジャックランタン：トリックオアトリートは1戦1回・1/2で敵が死に1/2で自分が死ぬ',r['max']==1 and r['win'] and r['again']==0 and r['lose'],r)
     r=ev("""async()=>{ const i=WAVES.findIndex(w=>w.baseId==='何匹かのスライム'); CHARACTER=makeMonChar(i,'何匹かのスライム'); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
-      const o={kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind, name:CHARACTER.monSkill&&CHARACTER.monSkill.name}; hand=[]; specUse('mon'); await new Promise(r=>setTimeout(r,200));
-      o.card=hand.some(c=>c.type==='guidance'); return o}""")
-    check('スライム：溶かす（撤収カードが手札に加わる）',r['kind']=='melt' and r['name']=='溶かす' and r['card'],r)
+      const o={kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind, name:CHARACTER.monSkill&&CHARACTER.monSkill.name}; flags.forEach(f=>{f.cards=[];f.closed=false}); const tc={kind:'troop',color:'red',value:5,uid:uid()}; flags[0].cards.push(tc); hand=[]; const t0=turnCounter; specUse('mon'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); await new Promise(r=>setTimeout(r,300));
+      o.back=hand.some(c=>c.uid===tc.uid); o.turn=turnCounter-t0; o.grave=graveyard.some(c=>c.type==='guidance'&&c.temp); o.uses=spec.mon; return o}""")
+    check('スライム：溶かす（ボタンで撤収が発動・ターン消費なし・墓地へ）',r['kind']=='melt' and r['name']=='溶かす' and r['pend'] and r['back'] and r['turn']==0 and r['grave'] and r['uses']==1,r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
       const o={}; flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0}); applyEnemyEvent('assassin'); o.none=true;
       flags[1].cards=[{kind:'troop',color:'red',value:9,uid:uid()},{kind:'troop',color:'red',value:8,uid:uid()},{kind:'troop',color:'red',value:7,uid:uid()}]; const g0=graveyard.length;

@@ -4080,6 +4080,8 @@ function useNecromancer(handIdx){
   busy=false; hint(`鍛治職人：墓地の装備${revived.length}個が山札へ戻った。`); endCheck(); render();
 }
 
+function guidExists(){ return !!(pending&&(pending.skillCard||hand.some(c=>c.uid===pending.handUid))); }
+function guidTake(){ if(pending.skillCard){ spec.mon++; return pending.skillCard; } const i=hand.findIndex(c=>c.uid===pending.handUid); return i<0?null:hand.splice(i,1)[0]; }   // 溶かす：手札のカードではなく特殊技の撤収（使用してもターンは進まず、墓地へ。次の戦いには持ち越さない）
 function useGuidance(handIdx){
   if(guidanceTargets(0).length===0) return hint('動かせるカードが盤面にありません。',true);
   busy=false;
@@ -4227,8 +4229,7 @@ function cancelPending(){
 }
 function discardGuidanceCard(target){
   if(!pending || pending.type!=='guidance' || pending.step!==1) return false;
-  const handIdx=hand.findIndex(c=>c.uid===pending.handUid);
-  if(handIdx<0){
+  if(!guidExists()){
     console.error('guidance: hand card not found for uid', pending.handUid);
     pending=null; busy=false; render();
     hint('撤収カードが見つかりませんでした。',true);
@@ -4244,11 +4245,12 @@ function discardGuidanceCard(target){
   }
   const reopened=!!src.closed;
   if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.capturedByEnemy=false; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
-  const usedGuidance=hand.splice(handIdx,1)[0];
+  const sk=!!pending.skillCard;
+  const usedGuidance=guidTake();
   graveyard.push(usedGuidance);
   if(target==='grave'){ graveyard.push(card); } else { activeDeck.push(card); shuffle(activeDeck); }
   pending=null;
-  advanceTurn(usedGuidance);
+  if(!sk) advanceTurn(usedGuidance);
   render(); layoutHand(false);
   busy=false; endCheck(); render();
   hint((reopened?'封鎖を解いて、':'')+(target==='grave' ? `${cardDisplayName(card)}を墓地に捨てた。` : `${cardDisplayName(card)}を山札に戻した。`));
@@ -4275,17 +4277,17 @@ function chooseGuidanceCard(cardIdx){
   pending.cardIdx=cardIdx; guidanceReturn(cardIdx);
 }
 function guidanceReturn(cardIdx){   // 撤収：選んだ旗のカードを手札に戻す（完成していた旗は未封鎖に戻る）
-  const handIdx=hand.findIndex(c=>c.uid===pending.handUid);
-  if(handIdx<0){ pending=null; busy=false; render(); hint('撤収カードが見つかりませんでした。',true); return; }
+  if(!guidExists()){ pending=null; busy=false; render(); hint('撤収カードが見つかりませんでした。',true); return; }
   const src=flags[pending.from], card=src&&src.cards.splice(cardIdx,1)[0];
   if(!card){ pending=null; busy=false; render(); hint('カードの選択が無効になっていました。もう一度お試しください。',true); return; }
   const reopened=!!src.closed;
   if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.capturedByEnemy=false; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
-  const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
+  const sk=!!pending.skillCard;
+  const used=guidTake(); graveyard.push(used);
   delete card.autoPlaced; delete card.autoFresh;   // 敵が置いたカードも、戻せば普通のカードとして使える
   hand.push(card);
   pending=null; busy=true;
-  advanceTurn(used);
+  if(!sk) advanceTurn(used);
   render(); layoutHand(false);
   busy=false; endCheck(); render();
   hint((reopened?'封鎖を解いて、':'')+`${cardDisplayName(card)}を手札に戻した。`);
@@ -4300,8 +4302,7 @@ function resolveGuidance(fi){
     return;
   }
   if(!guidanceTargets(1).includes(fi)) return hint('そこには移動できません。',true);
-  const handIdx=hand.findIndex(c=>c.uid===pending.handUid);
-  if(handIdx<0){
+  if(!guidExists()){
     console.error('guidance: hand card not found for uid', pending.handUid);
     pending=null; busy=false; render();
     hint('撤収カードが見つかりませんでした。',true);
@@ -4338,13 +4339,14 @@ function resolveGuidance(fi){
   }
   if(destMonster){ const midx=destFlag.cards.indexOf(destMonster); destFlag.cards[midx]=card; }
   else { destFlag.cards.push(card); }
-  const usedGuidance=hand.splice(handIdx,1)[0];
+  const sk=!!pending.skillCard;
+  const usedGuidance=guidTake();
   graveyard.push(usedGuidance);
   pending=null;
-  advanceTurn(card);
+  if(!sk) advanceTurn(card);
   const triggersDefeat = !!destMonster;
   if(!triggersDefeat) closeCheck(fi, false);
-  const refilled=autoRefill(1);
+  const refilled=sk?[]:autoRefill(1);
   render(); layoutHand(false);
   flyToUid(card.uid, from, ()=>{
     try{
@@ -6534,7 +6536,7 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
 }
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
-  if(m.kind==='melt'){ giveHandCard({kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}); spec.mon++; hint('🫠 溶かす！ 撤収カードが手札に来た。',true); playSfx('combo'); layoutHand(false); render(); }
+  if(m.kind==='melt'){ if(guidanceTargets(0).length===0) return hint('動かせるカードが盤面にありません。',true); const sc={kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}; busy=false; pending={type:'guidance',step:0,handUid:sc.uid,skillCard:sc}; playSfx('combo'); render(); hint('🫠 溶かす！ カードを手札に戻したい旗をタップ'); }
   else if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
   else if(m.kind==='bash'){
     const hit=Math.random()<bashRateNow; spec.mon++;
@@ -8092,7 +8094,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
