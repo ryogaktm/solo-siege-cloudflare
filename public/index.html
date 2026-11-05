@@ -2331,7 +2331,7 @@ const slowStyle=k=>{ const n=slowN(k); return n?` style="background:rgba(60,140,
 function enemyAtkAt(t){
   const w=WAVES[stageIndex];
   let mult=1, te=t;
-  for(let k=1;k<=t;k++){ if(enemySched[k]==='rage') mult*=BALANCE.rageMultiplier; { const n=slowN(k); if(n) te-=(1-Math.pow(0.5,n)); } }   // 重ね掛け：1回で上昇が1/2、2回で1/4…
+  for(let k=1;k<=t;k++){ const n=slowN(k); if(enemySched[k]==='rage') mult*=1+(BALANCE.rageMultiplier-1)*Math.pow(0.5,n); if(n) te-=(1-Math.pow(0.5,n)); }   // 殴る：重ね掛けで1回なら上昇も攻撃力×2の増え分も1/2（×2→×1.5）、2回で1/4…
   const fk=FLAG_COUNT/BALANCE.flagCountAtkBase;
   return Math.round((w.atk + w.grow*te)*fk*mult*monAtkMult);
 }
@@ -8094,7 +8094,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -110,6 +110,8 @@ with sync_playwright() as p:
       const o={kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind, name:CHARACTER.monSkill&&CHARACTER.monSkill.name}; flags.forEach(f=>{f.cards=[];f.closed=false}); const tc={kind:'troop',color:'red',value:5,uid:uid()}; flags[0].cards.push(tc); hand=[]; const t0=turnCounter; specUse('mon'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); await new Promise(r=>setTimeout(r,300));
       o.back=hand.some(c=>c.uid===tc.uid); o.turn=turnCounter-t0; o.grave=graveyard.some(c=>c.type==='guidance'&&c.temp); o.uses=spec.mon; return o}""")
     check('スライム：溶かす（ボタンで撤収が発動・ターン消費なし・墓地へ）',r['kind']=='melt' and r['name']=='溶かす' and r['pend'] and r['back'] and r['turn']==0 and r['grave'] and r['uses']==1,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); enemySched={5:'rage'}; slowWins=[]; const a=enemyAtkAt(5), a4=enemyAtkAt(4); slowWins=[[0,10]]; const b=enemyAtkAt(5), b4=enemyAtkAt(4); const base=a4/enemyAtkAt(4); return {rageFull:a/a4, rageSlow:(b/ (b4+ (enemyAtkAt(5)-enemyAtkAt(5))))} }""")
+    check('殴る：効果中は攻撃力×2も×1.5に抑える',abs(r['rageFull']-2)<0.5 and r['rageSlow']<r['rageFull'],r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
       const o={}; flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0}); applyEnemyEvent('assassin'); o.none=true;
       flags[1].cards=[{kind:'troop',color:'red',value:9,uid:uid()},{kind:'troop',color:'red',value:8,uid:uid()},{kind:'troop',color:'red',value:7,uid:uid()}]; const g0=graveyard.length;
