@@ -6175,6 +6175,7 @@ function tapFlag(i){
     if(!targetsFor(nc).includes(i)){ hint('その旗には置けません。',true); return; }
     const mon0=flagMonster(f), mon=nc.kind==='troop'?null:mon0;   // 数字カードは敵やフィールドを置き換えない（普通に置く時と同じく、上に重ねる）
     let rev=''; if(nc.kind==='troop'&&mon0&&(mon0.sub==='pfield'||mon0.pf)){ nc.origValue=nc.value; nc.value=11-nc.value; rev=`（🌀革命！ ${nc.origValue}→${nc.value}）`; }   // パニックフィールドの旗：数字が逆転する
+    if(nc.kind==='troop'&&poisonOn()&&nc.value>1){ if(nc.origValue===undefined) nc.origValue=nc.value; nc.value-=1; rev+=`（☠毒で数字が−1：${nc.value}）`; }   // 毒の呪い中：置く数字が−1（1は1のまま）
     if(mon) f.cards[f.cards.indexOf(mon)]=nc; else f.cards.push(nc);
     spec.mon++; const mk=pending.mk; pending=null; lastFi=i;
     playSfx('place'); if(!mon) closeCheck(i,false);
@@ -8188,7 +8189,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
