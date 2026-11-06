@@ -174,7 +174,7 @@
   .cp-st b{ display:block; color:var(--gold); font-size:13px; }
   .cp-st span{ color:var(--gold); margin-right:4px; }
   .cp-arrow{ flex:0 0 auto; color:var(--gold); font-size:20px; }
-  .cp-desc{ font-size:11px; color:var(--cream-2); margin-top:4px; line-height:1.5; }
+  .cp-desc{ font-size:11px; color:var(--cream-2); margin-top:4px; line-height:1.5; max-height:34vh; overflow-y:auto; }
   .char-hint{ font-size:12px; color:var(--gold); margin:-4px 0 10px; font-weight:700; }
   .mon-tile.cur{ border-color:var(--gold); background:rgba(226,192,106,.1); box-shadow:0 0 8px rgba(226,192,106,.5); }
   .mon-tile.sel{ border-color:var(--gold); box-shadow:0 0 10px rgba(226,192,106,.7); }
@@ -7001,7 +7001,7 @@ function buildCharList(){
   const fuseOk=fuseOpen()&&wide; let fuse2=lsGet(SEL2_KEY)||'', fuseMode=false;
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
   const fb=document.getElementById('charFuse');
-  const fuseUi=()=>{ if(!fb) return; fb.style.display=fuseOk?'':'none'; fb.textContent=fuseMode?'合体：足にするモンスターをタップ':('合体：'+(fuse2?dispName(fuse2):'なし')); fb.classList.toggle('primary',fuseMode); };
+  const fuseUi=()=>{ if(!fb) return; fb.style.display=fuseOk?'':'none'; fb.textContent=fuseMode?'合体：足にするモンスターをタップ':('合体：'+(fuse2?dispName(fuse2):'なし')); fb.classList.toggle('primary',fuseMode); charFuse2=fuse2; try{ renderCurPanel(picked); }catch(e){} };
   if(fb) fb.onclick=()=>{ fuseMode=!fuseMode; fuseUi(); };
   fuseUi();
   const prevId=wide?curMonId():hasLeader?defs[0].id:((defs.some(x=>x.id===lsGet(SEL_KEY)))?lsGet(SEL_KEY):(defs[0]&&defs[0].id));   // 前回選んだキャラ（なければ先頭）に印を付ける
@@ -7057,8 +7057,16 @@ function monSkillText(ch,id){
   return id==='ミジンコキング'?'ここからが本当のスタート！<br>身の程を知って堅実に生きよう！':'特殊技はありません。';
 }
 function monDesc(id,i){ return monSkillText(makeMonChar(i,id),id); }
+let charFuse2='';   // キャラ選択で選んでいる合体の相手（足）
+function fusedPanelHtml(base,withArrow,cc,cid,ci){
+  const i2=monIdxOf(charFuse2), ch=fuseChar(base.ch,charFuse2), A=dispName(base.id), B=dispName(charFuse2);
+  const spr=(()=>{ try{ return charSpr(ch,64); }catch(e){ return ''; } })();
+  const skills=[[A,'頭・胴',monDesc(base.id,base.i)],[B,'足',monDesc(charFuse2,i2)]].map(([n,pt,d])=>`<div style="margin-top:4px"><b>${n}</b>（${pt}）<br>${d}</div>`).join('');
+  return (withArrow?`<div class="cp-ico">${monIconHtml(cc,cid,ci,48)}<span>${cc.name}</span></div><div class="cp-arrow">▶</div>`:'')+`<div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${spr}</div><div class="cp-st"><b>${A}＋${B}</b><div style="font-size:12px">頭・胴：${A}／足：${B}</div>${monStatHtml(ch)}</div></div><div class="cp-desc"><b>合体：特殊技は2体分</b>${skills}</div></div>`;
+}
 function renderCurPanel(sel){
   const cid=curMonId(), ci=monIdxOf(cid), cc=curMonChar(), el=document.getElementById('curPanel');
+  { const base=sel||{id:cid,i:ci,ch:cc}; if(charFuse2&&charFuse2!==base.id&&fuseOpen()&&!isWeakId(base.id)){ el.innerHTML=fusedPanelHtml(base,!!sel,cc,cid,ci); return; } }
   if(!sel){ el.innerHTML=`<div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${monIconHtml(cc,cid,ci,64)}</div><div class="cp-st"><b>${cc.name}</b>${monStatHtml(cc)}</div></div><div class="cp-desc">${monDesc(cid,ci)}</div></div>`; return; }
   el.innerHTML=`<div class="cp-ico">${monIconHtml(cc,cid,ci,48)}<span>${cc.name}</span></div><div class="cp-arrow">▶</div><div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${monIconHtml(sel.ch,sel.id,sel.i,56)}</div><div class="cp-st"><b>${sel.ch.name}</b>${monStatHtml(sel.ch)}</div></div><div class="cp-desc">${monDesc(sel.id,sel.i)}</div></div>`;
 }
@@ -8143,7 +8151,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
