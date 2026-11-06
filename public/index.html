@@ -2868,7 +2868,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
+  defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -4478,11 +4478,12 @@ function confirmReplace(){
     setTimeout(()=>{ busy=false; endCheck(); render(); hint(''); if(enN) applyComboPenalty(enN); }, drawn.length*60+380);
   },280);
 }
+let defeatCause='';   // 敵の攻撃以外（毒など）で倒れた時の原因（敗北画面に出す）
 function hurtPlayer(d,msg){   // 敵の効果などで、HPが直接減る（ふんばり・体力ストックの復活・敗北まで面倒を見る）
   const preHp=playerHp; playerHp=Math.max(0,playerHp-d);
   screenShake(); hint(msg,true); renderBattle();
   if(playerHp<=0 && tryRevive()){ renderBattle(); return true; }
-  if(playerHp<=0){ gameEnded=true; busy=true; setTimeout(()=>triggerDefeatFX(()=>{ playerLost(Math.max(0,d-preHp)); }), 400); return false; }
+  if(playerHp<=0){ defeatCause=msg||''; gameEnded=true; busy=true; setTimeout(()=>triggerDefeatFX(()=>{ playerLost(Math.max(0,d-preHp)); }), 400); return false; }
   return true;
 }
 function penaltyDamage(){ return Math.max(1, Math.round(currentEnemyAtk()/5)); }
@@ -5835,7 +5836,7 @@ function showEnd(reason,giftDone){
       document.getElementById('endTitle').textContent='力尽きた…';
       grEl.innerHTML=lastHtml;
       grEl.classList.add('defeat');
-      document.getElementById('endSubline').textContent=`${WAVES[stageIndex].name}の攻撃に耐えきれず、力尽きた。`+(immortalKills>0?`（不死身の魔王を${immortalKills}度撃破）`:'');
+      document.getElementById('endSubline').textContent=(defeatCause?`${defeatCause} 力尽きた…`:`${WAVES[stageIndex].name}の攻撃に耐えきれず、力尽きた。`)+(immortalKills>0?`（不死身の魔王を${immortalKills}度撃破）`:'');
     } else if(reason==='deckout'){
       document.getElementById('endTitle').textContent='GAME OVER';
       grEl.innerHTML=lastHtml;
@@ -8141,7 +8142,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
