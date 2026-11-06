@@ -3687,7 +3687,8 @@ function alienEncounterId(){   // 今回の負けで現れる宇宙人（出現�
   for(const g of ALIEN_GIFTS){ if(HIDDEN_BOSSES.includes(g.id)||beat.includes(g.id)) continue; return lostLv>=g.lv?g.id:null; }
   return null;
 }
-const ALIEN_SURGERY={'月の民':'コンボの制限が解除された！（倍率の上限なし・次の戦いへの持ち越しもできる）'};   // 手術で得られる強化。火星人以降は未実装なので、入れたらここへ書く
+const ALIEN_SURGERY={'月の民':'コンボの制限が解除された！（倍率の上限なし・次の戦いへの持ち越しもできる）',
+  '火星人':'アクセサリーの枠が3つから6つに増えた！<br>さらに、モンスター2体を合体できるようになった！<br><span style="opacity:.9">次のゲームのキャラ選択で「合体」ボタンを押し、足にするモンスターを選ぼう。<br>見た目は1体目の頭と胴＋2体目の足。特殊技は2体分使える。</span>'};   // 手術で得られる強化。火星人以降は未実装なので、入れたらここへ書く
 function alienOverlay(inner){ const ov=document.createElement('div'); ov.className='modal-bg'; ov.style.cssText='display:flex;z-index:99999;background:rgba(8,8,14,.96);flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px'; ov.innerHTML=inner; document.body.appendChild(ov); try{ playSfx('combo'); }catch(e){} return ov; }
 function alienAppear(reason){   // 負けた後、出現ラインに届いていてまだ現れていない宇宙人がいれば、現れて戦いになる。いなければ false
   let id=null; try{ id=alienEncounterId(); }catch(e){}
@@ -3705,7 +3706,7 @@ function alienAppear(reason){   // 負けた後、出現ラインに届いてい
 function alienSurgery(id,next){   // 宇宙人との戦いが終わった（勝っても負けても）：手術を受けて強化される
   const w=WAVES.find(x=>x.id===id); let spr=''; try{ spr=spriteSVG(monSprKey(w),96,''); }catch(e){}
   const eff=ALIEN_SURGERY[id]||'能力が強化された！（強化の内容は準備中）';
-  const ov=alienOverlay(`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">「いいデータが取れたよ。<br>さあ、手術を始めよう」</div>${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">🩺 ${dispName(id)}の手術を受けた</div><div style="font-size:13px;line-height:1.8">${eff}<br><span style="opacity:.85">「${dispName(id)}」の能力を授かった。次のゲームから仲間に選べる。</span></div><button class="btn" id="alienOk" style="width:auto;padding:10px 28px">ありがとう</button>`);
+  const ov=alienOverlay(`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">${id==='火星人'?'「ふふ、ボクの体と君の体を<br>つなげる技術も教えてあげよう」':'「いいデータが取れたよ。<br>さあ、手術を始めよう」'}</div>${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">🩺 ${dispName(id)}の手術を受けた</div><div style="font-size:13px;line-height:1.8">${eff}<br><span style="opacity:.85">「${dispName(id)}」の能力を授かった。次のゲームから仲間に選べる。</span></div><button class="btn" id="alienOk" style="width:auto;padding:10px 28px">ありがとう</button>`);
   try{ alienBeatAdd(id); unlockMon(id); }catch(e){}
   document.getElementById('alienOk').onclick=()=>{ ov.remove(); try{ newMonQueue.length=0; }catch(e){} next(); };
 }
@@ -8142,7 +8143,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
