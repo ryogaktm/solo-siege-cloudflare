@@ -7009,7 +7009,9 @@ function buildCharList(){
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
   const fuseUi=()=>{ charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
-  const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId(); if(d.id===first) return monAlert('合体1と同じモンスターです。'); fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); };   // 合体2（足）に入れる
+  const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId();
+    if(d.id===first){ if(picked&&curMonId()!==d.id){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } else return monAlert('合体1は今使っているモンスターなので、外せません。'); fuse2=d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); return; }   // 合体1に入っているモンスターを合体2へ：合体1の選択は消える
+    fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); };   // 合体2（足）に入れる
   if(fuseOk){ document.getElementById('curPanel').onclick=e=>{ const t=e.target.closest&&e.target.closest('[data-fs]'); if(!t) return; if(t.dataset.fs==='1') fuseSlot=1; else if(fuseSlot===2&&fuse2){ fuse2=''; lsSet(SEL2_KEY,''); fuseSlot=1; } else fuseSlot=2; fuseUi(); }; }   // 枠をタップ：合体1／合体2を選ぶ（選んだ合体2をもう一度押すと外れる）
   fuseUi();
   const prevId=wide?curMonId():hasLeader?defs[0].id:((defs.some(x=>x.id===lsGet(SEL_KEY)))?lsGet(SEL_KEY):(defs[0]&&defs[0].id));   // 前回選んだキャラ（なければ先頭）に印を付ける
@@ -7023,8 +7025,9 @@ function buildCharList(){
     el.onclick=wide?(()=>{
       if(fuseSlot===2){ setFuse(d,true); return; }   // 合体2の枠を選んでいる時は、足にするモンスターを選ぶ   // 合体：足にするモンスターを選ぶ（同じものをもう一度押すと外れる）
       if(d.locked) return;
-      if(d.id===curMonId()){ if(picked){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); renderCurPanel(null); } return; }   // 使用中のキャラを押した時：選択中なら選択を取り消すだけ。何も選んでいなければ何も起こさない（タイトルへは戻らない）
-      const sel=()=>{ grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); picked={id:d.id,i,ch,haloOn}; renderCurPanel(picked); };
+      const dropDup=()=>{ if(fuse2===d.id){ fuse2=''; lsSet(SEL2_KEY,''); } };   // 合体2に入っているモンスターを合体1にしたら、合体2の選択は消える
+      if(d.id===curMonId()){ dropDup(); if(picked){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } fuseUi(); return; }   // 使用中のキャラを押した時：選択中なら選択を取り消すだけ。何も選んでいなければ何も起こさない（タイトルへは戻らない）
+      const sel=()=>{ grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); picked={id:d.id,i,ch,haloOn}; dropDup(); fuseUi(); };
       if(isWeakId(d.id)) monConfirm('チュートリアル用です。',sel); else sel();
     }):(hasLeader&&d.id===prevId?(()=>{}):go);   // ミジンコのボスが解放済みなら、今の個体（そこらへんのミジンコ）には憑依できない
     if(wide&&fuseOk&&!d.locked) attachFuseDrag(el,()=>setFuse(d,false),()=>el.onclick&&el.onclick());
@@ -8184,7 +8187,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
