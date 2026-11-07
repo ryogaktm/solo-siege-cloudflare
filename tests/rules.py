@@ -218,11 +218,21 @@ with sync_playwright() as p:
         flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0;f.bomb=0}); haunt={}; flags[1].cards=[mk('red',3),mk('red',4)]; enemyTurn=5; enemySched={8:ev}; autoQ={}; render();
         const fc=autoForecast(), fi=+Object.keys(fc)[0]; const has=!!document.querySelector('.flag[data-index="'+fi+'"] .auto-fc'); const tgt=autoTargetIdx(autoQ[ev][0]);
         enemyTurn=8; const before=flags.map(f=>f.cards.length).join(); applyEnemyEvent(ev); const after=flags.map(f=>f.cards.length).join();
-        o[ev]={has, fi, tgt, changed: ev==='ghost'?(haunt[tgt]>0):(before!==after), onTgt: ev==='ghost'?true:flags[tgt].cards.length!==(+before.split(',')[tgt])};
+        o[ev]={has, fi, tgt, changed: ev==='ghost'?(haunt[tgt]>0):ev==='deatheater'?(flags[tgt].eater>enemyTurn):(before!==after), onTgt: ev==='ghost'||ev==='deatheater'?true:flags[tgt].cards.length!==(+before.split(',')[tgt])};
       }
       return o}""")
     ok=all(r[k]['has'] and r[k]['fi']==r[k]['tgt'] and r[k]['changed'] and r[k]['onTgt'] for k in ['minus','ghost','deatheater','assassin'])
     check('旗を狙う妨害（マイナスの武器・ワームホール・デスイーター・暗殺）：旗の右上に予定が出て、予定の旗に発動する',ok,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); introOn=false; busy=false;pending=null;gameEnded=false;inPrep=false; const o={}, mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
+      const setup=()=>{ flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0;f.eater=0}); flags[1].cards=[mk('red',3),mk('red',4)]; enemyTurn=5; autoQ={}; };
+      // 発動：旗に居座る（まだ食べない）
+      setup(); enemySched={8:'deatheater'}; autoForecast(); enemyTurn=8; const t=autoTargetIdx(autoQ.deatheater[0]); applyEnemyEvent('deatheater'); o.sit=flags[t].eater===8+EATER_TURNS&&flags[t].cards.length===2; o.badge=(render(),!!document.querySelector('.flag[data-index="'+t+'"]')&&document.body.innerText.includes('デスイーター あと3'));
+      // 置いたカードが食べられる
+      const f=flags[t]; hand=[mk('blue',9)]; const g0=graveyard.length; f.cards.push(hand[0]); const ok=eaterEatPlaced(f,f.cards[2],null,-1); o.eatPlaced=ok&&f.cards.length===2&&graveyard.length===g0+1&&!f.eater;
+      // 3ターン置かなければ、1枚目が食べられる
+      setup(); enemySched={}; flags[1].eater=enemyTurn+3; const first=flags[1].cards[0]; enemyTurn+=2; eaterExpire(); o.early=flags[1].cards.length===2; enemyTurn+=1; eaterExpire(); o.expire=flags[1].cards.length===1&&flags[1].cards[0]!==first&&!flags[1].eater;
+      return o}""")
+    check('デスイーター：旗に居座り（あとNターン表示）、置いたカードを食べる／3ターン置かなければ1枚目を食べる',r['sit'] and r['badge'] and r['eatPlaced'] and r['early'] and r['expire'],r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; await new Promise(r=>setTimeout(r,900)); document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); inPrep=false; openAccModal(); await new Promise(r=>setTimeout(r,300));
       const b=document.querySelector('#accModal .reward-box').getBoundingClientRect(), u=document.getElementById('accUpper').getBoundingClientRect(); document.getElementById('accModal').style.display='none'; return {bh:b.height,uh:u.height}}""")
     check('戦闘中にアクセサリー画面（🎒）を開いても、中身が見える（空の枠にならない）',r['bh']>300 and r['uh']>200,r)

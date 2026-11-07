@@ -2547,7 +2547,7 @@ function resetBattleRound(){
   copyN=0; armedOn=false;   // 模造品の倍化・完全武装は、1つのwaveの間だけ
   frozenMults={}; frozenHost={}; bashRateNow=DIS_PARAM.bashRate; bashRateHist=[bashRateNow];   // 斧の命中率は、攻撃して次のwaveになったら元に戻る
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
-  try{ flags.forEach(f=>{ f.blindUntil=0; }); }catch(e){}
+  try{ flags.forEach(f=>{ f.blindUntil=0; f.eater=0; }); }catch(e){}
   enemyTurn=0; warnedDisTurn=-1; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
@@ -2585,7 +2585,20 @@ function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾
 /* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
 let autoQ={}, autoSeq=0;   // autoQ[種類]=[予定,...]：その種類の「これから来る予定」を順番に持つ。敵の攻撃でラウンドがリセットされても、発動するまで同じ予定（カード・旗）が残る
 const FLAG_EVS=['autonum','minus','ghost','deatheater','assassin','pfield','cfield','blind'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
-const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'1枚目食う'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'},cfield:{icon:'💀',txt:pl=>'カラフル'+((CNAME[pl&&pl.col]||'').replace('旗',''))},blind:{icon:'🌫',txt:()=>'ブラインド'}};
+const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'居座る'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'},cfield:{icon:'💀',txt:pl=>'カラフル'+((CNAME[pl&&pl.col]||'').replace('旗',''))},blind:{icon:'🌫',txt:()=>'ブラインド'}};
+const EATER_TURNS=3;   // デスイーターが旗に居座るターン数
+const eaterOn=f=>(f.eater||0)>enemyTurn&&!f.closed;
+function eaterEatPlaced(f,placed,mon,midx){   // デスイーターのいる旗にカードを置いた：置いたカードが食べられる
+  if(!eaterOn(f)) return false;
+  const k=f.cards.indexOf(placed); if(k<0) return false;
+  if(mon&&midx>=0) f.cards[k]=mon; else f.cards.splice(k,1);
+  if(!isEnemyEq(placed)&&!placed.temp) graveyard.push(placed);
+  f.eater=0; try{ dlog('deatheater_eat_placed',{card:dbgCardStr(placed)}); }catch(e){}
+  hint(`👹 デスイーターに、置いた${cardDisplayName(placed)}を食べられた…`,true); playSfx('warn'); return true;
+}
+function eaterExpire(){   // 時間切れ：その旗の1枚目が食べられる
+  flags.forEach((f,i)=>{ if(f.eater&&f.eater<=enemyTurn){ f.eater=0; if(f.closed) return; const c=f.cards.find(x=>!isEnemyEq(x)); if(!c){ return; } f.cards.splice(f.cards.indexOf(c),1); if(!c.temp) graveyard.push(c); try{ dlog('deatheater',{flag:i+1,card:dbgCardStr(c),expire:1}); }catch(e){} hint(`👹 デスイーター！ 旗${i+1}に何も置かれなかったので、1枚目（${cardDisplayName(c)}）を食べられた…`,true); playSfx('warn'); try{ screenShake(); }catch(e){} } });
+}
 const blindOn=f=>(f.blindUntil||0)>enemyTurn;   // ブラインド：黒い煙で覆われている旗（カードは置けるが中身が見えない）
 function evCands(type){
   return flags.map((f,i)=>({f,i})).filter(({f,i})=>{
@@ -2705,10 +2718,9 @@ function applyEnemyEvent(type,target,viaCard){
     const cand=dfi<0?[]:[flags[dfi]];   // 封鎖中の旗は狙われない（封鎖で防げる）
     if(!cand.length){ hint('👹 デスイーターが現れたが、食べるカードがなかった（封鎖中の旗は守られる）。',true); }
     else {
-      const f=cand[Math.floor(Math.random()*cand.length)], fi=flags.indexOf(f), c=f.cards.shift();
-      if(!isEnemyEq(c)&&!c.temp) graveyard.push(c);
-      try{ dlog('deatheater',{flag:fi+1,card:dbgCardStr(c)}); }catch(e){}
-      hint(`👹 デスイーター！ 旗${fi+1}の1枚目（${cardDisplayName(c)}）を食べられた…`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
+      const f=cand[0], fi=flags.indexOf(f); f.eater=enemyTurn+EATER_TURNS;   // その旗の上に居座る：置いたカードを食べる／置かなければ時間切れで1枚目を食べる
+      try{ dlog('deatheater',{flag:fi+1,until:f.eater}); }catch(e){}
+      hint(`👹 デスイーターが旗${fi+1}に居座った！ ${EATER_TURNS}ターン以内にこの旗へカードを置くと、置いたカードが食べられる。置かなければ、時間切れで1枚目が食べられる。`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
     }
   } else if(type==='punch'){
     if(Math.random()<DIS_PARAM.punchRate){ const pd=buzzGate(DIS_PARAM.punchDmg); if(pd>0) hurtPlayer(pd,`👊 敵に殴られた！ ${pd}ダメージ！`); playSfx('warn'); }
@@ -3231,7 +3243,7 @@ function advanceTurn(usedCard){
   let ev=null;
   if(stepped){
     for(let k=0;k<accX();k++){   // 倍の腕輪：敵のターンも2倍の速さで進む
-      enemyTurn++;
+      enemyTurn++; try{ eaterExpire(); }catch(e){}
       if(poisonPer>0) poisonPenalty+=poisonPer;
       const e1=enemySched[enemyTurn];
       if(e1){ applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; }
@@ -3979,6 +3991,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const posBefore=f.cards.filter(c=>c.kind==='troop').length;
     if(mon){ const midx=f.cards.indexOf(mon); f.cards[midx]=placed; }
     else { f.cards.push(placed); }
+    eaterEatPlaced(f,placed,mon,mon?f.cards.indexOf(placed):-1);
     showPlacementComment(card, f, posBefore);
     playSfx('place');
     advanceTurn(placed);
@@ -4055,7 +4068,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const placed={kind:'monster', sub:card.sub, value:card.value, color:card.color, uid:card.uid};
     if(card.enemyCard) placed.enemyCard=true;
     if(card.sub==='cfield'||card.sub==='pfield') placed.accumulatedBonus=0;
-    f.cards.push(placed);
+    f.cards.push(placed); eaterEatPlaced(f,placed,null,-1);
     if(CHARACTER.id==='general'){
       if(card.sub==='number') showComment(`おおっと！${card.value}以上置かないといけないぞ！大丈夫か！？`);
       else if(card.sub==='mark') showComment(`お！${CNAME[card.color]}マークを置くのか！`);
@@ -4169,7 +4182,7 @@ function resolveHolyHand(idx){
 }
 function resolveHolyFlag(i){
   const f=flags[i]; if(!holyFlagCands().some(x=>x.i===i)) return hint('その旗には取り除ける呪いがありません。',true);
-  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; delete haunt[i];
+  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; delete haunt[i];
   finishHoly(`💧 聖水：F${i+1}の呪い（敵の装備・ボム・封鎖・ワームホール・ブラインド）を取り除いた！`,0);
 }
 function useRevolution(handIdx){
@@ -4855,7 +4868,7 @@ const EVENT_DESC={
   punch:()=>`ターンになると強制的に発動。${Math.round(DIS_PARAM.punchRate*100)}%の確率で、あなたに${DIS_PARAM.punchDmg}ダメージ（外れることもある）。`,
   blind:()=>`ターンになると強制的に発動。ランダムな旗（完成済み・封鎖中・すでに煙に覆われた旗は対象外）を前もって決め（旗の右上に予告が出る）、${DIS_PARAM.blindTurns}ターンの間、黒い煙で覆う。カードは置けるが、中身が見えなくなる。煙の間、その旗は敵の他の妨害の対象からも外れる。`,
   assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）を前もって決め（旗の右上に表示）、その旗のカードからランダムに1枚を墓地へ送る。敵が置いたカードや装備も対象。',
-  deatheater:()=>'ターンになると強制的に発動。カードが置いてある旗をランダムに1つ選び、その旗の1枚目のカードを食べて墓地へ送る（完成済みの旗と、封鎖中の旗は対象外。封鎖で防げる）。',
+  deatheater:()=>'カードが置いてある旗をランダムに1つ選んで、3ターンの間、その旗の上に居座る。その間にその旗へカードを置くと、置いたカードが食べられて墓地へ行く。3ターン置かなかったら、その旗の1枚目のカードが食べられる（完成済みの旗と、封鎖中の旗は対象外）。',
   ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
@@ -5220,6 +5233,7 @@ function render(){
           d.appendChild(pd); }
       }catch(e){}
     }
+    if(eaterOn(f)){ const em=document.createElement('div'); em.style.cssText='position:absolute;left:50%;top:-2px;transform:translateX(-50%);z-index:13;pointer-events:none;padding:2px 8px;border-radius:10px;background:rgba(120,20,40,.92);border:1px solid #ff8a9a;color:#fff;font-size:11px;font-weight:800;white-space:nowrap'; em.textContent=`👹 デスイーター あと${f.eater-enemyTurn}ターン`; d.appendChild(em); }
     if(blindOn(f)&&!f.closed){ const sm=document.createElement('div'); sm.className='smoke'; sm.innerHTML=`<span>🌫 あと${f.blindUntil-enemyTurn}ターン</span>`; d.appendChild(sm); }
     d.onclick=()=>tapFlag(i);
     if(autoFc[i]&&autoFc[i].length&&!f.closed){ const w=document.createElement('div'); w.className='auto-fc'; w.innerHTML=autoFc[i].slice(0,2).map(x=>x.type==='autonum'||!x.type?`<span class="afc${x.k<=1?' near':''}">🔢あと${x.k} <i style="color:${CFILL[x.col]}">${miniIcon(EMBLEM[x.col],CFILL[x.col])}${x.v}</i></span>`:`<span class="afc${x.k<=1?' near':''}">${EVFC_LABEL[x.type].icon}あと${x.k} ${EVFC_LABEL[x.type].txt({v:x.v,col:x.col})}</span>`).join(''); d.appendChild(w); }   // 予定：旗の右上に「あとNターンで何が置かれるか」
@@ -8159,7 +8173,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-08a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-08b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
