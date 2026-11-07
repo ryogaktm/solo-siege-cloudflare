@@ -1162,7 +1162,6 @@
         <button class="giveup-btn" id="giveupBtn">ギブアップ</button>
       </div>
       <button class="iconbtn" id="rankBtn">📊</button>
-      <button class="iconbtn" id="goalBtn">📋</button>
       <button class="iconbtn" id="accBtn">🎒</button>
       <button class="iconbtn" id="helpBtn">?</button>
       <button class="iconbtn" id="menuBtn">☰</button>
@@ -1177,6 +1176,7 @@
 
   <div class="stage" id="stage">
     <div class="stage-bg" id="stageBg"></div>
+    <div id="condBar" style="display:none;position:absolute;left:0;right:0;bottom:0;z-index:30;padding:2px 6px;background:rgba(10,8,4,.78);color:var(--gold,#e8c050);font-size:11.5px;line-height:1.3;font-weight:700;text-align:center;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     <div class="st-row st-hp">
       <div class="st-side pl"><span class="hp-icon">♥</span><div class="phpbar"><div class="phpfill" id="playerHpFill"></div><div class="pred-seg" id="phpPred" style="display:none"></div></div><div class="hp-num"><b id="playerHpNum">100</b>/<span id="playerHpMax">100</span><span id="playerHpStock" style="display:none;margin-left:4px;color:#ff6b9a;font-weight:700;"></span></div></div>
       <div class="st-side en"><span class="hp-icon foe">💀</span><div class="boss-hp-bar"><div class="boss-hp-fill" id="bossHpFill"></div><div class="pred-seg boss" id="bossPred" style="display:none"></div></div><div class="boss-hp-num"><b id="bossHpNum">200</b>/<span id="bossHpMax">200</span></div></div>
@@ -1317,7 +1317,6 @@
     <div class="reward-sub" id="accSlotInfo"></div>
     <div class="acc-slots" id="accSlots"></div>
     <div class="reward-options" id="accList" style="flex-direction:column;margin-top:10px"></div>
-    <button class="btn" id="accCond" style="margin-top:12px">取得条件一覧</button>
     </div>
     <div id="accDeckMini"></div>
   </div>
@@ -1648,7 +1647,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
   '若いオーク':{kind:'clean',name:'意外ときれい好き',icon:'🧹',desc:'緑のスーパーコンボを3減らす代わりに、手札の妨害札をすべて消します。'},
   'ゴブリン':{kind:'copy',name:'模造品',icon:'🪞',desc:'黄色のスーパーコンボを1減らす代わりに、手札に複製カードを1枚加えます。コンボがある限り何度でも使えますが、同じwaveの中で続けて使うと、減らす数が1→2→4→8と倍になります。'},
-  'ミイラ':{kind:'treasure',name:'過去の財宝',icon:'🏺',desc:'紫のスーパーコンボを3失う代わりに、この戦いで手に入る金系のアクセサリー（銅・銀・金の指輪）の売値が2倍になります。'},
+  'ミイラ':{kind:'treasure',name:'過去の財宝',icon:'🏺',desc:'紫のスーパーコンボを3失う代わりに、この戦いで手に入るお金が2倍になります。'},
   'ガーゴイル':{kind:'fire',name:'ファイアブレス',icon:'🔥',desc:'赤のスーパーコンボを10減らす代わりに、敵の今のHPを3分の1減らします。（赤のスーパーコンボが10以上ないと使えません）'},
   'ゾンビ':{kind:'revive',name:'蘇り',icon:'🧟',desc:'緑のスーパーコンボを10減らす代わりに、この戦いの間、HPが0になっても半分で生き返ります。（緑のスーパーコンボが10以上ないと使えません）'},
   'モンク':{kind:'charge',name:'ためる',icon:'🧘',desc:'次の攻撃の攻撃力が半分になる代わりに、その次の攻撃の攻撃力が2倍になります。'},
@@ -6085,7 +6084,7 @@ function advanceToNextStage(){
   haunt={}; jamArmed=false; score=0; displayedScore=0; hostCarry=0; guardOn=false; defendOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()&&!tutorialOn()) carryMap={};   // ミジンコの間は、スーパーコンボを次の戦いへ引き継げる
   playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
-  startBattleGoals(); alienFirstFight(wave);
+  startBattleGoals();
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
   purgeDeleted();
@@ -6568,7 +6567,7 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
   } else if(k==='treasure'){
     if(mummyOn){ hint('すでに財宝を掘り当てています。',true); return false; }
     if(!scPay('purple',MONSK.mummyCost,()=>MONSK.mummyCost)) return false;
-    mummyOn=true; hint('🏺 過去の財宝！ この戦いで手に入る金系のアクセサリーの売値が2倍になる。',true); playSfx('combo');
+    mummyOn=true; hint('🏺 過去の財宝！ この戦いで手に入るお金が2倍になる。',true); playSfx('combo');
   } else if(k==='fire'){
     if(!(bossHp>0)) return false;
     if(!scPay('red',MONSK.gargoyleCost,()=>MONSK.gargoyleCost)) return false;
@@ -7275,9 +7274,6 @@ function buildAccDefs(){
   L.push({id:'clairvoyant',name:'千里眼のメガネ',icon:'👓',desc:'20手先までの手札（引く順番どおり）が見える（ホストの指輪で消えたNextも見える）'});
   L.push({id:'double_x',name:'倍の腕輪',icon:'✖️',desc:'ほかのアクセサリーの効果が2倍になる（倍率の増え分・体力の増え分・手札の増える数・特殊技の回数など）。代わりに敵のターンも2倍の速さで進む'});
   L.push({id:'hand',name:'手札+1のチャーム',icon:'🃏',desc:'手札の枚数が1枚増える'});
-  L.push({id:'gold_s',name:'銅の指輪',icon:'🥉',desc:'役に立たないが、売るとお金になる'});
-  L.push({id:'gold_m',name:'銀の指輪',icon:'🥈',desc:'役に立たないが、売ると高い'});
-  L.push({id:'gold_l',name:'金の指輪',icon:'🥇',desc:'役に立たないが、売るととても高い'});
   L.push({id:'quick_boots',name:'早撃ちのブーツ',icon:'👢',desc:`全部の旗を完成させて攻撃すると、${ACC_PARAM.quickTurns}ターン以内なら総攻撃力が${ACC_PARAM.quickMul}倍、${ACC_PARAM.quickTurns2}ターン以内なら${ACC_PARAM.quickMul2}倍になる（全部の旗が役ありの時。役のない旗が混ざっていると、それぞれ${ACC_PARAM.quickMulNoRole}倍・${ACC_PARAM.quickMulNoRole2}倍）`});
   L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、時間が止まる（敵も、ターンも進まない。連続では使えない）'});
@@ -7288,22 +7284,13 @@ function buildAccDefs(){
   // 軍師のイヤリングは1枚しか加えられない代わりに、同じものが3つ出る（取得条件はそれぞれ別）
   ['2','3'].forEach(n=>{ const b=L.find(x=>x.id==='add3_tac'); L.push(Object.assign({},b,{id:'add3_tac'+n})); });
   L.push({id:'purple_out',name:'紫封じのリング',icon:'🔮',desc:'装備中、カードの色を1色減らす（紫のカードが全部使えなくなる。外すと戻る）'});
-  // ★記念のメダル（効果なし・売値500）。取得条件は下の ★条件 の印の箇所で、あとでまとめて設定する
-  L.push({id:'ac_streak',special:1,name:'記念のメダル',icon:'🏅',desc:'売ると500になる'});
-  L.push({id:'ac_mars',special:1,name:'記念のメダル',icon:'🏅',desc:'売ると500になる'});
-  L.push({id:'ac_mercury',special:1,name:'記念のメダル',icon:'🏅',desc:'売ると500になる'});
-  L.push({id:'ac_venus',special:1,name:'記念のメダル',icon:'🏅',desc:'売ると500になる'});
-  L.push({id:'ac_saturn',special:1,name:'記念のメダル',icon:'🏅',desc:'売ると500になる'});
-  L.push({id:'ac_sun',special:1,name:'記念のメダル',icon:'🏅',desc:'売ると500になる'});
   return L;
 }
 const ACC_DEFS_ALL=buildAccDefs();
 const ACC_OFF=['reflect_mirror','sp_shuffle','sp_beg','sp_punch','sp_guard','sp_cure','sp_bullet'];   // 一旦取り下げ：特殊技が使えるようになるアクセサリー（持っている分の効果は残る。消したい時はここを空に戻すと復活）
 const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id));
-const cashName=n=>n<=60?'小さな換金袋':n<=150?'換金のお守り':n<=300?'換金の宝飾':'換金の金塊';
-const cashDef=n=>({id:'cash_'+n,name:`${cashName(n)}（${n}G）`,icon:'💰',desc:`役に立たないが、売ると${n}Gになる`,cashVal:n});
-/* ★換金用アクセサリーの条件：ここを書き換える。cash＝売るともらえる金額、tier＝easy(かんたん)/mid/hard、final＝敵を倒した時に判定、avail＝出す条件 */
-const TURN_BONUS={turns:20, cash:250};   // 速く倒したボーナス：1回の攻撃（wave）のターン数がturns以内なら、cash分のお金（数字はここで調整）
+/* ★お金の獲得条件（全試合・ゲーム共通）：ここを書き換える。cash＝もらえる金額(G)、final＝敵を倒した時に判定、avail＝出す条件。戦闘が終わった時の結果画面でだけ出す */
+const TURN_BONUS={turns:20, cash:250};   // 速く倒したボーナス：ターン数がturns以内なら、cash分のお金（数字はここで調整）
 const BONUS_GOALS=[
   {id:'bn_role1',tier:'easy',cash:15,text:'役のある旗（ホスト以外）を1回完成させる',def:S=>({done:()=>Object.keys(S.roles).some(k=>k!=='ホスト'&&S.roles[k]>0)})},
   {id:'bn_role3',tier:'easy',cash:20,text:'役のある旗（ホスト以外）を3回完成させる',def:S=>({done:()=>Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0)>=3,prog:`${Math.min(3,Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0))} / 3回`})},
@@ -7323,18 +7310,7 @@ const BONUS_GOALS=[
   {id:'bn_nodmg',tier:'hard',cash:100,text:'ダメージを受けずに敵を倒す',def:S=>({final:true,done:()=>S.minHp>=1})},
   {id:'bn_over3',tier:'hard',cash:125,text:'敵の残り体力の3倍以上のダメージでとどめを刺す',def:S=>({final:true,done:()=>(S.overMax||0)>=3})},
 ];
-const accDef=id=>ACC_DEFS_ALL.find(d=>d.id===id)||dynAccDef(id);
-function dynAccDef(id){
-  const m=/^cash_(\d+)$/.exec(id); if(m) return cashDef(+m[1]);
-  const b=BONUS_GOALS.find(x=>x.id===id); if(b) return {id:b.id,name:`${cashName(b.cash)}（${b.cash}G）`,icon:'💰',desc:'条件を達成すると手に入る換金用アクセサリー（売るとお金になる）',bonus:true,cashVal:b.cash};
-  return undefined;
-}
-const isRepeatGoal=id=>{ const d=ACC_DEFS.find(x=>x.id===id); return !!d && id!=='gold_s' && (accOwned.some(o=>o.id===id)||soldIds.has(id)); };
-function goalShow(id){   // 画面に出す名前・説明（もう持っている／売った物の条件を達成し直したときは、換金用アクセサリーとして見せる）
-  const d=accDef(id); if(!d) return null;
-  if(isRepeatGoal(id)){ const c=cashDef(accSell(d)); return Object.assign({},c,{desc:`「${d.name}」の条件をもう一度達成すると手に入る換金用アクセサリー`}); }
-  return d;
-}
+const accDef=id=>ACC_DEFS_ALL.find(d=>d.id===id);
 let accOwned=[], accEq=[], accSeq=1, deletedUids=new Set(), sealedCards=[], accStat=blankBattleStat(), gold=0, soldIds=new Set(), shopStock=[], inPrep=false;
 var sunUsed=false, _streakDone=false;
 var accSlotBonus=0, shopOnce={};
@@ -7386,14 +7362,10 @@ function spTargets(){   // 「特殊技+1」を付けられる先：最初から
 function spPlusPrice(){ return specPlusBought<=0?125:specPlusBought===1?250:350; }
 function specRemain(k){ if(!specEnabled(k)) return 0; if(k==='mon'&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='top') return topUsed?0:1; if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) return 99; return Math.max(0,specMax(k)-(spec[k]||0)); }
 /* ----- 取得条件（戦闘ごとのチェックリスト） ----- */
-let battleGoals=[];
 function blankBattleStat(){ return {fastAtk:0,super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0}; }
-const BOSS_DROP=Object.fromEntries(Object.entries({sp_beg:2,sp_cure:3,sp_guard:4,add3_weapon:1,add3_armor:5,purple_out:5,sp_double:7}).map(([k,v])=>[k,BASE_IDX[v]]));
 function goalDef(d){
   const id=d.id, S=accStat, thr=WAVES[stageIndex].threshold, cn=d.color?SHORTC(d.color):'';
   const R=(role,n)=>({tier:'easy',text:`${ROLE_P[role]||role}旗を${n}回完成させる`,done:()=>(S.roles[role]||0)>=n,prog:`${Math.min(n,S.roles[role]||0)} / ${n}回`});
-  { const bg=BONUS_GOALS.find(x=>x.id===id); if(bg){ const r=bg.def(S); return Object.assign({tier:bg.tier,text:bg.txt?bg.txt():bg.text},r); } }
-  if(BOSS_DROP[id]!==undefined) return {tier:'easy',boss:BOSS_DROP[id],text:`${WAVES[BOSS_DROP[id]].name}を倒す`,done:()=>false,final:true};
   if(id.startsWith('super15_')) return {tier:'mid',text:`${cn}旗のスーパーコンボを×3まで決める`,done:()=>(S.super[d.color]||0)>=3,prog:`×${Math.min(3,S.super[d.color]||0)} / ×3`};
   if(id.startsWith('blade_')){ const b=COMBO_BLADES[d.color]; return {tier:'hard',text:`${cn}旗のスーパーコンボを×${b.goal}まで決める`,done:()=>(S.super[d.color]||0)>=b.goal,prog:`×${Math.min(b.goal,S.super[d.color]||0)} / ×${b.goal}`}; }
   if(id.startsWith('super2_')) return {tier:'hard',text:`${cn}旗のスーパーコンボを×5まで決める`,done:()=>(S.super[d.color]||0)>=5,prog:`×${Math.min(5,S.super[d.color]||0)} / ×5`};
@@ -7424,41 +7396,59 @@ function goalDef(d){
   }
   return null;
 }
-function goalMet(id,final){
-  const d=accDef(id), g=d&&goalDef(d); if(!g) return false;
-  if(g.boss!==undefined) return !!final && g.boss===stageIndex;
-  if(g.final && !final) return false;
-  return !!g.done();
+/* ===== アクセサリーの獲得条件（戦闘中に1つずつ出る。最大COND_MAX個。クリアするたびに「3つの中から1つ選ぶ」権利が1回ふえる） ===== */
+const COND_MAX=3;       // 1回の戦闘で出るアクセサリー獲得条件の数（最大）
+const ACC_PICK_N=3;     // 条件を1つクリアするごとに出る、選べるアクセサリーの数
+let accCond={n:0,cur:null,picks:0,used:[],ok:[]};   // n＝いままでに出した数／cur＝いま出ている条件／picks＝選べる残り回数／used＝出した条件の文／ok＝クリアした条件の文
+let goalToastQ=[], goalToastBusy=false;
+/* ★ここに条件を足すと、ランダムで出る条件がふえる。text＝表示、done＝達成判定、prog＝進み具合、final＝敵を倒した時に判定 */
+const EXTRA_CONDS=[
+  {key:'x_role2',def:S=>{ const n=Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0); return {text:'役のある旗（ホスト以外）を2回完成させる',done:()=>n>=2,prog:`${Math.min(2,n)} / 2回`}; }},
+  {key:'x_role6',def:S=>{ const n=Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0); return {text:'役のある旗（ホスト以外）を6回完成させる',done:()=>n>=6,prog:`${Math.min(6,n)} / 6回`}; }},
+  {key:'x_super3',def:S=>({text:'どれかの色でスーパーコンボを×3まで決める',done:()=>Math.max(0,...Object.values(S.super))>=3})},
+  {key:'x_super4',def:S=>({text:'どれかの色でスーパーコンボを×4まで決める',done:()=>Math.max(0,...Object.values(S.super))>=4})},
+  {key:'x_tac4',def:S=>({text:'軍師カードを4枚使う',done:()=>S.tac>=4,prog:`${Math.min(4,S.tac)} / 4枚`})},
+  {key:'x_kinds2',def:S=>({text:'1回の攻撃で2種類以上の役をそろえる',done:()=>S.maxKinds>=2})},
+  {key:'x_same2',def:S=>({text:'同じ役の旗を2つ以上そろえて攻撃する',done:()=>S.maxSame>=2})},
+  {key:'x_dmg30',def:S=>{ const n=Math.round(WAVES[stageIndex].threshold*0.3); return {text:`1回の攻撃で敵に${n}以上のダメージ`,done:()=>S.maxDealt>=n,prog:`最高 ${Math.min(n,S.maxDealt)} / ${n}`}; }},
+  {key:'x_dmg120',def:S=>{ const n=Math.round(WAVES[stageIndex].threshold*1.2); return {text:`1回の攻撃で敵に${n}以上のダメージ`,done:()=>S.maxDealt>=n,prog:`最高 ${Math.min(n,S.maxDealt)} / ${n}`}; }},
+  {key:'x_hp90',def:S=>({text:'体力が90%を切らずに敵を倒す',final:true,done:()=>S.minHp>=0.9,prog:`最低体力 ${Math.round(S.minHp*100)}%`})},
+  {key:'x_over15',def:S=>({text:'敵の残り体力の1.5倍以上のダメージでとどめを刺す',final:true,done:()=>(S.overMax||0)>=1.5})},
+  {key:'x_fast3',def:S=>({text:'3回以内の攻撃で倒す',final:true,done:()=>totalWaves-S.w0<=3})},
+  {key:'x_long6',def:S=>({text:'6回以上の攻撃をかけて倒す',final:true,done:()=>totalWaves-S.w0>=6,prog:`${totalWaves-S.w0} 回目`})},
+];
+function condDef(key){   // 条件のキー→内容。'a:○○'＝アクセサリー○○の元々の条件、'x:○○'＝EXTRA_CONDS
+  if(!key) return null;
+  if(key.startsWith('a:')){ const id=key.slice(2); return goalDef(ACC_DEFS_ALL.find(d=>d.id===id)||{id}); }
+  const e=EXTRA_CONDS.find(x=>x.key===key); return e?e.def(accStat):null;
 }
-function rollGoals(){
-  const pool=ACC_DEFS.filter(d=>!accOwned.some(o=>o.id===d.id)&&!soldIds.has(d.id)&&(!d.color||GAME_COLORS.includes(d.color)))
-    .map(d=>({d,g:goalDef(d)})).filter(x=>x.g&&(x.g.boss===undefined||x.g.boss===stageIndex));
-  const boss=pool.filter(x=>x.g.boss!==undefined);
-  const easy=shuffle(pool.filter(x=>x.g.boss===undefined&&x.g.tier==='easy'));
-  const hard=shuffle(pool.filter(x=>x.g.boss===undefined&&x.g.tier!=='easy'));
-  const pick=boss.slice(0,3);
-  const easyTarget=Math.min(3,pick.length+easy.length), needEasy=Math.max(0,easyTarget-pick.length);
-  easy.slice(0,needEasy).forEach(x=>pick.push(x));
-  hard.slice(0,Math.max(0,6-pick.length)).forEach(x=>pick.push(x));
-  if(!introNoAcc()){
-    // もう持っている／売った物の条件は、達成し直すと換金用アクセサリーになる（毎回2つまで）
-    const rep=ACC_DEFS.filter(d=>d.id!=='gold_s'&&(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id))&&(!d.color||GAME_COLORS.includes(d.color))).map(d=>({d,g:goalDef(d)})).filter(x=>x.g&&x.g.boss===undefined);
-    shuffle(rep).slice(0,2).forEach(x=>pick.push(x));
-    // 換金用アクセサリー専用の条件（かんたん1つ＋それ以外1つ）
-    const bs=BONUS_GOALS.filter(b=>!b.avail||b.avail());
-    shuffle(bs.filter(b=>b.tier==='easy')).slice(0,1).concat(shuffle(bs.filter(b=>b.tier!=='easy')).slice(0,1)).forEach(b=>pick.push({d:{id:b.id},g:null}));
+function condPool(){   // 出せる条件の全部（同じ文の条件は1つにまとめる）
+  const out=[], seen=new Set();
+  const add=key=>{ const g=condDef(key); if(!g||seen.has(g.text)) return; if(/軍師/.test(g.text)&&!CHARACTER.tactics) return; if(/スーパーコンボ/.test(g.text)&&!CHARACTER.combo) return; seen.add(g.text); out.push({key,g}); };
+  ACC_DEFS.filter(d=>!d.color||GAME_COLORS.includes(d.color)).forEach(d=>add('a:'+d.id));
+  ['gold_s','gold_m','gold_l'].forEach(id=>add('a:'+id));
+  EXTRA_CONDS.forEach(e=>add(e.key));
+  return out;
+}
+function condReveal(){   // 次の条件をランダムでひとつ出す（すでに達成済みの条件は出さない。「倒した時に判定」の条件は最後の1つにだけ出す）
+  if(accCond.n>=COND_MAX){ accCond.cur=null; return; }
+  let pool=condPool().filter(x=>!accCond.used.includes(x.g.text)&&(x.g.final||!x.g.done()));
+  if(accCond.n<COND_MAX-1) pool=pool.filter(x=>!x.g.final);
+  if(!pool.length){ accCond.cur=null; accCond.n=COND_MAX; return; }
+  const p=pool[Math.floor(Math.random()*pool.length)];
+  accCond.cur=p.key; accCond.used.push(p.g.text); accCond.n++;
+}
+function checkGoalAnnounce(final){   // 攻撃のたび・戦闘が終わった時に、いま出ている条件を判定。達成したら次の条件を出す
+  if(isWeakBody()||introNoAcc()||inPrep){ return; }
+  let guard=0;
+  while(accCond.cur && guard++<COND_MAX+1){
+    const g=condDef(accCond.cur); if(!g) break;
+    if(g.final&&!final) break;
+    if(!g.done()) break;
+    accCond.picks++; accCond.ok.push(g.text); accCond.cur=null;
+    goalToastQ.push(`条件「${g.text}」を達成！\n戦闘後にアクセサリーを1つ選べます`);
+    condReveal();
   }
-  battleGoals=introNoAcc()?[]:pick.map(x=>x.d.id); goalAnnounced=new Set(); goalToastQ=[];
-}
-let goalAnnounced=new Set(), goalToastQ=[], goalToastBusy=false;
-function checkGoalAnnounce(final){
-  if(isWeakBody()){ battleGoals=[]; goalToastQ=[]; return; }   // ミジンコ系の身体ではアクセサリーの達成条件は無い
-  battleGoals.forEach(id=>{
-    if(goalAnnounced.has(id)) return;
-    const d=accDef(id), g=d&&goalDef(d); if(!g) return;
-    const ok=goalMet(id,!!final);
-    if(ok){ goalAnnounced.add(id); const v=goalShow(id)||d; goalToastQ.push(`条件「${g.text}」を達成！\n戦闘賞品に「${v.name}」が追加されます`); }
-  });
   runGoalToast();
 }
 function runGoalToast(){
@@ -7470,36 +7460,19 @@ function runGoalToast(){
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
 }
-function condWhenReady(n){   // 取得条件は、戦闘画面が見えるのを待たずに、最初から出す（ほかの画面が開いている間は、閉じた瞬間に出す）
-  if(gameEnded||inPrep||!battleGoals.length||n>300) return;
-  const startDeck=(document.getElementById('dbTitle')||{}).textContent==='最初の山札';   // ゲーム開始直後は、最初の山札の画面より先に条件を出す（戦闘画面が見えてから出ないように）
-  if([...document.querySelectorAll('.modal-bg')].some(m=>m.style.display==='flex'&&m.id!=='condModal'&&!(startDeck&&m.id==='deckBuildModal'))) return setTimeout(()=>condWhenReady(n+1),60);
-  openCondModal(true);
+function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves;
+  accCond={n:0,cur:null,picks:0,used:[],ok:[]}; goalToastQ=[]; lastSpecMax=null;
+  if(!introNoAcc()&&!isWeakBody()) condReveal();
+  try{ renderCondBar(); }catch(e){}
 }
-function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves; rollGoals(); grantStreakAcc(); lastSpecMax=null; try{ if(battleGoals.length) condWhenReady(0); }catch(e){} }   // 戦闘の最初に、この戦いの取得条件の一覧を出す
-function grantSpecialAcc(id,msg){
-  const d=accDef(id); if(!d||accOwned.some(o=>o.id===id)) return false;
-  accOwned.push({aid:accSeq++,id:id}); goalToastQ.push(msg.replace('{n}',d.name)); runGoalToast(); return true;
-}
-/* ★条件：宇宙人ごとの取得条件（今は「初めて戦った時」）。ここ(alienFirstFight)と ALIEN_ACC を書き換える */
-const ALIEN_ACC={'火星人':'ac_mars','水星人':'ac_mercury','金星人':'ac_venus','土星人':'ac_saturn','太陽神':'ac_sun'};
-function alienFirstFight(wave){   // 各宇宙人と初めて戦った時（通算で1回だけ）、専用アクセサリーが手に入る
-  try{
-    if(!wave||!wave.boss||isWeakBody()) return;
-    const id=ALIEN_ACC[wave.baseId]; if(!id) return;
-    let seen=[]; try{ seen=JSON.parse(lsGet('soloSiegeAlienSeen')||'[]'); }catch(e){ seen=[]; }
-    if(seen.includes(wave.baseId)) return;
-    seen.push(wave.baseId); lsSet('soloSiegeAlienSeen',JSON.stringify(seen));
-    grantSpecialAcc(id,`${wave.name}と初めて戦った！\n「{n}」を手に入れた`);
-  }catch(e){}
-}
-/* ★条件：連続クリアの取得条件（今は「最後まで4回連続クリア」）。recordRunResult の n>=4 と grantStreakAcc を書き換える */
-function grantStreakAcc(){   // 最後まで4回連続でクリアすると、次の挑戦の最初に手に入る
-  try{
-    if(isWeakBody()||lsGet('soloSiegeStreakPend')!=='1') return;
-    lsSet('soloSiegeStreakPend','0');
-    grantSpecialAcc('ac_streak','4回連続クリア！\n「{n}」を手に入れた');
-  }catch(e){}
+function renderCondBar(){   // 戦闘中は、いまのアクセサリー獲得条件を常に出しておく
+  const el=document.getElementById('condBar'); if(!el) return;
+  if(isWeakBody()||introNoAcc()||inPrep||gameEnded||(!accCond.cur&&!accCond.picks&&!accCond.ok.length)){ el.style.display='none'; return; }
+  let t;
+  if(accCond.cur){ const g=condDef(accCond.cur); t=g?`🎯 ${accCond.n}/${COND_MAX}　${g.text}${g.prog?`（${g.prog}）`:''}${g.final?'（倒した時に判定）':''}`:''; }
+  else t=`🎯 条件クリア！ 戦闘後にアクセサリーを選べます`;
+  if(accCond.picks>0) t+=`　🎁×${accCond.picks}`;
+  el.textContent=t; el.style.display='';
 }
 /* ===== プレイ記録の送信（公開版のみ。個人情報は送らない。受け取り側は server/collect.php） ===== */
 const LOG_URL='/api/collect';   // ★受け取りサーバーのURL。空文字にすると送信しない
@@ -7522,37 +7495,7 @@ function sendRunLog(reason){
 document.addEventListener('visibilitychange',()=>{ try{ if(document.visibilityState==='hidden'&&!gameEnded) sendRunLog('leave'); }catch(e){} });
 (function(){ try{ const n=document.getElementById('titleLogNote'); if(!n) return; if(LOG_ON()) n.style.display='';
   const o=document.getElementById('logOptOut'); if(o) o.onclick=ev=>{ ev.preventDefault(); try{ localStorage.setItem('soloSiegeNoLog','1'); }catch(e){} n.textContent='送信を止めました'; }; }catch(e){} })();
-function recordRunResult(reason){
-  try{ sendRunLog(reason); }catch(e){}
-  try{
-    if(_streakDone||isWeakBody()) return; _streakDone=true;
-    if(reason==='finalvictory'){
-      let n=(parseInt(lsGet('soloSiegeWinStreak'))||0)+1;
-      if(n>=4){ n=0; lsSet('soloSiegeStreakPend','1'); }
-      lsSet('soloSiegeWinStreak',String(n));
-    } else lsSet('soloSiegeWinStreak','0');
-  }catch(e){}
-}
-function openCondModal(auto){   // auto＝戦闘の最初に自動で出した時：下のボタンは「戦う」。条件は1画面に収まるよう1行ずつ（タップで説明）
-  let m=document.getElementById('condModal');
-  if(!m){ m=document.createElement('div'); m.className='modal-bg'; m.id='condModal'; m.style.display='none';
-    m.innerHTML='<div class="reward-box" style="display:flex;flex-direction:column;max-height:92vh;padding:10px 12px"><div class="reward-title" style="font-size:17px;margin:0">📋 取得条件</div><div class="reward-sub" id="condSub" style="margin:2px 0 6px;font-size:12px"></div><div id="condList" style="display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0"></div><button class="btn primary" id="condClose" style="margin-top:10px;width:100%"></button></div>';
-    document.body.appendChild(m); m.querySelector('#condClose').onclick=()=>{ m.style.display='none'; }; }
-  m.querySelector('#condClose').textContent=auto===true?'戦う':'閉じる';
-  const L=m.querySelector('#condList'); L.innerHTML='';
-  m.querySelector('#condSub').textContent=`${WAVES[stageIndex].name}との戦いで手に入るアクセサリー`;
-  if(!battleGoals.length){ const e=document.createElement('div'); e.className='reward-sub'; e.textContent='この戦闘で取れるアクセサリーはありません'; L.appendChild(e); }
-  battleGoals.forEach(id=>{
-    const d=accDef(id); if(!d) return; const g=goalDef(d); if(!g) return;
-    const ok=!g.final?goalMet(id,false):(g.boss===undefined&&g.done());
-    const dv=goalShow(id)||d;
-    const el=document.createElement('div'); el.className='reward-option acc-opt'+(ok?' acc-on':''); el.style.cssText='cursor:pointer;padding:5px 8px;gap:8px;align-items:center';
-    el.innerHTML=`<div class="acc-ico" style="transform:scale(.8)">${accIconHtml(dv)}</div><div class="acc-txt" style="min-width:0"><div class="reward-name" style="font-size:13px">${dv.name}</div><div class="acc-desc" style="color:var(--gold);font-size:11.5px;line-height:1.3">${g.text}${g.prog?`（${g.prog}）`:''}</div><div class="acc-desc cond-more" style="display:none;font-size:11px;line-height:1.3;margin-top:2px">${dv.desc}</div></div>`;
-    el.onclick=()=>{ const mo=el.querySelector('.cond-more'); mo.style.display=mo.style.display==='none'?'':'none'; };
-    L.appendChild(el);
-  });
-  m.style.display='flex';
-}
+function recordRunResult(reason){ try{ sendRunLog(reason); }catch(e){} }
 function accAvailable(){
   const owned=id=>accOwned.filter(o=>o.id===id).length;
   return ACC_DEFS.filter(d=>{
@@ -7677,40 +7620,23 @@ function accPriceBase(d){
   if(id==='glass') return 200;
   if(id==='combo_barrier'||id==='host_ring') return 200; if(id==='double_x') return 300; if(id==='clairvoyant') return 200; if(id==='hand') return 150;
   if(id==='hp_scarf') return 300; if(id==='reflect_mirror') return 200; if(id==='hp_x15') return 120; if(id==='hp_x2') return 220; if(id==='endure') return 160; if(id==='heal_patch') return 240;
-  if(id==='gold_s') return 200; if(id==='gold_m') return 400; if(id==='gold_l') return 800;
   if(id==='add3_weapon'||id==='add3_armor') return 100;
   return 60;
 }
 const ACC_SELL_MULT=1.5;  // 売値倍率（元の値段の半分に対して）
-const accSell=d=>d.cashVal?d.cashVal:d.special?500:Math.floor(accPriceBase(d)/2*ACC_SELL_MULT);  // 売値は倍率をかけない元の値段の半分
+const accSell=d=>Math.floor(accPriceBase(d)/2*ACC_SELL_MULT);  // 売値は倍率をかけない元の値段の半分
 const introNoAcc=()=>isWeakBody() || introOn && WAVES[stageIndex] && WAVES[stageIndex].id!=='ミジンコキング';   // ミジンコの最初の段階では、ミジンコキング以外からアクセサリーは出ない
-let chestWhy={};   // 宝箱に出すアクセサリーごとの「手に入った理由」
-let chestAids=[];   // 今回の宝箱で手に入った換金用アクセサリーのaid
-function acquireNew(final=true){
-  const got=[]; chestWhy={}; chestAids=[]; if(introNoAcc()) return got;
-  const giveCash=(n,why)=>{ const c=cashDef(n); chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:c.id}); got.push(c); chestWhy[c.id]=chestWhy[c.id]?chestWhy[c.id]+' ／ '+why:why; };
-  ACC_DEFS.forEach(d=>{
-    if(accOwned.some(o=>o.id===d.id)||soldIds.has(d.id)){
-      if(d.id!=='gold_s' && battleGoals.includes(d.id) && goalMet(d.id,final)){ try{ giveCash(accSell(d),'達成した条件：'+goalDef(d).text+'（「'+d.name+'」の条件をもう一度達成）'); }catch(e){} }
-      return;
-    }
-    if(battleGoals.includes(d.id) && goalMet(d.id,final)){ if(d.id.startsWith('gold_')) chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:d.id}); got.push(d); try{ chestWhy[d.id]='達成した条件：'+goalDef(d).text; }catch(e){} }
-  });
-  BONUS_GOALS.forEach(b=>{ if(battleGoals.includes(b.id) && goalMet(b.id,final)){ try{ giveCash(b.cash,'達成した条件：'+goalDef(accDef(b.id)).text); }catch(e){} } });
-  return got;
-}
-// 勝っても負けても、条件に関係なく必ず「銅の指輪」が手に入る（売ったあとでも、持っていても1個もらえる）
-function giveCopperRing(got){
-  if(introNoAcc()) return;
-  if(got.some(d=>d.id==='gold_s')) return;
-  const cu=accDef('gold_s'); if(cu){ chestAids.push(accSeq); accOwned.push({aid:accSeq++,id:'gold_s'}); got.push(cu); chestWhy.gold_s='戦闘のごほうび（必ずもらえる）'; }
-}
 function closeStrayModals(){   // 戦いが終わった時：開きっぱなしのポップアップ（山札・墓地の一覧、カード説明、特殊技など）が、宝箱や結果の上に暗い膜のように残らないよう閉じる
   try{ ['cardInfoBg','specModal','goalModal','cardListModal','confirmModal','pickModal','rehireModal','accModal','dbgModal','deckBuildModal','condModal','shopModal','rankModal'].forEach(id=>{ const m=document.getElementById(id); if(m&&m.style.display!=='none') m.style.display='none'; });
     document.querySelectorAll('body > .modal-bg:not([id])').forEach(m=>{ const z=parseInt(m.style.zIndex)||0; if(z>=10000&&z<=10001) m.remove(); });
     document.querySelectorAll('.dragcard').forEach(g=>g.remove()); }catch(e){}
 }
-let lastGoalRes=[];   // 直前の戦いの取得条件の結果［{name,text,ok}］
+let lastBattleRes={money:[],total:0,dbl:false};   // 直前の戦いの結果（お金の条件）
+function moneyResults(){   // お金の獲得条件（全試合共通）を判定する。戦闘が終わった時の結果画面でだけ使う
+  if(introNoAcc()) return [];
+  const S=accStat;
+  return BONUS_GOALS.filter(b=>!b.avail||b.avail()).map(b=>{ let ok=false; try{ ok=!!b.def(S).done(); }catch(e){} return {text:b.txt?b.txt():b.text,cash:b.cash,ok}; });
+}
 function grantStageReward(){
   if(introNoAcc()&&!isWeakBody()){   // ミジンコ導入の途中：宝箱・準備・装備の画面は出さず、そのまま次の戦いへ
     closeStrayModals(); try{ restoreAllMods(); }catch(e){}
@@ -7718,53 +7644,59 @@ function grantStageReward(){
     inPrep=false; try{ saveGame(); }catch(e){}
     advanceToNextStage(); return;
   }
-  inPrep=true; closeStrayModals();
+  closeStrayModals();
+  try{ checkGoalAnnounce(true); }catch(e){}   // 倒した時に判定する条件を、ここで最終判定
+  inPrep=true;
   playSfx('bossDefeat');
   setTimeout(()=>playSfx('reward'), 350);
-  const income=0;
-  try{ lastGoalRes=battleGoals.map(id=>{ const d=accDef(id), g=d&&goalDef(d); return g?{id,ok:!!goalMet(id,true),text:g.text,name:(goalShow(id)||d).name}:null; }).filter(Boolean); }catch(e){ lastGoalRes=[]; }   // 戦闘の結果：この戦いの取得条件を、アクセサリーを渡す前に判定しておく
-  const got=acquireNew();
-  giveCopperRing(got);
-  if(mummyOn){ accOwned.forEach(o=>{ if(o.id.startsWith('gold_')&&chestAids.includes(o.aid)) o.x2=1; }); mummyOn=false; }   // ミイラの財宝：この戦いで手に入った金系の指輪は売値2倍
+  const res=moneyResults(); let total=res.filter(x=>x.ok).reduce((t,x)=>t+x.cash,0);
+  const dbl=!!mummyOn; if(dbl&&total>0) total*=2; mummyOn=false;   // ミイラの財宝：この戦いで手に入るお金が2倍
+  gold+=total; lastBattleRes={money:res,total,dbl};
   try{ saveGame(); }catch(e){}  // 戦闘が終わったところで保存（やめても準備画面から再開）
-  showChest(got,income);
+  showChest();
 }
-function showChest(got,income){
-  const m=document.getElementById('chestModal');
-  document.getElementById('chestSub').textContent='宝箱が出てきた！タップして開けよう';
-  const em=document.getElementById('chestEmoji'); em.textContent='🎁'; em.className='chest-emoji shake'; em.style.display='';
-  document.getElementById('chestOptions').innerHTML=''; document.getElementById('chestNote').textContent='';
-  em.onclick=()=>openChest(got,income);
+function showChest(){   // 戦闘が終わった画面：お金の条件の結果と合計 → アクセサリー条件の結果 → 選ぶ
+  const m=document.getElementById('chestModal'), R=lastBattleRes;
+  const ttl=m.querySelector('.reward-title'); if(ttl) ttl.textContent='📋 戦闘結果';
+  const em=document.getElementById('chestEmoji'); em.style.display='none'; em.onclick=null;
+  document.getElementById('chestNote').textContent='';
+  const sub=document.getElementById('chestSub'); sub.textContent='';
+  const box=document.getElementById('chestOptions'); box.innerHTML='';
+  const blk=(head,rows)=>{ const d=document.createElement('div'); d.style.cssText='cursor:default;text-align:left;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:10px 12px;border:1px solid var(--line,rgba(255,255,255,.15));border-radius:12px;background:rgba(255,255,255,.03);pointer-events:none'; d.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800;text-align:left">${head}</div>`+rows; box.appendChild(d); };
+  if(R.money.length){
+    const okN=R.money.filter(x=>x.ok).length;
+    blk(`💰 基本条件 クリア ${okN}／${R.money.length}`, R.money.map(x=>x.ok?`<div class="acc-desc" style="text-align:left">☑ ${x.text}<span style="color:var(--gold)">　+${x.cash}G</span></div>`:`<div class="acc-desc" style="text-align:left;opacity:.45">☐ ${x.text}</div>`).join('')
+      +`<div class="acc-desc" style="text-align:right;color:var(--gold);font-weight:800;margin-top:4px">合計 +${R.total}G${R.dbl?'（過去の財宝で2倍）':''}　所持金 ${gold}G</div>`);
+  }
+  const cl=accCond.used;
+  if(cl.length){
+    blk(`🎯 アクセサリー条件 クリア ${accCond.ok.length}／${cl.length}`, cl.map(t=>accCond.ok.includes(t)?`<div class="acc-desc" style="text-align:left">☑ ${t}</div>`:`<div class="acc-desc" style="text-align:left;opacity:.45">☐ ${t}</div>`).join(''));
+  }
+  if(!R.money.length&&!cl.length) sub.textContent='今回は、お金もアクセサリーもありません';
+  const b=document.createElement('button'); b.className='btn';
+  b.textContent=accCond.picks>0?'アクセサリーを選ぶ':'準備へ'; b.onclick=()=>runAccPicks(); box.appendChild(b);
   m.style.display='flex';
 }
-function openChest(got,income){
-  const em=document.getElementById('chestEmoji'); em.onclick=null; em.className='chest-emoji open'; em.textContent='✨';
-  playSfx('reward');
-  document.getElementById('chestSub').textContent=got.length?'条件を満たしたアクセサリーを手に入れた！':'今回、新しく手に入るアクセサリーはなかった';
-  const box=document.getElementById('chestOptions'); box.innerHTML='';
-  got.forEach(d=>{
-    const el=document.createElement('div'); el.className='reward-option acc-opt'; el.style.cursor='default';
-    el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div>${chestWhy[d.id]?`<div class="acc-desc" style="margin-top:4px;color:var(--gold);font-weight:700">${chestWhy[d.id]}</div>`:''}</div>`;
-    box.appendChild(el);
+function accPickPool(){ return ACC_DEFS.filter(d=>!accOwned.some(o=>o.id===d.id)&&!soldIds.has(d.id)&&(!d.color||GAME_COLORS.includes(d.color))); }
+function runAccPicks(resumed){   // 条件をクリアした回数ぶん、ランダムな3つの中から1つずつ選ぶ
+  if(accCond.picks<=0||isWeakBody()){ accCond.picks=0; finishChest(resumed); return; }
+  const cs=shuffle(accPickPool().slice()).slice(0,ACC_PICK_N);
+  if(!cs.length){ accCond.picks=0; hint('もらえるアクセサリーが残っていません。'); finishChest(resumed); return; }
+  const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">🎁 アクセサリーを1つ選ぼう</div><div class="reward-sub">あと${accCond.picks}回選べます</div><div class="reward-options" style="flex-direction:column"></div></div>`;
+  const L=bg.querySelector('.reward-options');
+  cs.forEach(d=>{
+    const el=document.createElement('div'); el.className='reward-option acc-opt'; el.style.cursor='pointer';
+    el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div></div>`;
+    el.onclick=()=>{ accOwned.push({aid:accSeq++,id:d.id}); accCond.picks--; bg.remove(); try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} hint(`「${d.name}」を手に入れた。`); runAccPicks(resumed); };
+    L.appendChild(el);
   });
-  { const okL=(lastGoalRes||[]).filter(x=>x.ok);   // 戦いが終わったら、クリアした条件を一覧で出す
-    const gb=document.createElement('div'); gb.style.cssText='cursor:default;text-align:left;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:10px 12px;border:1px solid var(--line,rgba(255,255,255,.15));border-radius:12px;background:rgba(255,255,255,.03);-webkit-tap-highlight-color:transparent;pointer-events:none';   // 見るだけ（タップしても何も起きない）／全部左揃え
-    gb.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800;text-align:left">📋 クリアした条件（${okL.length}／${(lastGoalRes||[]).length}）</div>`+(okL.length?okL.map(x=>`<div class="acc-desc" style="text-align:left">☑ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'<div class="acc-desc" style="opacity:.8;text-align:left">今回クリアした条件はありませんでした</div>')+((lastGoalRes||[]).some(x=>!x.ok)?'<div class="acc-desc" style="margin-top:6px;opacity:.75;font-weight:700;text-align:left">達成できなかった条件</div>'+(lastGoalRes||[]).filter(x=>!x.ok).map(x=>`<div class="acc-desc" style="opacity:.6;text-align:left">☐ ${x.text}<span style="opacity:.7">（${x.name}）</span></div>`).join(''):'');
-    box.insertBefore(gb,box.firstChild); }
-  const cashO=chestAids.map(a=>accOwned.find(o=>o.aid===a)).filter(Boolean);
-  if(cashO.length){
-    const tot=cashO.reduce((t,o)=>t+accSellO(o),0);
-    const pn=document.createElement('div'); pn.className='reward-option'; pn.style.cssText='cursor:default;flex-direction:column;align-items:stretch;gap:8px;text-align:center';
-    pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">換金用アクセサリー${cashO.length}個をまとめて売りますか？（+${tot}G）</div><div style="display:flex;gap:8px"><button class="btn" id="bulkYes" style="flex:1;margin:0">まとめて売る</button><button class="btn" id="bulkNo" style="flex:1;margin:0;opacity:.8">売らない</button></div>`;
-    box.appendChild(pn);
-    pn.querySelector('#bulkYes').onclick=()=>{ let sum=0; cashO.forEach(o=>{ const d=accDef(o.id); if(!d||!accOwned.includes(o)) return; sum+=accSellO(o); accOwned=accOwned.filter(x=>x!==o); accEq=accEq.filter(a=>a!==o.aid); soldIds.add(o.id); }); gold+=sum; chestAids=[]; try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} pn.innerHTML=`<div class="acc-desc" style="color:var(--gold);font-weight:800">売却しました（+${sum}G ／ 所持金 ${gold}G）</div>`; };
-    pn.querySelector('#bulkNo').onclick=()=>{ pn.remove(); };
-  }
-  const b=document.createElement('button'); b.className='btn'; b.textContent='準備へ'; b.onclick=finishChest; box.appendChild(b);
-  
-  setTimeout(()=>{ em.style.display='none'; },350);
+  document.body.appendChild(bg);
 }
-function finishChest(){ document.getElementById('chestModal').style.display='none'; showPrep(); }
+function finishChest(resumed){
+  document.getElementById('chestModal').style.display='none';
+  if(resumed===true){ refreshPrep(); document.getElementById('prepModal').style.display='flex'; } else showPrep();
+}
 /* ----- 準備画面 ----- */
 let deckOffer=null;
 function rollDeckOffer(){ const cols=shuffle(GAME_COLORS.slice()); deckOffer={up:cols[0],from:cols[1],to:cols[2],upUsed:false,chUsed:false,drinkUsed:false,cards:rollDeckCards()}; }
@@ -8192,13 +8124,11 @@ function openRanking(first,opts){
   const t=L.querySelector(`[data-i="${nxIdx}"]`); if(t) L.scrollTop=t.offsetTop-L.offsetTop-L.clientHeight/2+t.clientHeight/2;
 }
 document.getElementById('prepGo').onclick=prepGo;
-document.getElementById('accCond').onclick=()=>openCondModal();
-document.getElementById('goalBtn').onclick=()=>openCondModal();
 document.getElementById('accClose').onclick=()=>{ document.getElementById('accModal').style.display='none'; if(inPrep) refreshPrep(); };
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05v';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-07a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -8224,7 +8154,7 @@ function saveGame(force){
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
     const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,goals:battleGoals,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -8270,7 +8200,7 @@ function resumeGame(){
   waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase; bashRateNow=(st.bashRateNow>0)?st.bashRateNow:DIS_PARAM.bashRate; bashHist=Array.isArray(st.bashHist)&&st.bashHist.length?st.bashHist:[bashDmg]; bashRateHist=Array.isArray(st.bashRateHist)&&st.bashRateHist.length?st.bashRateHist:[bashRateNow];
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=st.enemySched||{}; prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
-  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:(gameFuse?6:3))+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); battleGoals=ac.goals||[]; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
+  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:(gameFuse?6:3))+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[]},ac.cond||{}); hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0},st.spec||{}); guardOn=st.guardOn; defendOn=!!st.defendOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
@@ -8294,8 +8224,8 @@ function resumeGame(){
   pickHowTip();
   inPrep=!!st.prep;
   if(!(st.acc&&st.acc.ast)){ accStat.w0=totalWaves; accStat.turn0=turnCounter; }   // 古いセーブは、再開した時点から数え直す
-  if(!battleGoals.length && !inPrep) rollGoals();
-  else if(!inPrep) battleGoals.forEach(id=>{ const d=accDef(id),g=d&&goalDef(d); if(g&&goalMet(id,false)) goalAnnounced.add(id); });
+  if(!inPrep && !accCond.cur && !accCond.n && !introNoAcc() && !isWeakBody()) condReveal();   // 古いセーブなど、条件がまだ出ていない時
+  if(inPrep && accCond.picks>0) setTimeout(()=>runAccPicks(true),500);   // アクセサリーを選ぶ途中でやめた時は、続きから
   const winResume=!inPrep && bossHp<=0 && (st.win || true);   // 敵を倒した後の保存は、必ず勝利の続きへ進める
   if(winResume){ busy=true; waveAdvancing=true; }   // 再開の描画で「勝利の保存」を上書きしないよう、先に操作不能にしておく
   render(); layoutHand(true);
@@ -8308,7 +8238,7 @@ function resumeGame(){
 }
 (function(){
   const r=window.render;
-  window.render=function(){ const x=r.apply(this,arguments); try{ renderAccStrip(); const wk=isWeakBody(), gb=document.getElementById('goalBtn'), as=document.getElementById('accStrip'); if(gb) gb.style.display=wk?'none':''; if(as) as.style.display=''; }catch(e){} if(window.__onTitle) return x; if(gameEnded) clearSave(); else saveGame(); return x; };
+  window.render=function(){ const x=r.apply(this,arguments); try{ renderAccStrip(); const as=document.getElementById('accStrip'); if(as) as.style.display=''; renderCondBar(); }catch(e){} if(window.__onTitle) return x; if(gameEnded) clearSave(); else saveGame(); return x; };
   const i0=window.init;
   window.init=function(){ window.__onTitle=false; clearSave(); const rv=i0.apply(this,arguments); startBattleGoals(); if(isWeakBody()) setTimeout(()=>showComment('良いカードが無かったら墓地に捨てて交換出来るよ。'),900); return rv; };   // ミジンコ・リーダーの説明セリフ
   document.getElementById('titleResumeBtn').onclick=resumeGame;

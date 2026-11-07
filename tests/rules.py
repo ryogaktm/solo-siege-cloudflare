@@ -47,9 +47,31 @@ with sync_playwright() as p:
     check('早撃ちのブーツ：持っていなければ等倍',r['none']==1,r)
     check('早撃ちのブーツ：12ターン以内は×5、13〜15ターンは×1.5、16ターン目からは等倍',r['in12']==5 and r['out']==1.5 and r['out16']==1,r)
     check('早撃ちのブーツ：倍の腕輪で増え分が2倍（×9）',r['dbl']==9,r)
-    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); battleGoals=['quick_boots']; accOwned=accOwned.filter(a=>a.id!=='quick_boots'); const o={price:accPrice(accDef('quick_boots')),before:goalMet('quick_boots',true)};
-      accStat.fastAtk=1; o.after=goalMet('quick_boots',true); const got=acquireNew(true); o.got=got.some(d=>d.id==='quick_boots'); o.owned=accOwned.some(a=>a.id==='quick_boots'); return o}""")
-    check('早撃ちのブーツ：条件（12ターン以内に攻撃）を満たすと戦闘後にもらえる',r['before']==False and r['after']==True and r['got'] and r['owned'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); inPrep=false; const o={}; startBattleGoals();
+      o.n1=accCond.n; o.cur1=!!accCond.cur; o.bar=document.getElementById('condBar').style.display!=='none'; o.txt=document.getElementById('condBar').textContent;
+      // 1つ目をクリア→次の条件がひとつ出る
+      accCond.cur='x:role2'; accCond.cur='x_role2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.picks1=accCond.picks; o.n2=accCond.n; o.next=accCond.cur&&accCond.cur!=='x_role2';
+      // 最後まで（最大3つ）
+      accCond.cur='x_role6'; accStat.roles={'ウェッジ':9}; accStat.super={red:9}; accStat.tac=9; accStat.maxKinds=9; accStat.maxSame=9; accStat.maxDealt=99999; for(let i=0;i<4;i++) checkGoalAnnounce(false);
+      o.n3=accCond.n; o.picks3=accCond.picks; o.max=COND_MAX;
+      // 最初の2つは「倒した時に判定」の条件にならない
+      let bad=0; for(let t=0;t<40;t++){ startBattleGoals(); if(condDef(accCond.cur).final) bad++; checkGoalAnnounce(false); if(accCond.n===2&&accCond.cur&&condDef(accCond.cur).final) bad++; accStat=blankBattleStat(); } o.bad=bad;
+      return o}""")
+    check('取得条件：戦闘が始まると条件が1つ出て、戦闘画面に常に表示される',r['n1']==1 and r['cur1'] and r['bar'] and '1/3' in r['txt'],r)
+    check('取得条件：クリアすると選択権が1回ふえ、次の条件がひとつ出る／最大3つで終わる',r['picks1']==1 and r['n2']==2 and r['next'] and r['n3']==3 and r['picks3']>=2 and r['max']==3,r)
+    check('取得条件：最初の2つに「倒した時に判定」の条件は出ない',r['bad']==0,r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false; introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={};
+      startBattleGoals(); accCond.picks=2; accCond.ok=['a','b']; accCond.used=['a','b','c']; accStat.roles={'ウェッジ':1}; const g0=gold; const own0=accOwned.length;
+      grantStageReward(); await sleep(300);
+      const ch=document.getElementById('chestModal'); o.chest=ch.style.display==='flex'; o.txt=ch.innerText; o.gold=gold-g0; o.total=lastBattleRes.total; o.okSum=lastBattleRes.money.filter(x=>x.ok).reduce((t,x)=>t+x.cash,0);
+      ch.querySelector('.btn').click(); await sleep(100);
+      const pk=()=>[...document.querySelectorAll('body > .modal-bg:not([id])')].filter(m=>m.style.display==='flex'&&m.innerText.includes('1つ選ぼう'));
+      o.want=accCond.picks; o.p1=pk().length; o.opts=pk()[0]?pk()[0].querySelectorAll('.acc-opt').length:0; let k=0; while(pk().length&&k++<9){ pk()[0].querySelector('.acc-opt').click(); await sleep(100); }
+      o.after=pk().length; o.owned=accOwned.length-own0; o.picks=accCond.picks; o.prep=document.getElementById('prepModal').style.display==='flex';
+      return o}""")
+    check('戦闘結果：基本条件のクリア数と合計金額が出て、お金が増える',r['chest'] and '基本条件' in r['txt'] and '合計' in r['txt'] and r['gold']==r['total'] and r['total']==r['okSum'] and r['total']>0,r)
+    check('戦闘結果：クリアした回数だけ、3つの中から1つ選べて、終わると準備画面へ',r['want']>=2 and r['p1']==1 and r['opts']==3 and r['after']==0 and r['owned']==r['want'] and r['picks']==0 and r['prep'],r)
+    r={'price':ev("()=>accPrice(accDef('quick_boots'))")}
     check('早撃ちのブーツ：値段は標準（150G）',r['price']==150,r)
     r=ev("""()=>{ gold=0; shopOnce={}; rollAccStock(); inPrep=true; openShop('buyacc'); const id=shopStock[0], full=accPrice(accDef(id)); const o={};
       const nm=accDef(id).name, row=()=>[...document.querySelectorAll('.acc-opt')].find(e=>e.querySelector('.reward-name').textContent.startsWith(nm)&&e.textContent.includes(full+'G'));
@@ -149,16 +171,16 @@ with sync_playwright() as p:
       useScout(0); await sleep(700); discardTap(1); discardTap(2); confirmDiscard(); await sleep(700); o.dd=[!!pending,turnCounter,t0,graveyard.length,g0,hand.length,h0.split(',').length]; o.done=!pending && turnCounter===t0+1 && graveyard.length===g0+3 && hand.length===h0.split(',').length;
       return o}""")
     check('補充：捨てるカードを選んでいる間はキャンセルでき（手札・山札・ターンが元に戻る）、確定でターンが進む',r['pend'] and r['turnHeld'] and r['btn'] and r['restored'] and r['done'],r)
-    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false; stageIndex=WAVES.findIndex(w=>w.lv===30); introOn=false; rollGoals();
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false; stageIndex=WAVES.findIndex(w=>w.lv===30); introOn=false; startBattleGoals();
       document.getElementById('cardListModal').style.display='flex'; document.getElementById('specModal').style.display='flex';
       grantStageReward(); await new Promise(r=>setTimeout(r,300));
       return {list:document.getElementById('cardListModal').style.display, spec:document.getElementById('specModal').style.display, chest:document.getElementById('chestModal').style.display}}""")
     check('戦いが終わったら、開きっぱなしのポップアップ（一覧・特殊技など）が閉じて宝箱だけが出る',r['list']=='none' and r['spec']=='none' and r['chest']=='flex',r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false; stageIndex=WAVES.findIndex(w=>w.lv===30); introOn=false;
-      const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={}; startBattleGoals(); await sleep(1000); const cm=document.getElementById('condModal'); o.cond=!!cm&&cm.style.display==='flex'; if(cm) cm.style.display='none';
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={}; startBattleGoals(); await sleep(300); o.cond=!document.getElementById('condModal');
       renderBattle(); o.before=document.querySelectorAll('.modal-bg[style*="10003"]').length; const aid=accSeq++; accOwned.push({aid,id:'sp_double'}); accEq.push(aid); renderBattle(); o.alert=document.querySelectorAll('.modal-bg[style*="10003"]').length; o.txt=(document.querySelector('.modal-bg[style*="10003"]')||{}).innerText||'';
       return o}""")
-    check('戦闘の最初に取得条件の一覧が出る／戦闘中に特殊技の回数の上限が上がるとアラートが出る',r['cond'] and r['before']==0 and r['alert']==1 and '回' in r['txt'],r)
+    check('戦闘の最初に条件の一覧ポップアップは出ない／戦闘中に特殊技の回数の上限が上がるとアラートが出る',r['cond'] and r['before']==0 and r['alert']==1 and '回' in r['txt'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const aid=accSeq++; accOwned.push({aid,id:'quick_boots'}); accEq.push(aid); const o={ok:quickMult(10,false), no:quickMult(10,true), t15:quickMult(15,false), t15n:quickMult(14,true), late:quickMult(16,false)}; return o}""")
     check('早撃ちブーツ：12ターン以内は役あり×5・役なし混じり×2／15ターン以内は×1.5・×1.1／16ターン以降は等倍',r['ok']==5 and r['no']==2 and r['t15']==1.5 and abs(r['t15n']-1.1)<1e-9 and r['late']==1,r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
@@ -350,7 +372,7 @@ with sync_playwright() as p:
       hand=[]; bashDmg=500; monSkillUse(); o.zero=bashDmg; busy=false; monSkillUse(); o.back=bashDmg; o.msg=(document.getElementById('hint')||{}).textContent||''; Math.random=rnd; return o}""")
     check('斧：手札0枚で当てると次は0、その0を撃つと初期値200に戻る',r['zero']==0 and r['back']==200 and '初期値' in r['msg'],r)
     r=ev("""()=>{ document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); gameEnded=false; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='洞窟のヘビ')); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; init(); const o={}; o.ids=[...document.querySelectorAll('.modal-bg')].filter(m=>getComputedStyle(m).display!=='none').map(m=>m.id); return o}""")
-    check('ゲーム開始と同時に取得条件の画面が出る（戦闘画面が見えてから出ない）','condModal' in r['ids'] and 'deckBuildModal' in r['ids'],r)
+    check('ゲーム開始時：取得条件のポップアップは出ない（条件は戦闘画面のバーに出る）','condModal' not in r['ids'] and 'deckBuildModal' in r['ids'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e12; displayedBossHp=1e12; const o={}; const rnd=Math.random; bashRateNow=0.7; Math.random=()=>0.99; monSkillUse(); o.miss=bashRateNow; busy=false; Math.random=()=>0.1; monSkillUse(); o.hit=bashRateNow; Math.random=rnd; return o}""")
     check('斧：当たると命中率が10％下がり、外れたら据え置き',abs(r['miss']-0.7)<1e-9 and abs(r['hit']-0.6)<1e-9,r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); const o={}; o.base=specMax('mon'); specBonusK.mon=9; o.cap=specMax('mon'); return o}""")
