@@ -7662,10 +7662,11 @@ function closeStrayModals(){   // 戦いが終わった時：開きっぱなし�
     document.querySelectorAll('.dragcard').forEach(g=>g.remove()); }catch(e){}
 }
 let lastBattleRes={money:[],total:0,dbl:false};   // 直前の戦いの結果（お金の条件）
+const MONEY_RATE=0.5;   // お金の条件でもらえる金額の倍率（BONUS_GOALSのcashにかける。数字はここで調整）
 function moneyResults(){   // お金の獲得条件（全試合共通）を判定する。戦闘が終わった時の結果画面でだけ使う
   if(introNoAcc()) return [];
   const S=accStat;
-  return BONUS_GOALS.filter(b=>!b.avail||b.avail()).map(b=>{ let ok=false; try{ ok=!!b.def(S).done(); }catch(e){} return {text:b.txt?b.txt():b.text,cash:b.cash,ok}; });
+  return BONUS_GOALS.filter(b=>!b.avail||b.avail()).map(b=>{ let ok=false; try{ ok=!!b.def(S).done(); }catch(e){} return {text:b.txt?b.txt():b.text,cash:Math.round(b.cash*MONEY_RATE),ok}; });
 }
 function grantStageReward(){
   if(introNoAcc()&&!isWeakBody()){   // ミジンコ導入の途中：宝箱・準備・装備の画面は出さず、そのまま次の戦いへ
@@ -8158,7 +8159,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-07g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-08a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
