@@ -5090,7 +5090,7 @@ function render(){
   { const fb=document.getElementById('freeShuffleBtn'), inf=(CHARACTER.startShuffles===Infinity);
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
-    const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','punch','guard','cure','bullet'].filter(specEnabled).length; row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
+    const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','punch','guard','cure','bullet'].filter(specEnabled).length+(CHARACTER&&CHARACTER.monSkill?1:0)+(CHARACTER&&CHARACTER.monSkillB?1:0); row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
   document.getElementById('graveCount').textContent=graveyard.length;
   document.getElementById('gravePileBtn').classList.toggle('pile-ready', picked!==null && !pending && !gameEnded);
   const guidanceDiscardable = pending && pending.type==='guidance' && pending.step===1;
@@ -8157,7 +8157,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-07e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-07f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
