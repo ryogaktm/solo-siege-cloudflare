@@ -118,6 +118,10 @@ with sync_playwright() as p:
       const m={kind:'monster',sub:'number',value:5,uid:uid(),accumulatedBonus:0,pf:true}; flags[2].cards=[m]; const c={kind:'troop',color:'red',value:3,uid:uid()}; hand=[c]; const o={before:targetsFor(c).includes(2)};
       playOnFlag(0,2,null,true); await new Promise(r=>setTimeout(r,300)); o.val=c.value; o.pf=!!m.pf; return o}""")
     check('パニックフィールドは1回逆転したら効果が消える（装備に乗った場合）',r['before'] and r['val']==8 and not r['pf'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; flags.forEach(x=>{x.cards=[];x.closed=false});
+      const t7={kind:'troop',color:'purple',value:7,uid:uid()}; flags[1].cards=[t7,makePanicField()]; const mk={kind:'monster',sub:'mark',color:'red',uid:uid()}; hand=[mk]; const o={ok:targetsFor(mk).includes(1)};
+      playOnFlag(0,1,null,true); await new Promise(r=>setTimeout(r,400)); o.col=t7.color; o.pf=flags[1].cards.some(c=>c.sub==='pfield'); return o}""")
+    check('パニックフィールドの旗にも色の装備が置けて、奥のカードのマークが変わる',r['ok'] and r['col']=='red' and r['pf'],r)
     r=ev("""async()=>{ const a=WAVES.findIndex(w=>dispName(w.baseId)==='蚊'); CHARACTER=makeMonChar(a,WAVES[a].baseId); init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; const o={};
       for(const [k,nm] of [['sting','蚊'],['fang','洞窟のヘビ']]){ const ai=WAVES.findIndex(w=>dispName(w.baseId)===nm); CHARACTER=makeMonChar(ai,WAVES[ai].baseId); init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; flags.forEach(x=>{x.cards=[];x.closed=false}); dis.poisonUntil=turnCounter+5; spec.mon=0; specUse('mon'); tapFlag(0); await new Promise(r=>setTimeout(r,150)); const c=flags[0].cards.find(c=>c.kind==='troop'); o[k]=c&&c.value; pending=null; }
       dis.poisonUntil=0; return o}""")

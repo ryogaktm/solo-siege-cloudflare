@@ -3147,7 +3147,7 @@ function targetsFor(card){
       if(isLocked(f)||f.capturedByEnemy) return;
       const mon0=flagMonster(f);
       if(mon0&&mon0.sub==='cfield'&&!f.closed){ out.push(i); return; }   // カラフルフィールドの旗には、色の装備でそのフィールドの色を変えられる
-      if(f.cards.some(c=>c.kind==='troop') && (!mon0 || mon0.sub==='number' || mon0.color===card.color)) out.push(i);
+      if(f.cards.some(c=>c.kind==='troop') && (!mon0 || mon0.sub==='number' || mon0.sub==='pfield' || mon0.color===card.color)) out.push(i);   // パニックフィールドの旗でも、奥のカードのマークを変えられる
       return;
     }
     if(f.closed||isLocked(f)) return;
@@ -8199,7 +8199,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05t';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05u';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
