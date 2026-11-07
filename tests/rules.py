@@ -70,6 +70,9 @@ with sync_playwright() as p:
       return o}""")
     check('取得条件：色を限定しない／2色以上のコンボ、5以上の装備カードを使う、特定の軍師カードを使う条件がある',r['two'] and r['eq'] and r['tt'] and r['any'] and r['eqOk'] and r['twoOk'] and r['ttOk'],r)
     check('取得条件：2個目・3個目や終盤ほど難しくなる（ゆるやかに）',r['t0']<r['t1'] and r['t1']<r['t2'] and r['t2']-r['t0']<=7,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS.find(c=>c.equipment&&c.tactics&&c.combo); init(); introOn=false; inPrep=false; startBattleGoals(); const o={}; const g1=condDef('x_allsame_1'), g3=condDef('x_allsame_3'); o.pool=condPool().some(x=>x.key==='x_allsame_3'); o.lv=[g1.lv,g3.lv];
+      accStat.sameRun=2; accStat.maxSameRun=2; o.no=g3.done(); accStat.maxSameRun=3; o.yes=condDef('x_allsame_3').done(); return o}""")
+    check('取得条件：全旗同色（1回）と、3回連続（究極）の条件がある',r['pool'] and r['lv'][1]>r['lv'][0] and r['no']==False and r['yes']==True,r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false; introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={};
       startBattleGoals(); accCond.picks=2; accCond.ok=['a','b']; accCond.used=['a','b','c']; accStat.roles={'ウェッジ':1}; const g0=gold; const own0=accOwned.length;
       grantStageReward(); await sleep(300);
