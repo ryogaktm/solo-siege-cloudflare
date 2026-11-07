@@ -2621,7 +2621,8 @@ function takeAutoPlan(type){ const q=(autoQ[type]=autoQ[type]||[]); return q.len
 function autoTargetIdx(pl){   // 予定の旗が埋まった・封鎖された等で置けなくなったら、別の旗へ移す
   const cand=evCands(pl.type||'autonum');
   if(pl.flag!==null&&cand.some(c=>c.i===pl.flag)) return pl.flag;
-  pl.flag=cand.length?cand[Math.floor(Math.random()*cand.length)].i:null;
+  const from=pl.flag; pl.flag=cand.length?cand[Math.floor(Math.random()*cand.length)].i:null;
+  try{ if(from!==null&&from!==undefined) dlog('auto_move',{event:pl.type||'autonum',from:from+1,to:pl.flag===null?0:pl.flag+1,cands:cand.map(c=>c.i+1).join(','),flags:flags.map(f=>(f.closed?'閉':'')+f.cards.length+(isLocked(f)?'鎖':'')).join(' ')}); }catch(e){}   // 予告の旗が移った時の記録（原因調べ用）
   return pl.flag===null?-1:pl.flag;
 }
 function autoForecast(){   // 旗ごとの「あとNターンで何のカードが置かれる」予定
@@ -2680,7 +2681,8 @@ function applyEnemyEvent(type,target,viaCard){
       try{ render(); }catch(e){}
     }
   } else if(type==='pfield'){
-    const ppl=takeAutoPlan('pfield'), pfi=autoTargetIdx(ppl);
+    const ppl=takeAutoPlan('pfield'); const pfrom=ppl.flag, pfi=autoTargetIdx(ppl);
+    try{ dlog('pfield_fire',{予告の旗:pfrom===null?0:pfrom+1,置いた旗:pfi+1}); }catch(e){}
     if(pfi<0){ hint('敵がパニックフィールドを置こうとしたが、置ける旗がなかった。',true); }
     else if(!hauntBlock(pfi,'敵のパニックフィールド')){
       const em=flagMonster(flags[pfi]), pf=(em&&!em.enemyCard)?{}:makePanicField();
@@ -8155,7 +8157,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-07d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-07e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
