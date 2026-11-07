@@ -3204,7 +3204,8 @@ function autoRefill(n){
 /* ================= ACTIONS ================= */
 let prevSnap=null;
 function advanceTurn(usedCard){
-  if(usedCard&&usedCard.kind==='tactics'&&!isCurse(usedCard)) { accStat.tac=(accStat.tac||0)+1; checkGoalAnnounce(false); }
+  if(usedCard&&usedCard.kind==='tactics'&&!isCurse(usedCard)) { accStat.tac=(accStat.tac||0)+1; accStat.tacBy=accStat.tacBy||{}; accStat.tacBy[usedCard.type]=(accStat.tacBy[usedCard.type]||0)+1; checkGoalAnnounce(false); }
+  if(usedCard&&usedCard.kind==='monster'&&!usedCard.enemyCard&&usedCard.sub==='number'){ const v=+usedCard.value||0; if(v>=5) accStat.eq5=(accStat.eq5||0)+1; if(v>=8) accStat.eq8=(accStat.eq8||0)+1; checkGoalAnnounce(false); }   // 取得条件：数字の装備カードを使った数
   prevSnap={t:enemyTurn,pp:poisonPenalty};
   if(CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='bash') { bashRateNow=Math.max(DIS_PARAM.bashRateMin,bashRateNow-DIS_PARAM.bashTurnDown); bashRateHist.push(bashRateNow); if(bashRateHist.length>30) bashRateHist.shift(); }   // 斧：1ターン進むごとに命中率が下がる
   const bt=bulletLeft>0;   // バレットタイム中は時間が止まる：ターンも、敵も、毒・封鎖・ボムの時間も進まない
@@ -7362,7 +7363,7 @@ function spTargets(){   // 「特殊技+1」を付けられる先：最初から
 function spPlusPrice(){ return specPlusBought<=0?125:specPlusBought===1?250:350; }
 function specRemain(k){ if(!specEnabled(k)) return 0; if(k==='mon'&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='top') return topUsed?0:1; if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) return 99; return Math.max(0,specMax(k)-(spec[k]||0)); }
 /* ----- 取得条件（戦闘ごとのチェックリスト） ----- */
-function blankBattleStat(){ return {fastAtk:0,super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0}; }
+function blankBattleStat(){ return {fastAtk:0,super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0,tacBy:{},eq5:0,eq8:0}; }
 function goalDef(d){
   const id=d.id, S=accStat, thr=WAVES[stageIndex].threshold, cn=d.color?SHORTC(d.color):'';
   const R=(role,n)=>({tier:'easy',text:`${ROLE_P[role]||role}旗を${n}回完成させる`,done:()=>(S.roles[role]||0)>=n,prog:`${Math.min(n,S.roles[role]||0)} / ${n}回`});
@@ -7401,41 +7402,65 @@ const COND_MAX=3;       // 1回の戦闘で出るアクセサリー獲得条件�
 const ACC_PICK_N=3;     // 条件を1つクリアするごとに出る、選べるアクセサリーの数
 let accCond={n:0,cur:null,picks:0,used:[],ok:[]};   // n＝いままでに出した数／cur＝いま出ている条件／picks＝選べる残り回数／used＝出した条件の文／ok＝クリアした条件の文
 let goalToastQ=[], goalToastBusy=false;
-/* ★ここに条件を足すと、ランダムで出る条件がふえる。text＝表示、done＝達成判定、prog＝進み具合、final＝敵を倒した時に判定 */
-const EXTRA_CONDS=[
-  {key:'x_role2',def:S=>{ const n=Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0); return {text:'役のある旗（ホスト以外）を2回完成させる',done:()=>n>=2,prog:`${Math.min(2,n)} / 2回`}; }},
-  {key:'x_role6',def:S=>{ const n=Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0); return {text:'役のある旗（ホスト以外）を6回完成させる',done:()=>n>=6,prog:`${Math.min(6,n)} / 6回`}; }},
-  {key:'x_super3',def:S=>({text:'どれかの色でスーパーコンボを×3まで決める',done:()=>Math.max(0,...Object.values(S.super))>=3})},
-  {key:'x_super4',def:S=>({text:'どれかの色でスーパーコンボを×4まで決める',done:()=>Math.max(0,...Object.values(S.super))>=4})},
-  {key:'x_tac4',def:S=>({text:'軍師カードを4枚使う',done:()=>S.tac>=4,prog:`${Math.min(4,S.tac)} / 4枚`})},
-  {key:'x_kinds2',def:S=>({text:'1回の攻撃で2種類以上の役をそろえる',done:()=>S.maxKinds>=2})},
-  {key:'x_same2',def:S=>({text:'同じ役の旗を2つ以上そろえて攻撃する',done:()=>S.maxSame>=2})},
-  {key:'x_dmg30',def:S=>{ const n=Math.round(WAVES[stageIndex].threshold*0.3); return {text:`1回の攻撃で敵に${n}以上のダメージ`,done:()=>S.maxDealt>=n,prog:`最高 ${Math.min(n,S.maxDealt)} / ${n}`}; }},
-  {key:'x_dmg120',def:S=>{ const n=Math.round(WAVES[stageIndex].threshold*1.2); return {text:`1回の攻撃で敵に${n}以上のダメージ`,done:()=>S.maxDealt>=n,prog:`最高 ${Math.min(n,S.maxDealt)} / ${n}`}; }},
-  {key:'x_hp90',def:S=>({text:'体力が90%を切らずに敵を倒す',final:true,done:()=>S.minHp>=0.9,prog:`最低体力 ${Math.round(S.minHp*100)}%`})},
-  {key:'x_over15',def:S=>({text:'敵の残り体力の1.5倍以上のダメージでとどめを刺す',final:true,done:()=>(S.overMax||0)>=1.5})},
-  {key:'x_fast3',def:S=>({text:'3回以内の攻撃で倒す',final:true,done:()=>totalWaves-S.w0<=3})},
-  {key:'x_long6',def:S=>({text:'6回以上の攻撃をかけて倒す',final:true,done:()=>totalWaves-S.w0>=6,prog:`${totalWaves-S.w0} 回目`})},
-];
-function condDef(key){   // 条件のキー→内容。'a:○○'＝アクセサリー○○の元々の条件、'x:○○'＝EXTRA_CONDS
+/* ★条件をふやす・変える時はここ。キーの形：x_種類_数字…／lv＝難しさ（1やさしい〜6むずかしい）。戦闘の何個目か・ゲームの進み具合に合わせて、近い難しさの条件が出る */
+const COND_LV={first:1, perSlot:1.2, perGame:3, range:1};   // 1個目はlv1付近／1つ進むごとに+perSlot／ゲームの最初→最後で+perGame（ゆるやかに上がる）／出す幅±range
+const X_ROLE=[[2,1],[4,2.5],[6,4],[8,5.5]], X_SUPER=[[2,1],[3,2],[4,3],[5,4.5],[6,6]], X_TWO=[[2,3],[3,4.5],[4,6]];
+const X_EQ=[[5,1,1],[5,2,2],[5,4,3.5],[8,1,2.5],[8,3,4.5]];   // [装備の数字がこれ以上, 回数, lv]
+const X_TT=[[1,1.5],[2,3],[3,4.5]];   // 特定の軍師カードを n枚使う [n, lv]
+const X_TAC=[[4,2.5],[6,4.5]], X_KINDS=[[2,1.5],[3,3.5],[4,5.5]], X_SAME=[[2,1.5],[3,3.5],[4,5.5]], X_DMG=[[30,1],[60,2.5],[120,5]];
+function allPileCards(){ return [activeDeck,grandDeck,hand,graveyard,stomach,...flags.map(f=>f.cards)].filter(Boolean).flat().filter(Boolean); }
+function extraKeys(){
+  const k=[]; X_ROLE.forEach(([n])=>k.push('x_role_'+n)); X_SUPER.forEach(([n])=>k.push('x_super_'+n)); X_TWO.forEach(([n])=>k.push('x_two_'+n));
+  X_EQ.forEach(([v,n])=>k.push(`x_eq_${v}_${n}`)); X_TAC.forEach(([n])=>k.push('x_tac_'+n)); X_KINDS.forEach(([n])=>k.push('x_kinds_'+n)); X_SAME.forEach(([n])=>k.push('x_same_'+n)); X_DMG.forEach(([n])=>k.push('x_dmg_'+n));
+  k.push('x_hp_90','x_over_15','x_over_2','x_fast_3','x_fast_2','x_long_6');
+  const all=allPileCards(); TACTICS_ON.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true).forEach(t=>{ const have=all.filter(c=>c.kind==='tactics'&&c.type===t.type).length; X_TT.forEach(([n])=>{ if(have>=n) k.push(`x_tt_${t.type}_${n}`); }); });
+  return k;
+}
+function extraDef(key){
+  const S=accStat, p=key.split('_'), n=+p[p.length-1], thr=WAVES[stageIndex].threshold, f=a=>a.find(x=>x[0]===n)||[0,3];
+  const non=()=>Object.keys(S.roles).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0), sup=()=>Math.max(0,...Object.values(S.super));
+  const cnt=(text,get,x,u,lv,extra)=>Object.assign({text,lv,done:()=>get()>=x,prog:`${Math.min(x,get())} / ${x}${u}`},extra||{});
+  switch(p[1]){
+    case 'role': return cnt(`役のある旗（ホスト以外）を${n}回完成させる`,non,n,'回',f(X_ROLE)[1]);
+    case 'super': return cnt(`どれかの色でスーパーコンボを×${n}まで決める`,sup,n,'',f(X_SUPER)[1],{prog:`×${Math.min(n,sup())} / ×${n}`});
+    case 'two': { const g=()=>Object.values(S.super).filter(v=>v>=n).length; return {text:`2色以上でスーパーコンボを×${n}まで決める`,lv:f(X_TWO)[1],done:()=>g()>=2,prog:`${Math.min(2,g())} / 2色`}; }
+    case 'eq': { const v=+p[2], x=+p[3], e=X_EQ.find(a=>a[0]===v&&a[1]===x)||[0,0,3], g=()=>v>=8?(S.eq8||0):(S.eq5||0); return cnt(`${v}以上の装備カードを${x}枚使う`,g,x,'枚',e[2]); }
+    case 'tac': return cnt(`軍師カードを${n}枚使う`,()=>S.tac||0,n,'枚',f(X_TAC)[1]);
+    case 'tt': { const t=TACTICS.find(a=>a.type===p[2]); const g=()=>(S.tacBy&&S.tacBy[p[2]])||0; return cnt(`軍師カード「${t?t.name:p[2]}」を${n}枚使う`,g,n,'枚',f(X_TT)[1]); }
+    case 'kinds': return {text:`1回の攻撃で${n}種類以上の役をそろえる`,lv:f(X_KINDS)[1],done:()=>S.maxKinds>=n};
+    case 'same': return {text:`同じ役の旗を${n}つ以上そろえて攻撃する`,lv:f(X_SAME)[1],done:()=>S.maxSame>=n};
+    case 'dmg': { const q=Math.round(thr*n/100); return {text:`1回の攻撃で敵に${q}以上のダメージ`,lv:f(X_DMG)[1],done:()=>S.maxDealt>=q,prog:`最高 ${Math.min(q,S.maxDealt)} / ${q}`}; }
+    case 'hp': return {text:'体力が90%を切らずに敵を倒す',lv:3.5,final:true,done:()=>S.minHp>=0.9,prog:`最低体力 ${Math.round(S.minHp*100)}%`};
+    case 'over': { const m=n===15?1.5:2; return {text:`敵の残り体力の${m}倍以上のダメージでとどめを刺す`,lv:m===1.5?3:4.5,final:true,done:()=>(S.overMax||0)>=m}; }
+    case 'fast': return {text:`${n}回以内の攻撃で倒す`,lv:n===3?3:4.5,final:true,done:()=>totalWaves-S.w0<=n};
+    case 'long': return {text:`${n}回以上の攻撃をかけて倒す`,lv:4,final:true,done:()=>totalWaves-S.w0>=n,prog:`${totalWaves-S.w0} 回目`};
+  }
+  return null;
+}
+function condDef(key){   // 条件のキー→内容。'a:○○'＝アクセサリー○○の元々の条件、'x_…'＝上の追加条件
   if(!key) return null;
-  if(key.startsWith('a:')){ const id=key.slice(2); return goalDef(ACC_DEFS_ALL.find(d=>d.id===id)||{id}); }
-  const e=EXTRA_CONDS.find(x=>x.key===key); return e?e.def(accStat):null;
+  let g;
+  if(key.startsWith('a:')){ const id=key.slice(2); g=goalDef(ACC_DEFS_ALL.find(d=>d.id===id)||{id}); if(g&&g.lv==null) g.lv={easy:1.5,mid:3.5,hard:5.5}[g.tier]||3; return g; }
+  return extraDef(key);
 }
 function condPool(){   // 出せる条件の全部（同じ文の条件は1つにまとめる）
   const out=[], seen=new Set();
-  const add=key=>{ const g=condDef(key); if(!g||seen.has(g.text)) return; if(/軍師/.test(g.text)&&!CHARACTER.tactics) return; if(/スーパーコンボ/.test(g.text)&&!CHARACTER.combo) return; seen.add(g.text); out.push({key,g}); };
+  const add=key=>{ const g=condDef(key); if(!g||seen.has(g.text)) return; if(/軍師/.test(g.text)&&!CHARACTER.tactics) return; if(/スーパーコンボ/.test(g.text)&&(!CHARACTER.combo||(/2色/.test(g.text)&&GAME_COLORS.length<2))) return; if(/装備カード/.test(g.text)&&!CHARACTER.equipment) return; seen.add(g.text); out.push({key,g}); };
   ACC_DEFS.filter(d=>!d.color||GAME_COLORS.includes(d.color)).forEach(d=>add('a:'+d.id));
   ['gold_s','gold_m','gold_l'].forEach(id=>add('a:'+id));
-  EXTRA_CONDS.forEach(e=>add(e.key));
+  extraKeys().forEach(add);
   return out;
 }
-function condReveal(){   // 次の条件をランダムでひとつ出す（すでに達成済みの条件は出さない。「倒した時に判定」の条件は最後の1つにだけ出す）
+function condTarget(slot){ const p=Math.min(1,Math.max(0,stageIndex/Math.max(1,LADDER_N-1))); return COND_LV.first+slot*COND_LV.perSlot+p*COND_LV.perGame; }   // 何個目か・ゲームの進み具合から、出したい難しさ
+function condReveal(){   // 次の条件をランダムでひとつ出す（達成済みは出さない。「倒した時に判定」は最後の1つにだけ。難しさは、何個目か・ゲームの進み具合に合わせる）
   if(accCond.n>=COND_MAX){ accCond.cur=null; return; }
   let pool=condPool().filter(x=>!accCond.used.includes(x.g.text)&&(x.g.final||!x.g.done()));
   if(accCond.n<COND_MAX-1) pool=pool.filter(x=>!x.g.final);
-  if(!pool.length){ accCond.cur=null; accCond.n=COND_MAX; return; }
-  const p=pool[Math.floor(Math.random()*pool.length)];
+  const t=condTarget(accCond.n); let near=[], w=COND_LV.range;
+  for(let k=0;k<6&&!near.length;k++,w+=0.5) near=pool.filter(x=>Math.abs(x.g.lv-t)<=w);
+  if(!near.length) near=pool;
+  if(!near.length){ accCond.cur=null; accCond.n=COND_MAX; return; }
+  const p=near[Math.floor(Math.random()*near.length)];
   accCond.cur=p.key; accCond.used.push(p.g.text); accCond.n++;
 }
 function checkGoalAnnounce(final){   // 攻撃のたび・戦闘が終わった時に、いま出ている条件を判定。達成したら次の条件を出す
@@ -8128,7 +8153,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-07a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-07b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -50,9 +50,9 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); inPrep=false; const o={}; startBattleGoals();
       o.n1=accCond.n; o.cur1=!!accCond.cur; o.bar=document.getElementById('condBar').style.display!=='none'; o.txt=document.getElementById('condBar').textContent;
       // 1つ目をクリア→次の条件がひとつ出る
-      accCond.cur='x:role2'; accCond.cur='x_role2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.picks1=accCond.picks; o.n2=accCond.n; o.next=accCond.cur&&accCond.cur!=='x_role2';
+      accCond.cur='x:role2'; accCond.cur='x_role_2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.picks1=accCond.picks; o.n2=accCond.n; o.next=accCond.cur&&accCond.cur!=='x_role_2';
       // 最後まで（最大3つ）
-      accCond.cur='x_role6'; accStat.roles={'ウェッジ':9}; accStat.super={red:9}; accStat.tac=9; accStat.maxKinds=9; accStat.maxSame=9; accStat.maxDealt=99999; for(let i=0;i<4;i++) checkGoalAnnounce(false);
+      accCond.cur='x_role_6'; accStat.roles={'ウェッジ':9}; accStat.super={red:9}; accStat.tac=9; accStat.maxKinds=9; accStat.maxSame=9; accStat.maxDealt=99999; for(let i=0;i<4;i++) checkGoalAnnounce(false);
       o.n3=accCond.n; o.picks3=accCond.picks; o.max=COND_MAX;
       // 最初の2つは「倒した時に判定」の条件にならない
       let bad=0; for(let t=0;t<40;t++){ startBattleGoals(); if(condDef(accCond.cur).final) bad++; checkGoalAnnounce(false); if(accCond.n===2&&accCond.cur&&condDef(accCond.cur).final) bad++; accStat=blankBattleStat(); } o.bad=bad;
@@ -60,6 +60,16 @@ with sync_playwright() as p:
     check('取得条件：戦闘が始まると条件が1つ出て、戦闘画面に常に表示される',r['n1']==1 and r['cur1'] and r['bar'] and '1/3' in r['txt'],r)
     check('取得条件：クリアすると選択権が1回ふえ、次の条件がひとつ出る／最大3つで終わる',r['picks1']==1 and r['n2']==2 and r['next'] and r['n3']==3 and r['picks3']>=2 and r['max']==3,r)
     check('取得条件：最初の2つに「倒した時に判定」の条件は出ない',r['bad']==0,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS.find(c=>c.equipment&&c.tactics&&c.combo); init(); introOn=false; inPrep=false; const o={}; startBattleGoals();
+      const txt=condPool().map(x=>x.g.text); o.two=txt.some(t=>/2色以上でスーパーコンボ/.test(t)); o.eq=txt.some(t=>/以上の装備カードを/.test(t)); o.tt=txt.some(t=>/軍師カード「/.test(t)); o.any=txt.some(t=>/^どれかの色でスーパーコンボを×2/.test(t));
+      accCond.cur='x_eq_5_1'; advanceTurn({kind:'monster',sub:'number',value:6,uid:uid()}); o.eqOk=accCond.picks===1;
+      accCond.cur='x_two_2'; accStat.super={red:2,blue:3}; checkGoalAnnounce(false); o.twoOk=accCond.picks===2;
+      const tt=condPool().find(x=>x.key.startsWith('x_tt_')&&x.key.endsWith('_1')); accCond.cur=tt.key; const ty=tt.key.split('_')[2]; advanceTurn({kind:'tactics',type:ty,uid:uid()}); o.ttOk=accCond.picks===3;
+      // 難しさ：序盤の1個目は易しく、終盤の3個目は難しい（上がり方はゆるやか）
+      o.t0=condTarget(0); stageIndex=LADDER_N-1; o.t2=condTarget(2); stageIndex=0; o.t1=condTarget(1);
+      return o}""")
+    check('取得条件：色を限定しない／2色以上のコンボ、5以上の装備カードを使う、特定の軍師カードを使う条件がある',r['two'] and r['eq'] and r['tt'] and r['any'] and r['eqOk'] and r['twoOk'] and r['ttOk'],r)
+    check('取得条件：2個目・3個目や終盤ほど難しくなる（ゆるやかに）',r['t0']<r['t1'] and r['t1']<r['t2'] and r['t2']-r['t0']<=7,r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;inPrep=false; introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); const sleep=ms=>new Promise(r=>setTimeout(r,ms)), o={};
       startBattleGoals(); accCond.picks=2; accCond.ok=['a','b']; accCond.used=['a','b','c']; accStat.roles={'ウェッジ':1}; const g0=gold; const own0=accOwned.length;
       grantStageReward(); await sleep(300);
