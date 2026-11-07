@@ -253,6 +253,15 @@
     font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:#fff2c0;
     text-shadow:0 0 8px rgba(0,0,0,.8), 0 0 14px rgba(255,180,60,.9);
   }
+  .big-fx{ position:fixed; left:0; right:0; top:34%; z-index:9990; text-align:center; pointer-events:none; animation:big-fx-in 2.4s ease-out forwards; }
+  .big-fx .bf-ic{ font-size:84px; line-height:1; filter:drop-shadow(0 0 18px #ff6a00); }
+  .big-fx .bf-t{ font-size:30px; font-weight:900; color:#fff; text-shadow:0 0 12px #f33,0 0 4px #000; margin-top:4px; }
+  .big-fx .bf-s{ font-size:18px; font-weight:800; color:#ffd9a0; text-shadow:0 0 6px #000; margin-top:4px; }
+  .big-fx.boom{ background:radial-gradient(circle,rgba(255,140,0,.55),rgba(255,0,0,.0) 70%); padding:30px 0; }
+  @keyframes big-fx-in{ 0%{opacity:0;transform:scale(.3);} 12%{opacity:1;transform:scale(1.35);} 30%{transform:scale(1);} 80%{opacity:1;} 100%{opacity:0;transform:scale(1.05);} }
+  .bomb-cnt{ position:absolute; right:-6px; top:-8px; min-width:24px; height:24px; border-radius:12px; background:#ffcf33; color:#300; font-weight:900; font-size:15px; line-height:24px; text-align:center; border:2px solid #300; z-index:5; }
+  .bomb-cnt.hot, .flag .badge.lockbadge.hot{ background:#ff2a2a; color:#fff; animation:bomb-pulse .5s ease-in-out infinite alternate; }
+  @keyframes bomb-pulse{ from{ transform:scale(1); } to{ transform:scale(1.3); } }
   @keyframes app-shake{
     0%,100%{ transform:translateX(0); }
     20%{ transform:translateX(-8px) rotate(-.5deg); }
@@ -2138,6 +2147,7 @@ const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfie
 const DIS_OFF=['dark'];   // 停止したい行動の名前を入れると、その行動は出なくなる
 const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
 const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
+const PRE_NOTE={comboreset:'スーパーコンボが全部0に！',bomb:'時限ボムを手札に押し付けられる！'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -2279,10 +2289,16 @@ const nullOn=()=>turnCounter<dis.nullUntil;
 const curseKind=c=>({curse_poison:'poison',curse_seal:'seal',curse_bomb:'bomb',curse_dark:'dark',curse_minus:'minus',curse_null:'null',curse_wipe:'wipe'})[c.type]||'seal';
 const minusCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked(f)&&!f.negated);
 const isEnemyCard=c=>isCurse(c)||isEnemyEq(c);
+function bigFx(ic,t,sub,boom){
+  try{ const d=document.createElement('div'); d.className='big-fx'+(boom?' boom':''); d.innerHTML=`<div class="bf-ic">${ic}</div><div class="bf-t">${t}</div>${sub?`<div class="bf-s">${sub}</div>`:''}`; document.body.appendChild(d); setTimeout(()=>d.remove(),2500); }catch(e){}
+}
+let boomFx=null;
 function comboLoss(pen,msg,col){   // 持ち越しのスーパーコンボを下げる（色の指定がなければ、持っている色からランダムに1色）
   let ks=Object.keys(carryMap);
   if(col==='all'){} else if(col) ks=ks.filter(k=>k===col); else if(ks.length) ks=[ks[Math.floor(Math.random()*ks.length)]];
+  const lost=ks.map(k=>CNAME[k]+(carryMap[k]-Math.max(1,carryMap[k]-pen)>0?'×'+carryMap[k]+'→×'+Math.max(1,carryMap[k]-pen):'')).join(' ');
   ks.forEach(k=>{ carryMap[k]=Math.max(1,carryMap[k]-pen); });
+  if(boomFx&&ks.length){ bigFx('💥',boomFx,'スーパーコンボ −'+pen+'　'+lost,true); try{ screenShake(); }catch(e){} }
   hint(ks.length?msg.replace('スーパーコンボが',col!=='all'?CNAME[ks[0]]+'のスーパーコンボが':'スーパーコンボが'):(col&&col!=='all'?`${CNAME[col]}のスーパーコンボは持っていないので、減らなかった。`:'減らせるスーパーコンボがなかった。'),true); playSfx('warn'); try{ screenShake(); }catch(e){}
   try{ render(); }catch(e){}
 }
@@ -2298,16 +2314,18 @@ const bombCands=()=>flags.map((f,i)=>({f,i})).filter(({f})=>!f.closed&&!isLocked
 function bombBoom(i){
   const f=flags[i]; if(!f) return; f.bomb=0;
   if(nullOn()){ hint('🚫 ボムは無効化されて不発だった。',true); return; }
-  comboLoss(DIS_PARAM.bombPenalty,`💥 F${i+1}のボムが爆発！ 役が揃わなかった代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`,'all');
+  boomFx=`F${i+1}のボムが爆発！`;
+  comboLoss(DIS_PARAM.bombPenalty,`💥 F${i+1}のボムが爆発！ 役が揃わなかった代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`,'all'); boomFx=null;
 }
 function tickBombs(){
   hand.filter(c=>c&&c.type==='curse_bomb').forEach(c=>{   // 手札に渡った時点から導火線は進む。手札に持ったままでも、時間が来れば爆発する
     c.fuse=(c.fuse==null?DIS_PARAM.bombFuse:c.fuse)-1;
     if(c.fuse<=0){ hand.splice(hand.indexOf(c),1);
       if(nullOn()) hint('🚫 手札のボムは無効化されて不発だった。',true);
-      else comboLoss(DIS_PARAM.bombPenalty,`💥 手札のボムが爆発！ 置かずに持っていた代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`,'all'); }
+      else { boomFx='手札のボムが爆発！'; comboLoss(DIS_PARAM.bombPenalty,`💥 手札のボムが爆発！ 置かずに持っていた代償で、スーパーコンボが−${DIS_PARAM.bombPenalty}された！`,'all'); boomFx=null; } }
+    else if(c.fuse===1){ bigFx('💣','手札のボム あと1ターン！','次のターンに爆発する'); playSfx('warn'); }
   });
-  flags.forEach((f,i)=>{ if(f.bomb&&!f.closed){ f.bomb--; if(f.bomb<=0) bombBoom(i); } });
+  flags.forEach((f,i)=>{ if(f.bomb&&!f.closed){ f.bomb--; if(f.bomb<=0) bombBoom(i); else if(f.bomb===1){ bigFx('💣',`F${i+1}のボム あと1ターン！`,'役を揃えないと次のターンに爆発する'); playSfx('warn'); } } });
 }
 function askComboPenalty(n, ok){
   const pen=DIS_PARAM.removePenalty*n, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
@@ -2753,6 +2771,7 @@ function applyEnemyEvent(type,target,viaCard){
   } else if(type==='comboreset'){
     const had=Object.keys(carryMap).length>0 || flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor);
     carryMap={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo) f.symbolColor=null; });
+    if(had) bigFx('💥','コンボリセット！','スーパーコンボがすべて0に戻された',true);
     hint(had?'💥 コンボリセット！ スーパーコンボがすべて0に戻された…':'💥 コンボリセット！（今は積み上げたコンボがなかった）',true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
   } else if(type==='freeze'){
     const had=enemyFreeze>0||enemyPoisonPer>0;
@@ -3249,7 +3268,7 @@ function advanceTurn(usedCard){
       if(e1){ applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; }
     }
   }
-  if(stepped&&!gameEnded){ const nt=enemyTurn+1, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; hint(`⚠ 次のターン、妨害が来る：${inf.icon||''}${inf.label||ne}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ 次のターン ${inf.icon||''}${inf.label||''}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
+  if(stepped&&!gameEnded){ const nt=enemyTurn+1, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; const pn=PRE_NOTE[ne]?'　'+PRE_NOTE[ne]:''; hint(`⚠ 次のターン、妨害が来る：${inf.icon||''}${inf.label||ne}${pn}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ 次のターン ${inf.icon||''}${inf.label||''}${pn}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
   dlog('turn',{used:dbgCardStr(usedCard)+(usedCard&&usedCard.kind?'':''), onFlag:lastFi, event:ev||null, enemyAtkNow:currentEnemyAtk()});
   lastFi=-1;
 }
@@ -4719,7 +4738,7 @@ function paintCard(d, c, mini){
     }
   } else {
     d.className='pcard tactic'+(isCurse(c)?' curse':'')+(mini?' mini':'');
-    d.innerHTML=`<div class="ttitle">${c.short||c.name}${c.type==='curse_bomb'&&c.fuse!=null?` あと${c.fuse}`:''}</div><div class="emblem"><svg viewBox="0 0 100 100" fill="#f0a38a">${EMBLEM.tactic}</svg></div>`;
+    d.innerHTML=`<div class="ttitle">${c.short||c.name}</div>${c.type==='curse_bomb'&&c.fuse!=null?`<div class="bomb-cnt${c.fuse<=2?' hot':''}">${c.fuse}</div>`:''}<div class="emblem"><svg viewBox="0 0 100 100" fill="#f0a38a">${EMBLEM.tactic}</svg></div>`;
   }
   if(c.enemyPlaced) d.classList.add('enemy');
   if(c.autoPlaced){ d.classList.add('auto-enemy'); if(c.autoFresh) d.classList.add('auto-new'); }
@@ -5203,7 +5222,7 @@ function render(){
     if(bigResult){
       d.innerHTML=bigResult+eqTag;
     } else {
-      d.innerHTML=badge+(haunt[i]>0?`<div class="badge ghostbadge">🕳あと${haunt[i]}枚</div>`:'')+(f.bomb?`<div class="badge lockbadge"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
+      d.innerHTML=badge+(haunt[i]>0?`<div class="badge ghostbadge">🕳あと${haunt[i]}枚</div>`:'')+(f.bomb?`<div class="badge lockbadge${f.bomb<=2?' hot':''}"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
       const st=document.createElement('div'); st.className='stack';
       const choosingHere = pending && pending.type==='guidance' && pending.step==='choose' && pending.from===i;
       if(choosingHere) st.classList.add('spread-choose');
@@ -8173,7 +8192,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-08c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
