@@ -201,7 +201,7 @@ with sync_playwright() as p:
       const pl=autoQ.minus&&autoQ.minus[0]; const cell=[...document.querySelectorAll('#upcomingRow2 .fc[data-ev="minus"]')][0];
       return {v:pl&&pl.v, txt:cell?cell.textContent:null}}""")
     check('妨害レーンのマイナスの武器に、数字（予定の値）が出る',r['txt'] is not None and str(r['v']) in r['txt'],r)
-    JS_ENC="""(mode)=>{ CHARACTER=CHARACTERS[2]; init(); lsSet('soloSiegeAlienBeat','[]');
+    JS_ENC="""(mode)=>{ CHARACTER=CHARACTERS[2]; init(); lsSet('soloSiegeAlienBeat','[]'); lsSet('soloSiegeAlienMet','[]');
       stageIndex=WAVES.findIndex(w=>w.lv===20); battleNo=2; alienEnc=null; playerHp=0; gameEnded=true;
       showEnd('hpzero'); const o={appear:!!document.getElementById('alienGo')};
       document.getElementById('alienGo').onclick(); o.enc=alienEnc&&alienEnc.id; o.stage=WAVES[stageIndex].id; o.alive=playerHp>0&&!gameEnded; o.cards=flags.length>0&&hand.length>0;
@@ -212,6 +212,8 @@ with sync_playwright() as p:
         r=pg.evaluate(JS_ENC,mode)
         check('負けた後に宇宙人が現れて戦い、'+('負け' if mode=='lose' else '勝ち')+'でも手術を受けて強化される（月の民：コンボ制限解除）',
               r['appear'] and r['enc']=='月の民' and r['stage']=='月の民' and r['alive'] and r['cards'] and r['surg'] and r['beat'] and r['unres'] and r['encCleared'] and r['ended'],r)
+    r=ev("""()=>{ lsSet('soloSiegeAlienBeat','[]'); lsSet('soloSiegeAlienMet','[]'); stageIndex=WAVES.findIndex(w=>w.lv>=26&&!w.boss); const a=alienEncounterId(); alienMetAdd(a); const b=alienEncounterId(); lsSet('soloSiegeAlienMet','[]'); return {a,b} }""")
+    check('宇宙人：一度戦ったら（勝っても負けても）もう現れない',r['a'] and r['b']!=r['a'],r)
     pg.evaluate("localStorage.setItem('soloSiegeAlienBeat',JSON.stringify(['月の民']))")
     r=pg.evaluate("""()=>{ unlockMon('ミジンコキング'); ['月の民','火星人','水星人','金星人','太陽神'].forEach(unlockMon); buildCharList(); const g=document.getElementById('monGrid');
       const t=[...g.querySelectorAll('.mon-tile')].map(e=>({n:e.querySelector('b').textContent.replace(/\\s/g,''),a:e.classList.contains('alien')}));

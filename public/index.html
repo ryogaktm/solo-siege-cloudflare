@@ -1939,6 +1939,8 @@ function applyEnemyNames(){
 applyEnemyNames();
 const HIDDEN_BOSSES=['土星人'];  // 一時的に出さないラスボス（空にすれば復活）
 const alienBeatList=()=>{ try{ return JSON.parse(lsGet('soloSiegeAlienBeat')||'[]'); }catch(e){ return []; } };
+const alienMetList=()=>{ try{ return JSON.parse(lsGet('soloSiegeAlienMet')||'[]'); }catch(e){ return []; } };   // 一度でも戦った宇宙人（勝っても負けても、もう現れない）
+const alienMetAdd=id=>{ try{ const a=alienMetList(); if(!a.includes(id)){ a.push(id); lsSet('soloSiegeAlienMet',JSON.stringify(a)); } }catch(e){} };
 const alienBeatAdd=id=>{ try{ const a=alienBeatList(); if(!a.includes(id)){ a.push(id); lsSet('soloSiegeAlienBeat',JSON.stringify(a)); } }catch(e){} };
 /* 宇宙人の出現条件：①範囲の敵を最後に倒した ②ひとつ前の宇宙人を倒したことがある（火星人は範囲だけ）。満たさないときは一つ前の宇宙人。太陽神だけは、4戦目で最後の敵（lv72）を倒したときのみ */
 const MOON_IDX=LADDER_N+5;
@@ -3689,7 +3691,7 @@ const ALIEN_GIFTS=[{id:'月の民',lv:13},{id:'火星人',lv:26},{id:'水星人'
 let alienEnc=null;   // 負けた後に現れた宇宙人との戦い {id, reason}
 function alienEncounterId(){   // 今回の負けで現れる宇宙人（出現ラインに届いていて、まだ現れていない一番手前の1人）
   if(isWeakBody()) return null;   // ミジンコ・ミジンコリーダーの体では宇宙人は出ない（最後のミジンコ＝ミジンコキングは別）
-  const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList();
+  const lostLv=(WAVES[stageIndex]&&WAVES[stageIndex].lv)||0, beat=alienBeatList().concat(alienMetList());
   for(const g of ALIEN_GIFTS){ if(HIDDEN_BOSSES.includes(g.id)||beat.includes(g.id)) continue; return lostLv>=g.lv?g.id:null; }
   return null;
 }
@@ -3703,7 +3705,7 @@ function alienAppear(reason){   // 負けた後、出現ラインに届いてい
   let spr=''; try{ spr=spriteSVG(monSprKey(w),96,''); }catch(e){}
   const ov=alienOverlay(`<div style="font-size:16px;font-weight:900;color:var(--gold);line-height:1.8">${lostName}に敗れた…<br>そこへ、宇宙人が現れた。</div>${spr}<div style="font-size:15px;font-weight:900;color:var(--gold)">${dispName(id)}</div><div style="font-size:13px;line-height:1.8;opacity:.92">「キミ、なかなか見込みがあるね。<br>ボクと勝負しよう。<br>勝っても負けても、キミの身体を手術してあげる」</div><button class="btn" id="alienGo" style="width:auto;padding:10px 28px">戦う</button>`);
   document.getElementById('alienGo').onclick=()=>{
-    ov.remove(); alienEnc={id,reason};
+    ov.remove(); alienEnc={id,reason}; alienMetAdd(id);
     gameEnded=false; victory=false; busy=false; waveAdvancing=false; pending=null;
     nextStageIdx=WAVES.findIndex(x=>x.id===id); battleNo=MAX_BATTLES-1; advanceToNextStage();
   };
@@ -8189,7 +8191,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05q';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
