@@ -61,7 +61,7 @@ with sync_playwright() as p:
     check('取得条件：クリアすると選択権が1回ふえ、次の条件がひとつ出る／最大3つで終わる',r['picks1']==1 and r['n2']==2 and r['next'] and r['n3']==3 and r['picks3']>=2 and r['max']==3,r)
     check('取得条件：最初の2つに「倒した時に判定」の条件は出ない',r['bad']==0,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS.find(c=>c.equipment&&c.tactics&&c.combo); init(); introOn=false; inPrep=false; const o={}; startBattleGoals();
-      const txt=condPool().map(x=>x.g.text); o.two=txt.some(t=>/2色以上でスーパーコンボ/.test(t)); o.eq=txt.some(t=>/以上の装備カードを/.test(t)); o.tt=txt.some(t=>/軍師カード「/.test(t)); o.any=txt.some(t=>/^どれかの色でスーパーコンボを×2/.test(t));
+      const txt=condPool().map(x=>x.g.text); o.two=txt.some(t=>/2色以上でスーパーコンボ/.test(t)); o.eq=txt.some(t=>/以上の装備カードを/.test(t)); o.tt=txt.some(t=>/軍師カード「/.test(t)); o.any=txt.some(t=>/^どれかの色でスーパーコンボを戦闘で×2以上決める/.test(t));
       accCond.cur='x_eq_5_1'; advanceTurn({kind:'monster',sub:'number',value:6,uid:uid()}); o.eqOk=accCond.picks===1;
       accCond.cur='x_two_2'; accStat.super={red:2,blue:3}; checkGoalAnnounce(false); o.twoOk=accCond.picks===2;
       const tt=condPool().find(x=>x.key.startsWith('x_tt_')&&x.key.endsWith('_1')); accCond.cur=tt.key; const ty=tt.key.split('_')[2]; advanceTurn({kind:'tactics',type:ty,uid:uid()}); o.ttOk=accCond.picks===3;
