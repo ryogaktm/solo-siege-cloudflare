@@ -166,7 +166,7 @@ with sync_playwright() as p:
       flags.forEach(x=>{x.cards=[];x.closed=false}); const tc={kind:'troop',color:'red',value:5,uid:uid()}; flags[0].cards.push(tc); hand=[];
       specUse('mon2'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); await new Promise(r=>setTimeout(r,300)); render();
       o.back=hand.some(c=>c.uid===tc.uid); o.u2=spec.mon2; o.u1=spec.mon; o.skillBack=CHARACTER.monSkill.name; return o}""")
-    check('合体：トロル＋スライム（特殊技2体分・枠6つ・2つ目の技が使える・1つ目の枠は消費しない）',r['sp']=='mon,mon2' and r['a']=='大巨漢' and r['b']=='溶かす' and r['slots']==6 and r['spr'] and r['btn2']!='none' and r['pend'] and r['back'] and r['u2']==1 and r['u1']==0 and r['skillBack']=='大巨漢',r)
+    check('合体：トロル＋スライム（特殊技2体分・枠は3つのまま・2つ目の技が使える・1つ目の枠は消費しない）',r['sp']=='mon,mon2' and r['a']=='大巨漢' and r['b']=='溶かす' and r['slots']==3 and r['spr'] and r['btn2']!='none' and r['pend'] and r['back'] and r['u2']==1 and r['u1']==0 and r['skillBack']=='大巨漢',r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); enemySched={5:'rage'}; slowWins=[]; const a=enemyAtkAt(5), a4=enemyAtkAt(4); slowWins=[[0,10]]; const b=enemyAtkAt(5), b4=enemyAtkAt(4); const base=a4/enemyAtkAt(4); return {rageFull:a/a4, rageSlow:(b/ (b4+ (enemyAtkAt(5)-enemyAtkAt(5))))} }""")
     check('殴る：効果中は攻撃力×2も×1.5に抑える',abs(r['rageFull']-2)<0.5 and r['rageSlow']<r['rageFull'],r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
