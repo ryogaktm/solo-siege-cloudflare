@@ -4612,7 +4612,6 @@ function doCurse(handIdx, target){
   busy=false; endCheck(); render();
 }
 function useConscript(handIdx){
-  if(!flags.some(f=>f.closed&&!f.capturedByEnemy)) return hint('閉じた旗がないので、突撃しても意味がありません。',true);
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
   advanceTurn(used);
@@ -8199,7 +8198,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05u';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05v';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
