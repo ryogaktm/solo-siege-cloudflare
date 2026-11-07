@@ -113,7 +113,11 @@ with sync_playwright() as p:
     r=ev("""async()=>{ const a=WAVES.findIndex(w=>dispName(w.baseId)==='蚊'); CHARACTER=makeMonChar(a,WAVES[a].baseId); init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null;
       flags.forEach(x=>{x.cards=[];x.closed=false}); flags[0].cards.push(makePanicField()); const o={}; specUse('mon'); o.pend=pending&&pending.type; tapFlag(0); await new Promise(r=>setTimeout(r,200));
       const c=flags[0].cards.find(c=>c.kind==='troop'); o.val=c&&c.value; o.pf=flags[0].cards.some(c=>c.sub==='pfield'); return o}""")
-    check('蚊の一刺し：パニックフィールドの旗では1が10になる（フィールドは残る）',r['pend']=='skillplace' and r['val']==10 and r['pf'],r)
+    check('蚊の一刺し：パニックフィールドの旗では1が10になり、フィールドは1回で消える',r['pend']=='skillplace' and r['val']==10 and not r['pf'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; flags.forEach(x=>{x.cards=[];x.closed=false});
+      const m={kind:'monster',sub:'number',value:5,uid:uid(),accumulatedBonus:0,pf:true}; flags[2].cards=[m]; const c={kind:'troop',color:'red',value:3,uid:uid()}; hand=[c]; const o={before:targetsFor(c).includes(2)};
+      playOnFlag(0,2,null,true); await new Promise(r=>setTimeout(r,300)); o.val=c.value; o.pf=!!m.pf; return o}""")
+    check('パニックフィールドは1回逆転したら効果が消える（装備に乗った場合）',r['before'] and r['val']==8 and not r['pf'],r)
     r=ev("""async()=>{ const a=WAVES.findIndex(w=>dispName(w.baseId)==='蚊'); CHARACTER=makeMonChar(a,WAVES[a].baseId); init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; const o={};
       for(const [k,nm] of [['sting','蚊'],['fang','洞窟のヘビ']]){ const ai=WAVES.findIndex(w=>dispName(w.baseId)===nm); CHARACTER=makeMonChar(ai,WAVES[ai].baseId); init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; flags.forEach(x=>{x.cards=[];x.closed=false}); dis.poisonUntil=turnCounter+5; spec.mon=0; specUse('mon'); tapFlag(0); await new Promise(r=>setTimeout(r,150)); const c=flags[0].cards.find(c=>c.kind==='troop'); o[k]=c&&c.value; pending=null; }
       dis.poisonUntil=0; return o}""")

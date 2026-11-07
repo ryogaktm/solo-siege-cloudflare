@@ -3956,7 +3956,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   busy=true; picked=null; lastFi=fi;
   { const m0=flagMonster(f), msgs=[];
     if(card.kind==='troop'){
-      if(m0 && (m0.sub==='pfield'||m0.pf)){ if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value; msgs.push(`🌀 革命！ 数字が${card.origValue}→${card.value}に逆転した`); }
+      if(m0 && (m0.sub==='pfield'||m0.pf)){ if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value; msgs.push(`🌀 革命！ 数字が${card.origValue}→${card.value}に逆転した（1回だけ。フィールドは元に戻った）`); if(m0.sub==='pfield'){ const ix=f.cards.indexOf(m0); if(ix>=0) f.cards.splice(ix,1); } else delete m0.pf; }   // パニックフィールドは1回効果が出たら消えて、普通のフィールドに戻る
       if(poisonOn() && card.value>1){ if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で数字が−1（${card.value}）`); }
     } else if(card.kind==='monster' && card.sub==='number' && !card.enemyCard && card.value>0 && poisonOn()){
       if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で装備の数字が−1（${card.value}）`);
@@ -6183,7 +6183,7 @@ function tapFlag(i){
     const nc=pending.card, f=flags[i];
     if(!targetsFor(nc).includes(i)){ hint('その旗には置けません。',true); return; }
     const mon0=flagMonster(f), mon=nc.kind==='troop'?null:mon0;   // 数字カードは敵やフィールドを置き換えない（普通に置く時と同じく、上に重ねる）
-    let rev=''; if(nc.kind==='troop'&&mon0&&(mon0.sub==='pfield'||mon0.pf)){ nc.origValue=nc.value; nc.value=11-nc.value; rev=`（🌀革命！ ${nc.origValue}→${nc.value}）`; }   // パニックフィールドの旗：数字が逆転する
+    let rev=''; if(nc.kind==='troop'&&mon0&&(mon0.sub==='pfield'||mon0.pf)){ nc.origValue=nc.value; nc.value=11-nc.value; rev=`（🌀革命！ ${nc.origValue}→${nc.value}。フィールドは元に戻った）`; if(mon0.sub==='pfield'){ const ix=f.cards.indexOf(mon0); if(ix>=0) f.cards.splice(ix,1); } else delete mon0.pf; }   // パニックフィールドの旗：数字が逆転する
     if(nc.kind==='troop'&&poisonOn()&&nc.value>1){ if(nc.origValue===undefined) nc.origValue=nc.value; nc.value-=1; rev+=`（☠毒で数字が−1：${nc.value}）`; }   // 毒の呪い中：置く数字が−1（1は1のまま）
     if(mon) f.cards[f.cards.indexOf(mon)]=nc; else f.cards.push(nc);
     spec.mon++; const mk=pending.mk; pending=null; lastFi=i;
@@ -8199,7 +8199,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05t';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
