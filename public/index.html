@@ -2013,6 +2013,7 @@ const MONSTERS = [
   {sub:'mark', color:'purple', count:1},
 ];
 function monsterName(m){
+  if(m.pf&&(m.sub==='number'||m.sub==='combined')) return '🌀逆転 '+monsterName(Object.assign({},m,{pf:false}));   // パニックフィールドが乗っている装備：数字が逆転する印を出す
   if(m.sub==='necro') return '鍛治職人';
   if(m.sub==='combined') return `${CNAME[m.color]}・${m.value}以上の装備`;
   if(m.sub==='number') return m.value<0?`${m.value}の呪いの装備`:`${m.value}以上の力の装備`;
@@ -3886,6 +3887,12 @@ function reEvalClosedFlag(fi){   // 閉じた旗のマークが変わった時�
   addScore(res.base-oldBase);
   try{ dlog('action',{name:'mark_on_closed',flag:fi+1,旧役:oldName,新役:res.name,差:res.base-oldBase}); }catch(e){}
   return (res.name!==oldName)?`役：${oldName||'なし'}→${res.name||'なし'}`:'';
+}
+function whyNotPlace(card,fi){   // 置けない理由（分かる範囲で）
+  const f=flags[fi], m=f&&flagMonster(f); if(!f||!card||card.kind!=='troop'||!m) return '';
+  if(m.pf&&(m.sub==='number'||m.sub==='combined')){ const nv=11-val(card); if(nv<m.value) return `🌀 パニックフィールドで数字が逆転する（${val(card)}→${nv}）ため、${m.value}以上を満たせません。${11-m.value}以下の数字なら置けます。`; }
+  if(m.sub==='number'&&val(card)<m.value) return `この旗には${m.value}以上の数字しか置けません。`;
+  return '';
 }
 function playOnFlag(handIdx, fi, fromRect, noAsk){
   const card=hand[handIdx], f=flags[fi];
@@ -6188,7 +6195,7 @@ function tapFlag(i){
   if(pending) return;
   if(picked===null) return;
   const el=document.querySelector(`.hand [data-uid="${hand[picked].uid}"]`);
-  if(!playOnFlag(picked,i,el?cardVisualRect(el):null)) hint('その旗には置けません。',true);
+  { const c0=hand[picked], why=whyNotPlace(c0,i); if(!playOnFlag(picked,i,el?cardVisualRect(el):null)) hint(why||'その旗には置けません。',true); }
 }
 function tapHand(idx){
   if(busy||gameEnded) return;
@@ -6362,6 +6369,7 @@ function attachDrag(el){
         const gr=cardVisualRect(ghost); ghost.remove(); ghost=null;
         if(!playOnFlag(i,fi,gr)){ picked=null; render(); layoutHand(false); }
       } else {
+        try{ ghost.style.display='none'; let u=document.elementFromPoint(e.clientX,e.clientY-30); if(!u||!u.closest('.flag')) u=document.elementFromPoint(e.clientX,e.clientY); ghost.style.display=''; const fl=u&&u.closest('.flag'); if(fl&&fl.dataset.index!==undefined){ const why=whyNotPlace(hand[i],+fl.dataset.index); if(why) hint(why,true); } }catch(er){}   // 置けない旗に落とした時は、理由を出す
         ghost.style.transition='left .25s, top .25s, transform .25s'; ghost.style.left=startRect.left+'px'; ghost.style.top=startRect.top+'px'; ghost.style.transform='none';
         const g=ghost; ghost=null; setTimeout(()=>g.remove(),250);
         picked=null; render(); layoutHand(false);
@@ -8191,7 +8199,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-05r';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-05s';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
