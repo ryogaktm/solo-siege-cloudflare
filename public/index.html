@@ -7579,7 +7579,7 @@ function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMa
   accCond={n:0,cur:null,picks:0,used:[],ok:[]}; goalToastQ=[]; lastSpecMax=null;
   if(!introNoAcc()&&!condOff()) condReveal();
   try{ renderCondBar(); }catch(e){}
-  try{ const g=accCond.cur&&condDef(accCond.cur); if(g){ const show=()=>{ const m=document.getElementById('deckBuildModal'); if(m&&m.style.display!=='none'){ setTimeout(show,300); return; } bigFx('🎯','アクセサリー獲得条件',`${g.text}${g.final?'（倒した時に判定）':''}`,false,COND_SHOW_MS); }; setTimeout(show,500); } }catch(e){}   // 山札の選択画面（最初の山札）が開いている間は出さない。閉じてから出す
+  try{ const g=accCond.cur&&condDef(accCond.cur); if(g){ let tries=0; const show=()=>{ const blocked=[...document.querySelectorAll('.modal-bg')].some(e=>getComputedStyle(e).display!=='none'); if(blocked&&++tries<200){ setTimeout(show,300); return; } bigFx('🎯','アクセサリー獲得条件',`${g.text}${g.final?'（倒した時に判定）':''}`,false,COND_SHOW_MS); }; setTimeout(show,500); } }catch(e){}   // 山札の選択・敵ランキング（戦闘開始）など、画面が開いている間は出さない。全部閉じてから出す
 }
 function renderCondBar(){   // 戦闘中は、いまのアクセサリー獲得条件を常に出しておく
   const el=document.getElementById('condBar'); if(!el) return;
@@ -8245,7 +8245,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
