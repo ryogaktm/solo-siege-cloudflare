@@ -3039,6 +3039,7 @@ function startRebuild(){
 /* ================= RULES ================= */
 const ptv=c=>val(c)*(c.moon?MONSK.moonMul:1);   // 点数に使う数字（月光で出た数字カードは2倍。置く条件・役の判定は元の数字のまま）
 const val=c=>c.voided?0:c.kind==='wild'?8:(c.kind==='monster'?((c.sub==='number'||c.sub==='combined')?c.value:0):accVal(c));
+const BATTLE_GOLD_MULT=1.5;   // バトルで獲得できるお金（役のお金・戦闘後の条件ボーナス）の倍率。数字はここで調整
 const YAKU_GOLD={'スカーミッシュ':8,'バタリオン':8,'ファランクス':12,'ウェッジ':20,'ロイヤルファランクス':40,'ホスト':0};   // 役を作った時に入るお金
 function evaluate(f){
   const cs=f.cards; if(cs.length<3) return null;
@@ -3333,7 +3334,7 @@ function closeCheck(fi, closedByEnemy){
       if(f.baseCombo){ f.comboMult=f.result.mult; }  // 役が付いた旗＝スーパーコンボの対象。得点は役の倍率のみ（追加の倍率なし）
       addScore(f.result.base);
       f.sheetSum = f.result.sum;
-      { const yn=f.result.name, yg=YAKU_GOLD[yn]||0; if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
+      { const yn=f.result.name, yg=Math.round((YAKU_GOLD[yn]||0)*BATTLE_GOLD_MULT); if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
     }
     if(f.bomb){ const okB=!closedByEnemy&&f.baseCombo; if(okB){ f.bomb=0; hint('💣 ボム解除！ 役が揃って爆発を防いだ。',true); } else bombBoom(fi); }
     justClosed.push({fi, result:f.result, played:false});
@@ -7751,7 +7752,7 @@ const MONEY_RATE=0.5;   // お金の条件でもらえる金額の倍率（BONUS
 function moneyResults(){   // お金の獲得条件（全試合共通）を判定する。戦闘が終わった時の結果画面でだけ使う
   if(introNoAcc()) return [];
   const S=accStat;
-  return BONUS_GOALS.filter(b=>!b.avail||b.avail()).map(b=>{ let ok=false; try{ ok=!!b.def(S).done(); }catch(e){} return {text:b.txt?b.txt():b.text,cash:Math.round(b.cash*MONEY_RATE),ok}; });
+  return BONUS_GOALS.filter(b=>!b.avail||b.avail()).map(b=>{ let ok=false; try{ ok=!!b.def(S).done(); }catch(e){} return {text:b.txt?b.txt():b.text,cash:Math.round(b.cash*MONEY_RATE*BATTLE_GOLD_MULT),ok}; });
 }
 function grantStageReward(){
   if(introNoAcc()&&!isWeakBody()){   // ミジンコ導入の途中：宝箱・準備・装備の画面は出さず、そのまま次の戦いへ
@@ -8244,7 +8245,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09v';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09w';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
