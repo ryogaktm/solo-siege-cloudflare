@@ -181,6 +181,10 @@
   .fs-r{ flex:1; min-width:0; }
   .fs-slot.act{ border-style:solid; border-color:var(--gold); background:rgba(226,192,106,.12); }
   .fs-slot.over{ background:rgba(226,192,106,.3); }
+  @keyframes fsA{ 0%{transform:translateY(0)} 40%{transform:translateY(22px) scale(1.03);box-shadow:0 0 16px var(--gold)} 60%{transform:translateY(22px) scale(1.06);box-shadow:0 0 28px #fff} 100%{transform:translateY(0)} }
+  @keyframes fsB{ 0%{transform:translateY(0)} 40%{transform:translateY(-22px) scale(1.03);box-shadow:0 0 16px var(--gold)} 60%{transform:translateY(-22px) scale(1.06);box-shadow:0 0 28px #fff} 100%{transform:translateY(0)} }
+  .fs-row.fusing .fs-slot:nth-child(1){ animation:fsA .9s ease-in-out; }
+  .fs-row.fusing .fs-slot:nth-child(2){ animation:fsB .9s ease-in-out; }
   .fs-empty{ font-size:11px; opacity:.8; line-height:1.4; }
   .cp-desc{ font-size:11px; color:var(--cream-2); margin-top:4px; line-height:1.5; max-height:34vh; overflow-y:auto; }
   .char-hint{ font-size:12px; color:var(--gold); margin:-4px 0 10px; font-weight:700; }
@@ -7099,7 +7103,7 @@ function buildCharList(){
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
-  const fuseUi=()=>{ charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
+  const fuseUi=()=>{ if(fuse2&&fuse2!==charFuse2) charFuseAnim=true; charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
   const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId();
     if(d.id===first){ if(picked&&curMonId()!==d.id){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } else return monAlert('合体1は今使っているモンスターなので、外せません。'); fuse2=d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); return; }   // 合体1に入っているモンスターを合体2へ：合体1の選択は消える
     fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); };   // 合体2（足）に入れる
@@ -7178,11 +7182,12 @@ function monSkillText(ch,id){
   return id==='ミジンコキング'?'ここからが本当のスタート！<br>身の程を知って堅実に生きよう！':'特殊技はありません。';
 }
 function monDesc(id,i){ return monSkillText(makeMonChar(i,id),id); }
-let charFuse2='', charFuseSlot=1, charFuseOn=false;   // キャラ選択で選んでいる合体の相手（足）／いま選ぶ枠（1か2）／合体の枠を出すか
+let charFuse2='', charFuseSlot=1, charFuseOn=false, charFuseAnim=false;   // キャラ選択で選んでいる合体の相手（足）／いま選ぶ枠（1か2）／合体の枠を出すか
 function fuseSlotsHtml(sel){
   const f1=sel?{id:sel.id,ch:sel.ch}:{id:curMonId(),ch:curMonChar()}, i2=charFuse2?monIdxOf(charFuse2):-1;
   const box=(n,lab,id,ch,i,hint)=>`<div class="fs-slot${charFuseSlot===n?' act':''}" data-fs="${n}"><div class="fs-l"><small>${lab}</small>${id?monIconHtml(ch,id,i,44):''}</div>${id?`<div class="fs-r"><b>${ch.name}</b> ${monStatHtml(ch)}<div class="cp-desc" style="margin-top:2px">${monDesc(id,i)}</div></div>`:`<div class="fs-r"><span class="fs-empty">${hint}</span></div>`}</div>`;
-  return `<div class="fs-row">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
+  const an=charFuseAnim; charFuseAnim=false;   // 合体2を新しく選んだ時だけ、2体が寄って光るアニメーション
+  return `<div class="fs-row${an?' fusing':''}">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
 }
 function renderCurPanel(sel){ if(charFuseOn){ try{ document.getElementById('curPanel').innerHTML=fuseSlotsHtml(sel); return; }catch(e){} } renderCurPanelBase(sel); }   // 合体が使える時は、合体1・合体2の2段だけ（それぞれにモンスターの能力も書く）
 function fusedPanelHtml(base,withArrow,cc,cid,ci){
@@ -8238,7 +8243,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
