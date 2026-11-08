@@ -7512,7 +7512,8 @@ function condDef(key){   // 条件のキー→内容。'a:○○'＝アクセサ
 }
 function condPool(){   // 出せる条件の全部（同じ文の条件は1つにまとめる）
   const out=[], seen=new Set();
-  const add=key=>{ const g=condDef(key); if(!g||seen.has(g.text)) return; if(/軍師/.test(g.text)&&!CHARACTER.tactics) return; if(/スーパーコンボ/.test(g.text)&&(!CHARACTER.combo||(/2色/.test(g.text)&&GAME_COLORS.length<2))) return; if(/装備カード/.test(g.text)&&!CHARACTER.equipment) return; if(/全部の旗を同じ色/.test(g.text)&&!CHARACTER.combo) return; seen.add(g.text); out.push({key,g}); };
+  const add=key=>{ if(/^a:(blade|super15|super2)_/.test(key)) return; const g=condDef(key); if(!g||seen.has(g.text)) return;   // 色を指定するスーパーコンボの条件は出さない（「どれかの色で」の条件だけ出す）
+   if(/軍師/.test(g.text)&&!CHARACTER.tactics) return; if(/スーパーコンボ/.test(g.text)&&(!CHARACTER.combo||(/2色/.test(g.text)&&GAME_COLORS.length<2))) return; if(/装備カード/.test(g.text)&&!CHARACTER.equipment) return; if(/全部の旗を同じ色/.test(g.text)&&!CHARACTER.combo) return; seen.add(g.text); out.push({key,g}); };
   ACC_DEFS.filter(d=>!d.color||GAME_COLORS.includes(d.color)).forEach(d=>add('a:'+d.id));
   ['gold_s','gold_m','gold_l'].forEach(id=>add('a:'+id));
   extraKeys().forEach(add);
@@ -8224,7 +8225,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID = '2026-11-08l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
