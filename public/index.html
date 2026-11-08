@@ -6809,7 +6809,7 @@ function openSpecModal(k){
   document.getElementById('specModalDesc').textContent=si.desc+(k==='guard'&&guardOn?'（今すでに発動中です）':'');
   const passive=(k==='mon'&&monDisp()==='毒キノコ');
   document.getElementById('specModalLeft').textContent=specLeft(k);
-  document.getElementById('specModalLeft').parentElement.style.display=passive?'none':'';
+  document.getElementById('specModalLeft').parentElement.style.display=(passive||specNoLimit(k))?'none':'';
   document.getElementById('specModalGo').style.display=passive?'none':'';
   document.getElementById('specModal').style.display='flex';
 }
@@ -8244,7 +8244,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09t';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09u';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
