@@ -79,11 +79,11 @@ with sync_playwright() as p:
       const ch=document.getElementById('chestModal'); o.chest=ch.style.display==='flex'; o.txt=ch.innerText; o.gold=gold-g0; o.total=lastBattleRes.total; o.okSum=lastBattleRes.money.filter(x=>x.ok).reduce((t,x)=>t+x.cash,0);
       ch.querySelector('.btn').click(); await sleep(100);
       const pk=()=>[...document.querySelectorAll('body > .modal-bg:not([id])')].filter(m=>m.style.display==='flex'&&m.innerText.includes('1つ選ぼう'));
-      o.want=accCond.picks; o.p1=pk().length; o.opts=pk()[0]?pk()[0].querySelectorAll('.acc-opt').length:0; let k=0; while(pk().length&&k++<9){ pk()[0].querySelector('.acc-opt').click(); await sleep(100); }
+      o.want=accCond.picks; o.p1=pk().length; o.opts=pk()[0]?pk()[0].querySelectorAll('.acc-opt').length:0; let k=0; const eq=()=>document.getElementById('eqNo'); o.askEquip=false; while((pk().length||eq())&&k++<12){ if(eq()){ o.askEquip=true; eq().click(); await sleep(100); continue; } pk()[0].querySelector('.acc-opt').click(); await sleep(100); }
       o.after=pk().length; o.owned=accOwned.length-own0; o.picks=accCond.picks; o.prep=document.getElementById('prepModal').style.display==='flex';
       return o}""")
     check('戦闘結果：基本条件のクリア数と合計金額が出て、お金が増える',r['chest'] and '基本条件' in r['txt'] and '合計' in r['txt'] and r['gold']==r['total'] and r['total']==r['okSum'] and r['total']>0,r)
-    check('戦闘結果：クリアした回数だけ、3つの中から1つ選べて、終わると準備画面へ',r['want']>=2 and r['p1']==1 and r['opts']==3 and r['after']==0 and r['owned']==r['want'] and r['picks']==0 and r['prep'],r)
+    check('戦闘結果：クリアした回数だけ、3つの中から1つ選べて、終わると準備画面へ（獲得するたびに、すぐ装備するか聞く）',r['want']>=2 and r['p1']==1 and r['opts']==3 and r['after']==0 and r['owned']==r['want'] and r['picks']==0 and r['prep'] and r['askEquip'],r)
     r={'price':ev("()=>accPrice(accDef('quick_boots'))")}
     check('早撃ちのブーツ：値段は標準（150G）',r['price']==150,r)
     r=ev("""()=>{ gold=0; shopOnce={}; rollAccStock(); inPrep=true; openShop('buyacc'); const id=shopStock[0], full=accPrice(accDef(id)); const o={};

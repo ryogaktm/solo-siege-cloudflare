@@ -6628,8 +6628,8 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
     const cost=MONSK.copyBase*Math.pow(2,copyN);
     if(!scPay('yellow',cost,()=>cost)) return false;
     giveHandCard({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true}); copyN++;
-    hint(`🪞 模造品！ 複製カードが手札に来た。（黄色−${cost}／次は−${MONSK.copyBase*Math.pow(2,copyN)}）`,true); playSfx('combo'); layoutHand(false);
-    dlog('action',{name:'monskill_copy',cost}); render(); return true;   // 回数は使わない（コンボがある限り何度でも）
+    hint(`🪞 模造品！ 複製カードが手札に来た。（黄色−${cost}／次は−${MONSK.copyBase*Math.pow(2,copyN)}）`,true); playSfx('combo');
+    dlog('action',{name:'monskill_copy',cost}); render(); layoutHand(false); return true;   // 回数は使わない（コンボがある限り何度でも）
   } else if(k==='moon'){
     if(!scPay('yellow',MONSK.moonCost,()=>MONSK.moonCost)) return false;
     const n=(hasAcc('clairvoyant')?20:10); let cnt=0;
@@ -6671,7 +6671,7 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
     if(farmerHealAt){ hint('すでに収穫祭の準備ができています。',true); return false; }
     farmerHealAt=turnCounter+1; hint(`🌾 収穫祭！ 次のターンに、体力が${MONSK.farmerHeal}回復する。`,true); playSfx('combo');
   }
-  spec.mon++; dlog('action',{name:'monskill_'+k}); render(); return true;
+  spec.mon++; dlog('action',{name:'monskill_'+k}); render(); if(k==='copy') layoutHand(false); return true;   // 複製カードが手札に増えた時は、手札を並べ直す（並べ直さないと、新しいカードが重なって見えない）
 }
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
@@ -7805,7 +7805,7 @@ function runAccPicks(resumed){   // 条件をクリアした回数ぶん、ラ�
   cs.forEach(d=>{
     const el=document.createElement('div'); el.className='reward-option acc-opt'; el.style.cursor='pointer';
     el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div></div>`;
-    el.onclick=()=>{ accOwned.push({aid:accSeq++,id:d.id}); accCond.picks--; bg.remove(); try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} hint(`「${d.name}」を手に入れた。`); runAccPicks(resumed); };
+    el.onclick=()=>{ const no={aid:accSeq++,id:d.id}; accOwned.push(no); accCond.picks--; bg.remove(); try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} hint(`「${d.name}」を手に入れた。`); offerEquip([no],()=>runAccPicks(resumed)); };   // 戦闘で獲得したアクセサリーも、買った時と同じように、すぐ装備するか聞く
     L.appendChild(el);
   });
   document.body.appendChild(bg);
@@ -8038,16 +8038,16 @@ function confirmBuy(chosen,tot){
   };
 }
 // 買ったアクセサリーを、空きがあれば今すぐ装備するか聞く
-function offerEquip(list){
-  if(!list.length) return;
-  const o=list.shift(), d=accDef(o.id); if(!d) return offerEquip(list);
+function offerEquip(list,done){   // done＝全部聞き終わったあとにやること（戦闘で獲得した時の、次の選択など）
+  if(!list.length){ if(done) done(); return; }
+  const o=list.shift(), d=accDef(o.id); if(!d) return offerEquip(list,done);
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
   const picks=(o.id==='del3'&&!o.del)||(o.id.startsWith('add3_')&&!o.defs);
   if(accEq.length>=ACC_SLOTS){
     // 装備枠がいっぱい：どれか外して付け替えるか聞く
     bg.innerHTML=`<div class="reward-box"><div class="reward-title">装備スロットがいっぱいです</div><div class="reward-sub" style="margin-top:8px">どれか装備を外して、<b>${d.name}</b>を付けますか？</div><div id="eqList" style="display:flex;flex-direction:column;gap:6px;margin-top:10px"></div><button class="btn ghost" id="eqNo" style="margin-top:10px;width:100%">あとで</button></div>`;
     document.body.appendChild(bg);
-    const next=()=>{ try{ render(); refreshPrep(); renderShop(); }catch(_){} offerEquip(list); };
+    const next=()=>{ try{ render(); refreshPrep(); renderShop(); }catch(_){} offerEquip(list,done); };
     bg.querySelector('#eqNo').onclick=()=>{ bg.remove(); next(); };
     const L=bg.querySelector('#eqList');
     accEq.slice().forEach(aid=>{ const oo=accOwned.find(x=>x.aid===aid), dd=oo&&accDef(oo.id); if(!dd) return;
@@ -8058,7 +8058,7 @@ function offerEquip(list){
   }
   bg.innerHTML=`<div class="reward-box"><div class="reward-title">装備しますか？</div><div class="reward-sub" style="margin-top:8px"><b>${d.name}</b>を今すぐ装備しますか？<br>（装備枠 ${accEq.length}/${ACC_SLOTS}）</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="eqNo" style="flex:1">あとで</button><button class="btn" id="eqYes" style="flex:1">装備する</button></div></div>`;
   document.body.appendChild(bg);
-  const next=()=>{ try{ render(); refreshPrep(); renderShop(); }catch(_){} offerEquip(list); };
+  const next=()=>{ try{ render(); refreshPrep(); renderShop(); }catch(_){} offerEquip(list,done); };
   bg.querySelector('#eqNo').onclick=()=>{ bg.remove(); next(); };
   bg.querySelector('#eqYes').onclick=()=>{ bg.remove(); accEquip(o.aid, next); if(!picks) next(); };
 }
@@ -8245,7 +8245,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09w';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09y';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
