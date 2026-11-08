@@ -7093,7 +7093,8 @@ function buildCharList(){
   document.getElementById('charFoot').style.display=wide?'flex':'none';
   document.getElementById('charBackBtn').style.display=wide?'none':'';
   let picked=null;
-  const fuseOk=fuseOpen()&&wide; let fuse2=lsGet(SEL2_KEY)||'', fuseSlot=1;
+  const fuseOk=fuseOpen()&&wide&&got.some(id=>!['ミジンコ','ミジンコリーダー','ミジンコキング'].includes(id));   // ミジンコ3種しか持っていない間は、合体の枠を出さない
+  let fuse2=lsGet(SEL2_KEY)||'', fuseSlot=1;
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
@@ -8236,7 +8237,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
