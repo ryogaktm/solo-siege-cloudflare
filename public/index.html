@@ -1654,19 +1654,19 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'バイキング':{kind:'bash',name:'斧で攻撃',icon:'🪓',desc:'70％の確率で敵に200ダメージ。当たると次のダメージが「手札の数字カードの枚数×0.3倍」になります（0枚なら0倍で、次の攻撃は0。その0の攻撃を撃つと、初期値の200に戻ります）。外れてもダメージは変わりません。命中率は1ターン進むごとに5％、当たるたびに10％下がり、攻撃して次のwaveになると70％に戻ります。敵のHPが0になればそのままステージクリアです。'},
   'アサシン':{kind:'jam',name:'行動封じ',icon:'🔇',desc:'次に来る敵の妨害を、70％の確率で消します（予測レーンから消えます）。外れても、特殊技の回数が残っていれば何度でも使えます。'},
   '沼のリザードマン':{kind:'pfsk',name:'パニックフィールド',icon:'🌀',desc:'好きな旗に「パニックフィールド」を置きます。その旗に次に置くカードの数字が逆転（革命）します。（自分の力の装備の上には置けます。敵のカードがある旗・3枚埋まった旗・完成した旗には置けません）'},
-  '若いオーク':{kind:'clean',name:'意外ときれい好き',icon:'🧹',desc:'緑のスーパーコンボを3減らす代わりに、手札の妨害札をすべて消します。'},
+  '若いオーク':{kind:'clean',name:'意外ときれい好き',icon:'🧹',desc:'緑のスーパーコンボを1減らす代わりに、手札の妨害札をすべて消します。'},
   'ゴブリン':{kind:'copy',name:'模造品',icon:'🪞',desc:'黄色のスーパーコンボを1減らす代わりに、手札に複製カードを1枚加えます。コンボがある限り何度でも使えますが、同じwaveの中で続けて使うと、減らす数が1→2→4→8と倍になります。'},
-  'ミイラ':{kind:'treasure',name:'過去の財宝',icon:'🏺',desc:'紫のスーパーコンボを3失う代わりに、この戦いで手に入るお金が2倍になります。'},
-  'ガーゴイル':{kind:'fire',name:'ファイアブレス',icon:'🔥',desc:'赤のスーパーコンボを10減らす代わりに、敵の今のHPを3分の1減らします。（赤のスーパーコンボが10以上ないと使えません）'},
-  'ゾンビ':{kind:'revive',name:'蘇り',icon:'🧟',desc:'緑のスーパーコンボを10減らす代わりに、この戦いの間、HPが0になっても半分で生き返ります。（緑のスーパーコンボが10以上ないと使えません）'},
+  'ミイラ':{kind:'treasure',name:'過去の財宝',icon:'🏺',desc:'紫のスーパーコンボを1失う代わりに、この戦いで手に入るお金が2倍になります。'},
+  'ガーゴイル':{kind:'fire',name:'ファイアブレス',icon:'🔥',desc:'赤のスーパーコンボを5減らす代わりに、敵の今のHPを3分の1減らします。（赤のスーパーコンボが5以上ないと使えません）'},
+  'ゾンビ':{kind:'revive',name:'蘇り',icon:'🧟',desc:'緑のスーパーコンボを5減らす代わりに、この戦いの間、HPが0になっても半分で生き返ります。（緑のスーパーコンボが5以上ないと使えません）'},
   'モンク':{kind:'charge',name:'ためる',icon:'🧘',desc:'次の攻撃の攻撃力が半分になる代わりに、その次の攻撃の攻撃力が2倍になります。'},
   '侍':{kind:'coin',name:'銭投げ',icon:'🪙',desc:'所持金×100のダメージを敵に与えます。（所持金は0になります）'},
   '農夫':{kind:'harvest',name:'収穫祭',icon:'🌾',desc:'次のターンに、HPが100回復します。'},
   '騎士':{kind:'armed',name:'完全武装',icon:'🛡',desc:'赤のスーパーコンボを3減らす代わりに、このwaveの間、武器カードの攻撃力が2倍になります。（カードを置く条件は同じ）'},
-  '死霊術師':{kind:'possess',name:'憑依',icon:'👻',desc:'紫のスーパーコンボを3消費して、3ターンの間、仲間にしているモンスターの1体に変身します。（見た目も特殊技もそのモンスターになります）'},
+  '死霊術師':{kind:'possess',name:'憑依',icon:'👻',desc:'紫のスーパーコンボを1消費して、3ターンの間、仲間にしているモンスターの1体に変身します。（見た目も特殊技もそのモンスターになります）'},
   'ドラキュラ':{name:'吸血',icon:'🧛',desc:'攻撃したダメージの半分だけ、HPが回復します。'},
   'メデューサ':{kind:'stone',name:'石化',icon:'🗿',desc:'紫のスーパーコンボを1消費して、3ターンの間、敵の攻撃力の上昇と妨害を止めます。（ターンは進みます）'},
-  '狼男':{kind:'moon',name:'月光',icon:'🌕',desc:'黄色のスーパーコンボを3消費して、その時の手札と予測レーンのカードをすべて数字カードに変えます。この戦いの間、それらを置くと点数が2倍になります。（置く条件の数字は同じ）'},
+  '狼男':{kind:'moon',name:'月光',icon:'🌕',desc:'黄色のスーパーコンボを1消費して、その時の手札と予測レーンのカードをすべて数字カードに変えます。この戦いの間、それらを置くと点数が2倍になります。（置く条件の数字は同じ）'},
   'トロル':{kind:'giant',name:'大巨漢',icon:'💪',desc:'緑のスーパーコンボを1消費して、攻撃力を10000上げます。'},
   '洞窟のヘビ':{kind:'fang',name:'毒の牙',icon:'🐍',desc:'紫の6のカードを、手札を通さず、好きな旗に直接置きます。'}
 };
@@ -2076,7 +2076,7 @@ let anyDragActive=false;
 /* ===== バトル状態 ===== */
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
-const MONSK={moonCost:3, moonMul:2, trollCost:1, trollAtk:10000, orcCost:3, copyBase:1, mummyCost:3, armedCost:3, possessCost:3, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:10, gargoyleHp:1/3, zombieCost:10, farmerHeal:100, samuraiMul:100, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:100, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
@@ -8225,7 +8225,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID = '2026-11-08m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
