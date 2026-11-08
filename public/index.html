@@ -4035,7 +4035,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const posBefore=f.cards.filter(c=>c.kind==='troop').length;
     if(mon){ const midx=f.cards.indexOf(mon); f.cards[midx]=placed; }
     else { f.cards.push(placed); }
-    eaterEatPlaced(f,placed,mon,mon?f.cards.indexOf(placed):-1);
+    const ate=eaterEatPlaced(f,placed,mon,mon?f.cards.indexOf(placed):-1);   // 食べられたら、装備は倒せていない（装備は旗に残る）
     showPlacementComment(card, f, posBefore);
     playSfx('place');
     advanceTurn(placed);
@@ -4046,7 +4046,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     flyToUid(card.uid, fromRect, ()=>{
       if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect);
       let defeat=null;
-      if(mon){ defeat=resolveMonsterDefeatByRef(mon, false, fi); closeCheck(fi, false); }
+      if(mon&&!ate){ defeat=resolveMonsterDefeatByRef(mon, false, fi); closeCheck(fi, false); }
       busy=false; endCheck(); render();
       if(defeat) triggerMonsterDefeatFX(fi, defeat);
     });
@@ -4426,7 +4426,7 @@ function resolveGuidance(fi){
   }
   const from=rectOfUid(card.uid);
   const destFlag=flags[fi];
-  const destMonster=flagMonster(destFlag);
+  let destMonster=flagMonster(destFlag);
   if(destMonster && card.kind==='monster'){
     src.cards.splice(pending.cardIdx,0,card);
     busy=false; pending=null; render();
@@ -4444,6 +4444,11 @@ function resolveGuidance(fi){
     busy=false; pending=null; render();
     hint('旗の他のカードとの並び（色・数字・連番）の条件を満たせません。',true);
     return;
+  }
+  if(card.kind==='troop' && destMonster && (destMonster.sub==='pfield'||destMonster.pf)){   // パニックフィールドの旗：普通に置く時と同じく、数字が逆転する（1回だけ）
+    if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value;
+    if(destMonster.sub==='pfield'){ const ix=destFlag.cards.indexOf(destMonster); if(ix>=0) destFlag.cards.splice(ix,1); } else delete destMonster.pf;
+    destMonster=flagMonster(destFlag);
   }
   if(destMonster){ const midx=destFlag.cards.indexOf(destMonster); destFlag.cards[midx]=card; }
   else { destFlag.cards.push(card); }
@@ -8218,7 +8223,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID = '2026-11-08j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -392,6 +392,17 @@ with sync_playwright() as p:
       pending={type:'skillplace',card:{kind:'troop',color:'red',value:1,uid:uid(),temp:true},mk:'sting'}; tapFlag(0);
       return new Promise(res=>setTimeout(()=>{ const f=flags[0]; res({n:f.cards.length, mon:!!flagMonster(f), closed:f.closed, vals:f.cards.map(c=>c.value).join(',')}); },900))}""")
     check('蚊の一刺し：装備（5以上）の乗った旗でも、装備を置き換えて旗が完成する（赤1→10で赤10×3）',r['n']==3 and not r['mon'] and r['closed'] and r['vals']=='10,10,10',r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false});
+      const mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); const eq={kind:'monster',sub:'number',value:5,uid:uid()};
+      flags[0].cards=[mk('red',10),mk('blue',10),eq]; flags[0].eater=enemyTurn+3; hand=[mk('green',8)]; playOnFlag(0,0,null,true);
+      return new Promise(res=>setTimeout(()=>{ const f=flags[0]; res({mon:!!flagMonster(f), eqInGrave:graveyard.includes(eq), bonus:f.eqBonus||0, n:f.cards.length}); },900))}""")
+    check('デスイーターに置いたカードを食べられても、装備は墓地へ行かず旗に残る（装備の二重取り・消失がない）',r['mon'] and not r['eqInGrave'] and r['bonus']==0 and r['n']==3,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false;f.eater=0});
+      const mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
+      flags[0].cards=[mk('red',3)]; flags[1].cards=[mk('red',10),mk('blue',10),{kind:'monster',sub:'number',value:5,uid:uid(),pf:true}];
+      hand=[{kind:'tactics',type:'guidance',uid:uid()}]; pending={type:'guidance',step:'dest',from:0,cardIdx:0,handUid:hand[0].uid}; resolveGuidance(1);
+      return new Promise(res=>setTimeout(()=>{ const f=flags[1]; res({closed:f.closed, vals:f.cards.map(x=>x.value).join(','), pf:f.cards.some(x=>x.pf)}); },900))}""")
+    check('撤収：パニックフィールドの旗へ動かすと、普通に置く時と同じく数字が逆転する（3→8）',r['closed'] and r['vals']=='10,10,8' and not r['pf'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; hand=[0,1,2,3].map(()=>({kind:'troop',color:'red',value:3,uid:uid()})); render(); const o={}; o.name=CHARACTER.monSkill.name; o.l0=document.getElementById('specMonL').textContent;
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; o.msg=(document.getElementById('hint')||{}).textContent||''; o.next=bashDmg; o.info=specInfoFor('mon').desc; busy=false; render(); o.l1=document.getElementById('specMonL').textContent; return o}""")
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '240' in r['l1'] and '攻撃力が240に上がった' in r['msg'] and '240' in r['info'],r)
