@@ -174,6 +174,7 @@
   .cp-st b{ display:block; color:var(--gold); font-size:13px; }
   .cp-st span{ color:var(--gold); margin-right:4px; }
   .cp-arrow{ flex:0 0 auto; color:var(--gold); font-size:20px; }
+  .fs-plus{ text-align:center; font-size:22px; font-weight:900; color:var(--gold); line-height:1; margin:-2px 0; }
   .fs-row{ flex:0 0 100%; display:flex; flex-direction:column; gap:6px; }
   .fs-slot{ min-width:0; display:flex; flex-direction:row; align-items:flex-start; gap:10px; min-height:52px; padding:8px 10px; border:2px dashed rgba(226,192,106,.45); border-radius:10px; font-size:13px; text-align:left; justify-content:flex-start; }
   .fs-slot small{ font-size:11px; opacity:.85; }
@@ -184,7 +185,7 @@
   @keyframes fsA{ 0%{transform:translateY(0)} 40%{transform:translateY(22px) scale(1.03);box-shadow:0 0 16px var(--gold)} 60%{transform:translateY(22px) scale(1.06);box-shadow:0 0 28px #fff} 100%{transform:translateY(0)} }
   @keyframes fsB{ 0%{transform:translateY(0)} 40%{transform:translateY(-22px) scale(1.03);box-shadow:0 0 16px var(--gold)} 60%{transform:translateY(-22px) scale(1.06);box-shadow:0 0 28px #fff} 100%{transform:translateY(0)} }
   .fs-row.fusing .fs-slot:nth-child(1){ animation:fsA .9s ease-in-out; }
-  .fs-row.fusing .fs-slot:nth-child(2){ animation:fsB .9s ease-in-out; }
+  .fs-row.fusing .fs-slot:nth-child(3){ animation:fsB .9s ease-in-out; }
   .fs-empty{ font-size:11px; opacity:.8; line-height:1.4; }
   .cp-desc{ font-size:11px; color:var(--cream-2); margin-top:4px; line-height:1.5; max-height:34vh; overflow-y:auto; }
   .char-hint{ font-size:12px; color:var(--gold); margin:-4px 0 10px; font-weight:700; }
@@ -7187,7 +7188,7 @@ function fuseSlotsHtml(sel){
   const f1=sel?{id:sel.id,ch:sel.ch}:{id:curMonId(),ch:curMonChar()}, i2=charFuse2?monIdxOf(charFuse2):-1;
   const box=(n,lab,id,ch,i,hint)=>`<div class="fs-slot${charFuseSlot===n?' act':''}" data-fs="${n}"><div class="fs-l"><small>${lab}</small>${id?monIconHtml(ch,id,i,44):''}</div>${id?`<div class="fs-r"><b>${ch.name}</b> ${monStatHtml(ch)}<div class="cp-desc" style="margin-top:2px">${monDesc(id,i)}</div></div>`:`<div class="fs-r"><span class="fs-empty">${hint}</span></div>`}</div>`;
   const an=charFuseAnim; charFuseAnim=false;   // 合体2を新しく選んだ時だけ、2体が寄って光るアニメーション
-  return `<div class="fs-row${an?' fusing':''}">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
+  return `<div class="fs-row${an?' fusing':''}">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}<div class="fs-plus">＋</div>${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
 }
 function renderCurPanel(sel){ if(charFuseOn){ try{ document.getElementById('curPanel').innerHTML=fuseSlotsHtml(sel); return; }catch(e){} } renderCurPanelBase(sel); }   // 合体が使える時は、合体1・合体2の2段だけ（それぞれにモンスターの能力も書く）
 function fusedPanelHtml(base,withArrow,cc,cid,ci){
@@ -8243,7 +8244,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
