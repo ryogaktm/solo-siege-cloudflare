@@ -6242,9 +6242,10 @@ function tapFlag(i){
   if(pending&&pending.type==='skillplace'){
     const nc=pending.card, f=flags[i];
     if(!targetsFor(nc).includes(i)){ gameAlert(whyNotPlace(nc,i)||'その旗には置けません。'); return; }
-    const mon0=flagMonster(f), mon=nc.kind==='troop'?null:mon0;   // 数字カードは敵やフィールドを置き換えない（普通に置く時と同じく、上に重ねる）
+    const mon0=flagMonster(f);
     let rev=''; if(nc.kind==='troop'&&mon0&&(mon0.sub==='pfield'||mon0.pf)){ nc.origValue=nc.value; nc.value=11-nc.value; rev=`（🌀革命！ ${nc.origValue}→${nc.value}。フィールドは元に戻った）`; if(mon0.sub==='pfield'){ const ix=f.cards.indexOf(mon0); if(ix>=0) f.cards.splice(ix,1); } else delete mon0.pf; }   // パニックフィールドの旗：数字が逆転する
     if(nc.kind==='troop'&&poisonOn()&&nc.value>1){ if(nc.origValue===undefined) nc.origValue=nc.value; nc.value-=1; rev+=`（☠毒で数字が−1：${nc.value}）`; }   // 毒の呪い中：置く数字が−1（1は1のまま）
+    const mon=flagMonster(f);   // 装備や敵が残っていれば、普通に置く時と同じく、そのカードで置き換えて倒す（上に積むと旗が埋まって完成しない）
     if(mon) f.cards[f.cards.indexOf(mon)]=nc; else f.cards.push(nc);
     spec.mon++; const mk=pending.mk; pending=null; lastFi=i;
     playSfx('place'); if(!mon) closeCheck(i,false);
@@ -8217,7 +8218,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID = '2026-11-08i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

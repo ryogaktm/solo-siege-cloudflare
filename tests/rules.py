@@ -387,6 +387,11 @@ with sync_playwright() as p:
       flags[3].cards=[{kind:'monster',sub:'number',value:8,uid:uid()}]; o.low=whyNotPlace(mk('blue',3),3);
       hand=[mk('red',3)]; picked=0; render(); playOnFlag(0,0,null); o.alert=!!document.querySelector('.reward-title')&&[...document.querySelectorAll('.reward-title')].some(e=>e.textContent.includes('できません')); return o}""")
     check('置けない時は理由をアラートで出す（完成済み／封鎖／3枚／数字不足）',('完成' in r['closed']) and ('封鎖' in r['lock']) and ('3枚' in r['full']) and ('8以上' in r['low']) and r['alert'],r)
+    r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='沼のリザードマン')); init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0});
+      const mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); flags[0].cards=[mk('red',10),mk('red',10),{kind:'monster',sub:'number',value:5,uid:uid(),pf:true}];
+      pending={type:'skillplace',card:{kind:'troop',color:'red',value:1,uid:uid(),temp:true},mk:'sting'}; tapFlag(0);
+      return new Promise(res=>setTimeout(()=>{ const f=flags[0]; res({n:f.cards.length, mon:!!flagMonster(f), closed:f.closed, vals:f.cards.map(c=>c.value).join(',')}); },900))}""")
+    check('蚊の一刺し：装備（5以上）の乗った旗でも、装備を置き換えて旗が完成する（赤1→10で赤10×3）',r['n']==3 and not r['mon'] and r['closed'] and r['vals']=='10,10,10',r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; hand=[0,1,2,3].map(()=>({kind:'troop',color:'red',value:3,uid:uid()})); render(); const o={}; o.name=CHARACTER.monSkill.name; o.l0=document.getElementById('specMonL').textContent;
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; o.msg=(document.getElementById('hint')||{}).textContent||''; o.next=bashDmg; o.info=specInfoFor('mon').desc; busy=false; render(); o.l1=document.getElementById('specMonL').textContent; return o}""")
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '240' in r['l1'] and '攻撃力が240に上がった' in r['msg'] and '240' in r['info'],r)
