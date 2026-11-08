@@ -387,6 +387,8 @@ with sync_playwright() as p:
       flags[3].cards=[{kind:'monster',sub:'number',value:8,uid:uid()}]; o.low=whyNotPlace(mk('blue',3),3);
       hand=[mk('red',3)]; picked=0; render(); playOnFlag(0,0,null); o.alert=!!document.querySelector('.reward-title')&&[...document.querySelectorAll('.reward-title')].some(e=>e.textContent.includes('できません')); return o}""")
     check('置けない時は理由をアラートで出す（完成済み／封鎖／3枚／数字不足）',('完成' in r['closed']) and ('封鎖' in r['lock']) and ('3枚' in r['full']) and ('8以上' in r['low']) and r['alert'],r)
+    r=ev("""()=>{ stageIndex=26; lastPower=90750; powerHist=[3095,5176,90750]; const spike=pickJump(77286); stageIndex=14; lastPower=3095; powerHist=[1561,3095]; const norm=pickJump(218); return {spike,norm} }""")
+    check('飛び級：たまたまの最高の1撃（9万）では飛びすぎない（侍から小竜まで／78には行かない）。普通の勝ち方なら今まで通り飛ぶ',r['spike']<60 and r['spike']>r['norm']-1 and r['norm']>=15,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const t=condPool().map(x=>x.g.text); return {col:t.filter(x=>/[赤青緑紫黄橙]旗/.test(x)), any:t.some(x=>/どれかの色でスーパーコンボ/.test(x))} }""")
     check('アクセサリー獲得条件：色を指定するスーパーコンボの条件は出ない（「どれかの色で」だけ）',not r['col'] and r['any'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='沼のリザードマン')); init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0});
