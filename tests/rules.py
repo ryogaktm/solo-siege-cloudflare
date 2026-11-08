@@ -389,9 +389,9 @@ with sync_playwright() as p:
     check('置けない時は理由をアラートで出す（完成済み／封鎖／3枚／数字不足）',('完成' in r['closed']) and ('封鎖' in r['lock']) and ('3枚' in r['full']) and ('8以上' in r['low']) and r['alert'],r)
     r=ev("""()=>{ const o={}; CHARACTER=makeMonChar(WAVES.findIndex(x=>x.name==='侍')); init(); busy=false; gold=500; render(); o.coin=document.getElementById('specMonL').textContent; o.punch=document.getElementById('specPunch').textContent;
       CHARACTER=makeMonChar(WAVES.findIndex(x=>x.name==='ガーゴイル')); init(); busy=false; bossHp=3000; render(); o.fire=document.getElementById('specMonL').textContent; return o }""")
-    check('特殊技のダメージを使う前に表示する（銭投げ＝所持金×10／ファイアブレス＝敵HPの3分の1／殴る）','💥5k' in r['coin'] and '💥' in r['punch'] and '💥1k' in r['fire'],r)
+    check('特殊技のダメージを使う前に表示する（銭投げ＝所持金×100・残り回数／ファイアブレス＝敵HPの3分の1／殴る）','💥50k' in r['coin'] and '残り5回' in r['coin'] and '💥' in r['punch'] and '💥1k' in r['fire'],r)
     r=ev("""()=>{ stageIndex=26; lastPower=90750; powerHist=[3095,5176,90750]; const spike=pickJump(77286); stageIndex=14; lastPower=3095; powerHist=[1561,3095]; const norm=pickJump(218); return {spike,norm} }""")
-    check('飛び級：たまたまの最高の1撃（9万）では飛びすぎない（侍から小竜まで／78には行かない）。普通の勝ち方なら今まで通り飛ぶ',r['spike']<60 and r['spike']>r['norm']-1 and r['norm']>=15,r)
+    check('飛び級：高い攻撃力（9万）なら大きく飛ぶ（1段ずつではない）。普通の勝ち方でも飛ぶ',r['spike']>=60 and r['spike']>r['norm']-1 and r['norm']>=15,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const t=condPool().map(x=>x.g.text); return {col:t.filter(x=>/[赤青緑紫黄橙]旗/.test(x)), any:t.some(x=>/どれかの色でスーパーコンボ/.test(x))} }""")
     check('アクセサリー獲得条件：色を指定するスーパーコンボの条件は出ない（「どれかの色で」だけ）',not r['col'] and r['any'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='沼のリザードマン')); init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0});
@@ -485,7 +485,7 @@ with sync_playwright() as p:
       setup('ガーゴイル'); carryMap={red:4}; const hp1=bossHp; monSkillUse(); o.garLow=bossHp===hp1&&carryMap.red===4;
       setup('ゾンビ'); carryMap={green:5}; monSkillUse(); o.zom=zombieRevive&&!carryMap.green; playerHp=0; o.zrev=tryRevive()&&playerHp===Math.ceil(playerHpMax/2)&&!zombieRevive;
       setup('モンク'); monSkillUse(); o.mon=monkQ.join()==='0.5,2';
-      setup('侍'); gold=7; const hp2=bossHp; monSkillUse(); o.sam=gold===0&&bossHp===Math.max(0,hp2-70);
+      setup('侍'); gold=7; const hp2=bossHp; monSkillUse(); o.sam=gold===0&&bossHp===Math.max(0,hp2-700)&&coinUsed===1; coinUsed=MONSK.samuraiMax; gold=7; const hp3=bossHp; monSkillUse(); o.sam=o.sam&&gold===7&&bossHp===hp3; coinUsed=0;
       setup('農夫'); playerHp=Math.max(1,playerHpMax-500); const h3=playerHp; monSkillUse(); o.farm0=playerHp===h3&&farmerHealAt>0; advanceTurn(null); o.farm=playerHp===h3+MONSK.farmerHeal&&farmerHealAt===0;
       o.names=['ガーゴイル','モンク','侍','農夫'].map(n=>WAVES.some(w=>dispName(w.id)===n)).every(Boolean);
       setup('騎士'); carryMap={red:5}; const nb={kind:'monster',sub:'number',value:6}; const b0=monsterBonusFor(nb); monSkillUse(); o.arm=armedOn&&carryMap.red===2&&b0===6&&monsterBonusFor(nb)===12; resetBattleRound(); o.armOff=!armedOn&&monsterBonusFor(nb)===6;

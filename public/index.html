@@ -1667,7 +1667,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ガーゴイル':{kind:'fire',name:'ファイアブレス',icon:'🔥',desc:'赤のスーパーコンボを5減らす代わりに、敵の今のHPを3分の1減らします。（赤のスーパーコンボが5以上ないと使えません）'},
   'ゾンビ':{kind:'revive',name:'蘇り',icon:'🧟',desc:'緑のスーパーコンボを5減らす代わりに、この戦いの間、HPが0になっても半分で生き返ります。（緑のスーパーコンボが5以上ないと使えません）'},
   'モンク':{kind:'charge',name:'ためる',icon:'🧘',desc:'次の攻撃の攻撃力が半分になる代わりに、その次の攻撃の攻撃力が2倍になります。'},
-  '侍':{kind:'coin',name:'銭投げ',icon:'🪙',desc:'所持金×10のダメージを敵に与えます。（所持金は0になります）'},
+  '侍':{kind:'coin',name:'銭投げ',icon:'🪙',get desc(){ return `所持金×${MONSK.samuraiMul}のダメージを敵に与えます。（所持金は0になります／ゲームを通して${MONSK.samuraiMax}回まで）`; }},
   '農夫':{kind:'harvest',name:'収穫祭',icon:'🌾',desc:'次のターンに、HPが100回復します。'},
   '騎士':{kind:'armed',name:'完全武装',icon:'🛡',desc:'赤のスーパーコンボを3減らす代わりに、このwaveの間、武器カードの攻撃力が2倍になります。（カードを置く条件は同じ）'},
   '死霊術師':{kind:'possess',name:'憑依',icon:'👻',desc:'紫のスーパーコンボを1消費して、3ターンの間、仲間にしているモンスターの1体に変身します。（見た目も特殊技もそのモンスターになります）'},
@@ -1975,27 +1975,20 @@ function pickDrop(){
   return s;
 }
 /* 勝ったあとの「次の敵」のジャンプ：数字はここで調整 */
-const JUMP_PARAM={back:0, histN:3, spikeK:3, atkRatio:0.6, hpMul:2, refTurn:20, rageAdj:1.5, over:1, maxStep:99};   // atkRatio＝敵の標準攻撃力が自分の攻撃力のこの割合以下 / hpMul＝敵HPが自分の攻撃力のこの倍以下 / refTurn＝敵の標準攻撃力を測るターン / rageAdj＝攻撃力×2の分の見込み（20ターン目で約1.5倍）/ over＝倒せそうな敵からさらに何段上の「ちょっと敵わない」敵まで飛ぶか / maxStep＝一度に飛べる最大段数（99＝制限なし）
+const JUMP_PARAM={histN:3, atkRatio:0.6, hpMul:2, refTurn:20, rageAdj:1.5, over:1, maxStep:99};   // atkRatio＝敵の標準攻撃力が自分の攻撃力のこの割合以下 / hpMul＝敵HPが自分の攻撃力のこの倍以下 / refTurn＝敵の標準攻撃力を測るターン / rageAdj＝攻撃力×2の分の見込み（20ターン目で約1.5倍）/ over＝倒せそうな敵からさらに何段上の「ちょっと敵わない」敵まで飛ぶか / maxStep＝一度に飛べる最大段数（99＝制限なし）
 function jumpRefAtk(w){ return (w.atk+w.grow*JUMP_PARAM.refTurn)*(FLAG_COUNT/BALANCE.flagCountAtkBase)*monAtkMult*JUMP_PARAM.rageAdj; }
 function pickJumpByPower(power, cur){   // 「この攻撃力なら、このくらいの敵は倒せそう」という一番強い敵（負けない条件＋2〜3回で倒せる条件）
   let best=cur+1;
   for(let i=cur+1;i<LADDER_N;i++){ const w=WAVES[i]; if(w.boss) break; if(jumpRefAtk(w)<=power*JUMP_PARAM.atkRatio && w.hp<=power*JUMP_PARAM.hpMul) best=i; }
   return Math.min(best, LADDER_N-1);
 }
-function stablePower(){   // 最近の攻撃力の中央値（最高の1撃には引っ張られない）。最新の攻撃より高くはしない
-  const h=powerHist.slice(-JUMP_PARAM.histN); if(h.length<2) return lastPower;
-  const m=h.slice().sort((a,b)=>a-b)[Math.floor(h.length/2)];
-  return Math.min(lastPower,m*JUMP_PARAM.spikeK);   // 最近の攻撃の中央値のspikeK倍を超える分は、たまたまの最高の1撃として割り引く
-}
 function pickJump(over){
-  // 行き先は「安定した攻撃力で、ちゃんと勝てそうな敵」。たまたま出た最高の1撃やオーバーキルの大きさには引っ張られない
-  const cur=stageIndex, sp=stablePower();
-  const ov=Math.min(over, sp);   // オーバーキル量も、安定した攻撃力を超える分は「たまたま」として割り引く
-  let old=LADDER_N-1; for(let i=cur+1;i<LADDER_N;i++){ if(WAVES[i].hp>ov){ old=i; break; } }   // オーバーキル量より「ちょっと強い」敵＝HPがそれを上回る最初の敵
-  const byPow=Math.min(pickJumpByPower(sp,cur)+JUMP_PARAM.over, LADDER_N-1);
-  const r0=Math.min(Math.max(old,byPow), cur+Math.max(1,JUMP_PARAM.maxStep), LADDER_N-1);
-  const r=Math.max(cur+1, r0-JUMP_PARAM.back);   // 決まった行き先より、back段だけ手前（弱い側）の敵にする
-  try{ dlog('action',{name:'pick_jump',over,power:lastPower,stable:sp,old,byPow,pick:r,pick0:r0}); }catch(e){}
+  // オーバーキル量（とどめの攻撃が敵HPを超えた分）より「ちょっと強い」敵＝HPがそれを上回る最初の敵
+  const cur=stageIndex;
+  let old=LADDER_N-1; for(let i=cur+1;i<LADDER_N;i++){ if(WAVES[i].hp>over){ old=i; break; } }
+  const byPow=Math.min(pickJumpByPower(lastPower,cur)+JUMP_PARAM.over, LADDER_N-1);   // 今のやり方と「攻撃力から予測」のやり方の、強い方
+  const r=Math.min(Math.max(old,byPow), cur+Math.max(1,JUMP_PARAM.maxStep), LADDER_N-1);
+  try{ dlog('action',{name:'pick_jump',over,power:lastPower,old,byPow,pick:r}); }catch(e){}
   return r;
 }
 const TACTIC_EXTRA = {
@@ -2084,13 +2077,13 @@ let stageIndex=0, waveAttempt=1, bossHp=0, displayedBossHp=0, victory=false, wav
 let totalWaves=0, immortalKills=0, carryDamage=0;
 let tutDiscarded=false;   // ミジンコの案内：墓地へ捨てて交換できた
 let introOn=false, introAdv=false;   // ミジンコで始めた時だけ、最初にリーダー→キングと戦う
-let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0, lastPower=0, powerHist=[];   // powerHist＝最近の攻撃力（飛び級の行き先を、たまたま出た最高の1撃でなく、安定した攻撃力で決めるため）
+let battleNo=1, lastDefeatedIdx=-1, nextStageIdx=-1, lastDealt=0, lastPower=0, powerHist=[], coinUsed=0;   // powerHist＝最近の攻撃力（飛び級の行き先を、たまたま出た最高の1撃でなく、安定した攻撃力で決めるため）
 const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
-const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:10, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:100, samuraiMax:5, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
@@ -2921,7 +2914,7 @@ function rerollStartDeck(){
   renderDeckBuild();
 }
 function init(){
-  powerHist=[];
+  powerHist=[]; coinUsed=0;
   applyEnemyNames();
   score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; tutDiscarded=false; tutStep=0; tutT=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   /* ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） */ lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
   bestTotal=loadHighScore(CHARACTER.id);
@@ -5160,7 +5153,7 @@ function render(){
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } } } } }
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
     if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } document.getElementById('specMon2N').textContent=specRemain('mon2'); mb.disabled=specRemain('mon2')<=0; } } }
-  { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return `💥${fmtCompact(gold*MONSK.samuraiMul)}`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
+  { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return coinUsed>=MONSK.samuraiMax?'(使い切り)':`💥${fmtCompact(gold*MONSK.samuraiMul)} 残り${MONSK.samuraiMax-coinUsed}回`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
     [['specMonL',CHARACTER&&CHARACTER.monSkill],['specMon2L',CHARACTER&&CHARACTER.monSkillB]].forEach(([id,ms])=>{ const el=document.getElementById(id), t=dmgTxt(ms); if(el&&t) el.insertAdjacentHTML('beforeend',` <small style="color:#ffd75e">${t}</small>`); });
     const pb=document.getElementById('specPunch'); if(pb){ const PS=CHARACTER&&(CHARACTER.monSkillP||CHARACTER.monSkill), D=(PS&&PS.kind==='punch'&&PS.dmg)||50; const sl=pb.querySelector('.sl'); if(sl) sl.innerHTML=`殴る <small style="color:#ffd75e">💥${D}</small>`; } }
   { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
@@ -6666,9 +6659,10 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
   } else if(k==='charge'){
     monkQ.push(MONSK.monkHalf,MONSK.monkBoost); hint('🧘 ためる！ 次の攻撃は半分、その次の攻撃は2倍になる。',true); playSfx('shuffle');
   } else if(k==='coin'){
+    if(coinUsed>=MONSK.samuraiMax){ hint(`銭投げは、ゲームを通して${MONSK.samuraiMax}回までです。`,true); return false; }
     if(!(gold>0)){ hint('所持金がありません。',true); return false; }
     if(!(bossHp>0)) return false;
-    const D=gold*MONSK.samuraiMul, g0=gold; gold=0; spec.mon++;
+    const D=gold*MONSK.samuraiMul, g0=gold; gold=0; coinUsed++; spec.mon++;
     strikeBoss(Math.min(D,bossHp),`🪙 銭投げ！ ${g0}G を投げて、敵に${fmtCompact(D)}ダメージ。`,'coin',D); try{ saveGame(); }catch(_){} return true;
   } else if(k==='harvest'){
     if(farmerHealAt){ hint('すでに収穫祭の準備ができています。',true); return false; }
@@ -8245,7 +8239,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -8271,7 +8265,7 @@ function saveGame(force){
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
     const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, powerHist, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -8321,7 +8315,7 @@ function resumeGame(){
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0},st.spec||{}); guardOn=st.guardOn; defendOn=!!st.defendOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
-  lastDealt=st.lastDealt||0; lastPower=st.lastPower||0; powerHist=Array.isArray(st.powerHist)?st.powerHist.slice(-3):[];
+  lastDealt=st.lastDealt||0; lastPower=st.lastPower||0; powerHist=Array.isArray(st.powerHist)?st.powerHist.slice(-3):[]; coinUsed=st.coinUsed||0;
   try{   // 無限のチェーンネックレスは廃止：古いセーブに残っている橙のカード（数字・色の装備）と橙の色を消す
     const isO=c=>c&&c.color==='orange'&&!c.temp&&!c.enemyPlaced&&((c.kind==='troop')||(c.kind==='monster'&&c.sub==='mark'));
     [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ if(!arr) return; for(let i=arr.length-1;i>=0;i--) if(isO(arr[i])){ if(deckUids) deckUids.delete(arr[i].uid); arr.splice(i,1); } });
