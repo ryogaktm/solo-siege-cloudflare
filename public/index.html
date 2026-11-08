@@ -1649,7 +1649,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'撤収カードを手札に加えます。（旗のカードを1枚、手札に戻せます）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
-  'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',get desc(){ return `自分の体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増えます。（その戦いの間ずっと）`; }},
+  'ミミズ':{name:'エサになる',icon:'🪱',get desc(){ return `特異体質：戦いが始まると体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増えます。（技ではなく、常に働きます）`; }},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。敵のHPが0になれば、そのまま倒せます。（敵が変わると1に戻ります）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
@@ -2920,7 +2920,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
+  defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -6161,7 +6161,7 @@ function advanceToNextStage(){
   }
   haunt={}; jamArmed=false; score=0; displayedScore=0; hostCarry=0; guardOn=false; defendOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()&&!tutorialOn()) carryMap={};   // ミジンコの間は、スーパーコンボを次の戦いへ引き継げる
-  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=1; applyWormBody(); zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals();
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -6687,7 +6687,6 @@ function monSkillUse(){
     else { hint('🔇 行動封じは効かなかった…（特殊技の回数が残っていれば、もう一度使える）',true); playSfx('warn'); }
     render(); return;
   }
-  else if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); wormUp+=MONSK.wormSpec; spec.mon++; hint(`エサになった…体力が半分になり、特殊技の回数の上限が${MONSK.wormSpec}増えた！`,true); playSfx('warn'); }
   else if(m.kind==='spider'){
     if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
@@ -7433,6 +7432,8 @@ const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の�
   '意外ときれい好き':5, '月光':5, '大巨漢':5, '模造品':5, '完全武装':5, '憑依':5, '石化':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
 function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&CHARACTER.monSkillB.name)||k; }
 function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_CAP.all; }
+const hasWormBody=()=>!!CHARACTER&&[CHARACTER.mon,CHARACTER.mon2].some(id=>id&&dispName(id)==='ミミズ');
+function applyWormBody(){ wormUp=0; if(hasWormBody()){ playerHp=Math.max(1,Math.ceil(playerHpMax/2)); wormUp=MONSK.wormSpec; } }   // ミミズの特異体質：戦いの最初から体力半分・特殊技の上限+3（合体の相手がミミズでも）
 function specMaxBase(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
 function specMax(k){ const fixed1=(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&['trick','top'].includes(CHARACTER.monSkillB.kind)); return specMaxBase(k)+(fixed1?0:wormUp); }   // エサになる：その戦いの間、特殊技の回数の上限が増える（1回きりの技は除く）
 function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; if(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&(CHARACTER.monSkillB.kind==='trick'||CHARACTER.monSkillB.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
@@ -8240,7 +8241,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
