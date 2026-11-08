@@ -5061,7 +5061,7 @@ let lastSpecMax=null;
 function checkSpecMaxUp(){   // 戦闘中に特殊技の回数の上限が上がったら、はっきり知らせる
   try{
     if(!CHARACTER||gameEnded||inPrep) return;
-    const kinds=(CHARACTER.sp||[]).filter(k=>k!=='shuffle'||true), now={}; kinds.forEach(k=>{ now[k]=specMax(k); });
+    const kinds=(CHARACTER.sp||[]).filter(k=>k!=='shuffle'||true), now={}; kinds.forEach(k=>{ now[k]=specMaxBase(k); });
     if(!lastSpecMax){ lastSpecMax=now; return; }
     const ups=kinds.filter(k=>lastSpecMax[k]!==undefined&&now[k]>lastSpecMax[k]).map(k=>{ const t=(specInfoFor(k)||{}).title||k; return `${t}：${lastSpecMax[k]}回 → ${now[k]}回`; });
     lastSpecMax=now;
@@ -5149,10 +5149,10 @@ function render(){
   renderUpcoming(); updateEvCountdown();
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
-    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); document.getElementById('specMonN').textContent=specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
+    else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); document.getElementById('specMonN').textContent=specNoLimit('mon')?'∞':specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } } } } }
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
-    if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } document.getElementById('specMon2N').textContent=specRemain('mon2'); mb.disabled=specRemain('mon2')<=0; } } }
+    if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } document.getElementById('specMon2N').textContent=specNoLimit('mon2')?'∞':specRemain('mon2'); mb.disabled=specRemain('mon2')<=0; } } }
   { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return coinUsed>=MONSK.samuraiMax?'(使い切り)':`💥${fmtCompact(gold*MONSK.samuraiMul)} 残り${MONSK.samuraiMax-coinUsed}回`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
     [['specMonL',CHARACTER&&CHARACTER.monSkill],['specMon2L',CHARACTER&&CHARACTER.monSkillB]].forEach(([id,ms])=>{ const el=document.getElementById(id), t=dmgTxt(ms); if(el&&t) el.insertAdjacentHTML('beforeend',` <small style="color:#ffd75e">${t}</small>`); });
     const pb=document.getElementById('specPunch'); if(pb){ const PS=CHARACTER&&(CHARACTER.monSkillP||CHARACTER.monSkill), D=(PS&&PS.kind==='punch'&&PS.dmg)||50; const sl=pb.querySelector('.sl'); if(sl) sl.innerHTML=`殴る <small style="color:#ffd75e">💥${D}</small>`; } }
@@ -6139,7 +6139,7 @@ function advanceToNextStage(){
       if(specMaxBase(k)>=specCapFor(k)){ specProg[k]=0; return; }
       specProg[k]=(specProg[k]||0)+(spec[k]||0); let up=0;
       while(specMaxBase(k)>0 && specMaxBase(k)<specCapFor(k) && specProg[k]>=specMaxBase(k) && up<5){ specProg[k]-=specMaxBase(k); if(t.acc) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[k]=(specBonusK[k]||0)+1; up++; }
-      if(up){ dlog('spec_levelup',{k,max:specMax(k),prog:specProg[k]}); hint(`✨ ${t.label}が貯まりきった！ 次の戦いから回数が${specMax(k)}回になる`,true); }
+      if(up){ dlog('spec_levelup',{k,max:specMaxBase(k),prog:specProg[k]}); hint(`✨ ${t.label}が貯まりきった！ 次の戦いから回数が${specMax(k)}回になる`,true); }
     });
   }catch(e){}
   spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
@@ -7435,7 +7435,8 @@ function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_C
 const hasWormBody=()=>!!CHARACTER&&[CHARACTER.mon,CHARACTER.mon2].some(id=>id&&dispName(id)==='ミミズ');
 function applyWormBody(){ wormUp=0; if(hasWormBody()){ playerHp=Math.max(1,Math.ceil(playerHpMax/2)); wormUp=MONSK.wormSpec; } }   // ミミズの特異体質：戦いの最初から体力半分・特殊技の上限+3（合体の相手がミミズでも）
 function specMaxBase(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
-function specMax(k){ const fixed1=(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&['trick','top'].includes(CHARACTER.monSkillB.kind)); return specMaxBase(k)+(fixed1?0:wormUp); }   // エサになる：その戦いの間、特殊技の回数の上限が増える（1回きりの技は除く）
+const specNoLimit=k=>{ const ms=k==='mon'?(CHARACTER&&CHARACTER.monSkill):k==='mon2'?(CHARACTER&&CHARACTER.monSkillB):null; return !!(ms&&ms.kind&&MONSC[ms.kind]); };   // スーパーコンボを払う特殊技は、回数の上限なし（コンボの数が制限になる）
+function specMax(k){ if(specNoLimit(k)) return 99; const fixed1=(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&['trick','top'].includes(CHARACTER.monSkillB.kind)); return specMaxBase(k)+(fixed1?0:wormUp); }   // エサになる：その戦いの間、特殊技の回数の上限が増える（1回きりの技は除く）
 function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; if(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&(CHARACTER.monSkillB.kind==='trick'||CHARACTER.monSkillB.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
 function spTargets(){   // 「特殊技+1」を付けられる先：最初から持っている技と、装備中のアクセサリーが与えている技
   const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; if(k==='mon'&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return; const ms=k==='mon2'?CHARACTER.monSkillB:CHARACTER.monSkill; out.push({k,acc:null,label:(k==='mon'||k==='mon2')?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
@@ -8241,7 +8242,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

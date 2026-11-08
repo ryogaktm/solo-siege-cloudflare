@@ -480,7 +480,7 @@ with sync_playwright() as p:
       carryMap={green:10}; monSkillUse(); o.orc=!hand.some(isCurse)&&carryMap.green===9;
       setup('ゴブリン'); carryMap={yellow:20}; hand=[]; monSkillUse(); monSkillUse(); monSkillUse(); o.gob=carryMap.yellow===20-1-2-4&&hand.filter(c=>c.type==='duplicate').length===3&&copyN===3;
       resetBattleRound(); o.gobReset=copyN===0; carryMap={yellow:3}; hand=[]; copyN=2; monSkillUse(); o.gobLow=hand.length===0&&carryMap.yellow===3;
-      setup('ミイラ'); carryMap={purple:10}; monSkillUse(); o.mum=mummyOn&&carryMap.purple===9;
+      setup('ミイラ'); carryMap={purple:10}; monSkillUse(); o.mum=mummyOn&&carryMap.purple===9; spec.mon=50; o.mumInf=specRemain('mon')>0&&specNoLimit('mon'); spec.mon=0;
       setup('ガーゴイル'); carryMap={red:12}; const hp0=bossHp; monSkillUse(); o.gar=carryMap.red===7&&bossHp<=hp0-Math.floor(hp0/3)+1&&bossHp>=hp0-Math.floor(hp0/3)-1;
       setup('ガーゴイル'); carryMap={red:4}; const hp1=bossHp; monSkillUse(); o.garLow=bossHp===hp1&&carryMap.red===4;
       setup('ゾンビ'); carryMap={green:5}; monSkillUse(); o.zom=zombieRevive&&!carryMap.green; playerHp=0; o.zrev=tryRevive()&&playerHp===Math.ceil(playerHpMax/2)&&!zombieRevive;
