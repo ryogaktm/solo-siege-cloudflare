@@ -5150,9 +5150,9 @@ function render(){
   ['Beg:beg','Punch:punch','Guard:guard','Cure:cure','Bullet:bullet'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById('spec'+id), n=document.getElementById('spec'+id+'N'); if(b&&n){ const en=specEnabled(k); b.style.display=en?'':'none'; n.textContent=specRemain(k); b.disabled=specRemain(k)<=0 && !(k==='guard'&&guardOn); b.classList.toggle('on',k==='guard'&&guardOn); } });
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
     else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); document.getElementById('specMonN').textContent=specNoLimit('mon')?'∞':specRemain('mon'); mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
-      { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } } } } }
+      { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } } } } }
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
-    if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } document.getElementById('specMon2N').textContent=specNoLimit('mon2')?'∞':specRemain('mon2'); mb.disabled=specRemain('mon2')<=0; } } }
+    if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } document.getElementById('specMon2N').textContent=specNoLimit('mon2')?'∞':specRemain('mon2'); mb.disabled=specRemain('mon2')<=0; } } }
   { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return coinUsed>=MONSK.samuraiMax?'(使い切り)':`💥${fmtCompact(gold*MONSK.samuraiMul)} 残り${MONSK.samuraiMax-coinUsed}回`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
     [['specMonL',CHARACTER&&CHARACTER.monSkill],['specMon2L',CHARACTER&&CHARACTER.monSkillB]].forEach(([id,ms])=>{ const el=document.getElementById(id), t=dmgTxt(ms); if(el&&t) el.insertAdjacentHTML('beforeend',` <small style="color:#ffd75e">${t}</small>`); });
     const pb=document.getElementById('specPunch'); if(pb){ const PS=CHARACTER&&(CHARACTER.monSkillP||CHARACTER.monSkill), D=(PS&&PS.kind==='punch'&&PS.dmg)||50; const sl=pb.querySelector('.sl'); if(sl) sl.innerHTML=`殴る <small style="color:#ffd75e">💥${D}</small>`; } }
@@ -6573,7 +6573,9 @@ function strikeBoss(dmg,text,name,raw){   // raw＝敵のHPで切り捨てる前
   }); });
   render();
 }
+const wormCost=n=>hasWormBody()?Math.max(1,n-1):n;   // ミミズの特異体質：スーパーコンボを払う技のコストが1減る（もともと1ならそのまま1）
 function scPay(col,min,loss){   // スーパーコンボを払う（足りなければ払わずに false）
+  min=wormCost(min); const loss0=loss; loss=v=>wormCost(loss0(v));
   const v=carryMap[col]||0;
   if(v<min){ gameAlert(`${CNAME[col]}のスーパーコンボが${min}以上ないと使えません。\n（いま${v}）`); return false; }
   const nv=v-loss(v); if(nv>=1) carryMap[col]=nv; else delete carryMap[col];
@@ -8242,7 +8244,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09q';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
