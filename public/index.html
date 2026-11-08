@@ -174,11 +174,11 @@
   .cp-st b{ display:block; color:var(--gold); font-size:13px; }
   .cp-st span{ color:var(--gold); margin-right:4px; }
   .cp-arrow{ flex:0 0 auto; color:var(--gold); font-size:20px; }
-  .fs-row{ flex:0 0 100%; display:flex; gap:8px; }
-  .fs-slot{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px; min-height:70px; padding:6px 4px; border:2px dashed rgba(226,192,106,.45); border-radius:10px; font-size:12px; text-align:center; justify-content:center; }
-  .fs-slot small{ font-size:10px; opacity:.85; }
+  .fs-row{ flex:0 0 100%; display:flex; flex-direction:column; gap:6px; }
+  .fs-slot{ min-width:0; display:flex; flex-direction:row; align-items:center; gap:10px; min-height:52px; padding:6px 10px; border:2px dashed rgba(226,192,106,.45); border-radius:10px; font-size:13px; text-align:left; justify-content:flex-start; }
+  .fs-slot small{ font-size:11px; opacity:.85; flex:0 0 5.5em; }
   .fs-slot.act{ border-style:solid; border-color:var(--gold); background:rgba(226,192,106,.12); }
-  .fs-slot.over{ background:rgba(226,192,106,.3); transform:scale(1.03); }
+  .fs-slot.over{ background:rgba(226,192,106,.3); }
   .fs-empty{ font-size:11px; opacity:.8; line-height:1.4; }
   .cp-desc{ font-size:11px; color:var(--cream-2); margin-top:4px; line-height:1.5; max-height:34vh; overflow-y:auto; }
   .char-hint{ font-size:12px; color:var(--gold); margin:-4px 0 10px; font-weight:700; }
@@ -1674,7 +1674,7 @@ function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.monOwne
 const monIs=n=>!!CHARACTER&&!!CHARACTER.mon&&(dispName(CHARACTER.mon)===n||(!!CHARACTER.mon2&&dispName(CHARACTER.mon2)===n));   // 合体中は、2体のどちらかがその種類ならtrue（パッシブ技用）
 /* ----- 合体（火星人と戦った後に解放）：1体目＝頭＋胴、2体目＝足。特殊技は2体分使える ----- */
 const FUSE_KEY='soloSiegeFuse', SEL2_KEY='soloSiegeSel2';
-const fuseOpen=()=>{ try{ return !!lsGet(FUSE_KEY)||alienBeatList().includes('火星人'); }catch(e){ return false; } };
+const fuseOpen=()=>{ try{ return alienBeatList().includes('火星人'); }catch(e){ return false; } };   // 合体は、火星人に会って改造（手術）を受けてから
 function noteMarsFought(){ try{ if(WAVES[stageIndex]&&WAVES[stageIndex].baseId==='火星人'&&!lsGet(FUSE_KEY)) lsSet(FUSE_KEY,'1'); }catch(e){} }
 function fuseChar(ch,id2){
   if(!ch||!id2||!ch.mon||ch.mon===id2) return ch;
@@ -7093,8 +7093,7 @@ function buildCharList(){
   document.getElementById('charFoot').style.display=wide?'flex':'none';
   document.getElementById('charBackBtn').style.display=wide?'none':'';
   let picked=null;
-  const fuseOk=fuseOpen()&&wide&&got.some(id=>!['ミジンコ','ミジンコリーダー','ミジンコキング'].includes(id));   // ミジンコ3種しか持っていない間は、合体の枠を出さない
-  let fuse2=lsGet(SEL2_KEY)||'', fuseSlot=1;
+  const fuseOk=fuseOpen()&&wide; let fuse2=lsGet(SEL2_KEY)||'', fuseSlot=1;
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
@@ -7181,7 +7180,7 @@ let charFuse2='', charFuseSlot=1, charFuseOn=false;   // キャラ選択で選�
 function fuseSlotsHtml(sel){
   const f1=sel?{id:sel.id,ch:sel.ch}:{id:curMonId(),ch:curMonChar()}, i2=charFuse2?monIdxOf(charFuse2):-1;
   const box=(n,lab,id,ch,i,hint)=>`<div class="fs-slot${charFuseSlot===n?' act':''}" data-fs="${n}"><small>${lab}</small>${id?`${monIconHtml(ch,id,i,36)}<b>${ch.name}</b>`:`<span class="fs-empty">${hint}</span>`}</div>`;
-  return `<div class="fs-row">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ<br>／ここへドラッグ')}</div>`;
+  return `<div class="fs-row">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
 }
 function renderCurPanel(sel){ renderCurPanelBase(sel); if(charFuseOn){ try{ document.getElementById('curPanel').insertAdjacentHTML('afterbegin',fuseSlotsHtml(sel)); }catch(e){} } }
 function fusedPanelHtml(base,withArrow,cc,cid,ci){
@@ -8237,7 +8236,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
