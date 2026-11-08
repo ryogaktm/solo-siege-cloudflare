@@ -175,8 +175,10 @@
   .cp-st span{ color:var(--gold); margin-right:4px; }
   .cp-arrow{ flex:0 0 auto; color:var(--gold); font-size:20px; }
   .fs-row{ flex:0 0 100%; display:flex; flex-direction:column; gap:6px; }
-  .fs-slot{ min-width:0; display:flex; flex-direction:row; align-items:center; gap:10px; min-height:52px; padding:6px 10px; border:2px dashed rgba(226,192,106,.45); border-radius:10px; font-size:13px; text-align:left; justify-content:flex-start; }
-  .fs-slot small{ font-size:11px; opacity:.85; flex:0 0 5.5em; }
+  .fs-slot{ min-width:0; display:flex; flex-direction:row; align-items:flex-start; gap:10px; min-height:52px; padding:8px 10px; border:2px dashed rgba(226,192,106,.45); border-radius:10px; font-size:13px; text-align:left; justify-content:flex-start; }
+  .fs-slot small{ font-size:11px; opacity:.85; }
+  .fs-l{ flex:0 0 5.2em; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .fs-r{ flex:1; min-width:0; }
   .fs-slot.act{ border-style:solid; border-color:var(--gold); background:rgba(226,192,106,.12); }
   .fs-slot.over{ background:rgba(226,192,106,.3); }
   .fs-empty{ font-size:11px; opacity:.8; line-height:1.4; }
@@ -7179,10 +7181,10 @@ function monDesc(id,i){ return monSkillText(makeMonChar(i,id),id); }
 let charFuse2='', charFuseSlot=1, charFuseOn=false;   // キャラ選択で選んでいる合体の相手（足）／いま選ぶ枠（1か2）／合体の枠を出すか
 function fuseSlotsHtml(sel){
   const f1=sel?{id:sel.id,ch:sel.ch}:{id:curMonId(),ch:curMonChar()}, i2=charFuse2?monIdxOf(charFuse2):-1;
-  const box=(n,lab,id,ch,i,hint)=>`<div class="fs-slot${charFuseSlot===n?' act':''}" data-fs="${n}"><small>${lab}</small>${id?`${monIconHtml(ch,id,i,36)}<b>${ch.name}</b>`:`<span class="fs-empty">${hint}</span>`}</div>`;
+  const box=(n,lab,id,ch,i,hint)=>`<div class="fs-slot${charFuseSlot===n?' act':''}" data-fs="${n}"><div class="fs-l"><small>${lab}</small>${id?monIconHtml(ch,id,i,44):''}</div>${id?`<div class="fs-r"><b>${ch.name}</b> ${monStatHtml(ch)}<div class="cp-desc" style="margin-top:2px">${monDesc(id,i)}</div></div>`:`<div class="fs-r"><span class="fs-empty">${hint}</span></div>`}</div>`;
   return `<div class="fs-row">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
 }
-function renderCurPanel(sel){ renderCurPanelBase(sel); if(charFuseOn){ try{ document.getElementById('curPanel').insertAdjacentHTML('afterbegin',fuseSlotsHtml(sel)); }catch(e){} } }
+function renderCurPanel(sel){ if(charFuseOn){ try{ document.getElementById('curPanel').innerHTML=fuseSlotsHtml(sel); return; }catch(e){} } renderCurPanelBase(sel); }   // 合体が使える時は、合体1・合体2の2段だけ（それぞれにモンスターの能力も書く）
 function fusedPanelHtml(base,withArrow,cc,cid,ci){
   const i2=monIdxOf(charFuse2), ch=fuseChar(base.ch,charFuse2), A=dispName(base.id), B=dispName(charFuse2);
   const spr=(()=>{ try{ return charSpr(ch,64); }catch(e){ return ''; } })();
@@ -8236,7 +8238,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
