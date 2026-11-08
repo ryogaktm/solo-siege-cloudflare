@@ -7104,7 +7104,7 @@ function buildCharList(){
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
-  const fuseUi=()=>{ if(fuse2&&fuse2!==charFuse2) charFuseAnim=true; charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
+  const fuseUi=()=>{ charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
   const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId();
     if(d.id===first){ if(picked&&curMonId()!==d.id){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } else return monAlert('合体1は今使っているモンスターなので、外せません。'); fuse2=d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); return; }   // 合体1に入っているモンスターを合体2へ：合体1の選択は消える
     fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); };   // 合体2を選んだあとも、選択は合体2のまま（能力を見比べやすいように）   // 合体2（足）に入れる
@@ -7141,9 +7141,10 @@ function buildCharList(){
     document.getElementById('charDecide').onclick=()=>{
       const id=picked?picked.id:curMonId(); let ch=picked?picked.ch:curMonChar(); if(fuseOk&&fuse2&&!isWeakId(ch.mon)) ch=fuseChar(ch,fuse2);   // 決定したら、そのキャラでそのままゲームを始める
       lsSet(SEL_KEY,id); lsSet('soloSiegeWeakOk',isWeakId(id)?'1':''); if(ch.mon===HUMAN_MON&&!bodyBack()) lsSet('soloSiegeBodyBack','1');
+      const fused=fuseOk&&fuse2&&!!ch.mon2, fr=document.querySelector('#curPanel .fs-row'); if(fused&&fr) fr.classList.add('fusing');   // 合体アニメーションは「この身体で戦う」を押した時だけ
       const tile=grid.querySelector('.mon-tile.sel')||grid.querySelector('.mon-tile.cur'); if(tile) tile.classList.add('possessed');   // 憑依の演出のあと、ゲーム開始
       document.getElementById('charDecide').disabled=true; try{ playSfx('shuffle'); }catch(e){}
-      setTimeout(()=>{ document.getElementById('charDecide').disabled=false; startAs(ch); },tile?650:0);
+      setTimeout(()=>{ document.getElementById('charDecide').disabled=false; startAs(ch); },fused?1000:(tile?650:0));
     };
   }
 }
@@ -8244,7 +8245,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
