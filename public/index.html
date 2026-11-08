@@ -5153,6 +5153,9 @@ function render(){
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } } } } }
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
     if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=sc[1](); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } document.getElementById('specMon2N').textContent=specRemain('mon2'); mb.disabled=specRemain('mon2')<=0; } } }
+  { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return `💥${fmtCompact(gold*MONSK.samuraiMul)}`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
+    [['specMonL',CHARACTER&&CHARACTER.monSkill],['specMon2L',CHARACTER&&CHARACTER.monSkillB]].forEach(([id,ms])=>{ const el=document.getElementById(id), t=dmgTxt(ms); if(el&&t) el.insertAdjacentHTML('beforeend',` <small style="color:#ffd75e">${t}</small>`); });
+    const pb=document.getElementById('specPunch'); if(pb){ const PS=CHARACTER&&(CHARACTER.monSkillP||CHARACTER.monSkill), D=(PS&&PS.kind==='punch'&&PS.dmg)||50; const sl=pb.querySelector('.sl'); if(sl) sl.innerHTML=`殴る <small style="color:#ffd75e">💥${D}</small>`; } }
   { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
     if(mb&&ms&&ms.kind==='swallow'&&stomach.length&&specEnabled('mon')){ if(!chip){ chip=document.createElement('div'); chip.id='stomachChip'; chip.style.cssText='position:fixed;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#8ff0c4;text-shadow:0 1px 3px #000'; document.body.appendChild(chip); }
       chip.innerHTML='<span>飲み込み中</span>'; chip.appendChild(cardEl(stomach[0],true)); const r=mb.getBoundingClientRect(); chip.style.left=(r.left+r.width/2)+'px'; chip.style.transform='translateX(-50%)'; chip.style.bottom=(innerHeight-r.top+4)+'px'; }
@@ -8233,7 +8236,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID = '2026-11-08s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08t';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
