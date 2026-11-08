@@ -7106,8 +7106,8 @@ function buildCharList(){
   if(fb) fb.style.display='none';
   const fuseUi=()=>{ if(fuse2&&fuse2!==charFuse2) charFuseAnim=true; charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
   const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId();
-    if(d.id===first){ if(picked&&curMonId()!==d.id){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } else return monAlert('合体1は今使っているモンスターなので、外せません。'); fuse2=d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); return; }   // 合体1に入っているモンスターを合体2へ：合体1の選択は消える
-    fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseSlot=1; fuseUi(); };   // 合体2（足）に入れる
+    if(d.id===first){ if(picked&&curMonId()!==d.id){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } else return monAlert('合体1は今使っているモンスターなので、外せません。'); fuse2=d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); return; }   // 合体1に入っているモンスターを合体2へ：合体1の選択は消える
+    fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); };   // 合体2を選んだあとも、選択は合体2のまま（能力を見比べやすいように）   // 合体2（足）に入れる
   if(fuseOk){ document.getElementById('curPanel').onclick=e=>{ const t=e.target.closest&&e.target.closest('[data-fs]'); if(!t) return; if(t.dataset.fs==='1') fuseSlot=1; else if(fuseSlot===2&&fuse2){ fuse2=''; lsSet(SEL2_KEY,''); fuseSlot=1; } else fuseSlot=2; fuseUi(); }; }   // 枠をタップ：合体1／合体2を選ぶ（選んだ合体2をもう一度押すと外れる）
   fuseUi();
   const prevId=wide?curMonId():hasLeader?defs[0].id:((defs.some(x=>x.id===lsGet(SEL_KEY)))?lsGet(SEL_KEY):(defs[0]&&defs[0].id));   // 前回選んだキャラ（なければ先頭）に印を付ける
@@ -8244,7 +8244,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
