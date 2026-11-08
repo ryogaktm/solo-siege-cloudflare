@@ -1649,7 +1649,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'撤収カードを手札に加えます。（旗のカードを1枚、手札に戻せます）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
-  'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',desc:'自分の体力が半分になる代わりに、敵の攻撃力が2倍になります。（その戦いの間ずっと）'},
+  'ミミズ':{kind:'worm',name:'エサになる',icon:'🪱',get desc(){ return `自分の体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増えます。（その戦いの間ずっと）`; }},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。敵のHPが0になれば、そのまま倒せます。（敵が変わると1に戻ります）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
@@ -2082,8 +2082,8 @@ const IMMORTAL_KILLS_TO_WIN=2;
 let anyDragActive=false;
 /* ===== バトル状態 ===== */
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
-let monAtkMult=1, buzzTurns=0, stomach=[], topUsed=false;
-const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:100, samuraiMax:5, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+let monAtkMult=1, wormUp=0, buzzTurns=0, stomach=[], topUsed=false;
+const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:100, samuraiMax:5, wormSpec:3, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
@@ -6136,9 +6136,9 @@ function advanceToNextStage(){
   stageIndex=(nextStageIdx>=0)?nextStageIdx:Math.min(stageIndex+1, LADDER_N-1); foughtIdx.add(stageIndex); noteMarsFought();
   try{   // 使った回数を戦いをまたいで貯めて、技の回数(上限)に届いたら次の戦いから+1（技ごとの上限SPEC_CAPまで）。貯まり具合は特殊技ボタンのゲージで見える
     spTargets().forEach(t=>{ const k=t.k; if(k==='shuffle') return;
-      if(specMax(k)>=specCapFor(k)){ specProg[k]=0; return; }
+      if(specMaxBase(k)>=specCapFor(k)){ specProg[k]=0; return; }
       specProg[k]=(specProg[k]||0)+(spec[k]||0); let up=0;
-      while(specMax(k)>0 && specMax(k)<specCapFor(k) && specProg[k]>=specMax(k) && up<5){ specProg[k]-=specMax(k); if(t.acc) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[k]=(specBonusK[k]||0)+1; up++; }
+      while(specMaxBase(k)>0 && specMaxBase(k)<specCapFor(k) && specProg[k]>=specMaxBase(k) && up<5){ specProg[k]-=specMaxBase(k); if(t.acc) t.acc.spb=(t.acc.spb||0)+1; else specBonusK[k]=(specBonusK[k]||0)+1; up++; }
       if(up){ dlog('spec_levelup',{k,max:specMax(k),prog:specProg[k]}); hint(`✨ ${t.label}が貯まりきった！ 次の戦いから回数が${specMax(k)}回になる`,true); }
     });
   }catch(e){}
@@ -6161,7 +6161,7 @@ function advanceToNextStage(){
   }
   haunt={}; jamArmed=false; score=0; displayedScore=0; hostCarry=0; guardOn=false; defendOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()&&!tutorialOn()) carryMap={};   // ミジンコの間は、スーパーコンボを次の戦いへ引き継げる
-  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals();
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -6687,7 +6687,7 @@ function monSkillUse(){
     else { hint('🔇 行動封じは効かなかった…（特殊技の回数が残っていれば、もう一度使える）',true); playSfx('warn'); }
     render(); return;
   }
-  else if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); monAtkMult*=2; spec.mon++; hint('エサになった…体力が半分になり、敵の攻撃力が2倍になった！',true); playSfx('warn'); }
+  else if(m.kind==='worm'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); wormUp+=MONSK.wormSpec; spec.mon++; hint(`エサになった…体力が半分になり、特殊技の回数の上限が${MONSK.wormSpec}増えた！`,true); playSfx('warn'); }
   else if(m.kind==='spider'){
     if(!(playerHp>bossHp)){ hint('捕食できない…自分のHPが敵より多くないと使えない。',true); return; }
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
@@ -7433,7 +7433,8 @@ const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の�
   '意外ときれい好き':5, '月光':5, '大巨漢':5, '模造品':5, '完全武装':5, '憑依':5, '石化':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
 function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&CHARACTER.monSkillB.name)||k; }
 function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_CAP.all; }
-function specMax(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
+function specMaxBase(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
+function specMax(k){ const fixed1=(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&['trick','top'].includes(CHARACTER.monSkillB.kind)); return specMaxBase(k)+(fixed1?0:wormUp); }   // エサになる：その戦いの間、特殊技の回数の上限が増える（1回きりの技は除く）
 function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; if(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&(CHARACTER.monSkillB.kind==='trick'||CHARACTER.monSkillB.kind==='top')) return 1; return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
 function spTargets(){   // 「特殊技+1」を付けられる先：最初から持っている技と、装備中のアクセサリーが与えている技
   const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; if(k==='mon'&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return; const ms=k==='mon2'?CHARACTER.monSkillB:CHARACTER.monSkill; out.push({k,acc:null,label:(k==='mon'||k==='mon2')?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
@@ -8239,7 +8240,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -8264,7 +8265,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
-    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const st={v:1, lad:8, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -8308,7 +8309,7 @@ function resumeGame(){
     }
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
   foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
-  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase; bashRateNow=(st.bashRateNow>0)?st.bashRateNow:DIS_PARAM.bashRate; bashHist=Array.isArray(st.bashHist)&&st.bashHist.length?st.bashHist:[bashDmg]; bashRateHist=Array.isArray(st.bashRateHist)&&st.bashRateHist.length?st.bashRateHist:[bashRateNow];
+  waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; wormUp=st.wormUp||0; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase; bashRateNow=(st.bashRateNow>0)?st.bashRateNow:DIS_PARAM.bashRate; bashHist=Array.isArray(st.bashHist)&&st.bashHist.length?st.bashHist:[bashDmg]; bashRateHist=Array.isArray(st.bashRateHist)&&st.bashRateHist.length?st.bashRateHist:[bashRateNow];
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=stripDisabledEv(st.enemySched||{}); prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[]},ac.cond||{}); hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }

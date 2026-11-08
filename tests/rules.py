@@ -485,6 +485,7 @@ with sync_playwright() as p:
       setup('ガーゴイル'); carryMap={red:4}; const hp1=bossHp; monSkillUse(); o.garLow=bossHp===hp1&&carryMap.red===4;
       setup('ゾンビ'); carryMap={green:5}; monSkillUse(); o.zom=zombieRevive&&!carryMap.green; playerHp=0; o.zrev=tryRevive()&&playerHp===Math.ceil(playerHpMax/2)&&!zombieRevive;
       setup('モンク'); monSkillUse(); o.mon=monkQ.join()==='0.5,2';
+      setup('ミミズ'); const wb=specMax('mon'), wh=playerHp; monSkillUse(); o.worm=playerHp===Math.max(1,Math.ceil(wh/2))&&specMax('mon')===wb+MONSK.wormSpec&&monAtkMult===1; resetBattleRound(); 
       setup('侍'); gold=7; const hp2=bossHp; monSkillUse(); o.sam=gold===0&&bossHp===Math.max(0,hp2-700)&&coinUsed===1; coinUsed=MONSK.samuraiMax; gold=7; const hp3=bossHp; monSkillUse(); o.sam=o.sam&&gold===7&&bossHp===hp3; coinUsed=0;
       setup('農夫'); playerHp=Math.max(1,playerHpMax-500); const h3=playerHp; monSkillUse(); o.farm0=playerHp===h3&&farmerHealAt>0; advanceTurn(null); o.farm=playerHp===h3+MONSK.farmerHeal&&farmerHealAt===0;
       o.names=['ガーゴイル','モンク','侍','農夫'].map(n=>WAVES.some(w=>dispName(w.id)===n)).every(Boolean);
