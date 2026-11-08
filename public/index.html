@@ -3926,27 +3926,48 @@ function reEvalClosedFlag(fi){   // 閉じた旗のマークが変わった時�
   try{ dlog('action',{name:'mark_on_closed',flag:fi+1,旧役:oldName,新役:res.name,差:res.base-oldBase}); }catch(e){}
   return (res.name!==oldName)?`役：${oldName||'なし'}→${res.name||'なし'}`:'';
 }
-function whyNotPlace(card,fi){   // 置けない理由（分かる範囲で）
-  const f=flags[fi], m=f&&flagMonster(f); if(!f||!card||card.kind!=='troop'||!m) return '';
-  if(m.pf&&(m.sub==='number'||m.sub==='combined')){ const nv=11-val(card); if(nv<m.value) return `🌀 パニックフィールドで数字が逆転する（${val(card)}→${nv}）ため、${m.value}以上を満たせません。${11-m.value}以下の数字なら置けます。`; }
-  if(m.sub==='number'&&val(card)<m.value) return `この旗には${m.value}以上の数字しか置けません。`;
-  return '';
+function whyNotPlace(card,fi){   // 置けない理由（できるだけ具体的に。置ける時は空文字）
+  const f=flags[fi]; if(!f||!card) return '';
+  if(targetsFor(card).includes(fi)) return '';
+  const nm=card.short||card.name||'このカード';
+  if(card.type==='curse_bomb'){ if(f.closed) return '完成した旗には、ボムを置けません。'; if(isLocked(f)) return '封鎖されている旗には、ボムを置けません。'; if(f.bomb) return 'この旗には、すでにボムが置かれています。'; return 'この旗にはボムを置けません。'; }
+  if(card.type==='wipe'){ return '空で、封鎖もされていない旗には使えません。'; }
+  if(f.capturedByEnemy&&card.kind==='monster'&&card.sub==='mark') return 'この旗は敵に奪われているので、色の装備は使えません。';
+  if(f.closed) return 'この旗はもう完成しているので、カードを置けません。';
+  if(isLocked(f)) return `この旗は敵に封鎖されています（あと${Math.max(1,f.lockedUntil-turnCounter)}ターン）。封鎖が解けるまで置けません。`;
+  const m=flagMonster(f);
+  if(card.kind==='troop'||isAlexanderCard(card)){
+    if(m){
+      if(m.pf&&(m.sub==='number'||m.sub==='combined')){ const nv=11-val(card); if(nv<m.value) return `🌀 パニックフィールドで数字が逆転する（${val(card)}→${nv}）ため、${m.value}以上を満たせません。${11-m.value}以下の数字なら置けます。`; }
+      if(m.sub==='combined'&&card.color!==m.color&&!isWildCard(card)) return `この旗には${CNAME[m.color]}の${m.value}以上のカードしか置けません。`;
+      if(m.sub==='number'&&val(card)<m.value) return `この旗には${m.value}以上の数字しか置けません。`;
+      if(m.sub==='mark'&&card.color!==m.color) return `この旗には${CNAME[m.color]}のカードしか置けません。`;
+    } else if(f.cards.length>=3) return 'この旗にはもう3枚置いてあるので、これ以上置けません。';
+    if(hasAcc('yaku_only')&&!yakuFits(card,f)) return '📜 役のみの指輪を装備中です。置いたあとに役が成り立たない（成り立つ余地もない）カードは、旗に置けません。';
+    return `${nm}は、この旗には置けません。`;
+  }
+  if(isDariusCard(card)){
+    if(m) return 'ダリウスは、装備のある旗には条件を満たす時しか置けません。';
+    if(f.cards.length!==2) return 'ダリウスは、2枚置いてある旗の3枚目にしか置けません。';
+    return 'ダリウスは、この旗には置けません。';
+  }
+  if(card.kind==='monster'){
+    if(card.sub==='mark'){ if(!f.cards.some(c=>c.kind==='troop')) return '色の装備は、数字カードが置いてある旗にだけ使えます。'; if(m&&m.color&&m.color!==card.color) return `この旗の装備は${CNAME[m.color]}なので、同じ色の装備しか使えません。`; return '色の装備は、この旗には使えません。'; }
+    if(card.sub==='cfield'||card.sub==='pfield'){ if(m) return 'すでに装備や敵のカードがある旗には置けません。'; return 'この旗には、あと1枚の空きがありません。'; }
+    if(m&&(m.sub==='cfield'||m.sub==='pfield')) return m.sub==='cfield'?'カラフルフィールドの旗に重ねられるのは、力の装備（数字）だけです。':'パニックフィールドの旗には、装備を重ねられません。';
+    if(m&&card.sub==='number'&&(m.sub==='number'||m.sub==='combined')&&card.value<m.value) return `重ねるなら${m.value}以上の力の装備が必要です。（今ある装備は${m.value}）`;
+    if(m) return '装備のある旗には、この装備は重ねられません。';
+    if(f.cards.length>=3) return 'この旗にはもう3枚置いてあるので、装備を置けません。';
+    if(!equipmentReachable(card,f)) return '既に置かれているカードと条件が矛盾するため、この旗には置けません。';
+    return `${nm}は、この旗には置けません。`;
+  }
+  return `${nm}は、この旗には使えません。`;
 }
 function playOnFlag(handIdx, fi, fromRect, noAsk){
   const card=hand[handIdx], f=flags[fi];
   try{ if(!noAsk) dlog('place_try',{置く:dbgCardStr(card), idx:handIdx, 掴んだ表示:dbgGrab, 手札:hand.map(dbgCardStr).join(' '), 画面の手札:[...document.querySelectorAll('.hand .pcard')].map(e=>{ const c=hand.find(x=>x.uid===e.dataset.uid); return (e.querySelector('.corner')||{}).textContent+'/'+(c?dbgCardStr(c):'?'); }).join(' '), 旗:fi+1, 結果:(targetsFor(card).includes(fi)?'置ける':'置けない'), 理由:(targetsFor(card).includes(fi)?'':(f.closed?'閉じた旗':isLocked(f)?'封鎖中':(f.cards.length>=3?'3枚埋まっている':'役・装備の条件に合わない'))), 旗の中:f.cards.map(dbgCardStr).join(' ')}); }catch(e){}
   if(!targetsFor(card).includes(fi)){
-    if(card.kind==='monster'){
-      const existingMon=flagMonster(f);
-      if(existingMon && (existingMon.sub==='cfield'||existingMon.sub==='pfield')) hint(existingMon.sub==='cfield'?'カラフルフィールドの旗に重ねられるのは、力の装備（数字）だけです。':'パニックフィールドの旗には、装備を重ねられません。',true); else
-      if(existingMon && card.sub==='number' && (existingMon.sub==='number'||existingMon.sub==='combined') && card.value<existingMon.value){
-        hint(`重ねるなら${existingMon.value}以上の力の装備が必要です。`,true);
-      } else if(card.sub==='mark'){
-        hint('色の装備は、数字カードが置いてある旗にだけ使えます（色指定の装備がある旗には、同じ色だけ）。最後に置いたカードのマークが変わります。',true);
-      } else if(!existingMon && f.cards.length<3 && !equipmentReachable(card, f)){
-        hint('既に置かれているカードと条件が矛盾するため、この旗には置けません。',true);
-      }
-    }
+    if(!noAsk) gameAlert(whyNotPlace(card,fi)||'この旗には置けません。');
     return false;
   }
   if(card.type==='curse_bomb'){ picked=null; doCurse(handIdx, fi); return true; }
@@ -4139,7 +4160,7 @@ function inGraveZone(x,y){
 function discardDraw(handIdx,okPen){
   const card=hand[handIdx]; if(!card||busy) return false;
   const enemyC=isEnemyCard(card);   // 敵のカード（呪い・敵の装備）も捨てられるが、スーパーコンボ−ペナルティ
-  if(activeDeck.length===0){ hint('山札がないので、捨てて引くことはできません。',true); return false; }
+  if(activeDeck.length===0){ gameAlert('山札がないので、捨てて引くことはできません。'); return false; }
   if(enemyC && !okPen){ askComboPenalty(1,()=>{ const j=hand.indexOf(card); if(j>=0) discardDraw(j,true); }); return false; }
   busy=true;
   hand.splice(handIdx,1);
@@ -4388,7 +4409,7 @@ function resolveGuidance(fi){
     else { pending.step='choose'; render(); hint(flags[fi].closed?'手札に戻すカードをタップ（旗は未封鎖に戻る）':'手札に戻すカードをタップ（旗の中のカードを直接タップ）'); }
     return;
   }
-  if(!guidanceTargets(1).includes(fi)) return hint('そこには移動できません。',true);
+  if(!guidanceTargets(1).includes(fi)) return gameAlert('そこには移動できません。\n（完成した旗・封鎖中の旗・3枚埋まった旗、またはそのカードが条件を満たさない旗には動かせません）');
   if(!guidExists()){
     console.error('guidance: hand card not found for uid', pending.handUid);
     pending=null; busy=false; render();
@@ -4409,7 +4430,7 @@ function resolveGuidance(fi){
   if(destMonster && card.kind==='monster'){
     src.cards.splice(pending.cardIdx,0,card);
     busy=false; pending=null; render();
-    hint('装備のある旗には移動できません。',true);
+    gameAlert('装備のある旗には、装備カードは移動できません。');
     return;
   }
   if(destMonster && !satisfiesMonster(card,destFlag)){
@@ -6202,25 +6223,25 @@ function tapFlag(i){
   }
   if(pending&&pending.type==='holy'){ resolveHolyFlag(i); return; }
   if(pending&&pending.type==='sealpick'){
-    if(!(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).some(c=>c.i===i)){ hint(pending.wipe?'完成済みの旗には使えません。':pending.bomb?'その旗にはボムを置けません。':pending.minus?'その旗にはマイナスを付けられません。':'その旗は封鎖できません。',true); return; }
+    if(!(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).some(c=>c.i===i)){ gameAlert(pending.wipe?'完成済みの旗には使えません。':pending.bomb?'その旗にはボムを置けません。\n（完成した旗・封鎖中の旗・すでにボムがある旗には置けません）':pending.minus?'その旗にはマイナスを付けられません。\n（完成した旗・封鎖中の旗・すでにマイナスの旗には付けられません）':'その旗は封鎖できません。\n（完成した旗・すでに封鎖されている旗は封鎖できません）'); return; }
     const hi=hand.findIndex(c=>c.uid===pending.uid); pending=null;
     if(hi<0){ render(); return; }
     doCurse(hi,i); return;
   }
   if(pending&&pending.type==='pfpick'){
-    if(!pfCands().includes(i)){ hint('その旗には置けません。',true); return; }
+    if(!pfCands().includes(i)){ gameAlert('その旗にはパニックフィールドを置けません。\n（完成した旗・封鎖された旗・3枚埋まった旗・すでにフィールドがある旗・敵の装備の旗には置けません）'); return; }
     const em=flagMonster(flags[i]);
     if(em){ em.pf=true; } else { const pf=makePanicField(); pf.accumulatedBonus=0; pf.enemyCard=false; flags[i].cards.push(pf); } spec.mon++; pending=null; lastFi=i; playSfx('place');
     hint(`🌀 パニックフィールド！ 旗${i+1}に次に置くカードの数字が逆転する。`,true); render(); return;
   }
   if(pending&&pending.type==='blindpick'){
-    if(!evCands('blind').some(c=>c.i===i)){ hint('その旗は煙で覆えません。',true); return; }
+    if(!evCands('blind').some(c=>c.i===i)){ gameAlert('その旗は煙で覆えません。\n（完成した旗・封鎖中の旗・すでに煙がある旗は対象外です）'); return; }
     flags[i].blindUntil=enemyTurn+DIS_PARAM.blindTurns; spec.mon++; pending=null; playSfx('place');
     hint(`🌫 ブラインド！ 旗${i+1}が${DIS_PARAM.blindTurns}ターンの間、黒い煙に覆われた。（敵の妨害の対象から外れる）`,true); render(); return;
   }
   if(pending&&pending.type==='skillplace'){
     const nc=pending.card, f=flags[i];
-    if(!targetsFor(nc).includes(i)){ hint('その旗には置けません。',true); return; }
+    if(!targetsFor(nc).includes(i)){ gameAlert(whyNotPlace(nc,i)||'その旗には置けません。'); return; }
     const mon0=flagMonster(f), mon=nc.kind==='troop'?null:mon0;   // 数字カードは敵やフィールドを置き換えない（普通に置く時と同じく、上に重ねる）
     let rev=''; if(nc.kind==='troop'&&mon0&&(mon0.sub==='pfield'||mon0.pf)){ nc.origValue=nc.value; nc.value=11-nc.value; rev=`（🌀革命！ ${nc.origValue}→${nc.value}。フィールドは元に戻った）`; if(mon0.sub==='pfield'){ const ix=f.cards.indexOf(mon0); if(ix>=0) f.cards.splice(ix,1); } else delete mon0.pf; }   // パニックフィールドの旗：数字が逆転する
     if(nc.kind==='troop'&&poisonOn()&&nc.value>1){ if(nc.origValue===undefined) nc.origValue=nc.value; nc.value-=1; rev+=`（☠毒で数字が−1：${nc.value}）`; }   // 毒の呪い中：置く数字が−1（1は1のまま）
@@ -6234,7 +6255,7 @@ function tapFlag(i){
   if(pending) return;
   if(picked===null) return;
   const el=document.querySelector(`.hand [data-uid="${hand[picked].uid}"]`);
-  { const c0=hand[picked], why=whyNotPlace(c0,i); if(!playOnFlag(picked,i,el?cardVisualRect(el):null)) hint(why||'その旗には置けません。',true); }
+  playOnFlag(picked,i,el?cardVisualRect(el):null);   // 置けない時は、playOnFlagが理由をアラートで出す
 }
 function tapHand(idx){
   if(busy||gameEnded) return;
@@ -6408,7 +6429,7 @@ function attachDrag(el){
         const gr=cardVisualRect(ghost); ghost.remove(); ghost=null;
         if(!playOnFlag(i,fi,gr)){ picked=null; render(); layoutHand(false); }
       } else {
-        try{ ghost.style.display='none'; let u=document.elementFromPoint(e.clientX,e.clientY-30); if(!u||!u.closest('.flag')) u=document.elementFromPoint(e.clientX,e.clientY); ghost.style.display=''; const fl=u&&u.closest('.flag'); if(fl&&fl.dataset.index!==undefined){ const why=whyNotPlace(hand[i],+fl.dataset.index); if(why) hint(why,true); } }catch(er){}   // 置けない旗に落とした時は、理由を出す
+        try{ ghost.style.display='none'; let u=document.elementFromPoint(e.clientX,e.clientY-30); if(!u||!u.closest('.flag')) u=document.elementFromPoint(e.clientX,e.clientY); ghost.style.display=''; const fl=u&&u.closest('.flag'); if(fl&&fl.dataset.index!==undefined){ const why=whyNotPlace(hand[i],+fl.dataset.index); if(why) gameAlert(why); } }catch(er){}   // 置けない旗に落とした時は、理由を出す
         ghost.style.transition='left .25s, top .25s, transform .25s'; ghost.style.left=startRect.left+'px'; ghost.style.top=startRect.top+'px'; ghost.style.transform='none';
         const g=ghost; ghost=null; setTimeout(()=>g.remove(),250);
         picked=null; render(); layoutHand(false);
@@ -6537,7 +6558,7 @@ function strikeBoss(dmg,text,name,raw){   // raw＝敵のHPで切り捨てる前
 }
 function scPay(col,min,loss){   // スーパーコンボを払う（足りなければ払わずに false）
   const v=carryMap[col]||0;
-  if(v<min){ hint(`${CNAME[col]}のスーパーコンボが${min}以上ないと使えません。（いま${v}）`,true); return false; }
+  if(v<min){ gameAlert(`${CNAME[col]}のスーパーコンボが${min}以上ないと使えません。\n（いま${v}）`); return false; }
   const nv=v-loss(v); if(nv>=1) carryMap[col]=nv; else delete carryMap[col];
   return true;
 }
@@ -6654,7 +6675,7 @@ function monSkillUse(){
     spec.mon++; strikeBoss(bossHp,'捕食！敵を丸ごと食べた。','spider'); return;
   }
   else if(m.kind==='trick'){
-    if((spec.mon||0)>=1){ hint('トリックオアトリートは、1回の戦いで1回しか使えません。',true); return; }
+    if((spec.mon||0)>=1){ gameAlert('トリックオアトリートは、1回の戦いで1回しか使えません。'); return; }
     showConfirm('🎃 トリックオアトリート！\n2分の1で敵が死に、2分の1で自分が死にます。\n（1回の戦いで1回だけ。ふんばるピアスなどでも防げません）\n使いますか？',()=>{
       if(gameEnded||busy) return;
       spec.mon++;
@@ -6668,7 +6689,7 @@ function monSkillUse(){
     return;
   }
   else if(m.kind==='top'){
-    if(topUsed){ hint('首席アタックは、1回のゲームに1回しか使えません。',true); return; }
+    if(topUsed){ gameAlert('首席アタックは、1回のゲームに1回しか使えません。'); return; }
     topUsed=true; spec.mon++;
     const drop=hand.filter(c=>!isEnemyCard(c));   // 呪い・敵のカードも、ペナルティなしでそのまま10に書き換わる（墓地へは行かず消える）
     graveyard.push(...drop.filter(c=>!c.temp));
@@ -8196,7 +8217,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID = '2026-11-08h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID = '2026-11-08i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
