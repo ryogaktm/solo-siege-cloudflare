@@ -375,6 +375,10 @@ with sync_playwright() as p:
       const lo={kind:'troop',color:'red',value:9,uid:uid()}, hi={kind:'troop',color:'red',value:2,uid:uid()};
       o.nine=satisfiesMonster(lo,flags[0]); o.two=satisfiesMonster(hi,flags[0]); return o}""")
     check('パニックフィールド：自分の装備の上にも置ける／逆転後の数字で置ける・置けないを判定（装備8：2→9は可、9→2は不可）',r['c0'] and not r['c1'] and r['pf'] and r['sub']=='number' and r['cards']==1 and r['two'] and not r['nine'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; flags.forEach(f=>{f.cards=[];f.closed=false});
+      const mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); flags[3].cards=[mk('green',10),mk('blue',10)]; flags[3].cards.push(makePanicField());
+      const o={}; const one=mk('red',1); const ring=hasAcc; hasAcc=id=>id==='yaku_only'; o.one=targetsFor(one).includes(3); o.two=targetsFor(mk('red',2)).includes(3); hasAcc=ring; return o}""")
+    check('役のみの指輪＋パニックフィールド：逆転後の数字で役が成り立つ（10,10の旗に赤1＝10が置ける／赤2＝9は置けない）',r['one'] and not r['two'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; hand=[0,1,2,3].map(()=>({kind:'troop',color:'red',value:3,uid:uid()})); render(); const o={}; o.name=CHARACTER.monSkill.name; o.l0=document.getElementById('specMonL').textContent;
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; o.msg=(document.getElementById('hint')||{}).textContent||''; o.next=bashDmg; o.info=specInfoFor('mon').desc; busy=false; render(); o.l1=document.getElementById('specMonL').textContent; return o}""")
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '240' in r['l1'] and '攻撃力が240に上がった' in r['msg'] and '240' in r['info'],r)
