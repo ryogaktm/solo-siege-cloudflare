@@ -5248,7 +5248,7 @@ function render(){
         const hv = (!inCombo && hmap[i]) ? hmap[i] : 0;
         const displayVal = Math.round(inCombo ? f.result.base*sm : (hv ? f.result.base*hv : f.result.base));   // 小数は切る
         const dvLen=String(displayVal).length, dvFs=dvLen<=4?32:dvLen===5?27:dvLen===6?23:dvLen===7?20:17;
-        const comboTag = inCombo ? `<span class="frb-combo-tag">SUPER ×${Math.round(sm*100)/100}</span>` : (hv ? `<span class="frb-combo-tag">×${Math.round(hv*100)/100}</span>` : '');
+        const comboTag = inCombo ? `<span class="frb-combo-tag">SUPER ×${Math.round(sm*100)/100}</span>` : (hv ? `<span class="frb-combo-tag">×${Math.round(hv*100)/100}</span>` : ((CHARACTER.combo && !f.capturedByEnemy && f.baseCombo && f.symbolColor) ? `<span class="frb-combo-tag">SUPER ×1</span>` : ''));   // 役が一個だけ揃った時も、コンボ×1として表示する（倍率は変わらない）
         bigResult=`<div class="flag-result-big${(inCombo||hv)?' combo-boosted':''}">
           <div class="frb-total" style="font-size:${dvFs}px">${markIcon}${displayVal}${comboTag}</div>
           <div class="frb-name">${f.result.isMonster?f.result.name:markNums(f.cards)}</div>
@@ -8244,7 +8244,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09q';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09r';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
