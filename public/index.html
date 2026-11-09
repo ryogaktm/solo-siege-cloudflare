@@ -174,6 +174,10 @@
   .cp-st b{ display:block; color:var(--gold); font-size:13px; }
   .cp-st span{ color:var(--gold); margin-right:4px; }
   .cp-arrow{ flex:0 0 auto; color:var(--gold); font-size:20px; }
+  .prep-spec{ margin:8px 0 0; padding:8px 12px; border:1px solid var(--gold-dim,rgba(226,192,106,.35)); border-radius:10px; font-size:13px; }
+  .prep-spec .ps-t{ font-size:11px; opacity:.8; margin-bottom:4px; letter-spacing:.1em; }
+  .prep-spec .ps-row{ display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+  .prep-spec .ps-c{ opacity:.85; white-space:nowrap; }
   .fs-plus{ text-align:center; font-size:22px; font-weight:900; color:var(--gold); line-height:1; margin:-2px 0; }
   .fs-row{ flex:0 0 100%; display:flex; flex-direction:column; gap:6px; }
   .fs-slot{ min-width:0; display:flex; flex-direction:row; align-items:flex-start; gap:10px; min-height:52px; padding:8px 10px; border:2px dashed rgba(226,192,106,.45); border-radius:10px; font-size:13px; text-align:left; justify-content:flex-start; }
@@ -1314,6 +1318,7 @@
     <button id="prepDeckView" class="prep-deckview" aria-label="山札確認">📚 山札確認</button>
     <div class="prep-head"><div class="prep-char" id="prepChar"></div><div class="prep-mid"><div class="reward-title">次の戦いの準備</div><div class="reward-sub" id="prepInfo"></div></div><div class="prep-home" id="prepFoe">🏕</div></div>
     <div class="prep-carry" id="prepCarry" style="display:none"></div>
+    <div class="prep-spec" id="prepSpec" style="display:none"></div>
     <div class="prep-shops">
       <button class="prep-tile" id="prepBuyAcc"><span class="pt-ico">💎</span><span class="pt-name">アクセサリーを買う</span></button>
       <button class="prep-tile" id="prepBuyDeck"><span class="pt-ico">🃏</span><span class="pt-name">デッキを買う</span></button>
@@ -7841,7 +7846,26 @@ function showPrep(keepStock){
   refreshPrep();
   document.getElementById('prepModal').style.display='flex';
 }
+function prepSpecHtml(){   // 準備画面：今の特殊技と、次の戦いで使える回数
+  if(!CHARACTER) return '';
+  const ks=[...new Set([...(CHARACTER.sp||[]), ...(CHARACTER.startShuffles===Infinity?['shuffle']:[]), ...(CHARACTER.monSkillB?['mon2']:[])])].filter(k=>specEnabled(k)||k==='mon2');
+  const rows=ks.map(k=>{
+    let si; try{ si=specInfoFor(k); }catch(e){ return ''; } if(!si||!si.title) return '';
+    const passive=(k==='mon'&&monDisp()==='毒キノコ');
+    let cnt;
+    if(passive) cnt='常時';
+    else if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) cnt='回数制限なし';
+    else if(specNoLimit(k)) cnt='回数制限なし';
+    else { const w=wormUp; wormUp=hasWormBody()?MONSK.wormSpec:0; const m=specMax(k); wormUp=w; cnt=`1戦に${m}回まで`; }
+    const ms=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):null;
+    if(ms&&ms.kind==='coin') cnt+=`（ゲーム全体で残り${Math.max(0,MONSK.samuraiMax-coinUsed)}回）`;
+    if(ms&&ms.kind==='top') cnt=topUsed?'使用済み（ゲームで1回）':'ゲームで1回';
+    return `<div class="ps-row"><span class="ps-n">${si.title}</span><span class="ps-c">${cnt}</span></div>`;
+  }).filter(Boolean);
+  return rows.length?`<div class="ps-t">特殊技</div>${rows.join('')}`:'';
+}
 function refreshPrep(){
+  try{ const ps=document.getElementById('prepSpec'), h=prepSpecHtml(); if(ps){ ps.style.display=h?'block':'none'; ps.innerHTML=h; } }catch(e){}
   try{ document.getElementById('prepChar').innerHTML=charSpr(CHARACTER,72,true); }catch(e){}
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
   try{ document.getElementById('prepFoe').innerHTML=spriteSVG(monSprKey(nx),72,'',true); }catch(e){}
@@ -8245,7 +8269,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09y';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-09z';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
