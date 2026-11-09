@@ -2575,7 +2575,7 @@ function carryNext(){
 // コンボバリアの指輪：コンボが続いている間、受けるダメージが半分（倍の腕輪で1/4）
 function barrierMult(){
   if(!hasAcc('combo_barrier')||!CHARACTER.combo) return 1;
-  const on=Object.values(carryNext()).some(n=>n>=2) || hostNext()>=2;
+  const on=Object.values(carryNext()).some(n=>n>=2);   // 役のある旗のスーパーコンボだけ（役のない旗の連続は含まない）
   return on?Math.pow(0.5,accX()):1;
 }
 function resetBattleRound(){
@@ -7358,7 +7358,7 @@ function buildAccDefs(){
   L.push({id:'reflect_mirror',name:'反射の手鏡',icon:'🪞',desc:'敵の特殊攻撃（呪いのカード）を跳ね返す。封鎖のカード→敵は3ターン動けない／毒のカード→敵の体力が毎ターン減る／ボム→敵のHPが半分になる／暗闇→無効'});
   L.push({id:'heal_patch',name:'回復湿布',icon:'🩹',desc:'体力の回復量が2倍になる'});
   L.push({id:'endure',name:'ふんばるピアス',icon:'🔹',desc:'体力80%以上の状態から一気に0になるとき、1で踏みとどまる'});
-  L.push({id:'combo_barrier',name:'コンボバリアの指輪',icon:'💠',desc:'スーパーコンボ（役のない旗の連続も含む）が続いている間、敵の攻撃で受けるダメージが半分になる'});
+  L.push({id:'combo_barrier',name:'コンボバリアの指輪',icon:'💠',desc:'役のある旗のスーパーコンボが続いている間、敵の攻撃で受けるダメージが半分になる（役のない旗の連続は含まない）'});
   L.push({id:'host_ring',name:'ホストの指輪',icon:'🔗',desc:'「役のない」旗が続くとコンボになる。続くたびに倍率が1.2倍ずつ増えていく（上限なし）。役のある旗が1つでもあると無効。代わりに、次に引くカード（Next）が見えなくなる'});
   L.push({id:'clairvoyant',name:'千里眼のメガネ',icon:'👓',desc:'20手先までの手札（引く順番どおり）が見える（ホストの指輪で消えたNextも見える）'});
   L.push({id:'double_x',name:'倍の腕輪',icon:'✖️',desc:'ほかのアクセサリーの効果が2倍になる（倍率の増え分・体力の増え分・手札の増える数・特殊技の回数など）。代わりに敵のターンも2倍の速さで進む'});
@@ -8269,7 +8269,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-09z';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-10a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
