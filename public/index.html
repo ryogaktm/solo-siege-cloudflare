@@ -7849,8 +7849,10 @@ function prepSpecHtml(){   // 準備画面：今の特殊技と、次の戦い�
     let cnt;
     if(passive) cnt='常時';
     else if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) cnt='回数制限なし';
-    else if(specNoLimit(k)) cnt='回数制限なし';
-    else { const w=wormUp; wormUp=hasWormBody()?MONSK.wormSpec:0; const m=specMax(k); wormUp=w; cnt=`1戦に${m}回まで`; }
+    else if(specNoLimit(k)){   // スーパーコンボを払う技：回数ではなく、払うコンボが使用条件
+      const ms0=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):null, sc0=ms0&&MONSC[ms0.kind];
+      if(sc0){ const col=sc0[0], n=wormCost(sc0[1]()); cnt=`使用条件：${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else cnt='回数制限なし';
+    } else { const w=wormUp; wormUp=hasWormBody()?MONSK.wormSpec:0; const m=specMax(k); wormUp=w; cnt=`1戦に${m}回まで`; }
     const ms=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):null;
     if(ms&&ms.kind==='coin') cnt+=`（ゲーム全体で残り${Math.max(0,MONSK.samuraiMax-coinUsed)}回）`;
     if(ms&&ms.kind==='top') cnt=topUsed?'使用済み（ゲームで1回）':'ゲームで1回';
@@ -8263,7 +8265,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-10c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-10d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
