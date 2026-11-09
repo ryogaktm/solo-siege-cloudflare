@@ -2157,7 +2157,7 @@ const DIS_TIERS=[
 ];
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
 const DIS_OFF=['dark'];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚無効)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
+const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚消える)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
 const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
 const PRE_NOTE={comboreset:'スーパーコンボが全部0に！',bomb:'時限ボムを手札に押し付けられる！'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
@@ -2781,7 +2781,7 @@ function applyEnemyEvent(type,target,viaCard){
     if(!cand.length){ hint('🕳 ワームホールが現れたが、開ける旗がなかった。',true); }
     else { const i=cand[Math.floor(Math.random()*cand.length)]; haunt[i]=5;
       try{ dlog('ghost',{flag:i+1}); }catch(e){}
-      hint(`🕳 ワームホールが旗${i+1}に開いた！ その旗に置いたカードは5枚まで無効になる。`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){} }
+      hint(`🕳 ワームホールが旗${i+1}に開いた！ その旗に置いたカードは5枚まで消える。`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){} }
   } else if(type==='minusrain'){
     dis.poisonUntil=Math.max(dis.poisonUntil||0,turnCounter+DIS_PARAM.rainTurns);
     hint(`🌧 マイナスレイン！ ${DIS_PARAM.rainTurns}ターンの間、置く数字カードがすべて−1される！`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
@@ -4015,10 +4015,10 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       return true;
     }
   }
-  if(haunt[fi]>0 && card.kind==='monster'){   // ワームホールの旗：装備カードも効果なしで墓地へ（敵のカードは消えるだけ）
+  if(haunt[fi]>0 && (card.kind==='monster'||card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card))){   // ワームホールの旗：置いたカード（数字・装備・軍師）は、旗に残らず効果なしで墓地へ消える（敵のカードは消えるだけ）
     busy=true; picked=null; lastFi=fi;
     hand.splice(handIdx,1); if(!isEnemyEq(card)) graveyard.push(card);
-    hauntBlock(fi,monsterName(card)||'装備');
+    hauntBlock(fi,card.kind==='monster'?(monsterName(card)||'装備'):'カード');
     advanceTurn(card);
     const refilled=autoRefill(1);
     render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
@@ -4036,12 +4036,6 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     if(msgs.length) hint(msgs.join(' ／ '),true); }
   if(card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)){
     const placed=card.kind==='troop'?{kind:'troop',color:card.color,altColor:card.altColor,mixed:card.mixed,value:card.value,uid:card.uid,purchased:card.purchased,temp:card.temp,origValue:card.origValue,origColor:card.origColor,origAlt:card.origAlt,origMixed:card.origMixed}:{kind:'wild',color:'wild',label:card.short,uid:card.uid,purchased:card.purchased,base:card};   // base＝元のカード（戦いが終わったら元の軍師カードに戻す）
-    if(haunt[fi]>0 && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card))){
-      placed.voided=true; haunt[fi]--;
-      try{ dlog('haunt_void',{flag:fi+1,card:dbgCardStr(card),残り:haunt[fi]}); }catch(e){}
-      hint(haunt[fi]>0?`🕳 ワームホールのせいで、このカードは無効になった…（旗${fi+1}のワームホールあと${haunt[fi]}枚）`:`🕳 最後の1枚が無効になり、旗${fi+1}のワームホールが消えた！`,true);
-      if(haunt[fi]<=0) delete haunt[fi];
-    }
     hand.splice(handIdx,1);
     const mon=flagMonster(f);
     const forcedCf = !!(mon && (mon.sub==='cfield'||mon.sub==='combined') && card.kind==='troop' && !satisfiesMonster(card,f));
@@ -4931,7 +4925,7 @@ const EVENT_DESC={
   blind:()=>`ターンになると強制的に発動。ランダムな旗（完成済み・封鎖中・すでに煙に覆われた旗は対象外）を前もって決め（旗の右上に予告が出る）、${DIS_PARAM.blindTurns}ターンの間、黒い煙で覆う。カードは置けるが、中身が見えなくなる。煙の間、その旗は敵の他の妨害の対象からも外れる。`,
   assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）を前もって決め（旗の右上に表示）、その旗のカードからランダムに1枚を墓地へ送る。敵が置いたカードや装備も対象。',
   deatheater:()=>'カードが置いてある旗をランダムに1つ選んで、3ターンの間、その旗の上に居座る。その間にその旗へカードを置くと、置いたカードが食べられて墓地へ行く。3ターン置かなかったら、その旗の1枚目のカードが食べられる（完成済みの旗と、封鎖中の旗は対象外）。',
-  ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで無効になる（数字カードは点数0・役にならない。装備は効果が出ず墓地へ。敵が置くカードも同じ）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
+  ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで旗に残らず、効果も出ずに墓地へ消える（数字カードも装備も同じ。敵が置くカードも消える）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
   freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
@@ -8269,7 +8263,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-10b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-10c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
