@@ -404,6 +404,9 @@
   .fc small.fc-sw{ font-size:10px; opacity:.9; color:#ff9a8a; line-height:1; }
   .fc small{ display:block; font-size:8px; color:var(--cream-2); opacity:.75; }
   .fc.ev-rage{ border-color:#ff7a4a; background:rgba(255,110,60,.2); } .fc.ev-rage b{ color:#ffb07a; }
+  /* 持続効果は必ず見える：マイナスレイン中は雨を降らせる */
+  body.rain-on::after{ content:''; position:fixed; inset:0; z-index:9000; pointer-events:none; background:repeating-linear-gradient(105deg,rgba(150,190,255,.0) 0 14px,rgba(150,190,255,.35) 14px 16px,rgba(150,190,255,0) 16px 30px); background-size:60px 120px; animation:rainFall .45s linear infinite; box-shadow:inset 0 0 60px rgba(60,100,200,.45); }
+  @keyframes rainFall{ from{background-position:0 0} to{background-position:-24px 120px} }
   .fc.ev-dis, .fc.ev-seal, .fc.ev-poison{ background:#fff; border-color:#b07af0; }   /* 下のレーン（妨害の予測）は白地にして、字が見えるように */
   .fc.ev-dis b, .fc.ev-seal b, .fc.ev-poison b{ color:#3a1d66; text-shadow:0 0 1px rgba(0,0,0,.45); }
   .fc.ev-dis small, .fc.ev-seal small, .fc.ev-poison small{ color:#3a2a55; opacity:1; font-weight:700; }
@@ -4046,10 +4049,16 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   // 3枚目で「役なし（ホスト）」になる置き方は、最終確認を出す
   if(!noAsk && !(isWeakBody()&&tutStepNow()===0) && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
     const tmp={cards:f.cards.concat(card.kind==='troop'?[card]:[{kind:'wild',color:'wild',label:card.short,uid:card.uid}])};
-    const ev=evaluate(tmp);
+    const ev0=evaluate(tmp);   // 効果なしの時の役
+    let cause='';   // 効果（毒・マイナスレイン）で数字が下がった結果の役
+    let ev=ev0;
+    if(card.kind==='troop' && poisonOn() && card.value>1){
+      const tmp2={cards:f.cards.concat([Object.assign({},card,{value:card.value-1})])}, ev2=evaluate(tmp2);
+      if(ev2 && ev2.mult===1 && !(ev0 && ev0.mult===1)){ ev=ev2; cause='🌧 マイナスレインで数字が−1されて、'; }
+    }
     if(ev && ev.mult===1){
       const uidK=card.uid, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
-      bg.innerHTML='<div class="reward-box"><div class="reward-title">役なしになります</div><div class="reward-sub" style="margin-top:8px">このカードを置くと、この旗は<b>役なし（ホスト）</b>になります。<br>大丈夫ですか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="hcNo" style="flex:1">やめる</button><button class="btn" id="hcYes" style="flex:1">置く</button></div></div>';
+      bg.innerHTML='<div class="reward-box"><div class="reward-title">役なしになります</div><div class="reward-sub" style="margin-top:8px">'+(cause?'<b>'+cause+'</b>':'このカードを置くと、')+'この旗は<b>役なし（ホスト）</b>になります。<br>大丈夫ですか？</div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="hcNo" style="flex:1">やめる</button><button class="btn" id="hcYes" style="flex:1">置く</button></div></div>';
       document.body.appendChild(bg); busy=true;
       bg.querySelector('#hcNo').onclick=()=>{ bg.remove(); busy=false; picked=null; render(); layoutHand(false); };
       bg.querySelector('#hcYes').onclick=()=>{ bg.remove(); busy=false; const i=hand.findIndex(c=>c.uid===uidK); if(i<0||!playOnFlag(i,fi,fromRect,true)){ picked=null; render(); layoutHand(false); } };
@@ -5127,7 +5136,8 @@ function renderBattle(){
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
-    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`☠毒:数字−1(あと${dis.poisonUntil-turnCounter})`); db.textContent=a.join('  '); } }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); db.textContent=a.join('  '); }
+    try{ document.body.classList.toggle('rain-on', !!poisonOn()); }catch(e){} }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
   document.getElementById('enemyAtkNum').textContent=eA;
@@ -8305,7 +8315,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-10e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-10f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
