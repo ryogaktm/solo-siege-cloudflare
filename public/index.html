@@ -1115,6 +1115,12 @@
   .db-modal{ position:relative; width:100%; max-width:560px; height:100%; max-height:100%; display:flex; flex-direction:column; }
   .db-grid{ flex:1; max-height:none; min-height:0; align-content:flex-start; }
   .db-sec{ font-size:12px; color:var(--gold); margin:6px 0 2px; text-align:center; }
+  .db-slide{ flex:1; min-height:0; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .db-slide::-webkit-scrollbar{ display:none; }
+  .db-page{ flex:0 0 100%; max-height:none; height:100%; box-sizing:border-box; scroll-snap-align:center; scroll-snap-stop:always; align-content:flex-start; }
+  .db-dots{ justify-content:center; gap:10px; padding:6px 0; }
+  .db-dots i{ width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.25); cursor:pointer; }
+  .db-dots i.on{ background:var(--gold); }
   .db-rem{ max-height:none; flex:none; }
   #pickSel{ flex:none; max-height:24vh; }
   #pickSel:empty{ display:none; }
@@ -1464,7 +1470,8 @@
     <div class="db-sec" id="dbSec">入れ替えるカードを選択 <b id="dbCountOut">0/0</b></div>
     <div class="cardgrid db-grid" id="dbDeck"></div>
     <div id="dbRemWrap" style="display:none"><div class="db-sec">外したカード</div><div class="cardgrid db-rem" id="dbRem"></div></div>
-    <button class="btn ghost" id="dbReroll" style="display:none"></button>
+    <div class="db-slide" id="dbSlide" style="display:none"></div>
+    <div class="db-dots" id="dbDots" style="display:none"></div>
     <button class="btn" id="dbOk">このまま進む</button>
   </div>
 </div>
@@ -2879,8 +2886,23 @@ function freshFlags(){
   const arr=[]; for(let i=0;i<FLAG_COUNT;i++) arr.push({cards:[],closed:false,result:null,lockedUntil:0});
   return arr;
 }
-let startRerolls=3;
-function randomizeStartDeck(){ // 初期山札は完全ランダム（大山札から40枚）
+const START_DECKS=[['n','数字が多め'],['t','軍師が多め'],['e','装備が多め'],['','普通'],['','普通']];   // 最初に選べる山札（横にスライドして見比べる）。順番と数はここで調整
+const START_DECK_BIAS=1.5;   // 「多め」の山札で、その種類の割合を何倍にするか
+let startDecks=[], startDeckIdx=0;
+function buildStartDecks(){   // 5つの山札を先に全部作っておく（見比べても中身は変わらない。手札も山札ごとに固定）
+  startDecks=START_DECKS.map(([b,label])=>{ const ok=randomizeStartDeck(b); return {label:ok?label:'普通', active:activeDeck.slice(), grand:grandDeck.slice(), hand:hand.slice()}; });
+  { const k=x=>x.kind==='troop'?'n':x.kind==='monster'?'e':'t', cnt=(d,b)=>[...d.active,...d.hand].filter(x=>k(x)===b).length, nm=startDecks[START_DECKS.findIndex(x=>!x[0])];
+    if(nm) startDecks.forEach((d,i)=>{ const b=START_DECKS[i][0]; if(b&&cnt(d,b)<=cnt(nm,b)) d.label='普通'; }); }   // 多めにできなかった山札（その種類のカードが足りないキャラ）は「普通」と表示する
+  applyStartDeck(0);
+}
+function applyStartDeck(i){
+  const d=startDecks[i]; if(!d) return; startDeckIdx=i;
+  activeDeck=d.active.slice(); grandDeck=d.grand.slice(); hand=d.hand.slice();
+  [...activeDeck,...grandDeck,...hand].forEach(c=>{ c.inDeck=false; }); deckUids=new Set();
+  [...activeDeck,...hand].forEach(c=>{ c.inDeck=true; deckUids.add(c.uid); });
+}
+function randomizeStartDeck(bias){ // 初期山札はランダム（大山札から40枚）。bias＝多めにする種類（n数字／t軍師／e装備）。その種類が無いキャラは普通の山札になり、falseを返す
+  let biasOk=true;
   const all=[...grandDeck,...activeDeck,...hand].filter(c=>!isCurse(c));
   all.forEach(c=>{ c.inDeck=false; });
   deckUids=new Set();
@@ -2898,6 +2920,7 @@ function randomizeStartDeck(){ // 初期山札は完全ランダム（大山札�
       base.t+=t.count;
     });
     const pool={n:[],e:[],t:[]}; all.forEach(c=>pool[cat(c)].push(c));
+    if(bias){ if(base[bias]>0&&pool[bias].length>0) base[bias]*=START_DECK_BIAS; else biasOk=false; }
     const total=Math.min(WAVE_DRAW,all.length), bs=base.n+base.e+base.t;
     if(bs>0 && all.length>=WAVE_DRAW){
       const q={}, rem=[]; let used=0;
@@ -2914,11 +2937,7 @@ function randomizeStartDeck(){ // 初期山札は完全ランダム（大山札�
   activeDeck.forEach(c=>{ c.inDeck=true; deckUids.add(c.uid); });
   hand=[];
   for(let i=0;i<currentHandMax();i++){ const c=drawFromPools(); if(c) hand.push(c); }
-}
-function rerollStartDeck(){
-  if(startRerolls<=0) return;
-  startRerolls--; randomizeStartDeck(); render(); layoutHand(true);
-  renderDeckBuild();
+  return biasOk;
 }
 function init(){
   powerHist=[]; coinUsed=0; scSpent={};
@@ -2946,7 +2965,7 @@ function init(){
   shuffle(grandDeck);
   activeDeck=[]; hand=[]; deckUids=new Set();
   grandDeck.forEach(c=>{ c.inDeck=false; });
-  startRerolls=3; randomizeStartDeck();
+  buildStartDecks();
   flags=freshFlags();
   addWaveCurses();
   document.getElementById('bestTotalStat').textContent=rk(bestTotal);
@@ -2991,6 +3010,7 @@ function showDeckBuild(limit,title,done){
 function renderDeckBuild(){
   const all=allCardsUnique().filter(deckEligible);
   if(dbPhase===2){ renderDeckResult(); return; }
+  renderStartSlide(false);
   document.getElementById('dbRemWrap').style.display='none';
   document.getElementById('dbSec').innerHTML='入れ替えるカードを選択 <b id="dbCountOut">0/0</b>';
   const mk=(list,set,id)=>{
@@ -3020,8 +3040,29 @@ function renderDeckResult(){
   if(false){ rw.style.display=''; rg.innerHTML=''; dbRemoved.forEach(c=>{ const el=cardEl(c,true); el.classList.add('db-card','db-old'); rg.appendChild(el); }); } else rw.style.display='none';
   const btn=document.getElementById('dbOk'); btn.disabled=false; btn.textContent=dbFinalLabel;
   { const bk=document.getElementById('dbBack'); if(bk) bk.style.display=(dbFinalLabel==='ゲーム開始')?'':'none'; }
-  const rr=document.getElementById('dbReroll');
-  if(rr){ const isStart=dbFinalLabel==='ゲーム開始'; rr.style.display=isStart?'':'none'; rr.textContent=`🔄 シャッフル（残り${startRerolls}回）`; rr.disabled=startRerolls<=0; }
+  renderStartSlide(dbFinalLabel==='ゲーム開始'&&startDecks.length>0);
+}
+function startDeckCount(d){ const c={n:0,t:0,e:0}; [...d.active,...d.hand].forEach(x=>{ c[x.kind==='troop'?'n':x.kind==='monster'?'e':'t']++; }); return c; }
+function startSlideLabel(){
+  const d=startDecks[startDeckIdx]; if(!d) return; const c=startDeckCount(d);
+  document.getElementById('dbSec').innerHTML=`◀ 横にスライドして選ぶ ▶<br><b>${startDeckIdx+1}/${startDecks.length}　${d.label}</b>　数字${c.n}・軍師${c.t}・装備${c.e}`;
+  document.querySelectorAll('#dbDots i').forEach((el,i)=>el.classList.toggle('on',i===startDeckIdx));
+}
+function renderStartSlide(on){   // 最初の山札：5つの山札を横に並べて、スライドで見比べる（止まった山札が選ばれる）
+  const sl=document.getElementById('dbSlide'), dots=document.getElementById('dbDots'), g=document.getElementById('dbDeck');
+  sl.style.display=on?'flex':'none'; dots.style.display=on?'flex':'none'; g.style.display=on?'none':'';
+  if(!on) return;
+  sl.innerHTML=''; dots.innerHTML='';
+  startDecks.forEach((d,i)=>{
+    const pg=document.createElement('div'); pg.className='db-page cardgrid';
+    [...d.active,...d.hand].sort(deckSortCmp).forEach(c=>{ const el=cardEl(c,true); el.classList.add('db-card'); pg.appendChild(el); });
+    sl.appendChild(pg);
+    const dot=document.createElement('i'); dot.onclick=()=>sl.scrollTo({left:i*sl.clientWidth,behavior:'smooth'}); dots.appendChild(dot);
+  });
+  let t=null;
+  sl.onscroll=()=>{ clearTimeout(t); t=setTimeout(()=>{ const i=Math.max(0,Math.min(startDecks.length-1,Math.round(sl.scrollLeft/Math.max(1,sl.clientWidth)))); if(i!==startDeckIdx){ applyStartDeck(i); render(); layoutHand(true); try{ playSfx('place'); }catch(e){} } startSlideLabel(); },80); };
+  startSlideLabel();
+  requestAnimationFrame(()=>{ sl.scrollLeft=startDeckIdx*sl.clientWidth; });
 }
 function applyDeckBuild(){
   const all=allCardsUnique().filter(deckEligible);
@@ -6825,7 +6866,6 @@ document.getElementById('helpBtn').onclick=()=>{
   try{ buildMonsterList(); }catch(e){ console.error('buildMonsterList error:',e); }
   document.getElementById('goalModal').style.display='flex';
 };
-document.getElementById('dbReroll').onclick=()=>rerollStartDeck();
 document.getElementById('dbBack').onclick=()=>{   // 最初の山札画面から、ゲームを始めずにタイトルへ戻る
   document.getElementById('deckBuildModal').style.display='none'; dbDone=null;
   try{ stopBgm(); }catch(_){}
@@ -8265,7 +8305,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-10d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-10e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
