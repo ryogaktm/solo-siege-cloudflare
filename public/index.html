@@ -1749,7 +1749,7 @@ const MON_SKILL_NEW={
   '次元を砕く者':{kind:'dimension',name:'次元移動',icon:'🌀',cost:{count:3},desc:'旗に置いてある自分のカード1枚を、別の未完成の旗へ移す。'},
   '時の支配者':{kind:'rewind',name:'巻き戻し',icon:'⏪',cost:{count:2},desc:'ターン数を5戻す。敵の攻撃力の上昇も5ターン分戻る。妨害の予定はそのまま。'},
   '世界の終わり':{kind:'doomsday',name:'終末',icon:'🌍',cost:{hpPct:50},desc:'今の体力の半分を払って、敵の今の体力を半分にする。'},
-  '全てを無に帰すもの':{kind:'nullify',name:'無に帰す',icon:'⚫',cost:{count:1},desc:'このwaveを最初からやり直す。盤面と手札を山札に戻して引き直し、ターンは0、敵がかけている効果も消える。'},
+  '全てを無に帰すもの':{kind:'win',name:'勝つ',icon:'👑',cost:{},desc:'使うと無条件で勝つ（敵を倒す）。使用回数は無限。'},
   '竜騎士':{kind:'eye',name:'上空からの目',icon:'🦅',cost:{hp:20},desc:'山札の上5枚を見て、好きな1枚を引く。（残りの4枚は山札の上に残る）'},
 };
 Object.assign(MON_SKILL,MON_SKILL_NEW);
@@ -2023,13 +2023,7 @@ SKFN.dimension=m=>{
 };
 SKFN.rewind=m=>{ if(enemyTurn<=0) return hint('戻せるターンがありません。',true); if(!skPay(m)) return; const b=enemyTurn; enemyTurn=Math.max(0,enemyTurn-SKP.rewind); skDone(`⏪ 巻き戻し！ ターンが${b}→${enemyTurn}に戻った。敵の攻撃力の上昇も戻った。`); };
 SKFN.doomsday=m=>{ if(!(bossHp>1)) return; const D=Math.floor(bossHp/2); if(!skPay(m)) return; strikeBoss(D,`🌍 終末！ 敵の体力が半分（${fmtCompact(D)}）になった。`,'doomsday',D); };
-SKFN.nullify=m=>{
-  showConfirm('⚫ 無に帰す：このwaveを最初からやり直します。\n盤面と手札を山札に戻して引き直し、ターンは0、敵がかけている効果も消えます。使いますか？',()=>{
-    if(busy||pending||!skPay(m)) return;
-    flags.forEach(f=>{ f.frz=0; }); graveyard.push(...hand.filter(c=>c&&!c.temp)); hand=[]; buried.forEach(c=>graveyard.push(c)); buried=[];
-    const wa=waveAttempt; advanceWaveAttempt(); waveAttempt=wa; enemyTurn=0;
-    hint('⚫ 無に帰す！ waveを最初からやり直した。',true); });
-};
+SKFN.win=m=>{ if(!(bossHp>0)) return; if(!skPay(m)) return; const D=bossHp; strikeBoss(D,'👑 勝つ！ 無条件で勝利した。','win',D); };
 function condReroll(){
   if(condRerolled||!accCond.cur||totalWaves!==accStat.w0) return; condRerolled=true; accCond.n=Math.max(0,accCond.n-1); condReveal(); renderCondBar(); hint('🤝 根回し！ アクセサリー獲得条件を引き直した。',true); playSfx('combo');
 }
@@ -8882,7 +8876,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-11f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-11g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
