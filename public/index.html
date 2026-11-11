@@ -1700,7 +1700,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
 };
 
 /* ===== 新しい特殊技（lv36〜）：コスト（体力・お金・スーパーコンボ・回数）を共通で扱う ===== */
-const SKP={growAtk:3000, growHp:50, bigHand:2, fireUp:1, tailwind:1, sacrifice:3, spy:3};   // 体質「成長」「成長期」の増える量
+const SKP={weak:5, diceHeal:100, diceHp:0.1, shadowMiss:0.5, usurpRate:0.1, stareat:0.03, rewind:5, growAtk:3000, growHp:50, bigHand:2, fireUp:1, tailwind:1, sacrifice:3, spy:3};   // 体質「成長」「成長期」の増える量
 const MON_SKILL_NEW={
   '山賊王':{kind:'plunder',name:'強奪',icon:'🏴‍☠️',cost:{hp:25},desc:'山札から好きな数字カードを1枚探して、手札に加える。山札は切り直す。'},
   '海賊王':{kind:'tmap',name:'宝の地図',icon:'🗺',cost:{hp:25},desc:'敵が出そうとしているカードを手札のカードと交換出来る。(敵の攻撃予測に出てるカードのみ)'},
@@ -1729,10 +1729,31 @@ const MON_SKILL_NEW={
   '魔王の側近':{name:'根回し',icon:'🤝',desc:'体質：戦いの最初に、アクセサリー獲得条件を1つ引き直せる。（戦闘中の条件の横のボタン）'},
   '魔王の親衛兵':{kind:'wall',name:'鉄壁',icon:'🧱',cost:{count:2},desc:'このwaveの間、受けるダメージが半分になる。'},
   '四天王もどき':{kind:'mimic',name:'見よう見まね',icon:'🎭',cost:{gold:10,hp:10,comboBest:1,count:3},desc:'直前の自分の行動と、同じ行動をもう1回する。数字カードや装備を置いた直後なら、同じカードの写しを手札に1枚加える。軍師カードの直後なら、同じ効果をもう1回。特殊技の直後なら、その技をもう1回（その技のコストは払わない）。見よう見まね自身は真似できない。使うたびにお金10G・体力10・スーパーコンボ1（一番多い色から）を払う。1戦に3回まで。どれか1つでも足りないと使えない。'},
+  '最弱の四天王':{name:'奴は最弱',icon:'😴',desc:'体質：敵が油断する。戦いの最初の妨害が5ターン遅れる。'},
+  '普通の四天王':{name:'普通が一番',icon:'🙂',desc:'体質：5と6の数字カードは、どの色としても使える。'},
+  'たまたま四天王':{kind:'dice',name:'たまたま',icon:'🎲',cost:{count:3},desc:'サイコロを振る。1：何も起きない／2：100G／3：体力が全回復／4：手札の数字カード1枚が10になる／5：次の敵の妨害が消える／6：敵の体力が最大の1割減る。'},
+  '影の四天王':{name:'影分身',icon:'👥',desc:'体質：旗を狙う敵の妨害が、50%の確率で外れる。'},
+  'アンチ四天王':{kind:'anti',name:'アンチ',icon:'🚫',cost:{count:2},desc:'敵がかけている効果（色封じ・コンボダウン・マイナスレイン・暗闇・防御）を全部打ち消す。'},
+  '四天王を継ぐ者':{kind:'inherit',name:'継承',icon:'🔱',cost:{count:1},desc:'今あるスーパーコンボを1色選び、別の色へ丸ごと移す。'},
+  '四天王を超えた男':{kind:'limitbreak',name:'限界突破',icon:'💥',cost:{count:1},desc:'使い切った特殊技（自分と合体相手）の回数を、1回ずつ回復する。'},
+  '四天王の元締め':{name:'顔が利く',icon:'🤵',desc:'体質：お店の品ぞろえを、1回の準備につき1回、入れ替えられる。'},
+  '最強の四天王':{name:'最強の証明',icon:'🏆',desc:'体質：閉じた旗が全部役ありなら、総攻撃力が2倍になる。'},
+  '魔王の影':{kind:'shadow',name:'影うつし',icon:'🪞',cost:{count:1},desc:'閉じた旗を1つ選ぶ。その3枚の写しを、空の旗に置いて閉じる。'},
+  '魔王の化身':{kind:'usurp',name:'乗っ取り',icon:'👿',cost:{combo:['red',2]},desc:'敵の今の攻撃力の1割を、自分の攻撃力に足す（そのwaveだけ）。'},
+  '不死身の魔王':{name:'不死身',icon:'♾',desc:'体質：1戦に1回、体力が0になっても全回復で生き返る。'},
+  '深淵の魔王':{kind:'bloodwrite',name:'血文字',icon:'✒',cost:{hp:50},desc:'体力50を払って、手札の数字カード1枚を、好きな色・好きな数字に書き換える。'},
+  '終焉の魔王':{kind:'end',name:'終焉',icon:'🌌',cost:{hp:100},desc:'体力100を払って、この戦いの残りの「攻撃力×2」の予定を全部消す。'},
+  '滅びの化身':{kind:'annihilate',name:'滅ぼす',icon:'☠',cost:{count:3},desc:'手札の1枚をゲームから消して（墓地にも行かない）、1枚引く。'},
+  '星を喰らうもの':{kind:'stareat',name:'星喰い',icon:'⭐',cost:{comboAll:'yellow'},desc:'黄（★）のスーパーコンボを全部食べる。食べた1つにつき、敵の最大体力の3%のダメージを与える。'},
+  '次元を砕く者':{kind:'dimension',name:'次元移動',icon:'🌀',cost:{count:3},desc:'旗に置いてある自分のカード1枚を、別の未完成の旗へ移す。'},
+  '時の支配者':{kind:'rewind',name:'巻き戻し',icon:'⏪',cost:{count:2},desc:'ターン数を5戻す。敵の攻撃力の上昇も5ターン分戻る。妨害の予定はそのまま。'},
+  '世界の終わり':{kind:'doomsday',name:'終末',icon:'🌍',cost:{hpPct:50},desc:'今の体力の半分を払って、敵の今の体力を半分にする。'},
+  '全てを無に帰すもの':{kind:'nullify',name:'無に帰す',icon:'⚫',cost:{count:1},desc:'このwaveを最初からやり直す。盤面と手札を山札に戻して引き直し、ターンは0、敵がかけている効果も消える。'},
   '竜騎士':{kind:'eye',name:'上空からの目',icon:'🦅',cost:{hp:20},desc:'山札の上5枚を見て、好きな1枚を引く。（残りの4枚は山札の上に残る）'},
 };
 Object.assign(MON_SKILL,MON_SKILL_NEW);
-let growN=0, atkFx={rush:false,oath:false};   // growN＝倒した敵の数（体質）／atkFx＝次の攻撃にかかる倍率（突進・闇の誓い）
+const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
+let growN=0, immortalReady=false, shopRe=false, atkFx={rush:false,oath:false};   // growN＝倒した敵の数（体質）／atkFx＝次の攻撃にかかる倍率（突進・闇の誓い）
 let lastAct=null, mimicFree=null, mountOn=false, buried=[], condRerolled=false;   // lastAct＝直前の行動（見よう見まね用）／mountOn＝山のように／buried＝埋めたカード
 function skHpCost(c){ return c.hpPct?Math.floor(playerHp*c.hpPct/100):(c.hp||0); }
 function skCombo(c){   // 払うスーパーコンボ：[色,数]。comboBest＝いちばん多い色から
@@ -1742,16 +1763,19 @@ function skCombo(c){   // 払うスーパーコンボ：[色,数]。comboBest＝
 function skCostHtml(m){ const c=m&&m.cost; if(!c) return ''; const a=[];
   if(c.combo) a.push(miniIcon(EMBLEM[c.combo[0]],CFILL[c.combo[0]])+'×'+wormCost(c.combo[1]));
   if(c.comboBest) a.push('最多色コンボ×'+c.comboBest);
+  if(c.comboAll) a.push(miniIcon(EMBLEM[c.comboAll],CFILL[c.comboAll])+'×全部');
   if(c.hp) a.push('❤'+c.hp); if(c.hpPct) a.push('❤'+c.hpPct+'%'); if(c.gold) a.push(c.gold+'G'); return a.join(' '); }
 function skCostText(m){ const c=m&&m.cost; if(!c) return ''; const a=[];
   if(c.combo) a.push(CNAME[c.combo[0]].replace('旗','')+'のスーパーコンボ'+c.combo[1]);
   if(c.comboBest) a.push('一番多い色のスーパーコンボ'+c.comboBest);
+  if(c.comboAll) a.push(CNAME[c.comboAll].replace('旗','')+'のスーパーコンボ全部');
   if(c.hp) a.push('体力'+c.hp); if(c.hpPct) a.push('体力'+c.hpPct+'%'); if(c.gold) a.push(c.gold+'G'); if(c.count) a.push('1戦に'+c.count+'回まで'); return a.join('＋'); }
 function skCheck(m){   // 払えるか（払わずに調べる）。払えない時は理由を返す
   if(mimicFree&&mimicFree.kind===m.kind) return null;   // 見よう見まねで真似する時は、コストなし
   const c=m.cost||{}, hpN=skHpCost(c);
   if(hpN && playerHp-hpN<1) return `体力が足りません。（${hpN}払うと体力が残らない／いま${Math.round(playerHp)}）\n最大体力を増やすと使えます。`;
   if(c.gold && gold<c.gold) return `お金が足りません。（${c.gold}G必要／いま${gold}G）`;
+  if(c.comboAll){ const v=CHARACTER.combo?(carryNext()[c.comboAll]||0):(carryMap[c.comboAll]||0); if(v<1) return `${CNAME[c.comboAll]}のスーパーコンボがありません。`; }
   { const cb=skCombo(c); if(cb){ const v=CHARACTER.combo?(carryNext()[cb[0]]||0):(carryMap[cb[0]]||0), need=wormCost(cb[1]); if(v<need) return c.comboBest?`スーパーコンボが${need}以上ないと使えません。\n（いまは最大でも${v}）`:`${CNAME[cb[0]]}のスーパーコンボが${need}以上ないと使えません。\n（いま${v}）`; } }
   return null; }
 function skPay(m){ const bad=skCheck(m); if(bad){ gameAlert(bad); return false; }
@@ -1759,6 +1783,7 @@ function skPay(m){ const bad=skCheck(m); if(bad){ gameAlert(bad); return false; 
   if(mimicFree&&mimicFree.kind===m.kind){ mimicFree=null; return true; }
   const c=m.cost||{}, hpN=skHpCost(c), cb=skCombo(c);
   if(cb && !scPay(cb[0],cb[1],()=>cb[1])) return false;
+  if(c.comboAll && !scPay(c.comboAll,1,v=>v)) return false;
   if(hpN) playerHp-=hpN; if(c.gold) gold-=c.gold; if(c.count) spec.mon++; return true; }
 function skDone(msg){ if(msg) hint(msg,true); playSfx('combo'); render(); try{ layoutHand(false); }catch(e){} }
 function waitIdle(){ return new Promise(res=>{ const t=()=>{ if(!busy&&!pending) res(); else setTimeout(t,80); }; t(); }); }
@@ -1919,6 +1944,89 @@ SKFN.mimic=m=>{
   if(la.type==='tactic'){ const c={kind:'tactics',...TACTICS.find(t=>t.type===la.t),uid:uid(),temp:true}; hand.push(c); skDone(`🎭 見よう見まね！ 軍師カード「${c.name}」をもう1回。`); useTacticByIdx(hand.length-1,c); return; }
   const c={...la.card,uid:uid(),temp:true}; delete c.autoPlaced; delete c.autoFresh; if(c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; }
   hand.push(c); skDone(`🎭 見よう見まね！ ${cardDisplayName(c)}の写しが手札に来た。`);
+};
+
+SKFN.dice=m=>{
+  if(!skPay(m)) return; const r=1+Math.floor(Math.random()*6); let msg='';
+  if(r===1) msg='しかし、何も起きなかった。';
+  else if(r===2){ gold+=SKP.diceHeal; msg=`${SKP.diceHeal}Gを拾った！`; }
+  else if(r===3){ playerHp=playerHpMax; msg='体力が全回復した！'; }
+  else if(r===4){ const T=hand.filter(c=>c.kind==='troop'); if(T.length){ const c=T[Math.floor(Math.random()*T.length)]; if(c.origValue===undefined) c.origValue=c.value; c.value=10; msg=`手札の${cardDisplayName(c)}が10になった！`; } else msg='数字カードがなかった。'; }
+  else if(r===5){ const jt=nextDisTurn(); if(jt!=null){ const jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); msg=`次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた！`; } else msg='消せる妨害の予定がなかった。'; }
+  else { const D=Math.floor(WAVES[stageIndex].threshold*SKP.diceHp); skDone(); strikeBoss(Math.min(D,bossHp),`🎲 たまたま！ 出目6：敵の体力が最大の1割（${fmtCompact(D)}）減った！`,'dice',D); return; }
+  skDone(`🎲 たまたま！ 出目${r}：${msg}`);
+};
+SKFN.anti=m=>{
+  const on=disGuardOn()||dis.halfNext||(dis.halfColor&&enemyTurn<dis.halfUntil)||disDarkOn()||nullOn()||poisonOn();
+  if(!on) return hint('打ち消せる敵の効果がかかっていません。',true);
+  if(!skPay(m)) return;
+  dis.guardN=0; dis.guardUntil=0; dis.halfNext=false; dis.halfColor=null; dis.halfUntil=0; dis.darkUntil=0; dis.nullUntil=0; dis.poisonUntil=0; syncGuardFx();
+  skDone('🚫 アンチ！ 敵がかけている効果を全部打ち消した。');
+};
+SKFN.inherit=m=>{
+  const mp=CHARACTER.combo?carryNext():carryMap, from=GAME_COLORS.filter(c=>(mp[c]||0)>0);
+  if(!from.length) return hint('スーパーコンボがありません。',true);
+  const nm=c=>CNAME[c].replace('旗','');
+  pickDialog('🔱 継承：どの色のコンボを移す？', from.map(c=>({html:`<span style="color:${CFILL[c]};font-weight:900">■</span> ${nm(c)}（${mp[c]}）`})), a=>{
+    const f=from[a], to=GAME_COLORS.filter(c=>c!==f);
+    pickDialog('🔱 継承：どの色へ移す？', to.map(c=>({html:`<span style="color:${CFILL[c]};font-weight:900">■</span> ${nm(c)}`})), b=>{
+      const t=to[b], n=(CHARACTER.combo?carryNext():carryMap)[f]||0; if(n<=0||!skPay(m)) return;
+      if(CHARACTER.combo){ const have=carryMap[f]||0, rest=n-have; delete carryMap[f]; if(rest>0) scSpent[f]=(scSpent[f]||0)+rest; } else delete carryMap[f];
+      carryMap[t]=(carryMap[t]||0)+n; skDone(`🔱 継承！ ${nm(f)}のスーパーコンボ${n}を、${nm(t)}へ移した。`); }); });
+};
+SKFN.limitbreak=m=>{
+  const ks=['beg','punch','guard','cure','bullet','mon','mon2'].filter(k=>specEnabled(k)&&!specNoLimit(k)&&specMax(k)<99&&(spec[k]||0)>0&&(spec[k]||0)>=specMax(k));
+  const list=ks.filter(k=>k!=='mon').concat(slotStash&&slotStash.n>0?['stash']:[]);   // 合体の2つ目の技を使っている間は、1つ目の技の回数が退避されている（この技自身は回復しない）
+  if(!list.length) return hint('使い切った特殊技がありません。',true);
+  if(!skPay(m)) return; list.forEach(k=>{ if(k==='stash') slotStash.n=Math.max(0,slotStash.n-1); else spec[k]=Math.max(0,(spec[k]||0)-1); });
+  skDone(`💥 限界突破！ 使い切った特殊技${list.length}個が1回ずつ回復した。`);
+};
+SKFN.shadow=m=>{
+  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result), em=flags.filter(f=>!f.closed&&f.cards.length===0&&!isLocked(f));
+  if(!cl.length) return hint('写せる閉じた旗がありません。',true); if(!em.length) return hint('空の旗がありません。',true);
+  pickDialog('🪞 影うつし：どの旗を写す？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(x.f.result.base)}）`})), a=>{
+    const src=cl[a].f, dst=flags.find(f=>!f.closed&&f.cards.length===0&&!isLocked(f)); if(!src.closed||!dst||!skPay(m)) return;
+    dst.cards=src.cards.map(c=>({...c,uid:uid(),temp:true})); dst.closed=true; dst.closeSeq=++closeSeqCounter; dst.result={...src.result}; dst.capturedByEnemy=false; dst.baseCombo=src.baseCombo; dst.symbolColor=src.symbolColor; dst.comboMult=src.comboMult; dst.sheetSum=src.sheetSum; dst.eqBonus=src.eqBonus;
+    addScore(dst.result.base||0); skDone(`🪞 影うつし！ 旗${cl[a].i+1}の写しを、空の旗に置いて閉じた。`); try{ endCheck(); }catch(e){} render(); });
+};
+SKFN.usurp=m=>{ const e=currentEnemyAtk(), d=Math.floor(e*SKP.usurpRate); if(d<=0) return hint('奪える攻撃力がありません。',true); if(!skPay(m)) return; addScore(d); skDone(`👿 乗っ取り！ 敵の攻撃力の1割（${fmtCompact(d)}）を自分の攻撃力に足した。`); };
+SKFN.bloodwrite=m=>{
+  const T=hand.filter(c=>c.kind==='troop'); if(!T.length) return hint('手札に数字カードがありません。',true);
+  pickDialog('✒ 血文字：どのカードを書き換える？', T.map(c=>({html:cardLabelHtml(c)})), a=>{
+    const c=T[a]; pickDialog('✒ 血文字：どの色にする？', GAME_COLORS.map(k=>({html:`<span style="color:${CFILL[k]};font-weight:900">■</span> ${CNAME[k].replace('旗','')}`})), b=>{
+      const col=GAME_COLORS[b]; pickDialog('✒ 血文字：どの数字にする？', [1,2,3,4,5,6,7,8,9,10].map(v=>({label:String(v)})), d=>{
+        const v=d+1; if(hand.indexOf(c)<0||!skPay(m)) return;
+        if(!c.dyeOrig) c.dyeOrig={color:c.color,altColor:c.altColor,mixed:c.mixed}; if(c.origValue===undefined) c.origValue=c.value;
+        c.color=col; c.altColor=undefined; c.mixed=false; c.value=v; skDone(`✒ 血文字！ カードが${cardDisplayName(c)}に書き換わった。`); }); }); });
+};
+SKFN.end=m=>{
+  const ts=Object.keys(enemySched).map(Number).filter(t=>enemySched[t]==='rage');
+  if(!ts.length) return hint('残りの「攻撃力×2」の予定がありません。',true);
+  if(!skPay(m)) return; ts.forEach(t=>delete enemySched[t]); skDone(`🌌 終焉！ 残りの攻撃力×2の予定${ts.length}個を消した。`);
+};
+SKFN.annihilate=m=>{
+  if(!hand.length) return hint('手札がありません。',true);
+  pickDialog('☠ 滅ぼす：どのカードをゲームから消す？', hand.map(c=>({html:cardLabelHtml(c)})), a=>{
+    const c=hand[a]; if(!c||!skPay(m)) return; hand.splice(a,1); deletedUids.add(c.uid); autoRefill(1); skDone(`☠ 滅ぼす！ ${cardDisplayName(c)}をゲームから消した。`); });
+};
+SKFN.stareat=m=>{
+  const v=CHARACTER.combo?(carryNext()['yellow']||0):(carryMap['yellow']||0); if(v<1||!(bossHp>0)) return hint('黄のスーパーコンボがありません。',true);
+  if(!skPay(m)) return; const D=Math.floor(WAVES[stageIndex].threshold*SKP.stareat*v);
+  strikeBoss(Math.min(D,bossHp),`⭐ 星喰い！ 黄のスーパーコンボ${v}を食べて、敵に${fmtCompact(D)}ダメージ。`,'stareat',D);
+};
+SKFN.dimension=m=>{
+  if(guidanceTargets(0).length===0) return hint('動かせるカードが盤面にありません。',true);
+  const sc={kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}; busy=false; pending={type:'guidance',step:0,handUid:sc.uid,skillCard:sc}; playSfx('combo'); render();
+  hint('🌀 次元移動！ 動かしたいカードがある旗をタップ');
+};
+SKFN.rewind=m=>{ if(enemyTurn<=0) return hint('戻せるターンがありません。',true); if(!skPay(m)) return; const b=enemyTurn; enemyTurn=Math.max(0,enemyTurn-SKP.rewind); skDone(`⏪ 巻き戻し！ ターンが${b}→${enemyTurn}に戻った。敵の攻撃力の上昇も戻った。`); };
+SKFN.doomsday=m=>{ if(!(bossHp>1)) return; const D=Math.floor(bossHp/2); if(!skPay(m)) return; strikeBoss(D,`🌍 終末！ 敵の体力が半分（${fmtCompact(D)}）になった。`,'doomsday',D); };
+SKFN.nullify=m=>{
+  showConfirm('⚫ 無に帰す：このwaveを最初からやり直します。\n盤面と手札を山札に戻して引き直し、ターンは0、敵がかけている効果も消えます。使いますか？',()=>{
+    if(busy||pending||!skPay(m)) return;
+    flags.forEach(f=>{ f.frz=0; }); graveyard.push(...hand.filter(c=>c&&!c.temp)); hand=[]; buried.forEach(c=>graveyard.push(c)); buried=[];
+    const wa=waveAttempt; advanceWaveAttempt(); waveAttempt=wa; enemyTurn=0;
+    hint('⚫ 無に帰す！ waveを最初からやり直した。',true); });
 };
 function condReroll(){
   if(condRerolled||!accCond.cur||totalWaves!==accStat.w0) return; condRerolled=true; accCond.n=Math.max(0,accCond.n-1); condReveal(); renderCondBar(); hint('🤝 根回し！ アクセサリー獲得条件を引き直した。',true); playSfx('combo');
@@ -2336,7 +2444,7 @@ const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copy
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
-function tryRevive(){ if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
+function tryRevive(){ if(immortalReady){ immortalReady=false; playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
@@ -2617,7 +2725,10 @@ function addWaveCurses(){
 }
 const DISABLED_EVENTS=['comboreset'];   // 一旦無効にしている敵イベント（予定表から外す）。戻すときは空にする
 const stripDisabledEv=sc=>{ Object.keys(sc).forEach(k=>{ if(DISABLED_EVENTS.includes(sc[k])) delete sc[k]; }); return sc; };
-function genSchedule(){ return stripDisabledEv(genSchedule0()); }
+function genSchedule(){ const sc=stripDisabledEv(genSchedule0());
+  if(monIs('最弱の四天王')&&waveAttempt<=1){ const ks=Object.keys(sc).map(Number).filter(t=>sc[t]!=='rage'&&isDisEv(sc[t])).sort((a,b)=>a-b);   // 奴は最弱：戦いの最初の妨害が遅れる
+    if(ks.length){ const t0=ks[0], ty=sc[t0]; delete sc[t0]; let t=t0+SKP.weak; while(sc[t]) t++; sc[t]=ty; } }
+  return sc; }
 function genSchedule0(){
   const w=WAVES[stageIndex];
   if(w.fixed){ const s={}; Object.keys(w.fixed).forEach(k=>{ s[+k]=w.fixed[k]; }); return s; }
@@ -2666,7 +2777,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?10:1)*(atkFx.rush?2:1);
+  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?10:1)*(atkFx.rush?2:1)*(provenOn()?2:1);
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -2946,6 +3057,7 @@ function enemyCardFly(fi,card){   // 敵（右上）からカードが飛んで�
   }catch(e){ try{ card.flying=false; }catch(_){} }
 }
 function applyEnemyEvent(type,target,viaCard){
+  if(monIs('影の四天王')&&FLAG_EVS.includes(type)&&Math.random()<SKP.shadowMiss){ try{ takeAutoPlan(type); }catch(e){} hint(`👥 影分身！ 敵の${(EVENT_INFO[type]||{}).label||DIS_NAME[type]||type}は外れた。`,true); playSfx('combo'); return; }
   if(mountOn&&['guard','bguard','comboreset','colnull','colhalf'].includes(type)){ hint(`⛰ 山のように！ 敵の${(EVENT_INFO[type]||{}).label||type}を受け止めた。スーパーコンボは減らない。`,true); playSfx('combo'); return; }
   dlog('enemy_event',{event:type}); enemyEventFX(type);
   if(DIS_NAME[type]){ disFired++; disCount[type]=(disCount[type]||0)+1; disLast=type; }
@@ -3359,7 +3471,7 @@ function isLocked(f){ return f.lockedUntil>turnCounter; }
 function isAlexanderCard(c){ return c.type==='alexander' || c.short==='青♾️' || c.label==='青♾️'; }
 function isDariusCard(c){ return c.type==='darius' || c.short==='赤♾️' || c.label==='赤♾️'; }
 function isWildCard(c){ return c.kind==='wild' || isAlexanderCard(c) || isDariusCard(c); }
-function cardColors(c){ return c.voided ? ['void'+c.uid] : (c.mixed ? [c.color, c.altColor] : [c.color]); }
+function cardColors(c){ if(c.kind==='troop'&&(c.value===5||c.value===6)&&!c.voided&&monIs('普通の四天王')) return GAME_COLORS.slice(); return c.voided ? ['void'+c.uid] : (c.mixed ? [c.color, c.altColor] : [c.color]); }
 function colorsMatch(c1, c2){ return cardColors(c1).some(x=>cardColors(c2).includes(x)); }
 function hexToRgba(hex, alpha){
   const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
@@ -3961,7 +4073,7 @@ function checkWaveOutcome(){
   const noRoleQ=hasNoRoleFlag(), qm=quickMult(atkTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
   if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
   if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
-  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?10:1)*(atkFx.rush?2:1), pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
+  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?10:1)*(atkFx.rush?2:1)*(provenOn()?2:1), pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
   if(atkFx.rush||atkFx.oath){ try{ stageDmgPop('player',(atkFx.oath?'🌑闇の誓い ×10 ':'')+(atkFx.rush?'🐂突進 ×2':''),'',true); }catch(e){} atkFx.rush=false; atkFx.oath=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   let diff=pAtk-eAtk;
@@ -3995,7 +4107,7 @@ function checkWaveOutcome(){
   dlog('attack_calc',{stage:stageIndex+1, wave:waveAttempt, flags:dbgFlags0, scoreBefore:dbgScore0, superBonus:synergyBonus, superDetail:dbgSyn?dbgSyn.details:[], superMultUsed:dbgSyn&&dbgSyn.bonus>0?[].concat.apply([],dbgSyn.details.map(d=>d.mults)):null, superCarryAfter:carryTxt(), poison:atkPoison, atkTurn:atkTurn, enemyTurnNow:enemyTurn, pAtk:pAtk, eAtk:eAtk, eAtkNow:currentEnemyAtk(), diff:diff, dealt:dealt, taken:taken, dmgMult:damageMult(), takenReal:takenReal, rolesAllDone:allRolesDone(), sealPenalty:sealPenalty, pHpBefore:dbgP0, pHpAfter:playerHp, eHpBefore:dbgB0, eHpAfter:bossHp, defeated:defeated});
   hint(`${halved?`🛡敵の防御で攻撃が半分に！（${rawAtk}→${pAtk}）\n`:''}攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
   let revivedNow=false;
-  if(!defeated && playerHp<=0 && (hpStock>0||zombieRevive)){ revivedNow=tryRevive(); }
+  if(!defeated && playerHp<=0 && (hpStock>0||zombieRevive||immortalReady)){ revivedNow=tryRevive(); }
   if(!defeated && playerHp<=0){
     setTimeout(()=>{
       triggerPlayerHitFX(takenReal+sealPenalty, ()=>{
@@ -5462,7 +5574,7 @@ function renderBattle(){
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
-    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×10'); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の行動はターンを使わない'); if(buried.length) a.push(`🦴埋めた${buried.length}枚(次のwaveで戻る)`); db.textContent=a.join('  '); }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×10'); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の行動はターンを使わない'); if(buried.length) a.push(`🦴埋めた${buried.length}枚(次のwaveで戻る)`); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); db.textContent=a.join('  '); }
     try{ document.body.classList.toggle('rain-on', !!poisonOn()); }catch(e){} }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
@@ -6542,7 +6654,7 @@ function advanceToNextStage(){
   buried=[]; lastAct=null; mountOn=false; haunt={}; jamArmed=false; score=0; displayedScore=0; atkFx={rush:false,oath:false}; if(monIs('元の身体')){ score=SKP.growAtk*growN; displayedScore=score; }   // 体質「成長」：倒した敵の数だけ、戦闘の最初の攻撃力が増える
   hostCarry=0; guardOn=false; defendOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()&&!tutorialOn()) carryMap={};   // ミジンコの間は、スーパーコンボを次の戦いへ引き継げる
-  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=1; applyWormBody(); zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=1; applyWormBody(); zombieRevive=false; immortalReady=monIs('不死身の魔王'); monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals();
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -8153,7 +8265,7 @@ function grantStageReward(){
   }
   closeStrayModals();
   try{ checkGoalAnnounce(true); }catch(e){}   // 倒した時に判定する条件を、ここで最終判定
-  inPrep=true;
+  inPrep=true; shopRe=false;
   playSfx('bossDefeat');
   setTimeout(()=>playSfx('reward'), 350);
   const res=moneyResults(); let total=res.filter(x=>x.ok).reduce((t,x)=>t+x.cash,0);
@@ -8226,7 +8338,7 @@ function restoreAllMods(){ clearPf(); moonClear();   // 鼓舞などの一時的
 function showPrep(keepStock){
   try{ restoreAllMods(); }catch(e){}
   try{ flags.forEach(f=>{ graveyard.push(...f.cards.filter(Boolean)); f.cards=[]; }); graveyard.push(...stomach.filter(Boolean)); stomach=[]; flags=freshFlags(); }catch(e){}   // 勝利直後に盤面へ残ったカードを墓地へ（アクセサリーの封印・削除の対象から漏れて、準備画面と実戦の山札がズレるのを防ぐ）
-  inPrep=true;
+  inPrep=true; shopRe=false;
   if(!keepStock) rollShopStock();
   refreshPrep();
   document.getElementById('prepModal').style.display='flex';
@@ -8346,7 +8458,8 @@ function renderShop(){   // 再描画してもスクロール位置を保つ（�
 function renderShop_(){
   const m=document.getElementById('shopModal'), mode=m.dataset.mode||'buydeck', kind=mode==='buyacc'?'acc':'deck', body=m.querySelector('#shopBody'); body.innerHTML='';
   m.querySelector('#shopTitle').textContent={buyacc:'💎 アクセサリーを買う',buydeck:'🃏 デッキを買う',sell:'💰 売る'}[mode]||'';
-  m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`;
+  m.querySelector('#shopGold').innerHTML=`所持金 <b>${gold}G</b>`+(monIs('四天王の元締め')?` <button class="btn" id="shopReroll" style="margin-left:8px;padding:2px 8px;font-size:12px"${shopRe?' disabled':''}>🤵品ぞろえを入れ替える${shopRe?'（済）':''}</button>`:'');
+  { const rb=m.querySelector('#shopReroll'); if(rb) rb.onclick=()=>{ if(shopRe) return; shopRe=true; rollShopStock(); sellSel=[]; buySel=[]; renderShop(); hint('🤵 顔が利く！ 品ぞろえを入れ替えた。',true); }; }
   renderShopMini(m);
   installScrollbars(); updBarsSoon();
   const head=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin-top:8px'; h.textContent=t; body.appendChild(h); };
@@ -8656,7 +8769,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-11c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-11d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
