@@ -1693,7 +1693,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   '農夫':{kind:'harvest',name:'収穫祭',icon:'🌾',desc:'次のターンに、HPが100回復します。'},
   '騎士':{kind:'armed',name:'完全武装',icon:'🛡',desc:'赤のスーパーコンボを3減らす代わりに、このwaveの間、武器カードの攻撃力が2倍になります。（カードを置く条件は同じ）'},
   '死霊術師':{kind:'possess',name:'憑依',icon:'👻',desc:'紫のスーパーコンボを1消費して、3ターンの間、仲間にしているモンスターの1体に変身します。（見た目も特殊技もそのモンスターになります）'},
-  'ドラキュラ':{name:'吸血',icon:'🧛',desc:'攻撃したダメージの半分だけ、HPが回復します。'},
+  'ドラキュラ':{name:'吸血',icon:'🧛',desc:'攻撃したダメージの半分だけ、HPが回復します。最大HPもその分だけ上がります（ゲームの間ずっと）。'},
   'メデューサ':{kind:'stone',name:'石化',icon:'🗿',desc:'紫のスーパーコンボを1消費して、3ターンの間、敵の攻撃力の上昇と妨害を止めます。（ターンは進みます）'},
   '狼男':{kind:'moon',name:'月光',icon:'🌕',desc:'黄色のスーパーコンボを1消費して、その時の手札と予測レーンのカードをすべて数字カードに変えます。この戦いの間、それらを置くと点数が2倍になります。（置く条件の数字は同じ）'},
   'トロル':{kind:'giant',name:'大巨漢',icon:'💪',desc:'緑のスーパーコンボを1消費して、攻撃力を10000上げます。'},
@@ -4103,7 +4103,7 @@ function checkWaveOutcome(){
   const dealt=Math.max(0,diff), taken=Math.max(0,-diff);
   const hpBefore=bossHp;
   bossHp=Math.max(0, bossHp-dealt);
-  if(dealt>0&&monIs('ドラキュラ')){ healPlayer(Math.round(dealt/2)); }
+  if(dealt>0&&monIs('ドラキュラ')){ const dh=Math.round(dealt/2); hpBonus+=dh; recalcHpMax(); try{ stageDmgPop('player','🧛吸血 HP+'+fmtCompact(dh)+'・最大HPも+'+fmtCompact(dh),'',true); }catch(e){} }   // 吸血：回復した分だけ最大体力も上がる（ゲームの間ずっと）
   if(dealt>0&&hasAcc('fang')){ const fh=Math.max(1,Math.round(dealt*ACC_NEW.fang*accX())); healPlayer(fh); try{ stageDmgPop('player','🦷吸血の牙 +'+fmtCompact(fh),'',true); }catch(e){} }   // ドラキュラ：吸血（攻撃したダメージの半分が回復）
   lastDealt=Math.max(0,dealt-hpBefore); lastPower=Math.max(0,pAtk); powerHist.push(lastPower); if(powerHist.length>JUMP_PARAM.histN) powerHist.shift();   // 次の敵を選ぶ基準：倒した時の攻撃力（敵の攻撃力を引く前）
   let takenReal=buzzGate(Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult)), wallHit=false;
@@ -8882,7 +8882,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-11e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-11f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
