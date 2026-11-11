@@ -1284,6 +1284,7 @@
       <button class="spec-btn" id="specGuard"><span class="si">🛡</span><span class="sl">防御</span><b id="specGuardN">1</b></button>
       <button class="spec-btn" id="specCure"><span class="si">🧪</span><span class="sl">薬</span><b id="specCureN">1</b></button>
       <button class="spec-btn" id="specBullet"><span class="si">⏱</span><span class="sl">バレットタイム</span><b id="specBulletN">1</b></button>
+      <button class="spec-btn" id="pocketBtn" style="display:none"><span class="si">👝</span><span class="sl" id="pocketL">ポケット</span></button>
       <button class="spec-btn" id="specMon" style="display:none"><span class="si" id="specMonI">✨</span><span class="sl" id="specMonL"></span><b id="specMonN">1</b></button>
       <button class="spec-btn" id="specMon2" style="display:none"><span class="si" id="specMon2I">✨</span><span class="sl" id="specMon2L"></span><b id="specMon2N">1</b></button>
       <span class="spec-ph"></span><span class="spec-ph"></span><span class="spec-ph"></span>
@@ -1753,6 +1754,7 @@ const MON_SKILL_NEW={
 };
 Object.assign(MON_SKILL,MON_SKILL_NEW);
 const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
+let pocket=null, gloveUsed=0, lanternUsed=false;   // 予備のポケットの中のカード／捨て上手の手袋の今のwaveの使用数／墓守のランタン（1戦に1回）
 let growN=0, immortalReady=false, shopRe=false, atkFx={rush:false,oath:false};   // growN＝倒した敵の数（体質）／atkFx＝次の攻撃にかかる倍率（突進・闇の誓い）
 let lastAct=null, mimicFree=null, mountOn=false, buried=[], condRerolled=false;   // lastAct＝直前の行動（見よう見まね用）／mountOn＝山のように／buried＝埋めたカード
 function skHpCost(c){ return c.hpPct?Math.floor(playerHp*c.hpPct/100):(c.hp||0); }
@@ -2657,7 +2659,8 @@ function bigFx(ic,t,sub,boom,ms){
   try{ const d=document.createElement('div'); d.className='big-fx'+(boom?' boom':''); d.innerHTML=`<div class="bf-ic">${ic}</div><div class="bf-t">${t}</div>${sub?`<div class="bf-s">${sub}</div>`:''}`; document.body.appendChild(d); if(ms) d.style.animationDuration=(ms/1000)+'s'; setTimeout(()=>d.remove(),ms||2500); }catch(e){}
 }
 let boomFx=null;
-function comboLoss(pen,msg,col){   // 持ち越しのスーパーコンボを下げる（色の指定がなければ、持っている色からランダムに1色）
+function comboLoss(pen,msg,col){
+  if(hasAcc('combo_ins')){ pen=Math.ceil(pen*Math.max(0,1-ACC_NEW.ins*accX())); msg='🛟 コンボ保険で減る量が半分に！ '+msg; }   // 持ち越しのスーパーコンボを下げる（色の指定がなければ、持っている色からランダムに1色）
   let ks=Object.keys(carryMap);
   if(col==='all'){} else if(col) ks=ks.filter(k=>k===col); else if(ks.length) ks=[ks[Math.floor(Math.random()*ks.length)]];
   const lost=ks.map(k=>CNAME[k]+(carryMap[k]-Math.max(1,carryMap[k]-pen)>0?'×'+carryMap[k]+'→×'+Math.max(1,carryMap[k]-pen):'')).join(' ');
@@ -2759,9 +2762,9 @@ const slowStyle=k=>{ const n=slowN(k); return n?` style="background:rgba(60,140,
 function enemyAtkAt(t){
   const w=WAVES[stageIndex];
   let mult=1, te=t;
-  for(let k=1;k<=t;k++){ const n=slowN(k); if(enemySched[k]==='rage') mult*=1+(BALANCE.rageMultiplier-1)*Math.pow(0.5,n); if(n) te-=(1-Math.pow(0.5,n)); }   // 殴る：重ね掛けで1回なら上昇も攻撃力×2の増え分も1/2（×2→×1.5）、2回で1/4…
+  for(let k=1;k<=t;k++){ const n=slowN(k); if(enemySched[k]==='rage') mult*=1+(BALANCE.rageMultiplier-1)*(hasAcc('rage_bell')?Math.max(0,1-ACC_NEW.bell*accX()):1)*Math.pow(0.5,n); if(n) te-=(1-Math.pow(0.5,n)); }   // 殴る：重ね掛けで1回なら上昇も攻撃力×2の増え分も1/2（×2→×1.5）、2回で1/4…
   const fk=FLAG_COUNT/BALANCE.flagCountAtkBase;
-  return Math.round((w.atk + w.grow*te)*fk*mult*monAtkMult);
+  return Math.round((w.atk + w.grow*(hasAcc('slow_chain')?Math.max(0,1-ACC_NEW.chain*accX()):1)*te)*fk*mult*monAtkMult);
 }
 const ACC_PARAM={quickTurns:12, quickMul:5, quickMulNoRole:2, quickTurns2:15, quickMul2:1.5, quickMulNoRole2:1.1};   // 早撃ちのブーツ：このターン以内に全部の旗を完成させて攻撃すると、総攻撃力がこの倍になる（倍の腕輪で増え分が2倍）
 function quickMult(t,noRole){   // 12ターン以内：全部役あり×5／役なし混じり×2。15ターン以内：×1.5／×1.1（倍の腕輪で増え分が2倍）
@@ -2777,7 +2780,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?10:1)*(atkFx.rush?2:1)*(provenOn()?2:1);
+  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?10:1)*(atkFx.rush?2:1)*(provenOn()?2:1)*accAtkMul(enemyTurn);
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -2897,10 +2900,11 @@ function superMults(){
   const m={};
   Object.values(groups).forEach(a=>{
     const col=flags[a[0]].symbolColor, cr=carryMap[col];
-    if(a.length<2 && !cr) return;
+    if(a.length<2 && !cr){ if(hasAcc('first_ring')){ const mm=superMultFor(col,2); if(mm>1) m[a[0]]=mm; } return; }   // 初撃の指輪：×1を×2として数える
     a.sort((x,y)=>(flags[x].closeSeq||0)-(flags[y].closeSeq||0)||x-y);
     a.forEach((i,k)=>{ const mm=superMultFor(col, (cr||1)+k+1); if(mm>1) m[i]=mm; });
   });
+  if(hasAcc('color_bond')){ const cs=new Set(Object.keys(m).map(i=>flags[i].symbolColor)); if(cs.size>=2) Object.keys(m).forEach(i=>{ m[i]*=1+ACC_NEW.bond*accX(); }); }   // 色違いの絆
   return m;
 }
 let hostCarry=0, frozenHost={};   // ホストの指輪：役のない旗の連続数（前のwaveから）
@@ -2922,7 +2926,7 @@ function hostNext(){ const h=hostIdxs().length; if(!h) return 0; return (!hostCa
 // 次のwaveへ持ち越される色ごとの連続数（checkWaveOutcome と同じ計算）
 function carryNext(){
   const cnt={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
-  const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?1:(cr||1)+cnt[c]; });
+  const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?(hasAcc('first_ring')?2:1):(cr||1)+cnt[c]; });
     if(SUPER_PARAM.keepSkipped) Object.keys(carryMap).forEach(c=>{ if(!(c in nm)) nm[c]=carryMap[c]; });
   Object.keys(scSpent).forEach(c=>{ if(c in nm){ nm[c]-=scSpent[c]; if(nm[c]<1) delete nm[c]; } });   // 盤面の役のコンボから払った分
   return nm;
@@ -2934,7 +2938,7 @@ function barrierMult(){
   return on?Math.pow(0.5,accX()):1;
 }
 function resetBattleRound(){
-  copyN=0; armedOn=false; mountOn=false;   // 模造品の倍化・完全武装は、1つのwaveの間だけ
+  gloveUsed=0; copyN=0; armedOn=false; mountOn=false;   // 模造品の倍化・完全武装は、1つのwaveの間だけ
   frozenMults={}; frozenHost={}; bashRateNow=DIS_PARAM.bashRate; bashRateHist=[bashRateNow];   // 斧の命中率は、攻撃して次のwaveになったら元に戻る
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
   try{ flags.forEach(f=>{ f.blindUntil=0; f.eater=0; }); }catch(e){}
@@ -3023,6 +3027,7 @@ function planAt(type,ord){ const q=(autoQ[type]=autoQ[type]||[]); while(q.length
 function takeAutoPlan(type){ const q=(autoQ[type]=autoQ[type]||[]); return q.length?q.shift():newAutoPlan(type); }   // 発動：先頭の予定を使う
 function autoTargetIdx(pl){   // 予定の旗が埋まった・封鎖された等で置けなくなったら、別の旗へ移す
   const cand=evCands(pl.type||'autonum');
+  if(hasAcc('rod')&&cand.length){ const mn=Math.min(...cand.map(c=>flags[c.i].cards.length)), ks=cand.filter(c=>flags[c.i].cards.length===mn); if(pl.flag!==null&&ks.some(c=>c.i===pl.flag)) return pl.flag; pl.flag=ks[Math.floor(Math.random()*ks.length)].i; return pl.flag; }   // 避雷針：必ずカードが一番少ない旗
   if(pl.flag!==null&&cand.some(c=>c.i===pl.flag)) return pl.flag;
   const from=pl.flag; pl.flag=cand.length?cand[Math.floor(Math.random()*cand.length)].i:null;
   try{ if(from!==null&&from!==undefined) dlog('auto_move',{event:pl.type||'autonum',from:from+1,to:pl.flag===null?0:pl.flag+1,cands:cand.map(c=>c.i+1).join(','),flags:flags.map(f=>(f.closed?'閉':'')+f.cards.length+(isLocked(f)?'鎖':'')).join(' ')}); }catch(e){}   // 予告の旗が移った時の記録（原因調べ用）
@@ -3144,6 +3149,7 @@ function applyEnemyEvent(type,target,viaCard){
     hint(`🌧 マイナスレイン！ ${DIS_PARAM.rainTurns}ターンの間、置く数字カードがすべて−1される！`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
   } else if(type==='comboreset'){
     const had=Object.keys(carryMap).length>0 || flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor);
+    if(hasAcc('combo_ins')&&Object.keys(carryMap).length){ Object.keys(carryMap).forEach(c=>{ carryMap[c]=Math.max(1,Math.ceil(carryMap[c]/2)); }); hint('🛟 コンボ保険！ コンボリセットで減る量が半分になった。',true); try{ render(); }catch(e){} return; }
     carryMap={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo) f.symbolColor=null; });
     if(had) bigFx('💥','コンボリセット！','スーパーコンボがすべて0に戻された',true);
     hint(had?'💥 コンボリセット！ スーパーコンボがすべて0に戻された…':'💥 コンボリセット！（今は積み上げたコンボがなかった）',true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
@@ -3188,6 +3194,7 @@ function cardDisplayName(c){
 function addScore(n){ score+=n; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function drawFromPools(){
+  if(activeDeck.length===0) lanternRefill();
   if(activeDeck.length===0) return null;   // 山札が尽きたら補充はない
   return activeDeck.pop();
 }
@@ -3296,7 +3303,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  growN=0; buried=[]; lastAct=null; mountOn=false; atkFx={rush:false,oath:false}; defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
+  growN=0; pocket=null; gloveUsed=0; lanternUsed=false; buried=[]; lastAct=null; mountOn=false; atkFx={rush:false,oath:false}; defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -3452,7 +3459,16 @@ function evaluate(f){
   else if(same){name='バタリオン';mult=2.5;tier='battalion';} else if(runOK){name='スカーミッシュ';mult=3;tier='skirmish';} else {name='ホスト';mult=1;tier='host';}
   if(cs.some(c=>c.voided)){ name='ホスト'; mult=1; tier='host'; }   // ワームホールに無効にされたカードがあると役にならない
   { const rk={'ウェッジ':'wedge','ロイヤルファランクス':'royal','ファランクス':'phalanx','スカーミッシュ':'skirmish','バタリオン':'battalion'}[name]; if(rk && hasAcc('role_'+rk)) mult*=(1+0.5*accX()); if(rk && hasAcc('yaku_only')) mult*=(1+0.5*accX()); }   // 役のみの指輪：役のある旗は1.5倍
-  return {name,mult,tier,base:Math.round(sum*mult),sum};
+  let accM=1; const accNote=[];   // 旗の作り方で強くなるアクセサリー（役の倍率とは別に、旗の攻撃力にかかる。役なし判定は変わらない）
+  if(accEq.length){
+    const k=accX();
+    const dup=(()=>{ for(let i=0;i<reals.length;i++) for(let j=i+1;j<reals.length;j++){ if(val(reals[i])===val(reals[j])||colorSets[i].some(c=>colorSets[j].includes(c))) return true; } return false; })();
+    if(name==='ホスト'&&hasAcc('almost_ring')&&dup){ accM*=1+ACC_NEW.almost*k; accNote.push('💍あと一歩の指輪'); }
+    if(hasAcc('big_bracelet')&&sum>=ACC_NEW.bigSum){ accM*=1+ACC_NEW.bigInc*k; accNote.push('💪大きい数字の腕輪'); }
+    if(hasAcc('small_bracelet')&&sum<=ACC_NEW.smallSum){ accM*=1+ACC_NEW.smallInc*k; accNote.push('🐜小さい数字の腕輪'); }
+    if(hasAcc('rainbow_brooch')&&reals.length===3&&colorSets.every((a,i)=>colorSets.every((b,j)=>i===j||!a.some(c=>b.includes(c))))){ accM*=1+ACC_NEW.rainbow*k; accNote.push('🌈虹のブローチ'); }
+  }
+  return {name,mult,tier,base:Math.round(sum*mult*accM),sum,accM,accNote};
 }
 function resultTier(result){
   if(!result) return 'host';
@@ -3680,7 +3696,7 @@ function advanceTurn(usedCard){
       if(e1){ applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; }
     }
   }
-  if(stepped&&!gameEnded){ const nt=enemyTurn+1, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; const pn=PRE_NOTE[ne]?'　'+PRE_NOTE[ne]:''; hint(`⚠ 次のターン、妨害が来る：${inf.icon||''}${inf.label||ne}${pn}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ 次のターン ${inf.icon||''}${inf.label||''}${pn}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
+  if(stepped&&!gameEnded){ const lead=hasAcc('foresight')?ACC_NEW.foresight:1, nt=enemyTurn+lead, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; const pn=PRE_NOTE[ne]?'　'+PRE_NOTE[ne]:''; hint(`⚠ ${lead>1?lead+'ターン後':'次のターン'}、妨害が来る：${inf.icon||''}${inf.label||ne}${pn}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ ${lead>1?lead+'ターン後':'次のターン'} ${inf.icon||''}${inf.label||''}${pn}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
   dlog('turn',{used:dbgCardStr(usedCard)+(usedCard&&usedCard.kind?'':''), onFlag:lastFi, event:ev||null, enemyAtkNow:currentEnemyAtk()});
   lastFi=-1;
 }
@@ -3723,15 +3739,18 @@ function closeCheck(fi, closedByEnemy){
       addScore(-rawSum);
     } else {
       f.baseCombo = f.result.mult>1;
-      if(f.baseCombo && f.symbolColor==='yellow' && hasAcc('blade_yellow') && CHARACTER.combo){   // 雷鳴刀：黄のコンボ10以上でスーパーコンボを出すたびに敵が止まる
-        const col=f.symbolColor, cr=carryMap[col], cnt=flags.filter(g=>g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor===col).length;
-        if(cr||cnt>=2){ let raw=(cr||1)+cnt; if(comboRestricted()) raw=Math.min(raw,COMBO_CAP);
-          if(raw>=bladeNeed('yellow')){ const n=1*accX(); enemyFreeze+=n; setTimeout(()=>hint(`⚡ 雷鳴刀！ 敵の動きが${n}ターン止まる。`,true),300); dlog('action',{name:'blade_yellow',raw}); } }
+      if(f.baseCombo && f.symbolColor && f.symbolColor!=='red' && hasAcc('blade_'+f.symbolColor) && CHARACTER.combo) bladeFire(f.symbolColor);   // 色の武器（雷鳴刀・氷結の槍・大樹の杖・冥府の鎌）
+      if(accEq.length&&f.result.base>0){   // 一番槍・しんがりのバッジ：そのwaveで最初／最後に閉じた旗の攻撃力が2倍
+        const k=accX(), others=flags.filter(g=>g!==f), notes=[];
+        if(hasAcc('first_badge') && !others.some(g=>g.closed&&!g.capturedByEnemy)){ f.result.base=Math.round(f.result.base*(1+ACC_NEW.badgeInc*k)); notes.push('🥇一番槍のバッジ'); }
+        if(hasAcc('last_badge') && others.every(g=>g.closed||isLocked(g))){ f.result.base=Math.round(f.result.base*(1+ACC_NEW.badgeInc*k)); notes.push('🏁しんがりのバッジ'); }
+        (f.result.accNote||[]).forEach(n=>notes.push(n));
+        if(notes.length) setTimeout(()=>hint(`✨ ${notes.join('・')}！ この旗の攻撃力が上がった（${f.result.base}）`,true),200);
       }
       if(f.baseCombo){ f.comboMult=f.result.mult; }  // 役が付いた旗＝スーパーコンボの対象。得点は役の倍率のみ（追加の倍率なし）
       addScore(f.result.base);
       f.sheetSum = f.result.sum;
-      { const yn=f.result.name, yg=Math.round((YAKU_GOLD[yn]||0)*BATTLE_GOLD_MULT); if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
+      { const yn=f.result.name, yg=Math.round((YAKU_GOLD[yn]||0)*BATTLE_GOLD_MULT*(hasAcc('abacus')?1+ACC_NEW.abacusInc*accX():1)); if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
     }
     if(f.bomb){ const okB=!closedByEnemy&&f.baseCombo; if(okB){ f.bomb=0; hint('💣 ボム解除！ 役が揃って爆発を防いだ。',true); } else bombBoom(fi); }
     justClosed.push({fi, result:f.result, played:false});
@@ -4023,6 +4042,7 @@ function deckOut(){
 function endCheck(){
   if(gameEnded) return;
   if(mushKill){ mushKill=false; if(bossHp<=0){ strikeBoss(0,'🍄 毒の胞子で敵を倒した！','mushroom'); return; } }   // 毒でHPが0になったら、そのまま倒す
+  if(activeDeck.length===0) lanternRefill();
   const decksEmpty=activeDeck.length===0;
   const open=flags.filter(f=>!f.closed && !isLocked(f));
   const stuck=decksEmpty&&(hand.length===0||!canPlayAnything());
@@ -4073,19 +4093,24 @@ function checkWaveOutcome(){
   const noRoleQ=hasNoRoleFlag(), qm=quickMult(atkTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
   if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
   if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
-  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?10:1)*(atkFx.rush?2:1)*(provenOn()?2:1), pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
+  const accParts=accAtkParts(atkTurn), coinHead=hasAcc('gambler')?Math.random()<0.5:null, coinM=coinHead===null?1:coinHead?1+ACC_NEW.coinWin*accX():ACC_NEW.coinLose, accM2=accParts.reduce((a,p)=>a*p[1],1)*coinM;
+  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?10:1)*(atkFx.rush?2:1)*(provenOn()?2:1)*accM2, pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
   if(atkFx.rush||atkFx.oath){ try{ stageDmgPop('player',(atkFx.oath?'🌑闇の誓い ×10 ':'')+(atkFx.rush?'🐂突進 ×2':''),'',true); }catch(e){} atkFx.rush=false; atkFx.oath=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
+  if(accParts.length||coinHead!==null){ try{ const tx=accParts.map(p=>p[0]+' ×'+(Math.round(p[1]*100)/100)).concat(coinHead===null?[]:[coinHead?'🪙表！ ×'+coinM:'🪙裏… ×'+coinM]).join('  '); stageDmgPop('player',tx,'',true); hint(tx,true); }catch(e){} }
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   let diff=pAtk-eAtk;
   if(defendOn){ diff=Math.min(0,pAtk*2-eAtk); defendOn=false; try{ stageDmgPop('player','🛡防御！ 攻撃力×2','',true); }catch(e){} }   // 防御：攻撃にならない（敵のHPは減らない）。攻撃力×2でも負けた分だけ受ける
   const dealt=Math.max(0,diff), taken=Math.max(0,-diff);
   const hpBefore=bossHp;
   bossHp=Math.max(0, bossHp-dealt);
-  if(dealt>0&&monIs('ドラキュラ')){ healPlayer(Math.round(dealt/2)); }   // ドラキュラ：吸血（攻撃したダメージの半分が回復）
+  if(dealt>0&&monIs('ドラキュラ')){ healPlayer(Math.round(dealt/2)); }
+  if(dealt>0&&hasAcc('fang')){ const fh=Math.max(1,Math.round(dealt*ACC_NEW.fang*accX())); healPlayer(fh); try{ stageDmgPop('player','🦷吸血の牙 +'+fmtCompact(fh),'',true); }catch(e){} }   // ドラキュラ：吸血（攻撃したダメージの半分が回復）
   lastDealt=Math.max(0,dealt-hpBefore); lastPower=Math.max(0,pAtk); powerHist.push(lastPower); if(powerHist.length>JUMP_PARAM.histN) powerHist.shift();   // 次の敵を選ぶ基準：倒した時の攻撃力（敵の攻撃力を引く前）
   let takenReal=buzzGate(Math.round(taken*damageMult()*(guardOn?0.5:1)*bMult)), wallHit=false;
   if(wallOn&&takenReal>0){ takenReal=0; wallHit=true; }   // ゴブリン：仲間の壁（次に受ける敵の攻撃を無効）
+  takenReal=shieldAbsorb(takenReal);
   playerHp=Math.max(0, playerHp-takenReal);
+  if(takenReal>0&&hasAcc('thorns')){ const tb=takenReal*accX(); bossHp=Math.max(0,bossHp-tb); try{ stageDmgPop('monster','🌵とげの鎧 −'+fmtCompact(tb),'',true); }catch(e){} }
   totalWaves++;
   const defeated = bossHp<=0;
   carryDamage = 0;
@@ -4096,10 +4121,12 @@ function checkWaveOutcome(){
   if(wallOn&&sealPenalty>0){ sealPenalty=0; wallHit=true; }
   if(wallHit){ wallOn=false; try{ stageDmgPop('monster','🧱仲間の壁！ 攻撃を無効','',true); }catch(e){} }
   if(guardOn && (taken>0||sealPenalty>0)) guardOn=false;
+  if(sealPenalty>0) sealPenalty=shieldAbsorb(sealPenalty);
   if(sealPenalty>0){ playerHp=Math.max(0, playerHp-sealPenalty); }
   if(playerHp<=0 && hasAcc('endure') && playerHpMax>1 && dbgP0>=playerHpMax*0.8){ playerHp=1; hint('ふんばるピアスが光った！体力1で踏みとどまった！',true); }
   if(dealt>accStat.maxDealt) accStat.maxDealt=dealt;
   accStat.minHp=Math.min(accStat.minHp,playerHp/playerHpMax);
+  if(defeated&&hasAcc('piggy')){ const iv=Math.min(ACC_NEW.piggyCap*accX(),Math.floor(gold*ACC_NEW.piggyRate*accX())); if(iv>0){ gold+=iv; setTimeout(()=>hint(`🐷 利子の貯金箱！ 所持金が増えた +${iv}G`,true),500); } }
   if(defeated){ if(dbgP0<=playerHpMax*0.3) accStat.lowHpWin=(accStat.lowHpWin||0)+1; if(dealt>=hpBefore*2) accStat.overkill=(accStat.overkill||0)+1; if(hpBefore>0) accStat.overMax=Math.max(accStat.overMax||0,dealt/hpBefore); }
   checkGoalAnnounce(defeated);
   if(defeated){ try{ saveGame(true); }catch(e){} }   // 敵を倒した瞬間に保存（演出中にアプリが落ちても、勝利の続きから再開できる）
@@ -4433,7 +4460,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     if(card.kind==='troop'){
       if(m0 && (m0.sub==='pfield'||m0.pf)){ if(card.origValue===undefined) card.origValue=card.value; card.value=11-card.value; msgs.push(`🌀 革命！ 数字が${card.origValue}→${card.value}に逆転した（1回だけ。フィールドは元に戻った）`); if(m0.sub==='pfield'){ const ix=f.cards.indexOf(m0); if(ix>=0) f.cards.splice(ix,1); } else delete m0.pf; }   // パニックフィールドは1回効果が出たら消えて、普通のフィールドに戻る
       { const pf=placeValueFx(card); if(pf.v!==card.value){ if(card.origValue===undefined) card.origValue=card.value; const was=card.value; card.value=pf.v; msgs.push(`${pf.fx.join('＆')}で数字が${was}→${pf.v}`); } }
-    } else if(card.kind==='monster' && card.sub==='number' && !card.enemyCard && card.value>0 && poisonOn()){
+    } else if(card.kind==='monster' && card.sub==='number' && !card.enemyCard && card.value>0 && poisonOn() && !hasAcc('antidote')){
       if(card.origValue===undefined) card.origValue=card.value; card.value-=1; msgs.push(`☠ 毒で装備の数字が−1（${card.value}）`);
     }
     if(msgs.length) hint(msgs.join(' ／ '),true); }
@@ -4569,19 +4596,20 @@ function inGraveZone(x,y){
 }
 function discardDraw(handIdx,okPen){
   const card=hand[handIdx]; if(!card||busy) return false;
-  const enemyC=isEnemyCard(card);   // 敵のカード（呪い・敵の装備）も捨てられるが、スーパーコンボ−ペナルティ
+  const enemyC=isEnemyCard(card), charm=hasAcc('charm_curse'), gloveFree=hasAcc('discard_glove')&&gloveUsed<ACC_NEW.glove*accX();   // 敵のカード（呪い・敵の装備）も捨てられるが、スーパーコンボ−ペナルティ
+  if(activeDeck.length===0) lanternRefill();
   if(activeDeck.length===0){ gameAlert('山札がないので、捨てて引くことはできません。'); return false; }
-  if(enemyC && !okPen){ askComboPenalty(1,()=>{ const j=hand.indexOf(card); if(j>=0) discardDraw(j,true); }); return false; }
+  if(enemyC && !okPen && !charm){ askComboPenalty(1,()=>{ const j=hand.indexOf(card); if(j>=0) discardDraw(j,true); }); return false; }
   busy=true;
   hand.splice(handIdx,1);
   graveyard.push(card);
-  advanceTurn(card); tutDiscarded=true;
+  if(gloveFree){ gloveUsed++; tutDiscarded=true; } else { advanceTurn(card); tutDiscarded=true; }
   playSfx('place');
   const refilled=autoRefill(1);
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
   busy=false;
-  hint('1枚捨てて、山札から1枚引いた。（1ターン消費）');
-  if(enemyC) applyComboPenalty(1);
+  hint(gloveFree?`🧤 捨て上手の手袋！ 1枚捨てて引いた（ターンは進まない・このwaveあと${Math.max(0,ACC_NEW.glove*accX()-gloveUsed)}回）`:'1枚捨てて、山札から1枚引いた。（1ターン消費）');
+  if(enemyC&&!charm) applyComboPenalty(1);
   endCheck(); render();
   return true;
 }
@@ -4915,7 +4943,7 @@ function discardTap(idx){
 }
 function confirmDiscard(){
   if(!pending || pending.type!=='discard' || pending.chosen.length!==2) return;
-  { const en=pending.chosen.filter(j=>isEnemyCard(hand[j])).length; if(en&&!pending.okPen){ askComboPenalty(en,()=>{ if(pending){ pending.okPen=true; confirmDiscard(); } }); return; } }
+  { const en=pending.chosen.filter(j=>isEnemyCard(hand[j])).length; if(en&&!pending.okPen&&!hasAcc('charm_curse')){ askComboPenalty(en,()=>{ if(pending){ pending.okPen=true; confirmDiscard(); } }); return; } }
   busy=true;
   const uids=pending.chosen.map(i=>hand[i].uid);
   uids.forEach(u=>{ const el=document.querySelector(`.hand [data-uid="${u}"]`); if(el){ el.style.transform+=' translateY(80px)'; el.style.opacity=0; } });
@@ -4926,7 +4954,7 @@ function confirmDiscard(){
     const scoutUsed=pending.scout?pending.used:null;
     pending=null; busy=false;
     if(scoutUsed){ graveyard.push(scoutUsed); advanceTurn(scoutUsed); }   // 補充の確定：ここでカードを使い、ターンが進む
-    render(); layoutHand(false); hint(''); if(enN) applyComboPenalty(enN); endCheck(); render();
+    render(); layoutHand(false); hint(''); if(enN&&!hasAcc('charm_curse')) applyComboPenalty(enN); endCheck(); render();
   },280);
 }
 
@@ -4946,7 +4974,7 @@ function replaceTap(idx){
 }
 function confirmReplace(){
   if(!pending || pending.type!=='replace_select') return;
-  { const en=pending.chosen.filter(j=>isEnemyCard(hand[j])).length; if(en&&!pending.okPen){ askComboPenalty(en,()=>{ if(pending){ pending.okPen=true; confirmReplace(); } }); return; } }
+  { const en=pending.chosen.filter(j=>isEnemyCard(hand[j])).length; if(en&&!pending.okPen&&!hasAcc('charm_curse')){ askComboPenalty(en,()=>{ if(pending){ pending.okPen=true; confirmReplace(); } }); return; } }
   busy=true;
   const chosen=pending.chosen.slice();
   const uids=chosen.map(i=>hand[i].uid);
@@ -4966,11 +4994,13 @@ function confirmReplace(){
     }
     const from=document.getElementById('deckPileBtn').getBoundingClientRect();
     render(); drawn.forEach((c,i)=>setTimeout(()=>layoutHand(false,c.uid,from),i*60));
-    setTimeout(()=>{ busy=false; endCheck(); render(); hint(''); if(enN) applyComboPenalty(enN); }, drawn.length*60+380);
+    setTimeout(()=>{ busy=false; endCheck(); render(); hint(''); if(enN&&!hasAcc('charm_curse')) applyComboPenalty(enN); }, drawn.length*60+380);
   },280);
 }
 let defeatCause='';   // 敵の攻撃以外（毒など）で倒れた時の原因（敗北画面に出す）
 function hurtPlayer(d,msg){   // 敵の効果などで、HPが直接減る（ふんばり・体力ストックの復活・敗北まで面倒を見る）
+  d=shieldAbsorb(d);
+  if(d>0&&hasAcc('thorns')&&bossHp>1){ bossHp=Math.max(1,bossHp-d*accX()); try{ animateBossHp(bossHp,350); }catch(e){} }
   const preHp=playerHp; playerHp=Math.max(0,playerHp-d);
   screenShake(); hint(msg,true); renderBattle();
   if(playerHp<=0 && tryRevive()){ renderBattle(); return true; }
@@ -4979,7 +5009,7 @@ function hurtPlayer(d,msg){   // 敵の効果などで、HPが直接減る（ふ
 }
 function penaltyDamage(){ return Math.max(1, Math.round(currentEnemyAtk()/5)); }
 function takePenalty(msg){
-  const d=buzzGate(penaltyDamage()), preHp=playerHp;
+  const d=shieldAbsorb(buzzGate(penaltyDamage())), preHp=playerHp;
   playerHp=Math.max(0, playerHp-d);
   screenShake();
   hint(`${msg}敵の攻撃力の1/5（${d}）のダメージ！`,true);
@@ -5135,7 +5165,7 @@ function ownFlagTroops(){   // 未完成の旗に置いてある自分の数字�
 }
 function placeValueFx(card){   // 置いた時にかかる、数字を変える効果（役が崩れる原因にもなるので、置く前の確認にも使う）
   const fx=[]; let v=card.value;
-  if(poisonOn()&&v>1){ v-=1; fx.push('🌧 マイナスレイン'); }
+  if(poisonOn()&&!hasAcc('antidote')&&v>1){ v-=1; fx.push('🌧 マイナスレイン'); }
   if(monIs('炎の巨人王')&&card.color==='red'&&v<10){ v+=1; fx.push('🔥 王の炎'); }
   return {v,fx};
 }
@@ -5498,7 +5528,7 @@ function synergyOf(list){
   Object.keys(g).forEach(sym=>{
     const a=g[sym];
     const cr=carryMap[sym];
-    if(a.length<2 && !cr) return;
+    if(a.length<2 && !cr){ if(hasAcc('first_ring')) bonus+=Math.round(a[0].base*(superMultFor(sym,2)-1)); return; }
     a.sort((x,y)=>x.seq-y.seq);
     a.forEach((x,k)=>{ bonus+=Math.round(x.base*(superMultFor(sym,(cr||1)+k+1)-1)); });
   });
@@ -5574,7 +5604,7 @@ function renderBattle(){
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
-    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×10'); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の行動はターンを使わない'); if(buried.length) a.push(`🦴埋めた${buried.length}枚(次のwaveで戻る)`); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); db.textContent=a.join('  '); }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×10'); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の行動はターンを使わない'); if(buried.length) a.push(`🦴埋めた${buried.length}枚(次のwaveで戻る)`); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); try{ accAtkParts(enemyTurn).forEach(p=>a.push(p[0]+':総攻撃力×'+(Math.round(p[1]*100)/100))); if(hasAcc('discard_glove')) a.push(`🧤手袋あと${Math.max(0,ACC_NEW.glove*accX()-gloveUsed)}回`); if(hasAcc('lantern')) a.push(lanternUsed?'🏮ランタン使用済み':'🏮ランタン待機中'); if(hasAcc('rod')) a.push('⚡避雷針:妨害は一番カードが少ない旗へ'); }catch(e){} db.textContent=a.join('  '); }
     try{ document.body.classList.toggle('rain-on', !!poisonOn()); }catch(e){} }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
@@ -5639,6 +5669,7 @@ function render(){
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
     else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); { const ne=document.getElementById('specMonN'); ne.textContent=specNoLimit('mon')?'':specRemain('mon'); ne.style.display=specNoLimit('mon')?'none':''; } mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) document.getElementById('specMonL').innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; } } } }
+  { const pb=document.getElementById('pocketBtn'); if(pb){ const on=hasAcc('pocket'); pb.style.display=on?'':'none'; if(on){ document.getElementById('pocketL').textContent=pocket?('👝 '+cardDisplayName(pocket)):'ポケット（空）'; pb.onclick=pocketUse; } } }
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
     if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) L.innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; { const ne=document.getElementById('specMon2N'); ne.textContent=specNoLimit('mon2')?'':specRemain('mon2'); ne.style.display=specNoLimit('mon2')?'none':''; } mb.disabled=specRemain('mon2')<=0; } } }
   { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return coinUsed>=MONSK.samuraiMax?'(使い切り)':`💥${fmtCompact(gold*MONSK.samuraiMul)} 残り${MONSK.samuraiMax-coinUsed}回`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
@@ -6622,6 +6653,7 @@ function advanceWaveAttempt(){
   hint(`WAVE ${waveAttempt}：${WAVES[stageIndex].name}はまだ健在…次の戦いだ。`);
 }
 function advanceToNextStage(){
+  if(hasAcc('combo_bank')){ const ks=Object.keys(carryMap).filter(c=>carryMap[c]>0); if(ks.length){ ks.forEach(c=>{ carryMap[c]+=accX(); }); hint(`🏦 コンボ貯金のブレスレット！ 持ち越すスーパーコンボが${ks.length}色とも+${accX()}された。`,true); } }
   clearPf(); moonClear(); dyeClear(); possessRevert();
   dlog('stage_advance',{from:stageIndex+1});
   clearKO();
@@ -6753,7 +6785,7 @@ function tapFlag(i){
     if(!targetsFor(nc).includes(i)){ gameAlert(whyNotPlace(nc,i)||'その旗には置けません。'); return; }
     const mon0=flagMonster(f);
     let rev=''; if(nc.kind==='troop'&&mon0&&(mon0.sub==='pfield'||mon0.pf)){ nc.origValue=nc.value; nc.value=11-nc.value; rev=`（🌀革命！ ${nc.origValue}→${nc.value}。フィールドは元に戻った）`; if(mon0.sub==='pfield'){ const ix=f.cards.indexOf(mon0); if(ix>=0) f.cards.splice(ix,1); } else delete mon0.pf; }   // パニックフィールドの旗：数字が逆転する
-    if(nc.kind==='troop'&&poisonOn()&&nc.value>1){ if(nc.origValue===undefined) nc.origValue=nc.value; nc.value-=1; rev+=`（☠毒で数字が−1：${nc.value}）`; }   // 毒の呪い中：置く数字が−1（1は1のまま）
+    if(nc.kind==='troop'&&poisonOn()&&!hasAcc('antidote')&&nc.value>1){ if(nc.origValue===undefined) nc.origValue=nc.value; nc.value-=1; rev+=`（☠毒で数字が−1：${nc.value}）`; }   // 毒の呪い中：置く数字が−1（1は1のまま）
     const mon=flagMonster(f);   // 装備や敵が残っていれば、普通に置く時と同じく、そのカードで置き換えて倒す（上に積むと旗が埋まって完成しない）
     if(mon) f.cards[f.cards.indexOf(mon)]=nc; else f.cards.push(nc);
     spec.mon++; const mk=pending.mk; pending=null; lastFi=i;
@@ -7074,7 +7106,7 @@ function strikeBoss(dmg,text,name,raw){   // raw＝敵のHPで切り捨てる前
   }); });
   render();
 }
-const wormCost=n=>hasWormBody()?Math.max(1,n-1):n;   // ミミズの特異体質：スーパーコンボを払う技のコストが1減る（もともと1ならそのまま1）
+const wormCost=n=>{ let r=hasWormBody()?Math.max(1,n-1):n; if(hasAcc('saving_anklet')) r=Math.max(1,r-ACC_NEW.anklet*accX()); return r; };   // ミミズの特異体質：スーパーコンボを払う技のコストが1減る（もともと1ならそのまま1）
 function scPay(col,min,loss){   // スーパーコンボを払う（足りなければ払わずに false）
   min=wormCost(min); const loss0=loss; loss=v=>wormCost(loss0(v));
   const v=CHARACTER.combo?(carryNext()[col]||0):(carryMap[col]||0);   // 盤面で揃った役のコンボも、使える（一個揃った時点で払える）
@@ -7834,10 +7866,58 @@ const SHORTC = c=>CNAME[c].replace('旗','');
 const SP_NAME={shuffle:'シャッフル',beg:'命乞い',punch:'殴る',guard:'防御',cure:'薬'};
 const SP_ACC={shuffle:'ブレスレット',beg:'首輪',punch:'指輪',guard:'バングル',cure:'鼻輪'};
 const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
+/* ★新しいアクセサリー（40個の追加分）の数字はここ。倍の腕輪（accX）は「増え分」にかかる */
+const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalTurn:20, sandalInc:0.5, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:0.2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
+function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリーの倍率（発動している分だけ [名前, 倍率]）
+  const P=[]; if(!accEq.length) return P; const k=accX();
+  const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result);
+  if(hasAcc('tiara')){ const set=new Set(cl.map(f=>f.result.name).filter(n=>n&&n!=='ホスト')); if(set.size>=ACC_NEW.tiaraKinds) P.push(['👑役集めのティアラ',1+ACC_NEW.tiaraInc*k]); }
+  if(hasAcc('medal') && flags.length>=2 && cl.length===flags.length && cl[0].result.name!=='ホスト' && cl.every(f=>f.result.name===cl[0].result.name)) P.push(['🎖おそろいの勲章',1+ACC_NEW.medalInc*k]);
+  if(hasAcc('sandal') && atkTurn>=ACC_NEW.sandalTurn) P.push(['🩴じっくりのサンダル',1+ACC_NEW.sandalInc*k]);
+  if(hasAcc('last_stand') && playerHpMax>0 && playerHp<=playerHpMax*ACC_NEW.lastHp) P.push(['🏰最後の砦',1+ACC_NEW.lastInc*k]);
+  if(hasAcc('full_pride') && playerHpMax>0 && playerHp>=playerHpMax) P.push(['🦁満タンの誇り',1+ACC_NEW.fullInc*k]);
+  return P;
+}
+const accAtkMul=t=>accAtkParts(t).reduce((a,p)=>a*p[1],1);
+function shieldAbsorb(d){   // 金の盾：受けるダメージを先にお金で払う（1ダメージ＝1G）
+  if(d<=0||!hasAcc('shield_gold')||gold<=0) return d;
+  const pay=Math.min(gold,d); gold-=pay; try{ stageDmgPop('player','🛡金の盾 −'+pay+'G','',true); hint(`🛡 金の盾！ ${pay}ダメージを${pay}Gで払った。`,true); }catch(e){}
+  return d-pay;
+}
+function pocketUse(){   // 予備のポケット：手札のカードを1枚しまう／取り出す（ターンは使わない）
+  if(busy||pending||gameEnded) return;
+  if(pocket){
+    if(hand.length>=currentHandMax()) return hint('手札がいっぱいで、ポケットから出せません。',true);
+    hand.push(pocket); const nm=cardDisplayName(pocket); pocket=null; hint(`👝 ${nm}をポケットから出した。`); render(); layoutHand(false); return;
+  }
+  if(!hand.length) return hint('しまえるカードが手札にありません。',true);
+  pickDialog('👝 どのカードをポケットにしまう？', hand.map(c=>({html:cardLabelHtml(c)})), k=>{
+    const c=hand[k]; if(!c) return; hand.splice(k,1); pocket=c; hint(`👝 ${cardDisplayName(c)}をポケットにしまった。`); render(); layoutHand(false); });
+}
+function lanternRefill(){   // 墓守のランタン：山札が尽きた時、墓地を切り直して山札にする（1戦に1回）
+  if(activeDeck.length>0||!hasAcc('lantern')||lanternUsed||!graveyard.length) return false;
+  lanternUsed=true; const n=graveyard.length; activeDeck=shuffle(graveyard.splice(0)); hint(`🏮 墓守のランタン！ 墓地の${n}枚を切り直して山札にした。`,true); playSfx('combo'); return true;
+}
+function bladeFire(col){   // 色の武器：その色のスーパーコンボが10以上（雷鳴刀は設定の数）の時、出すたびの効果
+  const cr=carryMap[col], cnt=flags.filter(g=>g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor===col).length;
+  if(!(cr||cnt>=2)) return;
+  let raw=(cr||1)+cnt; if(comboRestricted()) raw=Math.min(raw,COMBO_CAP);
+  if(raw<bladeNeed(col)) return;
+  const k=accX(); let msg='';
+  if(col==='yellow'){ enemyFreeze+=1*k; msg=`⚡ 雷鳴刀！ 敵の動きが${k}ターン止まる。`; }
+  else if(col==='blue'){ const b=enemyTurn; enemyTurn=Math.max(0,enemyTurn-ACC_NEW.bladeBack*k); msg=`🔱 氷結の槍！ 敵の攻撃力の上昇が${b-enemyTurn}ターン分戻った。`; }
+  else if(col==='green'){ const h=Math.round(playerHpMax*ACC_NEW.bladeHeal*k); healPlayer(h); msg=`🌳 大樹の杖！ 体力が${h}回復した。`; }
+  else if(col==='purple'){ const jt=nextDisTurn(); if(jt!=null){ const jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); msg=`🌙 冥府の鎌！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた！`; } else msg='🌙 冥府の鎌！（消せる妨害はなかった）'; }
+  if(msg) setTimeout(()=>{ hint(msg,true); try{ playSfx('combo'); }catch(e){} },300);
+  dlog('action',{name:'blade_'+col,raw});
+}
 /* 色ごとの「剣」：その色のコンボ数が一定以上になると効果が出る（色は随時追加。goal＝取得条件のスーパーコンボ数、price＝基本の値段） */
 const COMBO_BLADES={
   yellow:{name:'雷鳴刀',icon:'⚡',need:10,goal:8,price:350,desc:'黄のコンボが10以上のとき、黄のスーパーコンボを出すたびに敵の動きが1ターン止まる'},
-  red:{name:'烈火の剣',icon:'🔥',need:30,goal:12,price:450,desc:'赤のコンボが30以上のとき、赤のスーパーコンボの攻撃力が3倍になる'}
+  red:{name:'烈火の剣',icon:'🔥',need:30,goal:12,price:450,desc:'赤のコンボが30以上のとき、赤のスーパーコンボの攻撃力が3倍になる'},
+  blue:{name:'氷結の槍',icon:'🔱',need:10,goal:8,price:350,desc:'青のコンボが10以上のとき、青のスーパーコンボを出すたびに、敵の攻撃力の上昇が1ターン分戻る'},
+  green:{name:'大樹の杖',icon:'🌳',need:10,goal:8,price:350,desc:'緑のコンボが10以上のとき、緑のスーパーコンボを出すたびに、体力が2割回復する'},
+  purple:{name:'冥府の鎌',icon:'🪦',need:10,goal:8,price:350,desc:'紫のコンボが10以上のとき、紫のスーパーコンボを出すたびに、次の敵の妨害を1つ消す'}
 };
 const bladeNeed=(c)=>{ const b=COMBO_BLADES[c]; return b?b.need:0; };
 function buildAccDefs(){
@@ -7868,7 +7948,43 @@ function buildAccDefs(){
   [['tac','軍師','軍師のイヤリング','📜'],['weapon','武器','武器のブローチ','⚔️'],['armor','防具','防具のカフス','🛡️'],['num','数字','数字のチョーカー','🔢']].forEach(([k,jp,nm,ic])=>L.push({id:'add3_'+k,addKind:k,name:nm,icon:ic,desc:`好きな${jp}カード${k==='tac'?1:k==='num'?2:3}枚を山札に加える（装備中のみ。外すと消える）`}));
   // 軍師のイヤリングは1枚しか加えられない代わりに、同じものが3つ出る（取得条件はそれぞれ別）
   ['2','3'].forEach(n=>{ const b=L.find(x=>x.id==='add3_tac'); L.push(Object.assign({},b,{id:'add3_tac'+n})); });
-  L.push({id:'purple_out',name:'紫封じのリング',icon:'🔮',desc:'装備中、カードの色を1色減らす（紫のカードが全部使えなくなる。外すと戻る）'});
+  L.push({id:'purple_out',sealColor:'purple',name:'紫封じのリング',icon:'🔮',desc:'装備中、カードの色を1色減らす（紫のカードが全部使えなくなる。外すと戻る）'});
+  [['red','赤'],['yellow','黄'],['green','緑'],['blue','青']].forEach(([c,n])=>L.push({id:c+'_out',sealColor:c,name:`${n}封じのリング`,icon:'🔮',desc:`装備中、カードの色を1色減らす（${n}のカードが全部使えなくなる。外すと戻る）`}));
+  [
+   ['almost_ring','あと一歩の指輪','💍','役のない旗でも、2枚が同じ色か同じ数字なら、攻撃力が1.2倍になる'],
+   ['big_bracelet','大きい数字の腕輪','💪','3枚の合計が24以上の旗は、攻撃力が1.5倍になる'],
+   ['small_bracelet','小さい数字の腕輪','🐜','3枚の合計が9以下の旗は、攻撃力が2倍になる'],
+   ['rainbow_brooch','虹のブローチ','🌈','3枚とも色が違う旗は、攻撃力が1.3倍になる'],
+   ['tiara','役集めのティアラ','👑','1つのwaveで違う役を3種類以上作ると、総攻撃力が1.5倍になる（役なしは数えない）'],
+   ['medal','おそろいの勲章','🎖','全部の旗が同じ役（役なし以外）なら、総攻撃力が2倍になる'],
+   ['sandal','じっくりのサンダル','🩴','20ターン以上かけてから攻撃すると、総攻撃力が1.5倍になる'],
+   ['first_badge','一番槍のバッジ','🥇','そのwaveで最初に閉じた旗の攻撃力が2倍になる'],
+   ['last_badge','しんがりのバッジ','🏁','そのwaveで最後に閉じた旗の攻撃力が2倍になる'],
+   ['abacus','商人のそろばん','🧮','役でもらえるお金が2倍になる'],
+   ['haggle','値切りの財布','👛','お店の値段が2割引になる'],
+   ['piggy','利子の貯金箱','🐷','敵を倒した時、所持金の1割が増える（1回200Gまで）'],
+   ['shield_gold','金の盾','🛡','受けるダメージを、先にお金で払う（1ダメージ＝1G）。お金が尽きたら体力が減る'],
+   ['fang','吸血の牙','🦷','攻撃で与えたダメージの1割だけ、体力が回復する'],
+   ['thorns','とげの鎧','🌵','敵の攻撃でダメージを受けた時、同じ量のダメージを敵にも与える'],
+   ['last_stand','最後の砦','🏰','体力が3割以下の時、攻撃力が2倍になる'],
+   ['full_pride','満タンの誇り','🦁','体力が満タンの時、攻撃力が1.3倍になる'],
+   ['discard_glove','捨て上手の手袋','🧤','手札を捨てて引く時、ターンを使わない（1つのwaveに3回まで）'],
+   ['lantern','墓守のランタン','🏮','山札が尽きた時、墓地を切り直して山札にする（1戦に1回）'],
+   ['pocket','予備のポケット','👝','手札とは別に、カードを1枚しまっておける（しまう・出すにターンは使わない）'],
+   ['charm_curse','呪い除けのお守り','🧿','呪いのカードを捨てる時の、スーパーコンボのペナルティがなくなる'],
+   ['antidote','毒消しのスカーフ','🧣','毒・マイナスレインの「数字−1」を受けない'],
+   ['combo_bank','コンボ貯金のブレスレット','🏦','次の戦いへ持ち越すスーパーコンボが、持っている色すべてで+1される'],
+   ['color_bond','色違いの絆','🎀','2色以上のスーパーコンボが同時に続いている時、どの色も倍率が1.2倍になる'],
+   ['combo_ins','コンボ保険','🛟','妨害やペナルティでスーパーコンボが減る時、減る量が半分になる'],
+   ['first_ring','初撃の指輪','🥊','役のある旗が1つだけの色（×1）を、×2として数える'],
+   ['foresight','予知の水晶','🔮','妨害の警告が、1ターン前ではなく3ターン前に出る'],
+   ['rod','避雷針','⚡','旗を狙う妨害は、必ずカードが一番少ない旗を狙う'],
+   ['slow_chain','鈍足の鎖','⛓','敵の攻撃力の上昇が2割遅くなる'],
+   ['rage_bell','怒り封じの鈴','🔔','敵の「攻撃力×2」が「×1.5」になる'],
+   ['saving_anklet','節約のアンクレット','🦶','スーパーコンボを払う特殊技のコストが1減る（最低1）'],
+   ['union_bond','合体の絆','🤝','合体している時、2体の特殊技の回数がそれぞれ+1される'],
+   ['gambler','賭博師のコイン','🪙','一斉攻撃のたびにコインを投げる。表なら総攻撃力が2倍、裏なら半分']
+  ].forEach(([id,name,icon,desc])=>L.push({id,name,icon,desc}));
   return L;
 }
 const ACC_DEFS_ALL=buildAccDefs();
@@ -7928,7 +8044,7 @@ function superMultFor(sym,raw){
   return m;
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
-function spBonusFor(k){ let n=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
+function spBonusFor(k){ let n=((k==='mon'||k==='mon2')&&CHARACTER&&CHARACTER.mon2&&hasAcc('union_bond'))?ACC_NEW.union*accX():0; n+=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
 const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の値（書いてない技はallを使う）。後から技ごとに数字を変える
   beg:5, punch:5, guard:5, cure:5, bullet:5, shuffle:5,   // 基本の持ち技
   'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, '溶かす':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
@@ -8076,7 +8192,7 @@ function runGoalToast(){
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
 }
 const COND_SHOW_MS=4000;   // 戦闘の最初にアクセサリー獲得条件を大きく出す時間（ms）
-function startBattleGoals(){ accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves;
+function startBattleGoals(){ lanternUsed=false; accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves;
   accCond={n:0,cur:null,picks:0,used:[],ok:[]}; goalToastQ=[]; lastSpecMax=null; condRerolled=false;
   if(!introNoAcc()&&!condOff()) condReveal();
   try{ renderCondBar(); }catch(e){}
@@ -8159,7 +8275,7 @@ function recalcHpMax(){
   if(hpGlassSave){ const d=Math.max(0,m-hpGlassSave.max); playerHpMax=m; playerHp=Math.max(1,Math.min(m,hpGlassSave.hp+d)); hpGlassSave=null; return; }
   playerHpMax=m; playerHp=m>old?playerHp+(m-old):Math.min(playerHp,m);
 }
-function activeColorList(){ const L=ALL_GAME_COLORS.filter(c=>!(c==='purple'&&hasAcc('purple_out'))); return L; }
+function activeColorList(){ return ALL_GAME_COLORS.filter(c=>!hasAcc(c+'_out')); }   // 色封じのリング：付けている色は使えない
 // 着脱で山札に増減したカードを、見た目で知らせる
 function showAccDelta(title, cards, accName){
   if(!cards||!cards.length) return;
@@ -8195,6 +8311,7 @@ function unapplyAcc(o){
     U.forEach(u=>deckUids.delete(u)); o.addUids=null;
   }
   if(o.id==='hp_x15'||o.id==='hp_x2'||o.id==='hp_scarf'||o.id==='glass'||o.id==='double_x') recalcHpMax();
+  if(o.id==='pocket' && pocket && !accOwned.some(x=>x!==o&&x.id==='pocket'&&accEq.includes(x.aid))){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); hint('👝 ポケットのカードが山札に戻った。'); }
   if(o.id==='del3' && o.held){ const back=o.held.slice(); o.held.forEach(c=>activeDeck.push(c)); o.held=null; shuffle(activeDeck); showAccDelta('山札に戻ったカード', back, nm); }
   if(o.id.startsWith('add3_') && o.addUids){
     const U=new Set(o.addUids);
@@ -8204,25 +8321,20 @@ function unapplyAcc(o){
   if(dRem.length) showAccDelta('山札から外れたカード', dRem, nm);
 }
 function syncSeal(){
-  const want=hasAcc('purple_out'), has=!GAME_COLORS.includes('purple');
-  const isP=c=>c && (c.kind==='troop'||c.kind==='monster') && !c.mixed && c.color==='purple';
-  if(want===has){ if(want){ [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(isP(arr[i])) sealedCards.push(arr.splice(i,1)[0]); }); }   // 封印中に別のアクセサリー（削除の解除など）で紫が戻ってきても、その場で封印し直す
-    return; }
-  if(want){
-    GAME_COLORS.splice(GAME_COLORS.indexOf('purple'),1);
-    [activeDeck,grandDeck,hand,graveyard,pendingRewardCards].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(isP(arr[i])) sealedCards.push(arr.splice(i,1)[0]); });
-  } else {
-    GAME_COLORS.length=0; activeColorList().forEach(c=>GAME_COLORS.push(c));
-    sealedCards.forEach(c=>{ if(deckUids.has(c.uid)) activeDeck.push(c); else grandDeck.push(c); });
-    sealedCards=[]; shuffle(activeDeck);
-  }
+  const want=activeColorList(), arrs=()=>[activeDeck,grandDeck,hand,graveyard,pendingRewardCards];
+  const same=want.length===GAME_COLORS.length && want.every((c,i)=>GAME_COLORS[i]===c);
+  if(!same){ GAME_COLORS.length=0; want.forEach(c=>GAME_COLORS.push(c)); }
+  const isOut=c=>c && (c.kind==='troop'||c.kind==='monster') && !c.mixed && c.color && ALL_GAME_COLORS.includes(c.color) && !want.includes(c.color);
+  arrs().forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(isOut(arr[i])) sealedCards.push(arr.splice(i,1)[0]); });   // 封印中に別のアクセサリー（削除の解除など）で戻ったカードも、ここで封印し直す
+  const back=sealedCards.filter(c=>want.includes(c.color));
+  if(back.length){ sealedCards=sealedCards.filter(c=>!want.includes(c.color)); back.forEach(c=>{ if(deckUids.has(c.uid)) activeDeck.push(c); else grandDeck.push(c); }); shuffle(activeDeck); }
 }
 function purgeDeleted(){
   const bad=c=>!c || deletedUids.has(c.uid) || (c.color && (c.kind==='troop'||c.kind==='monster') && !c.mixed && !GAME_COLORS.includes(c.color));
   activeDeck=activeDeck.filter(c=>!bad(c)); grandDeck=grandDeck.filter(c=>!bad(c));
   hand=hand.filter(c=>!bad(c)); graveyard=graveyard.filter(c=>!bad(c)); pendingRewardCards=pendingRewardCards.filter(c=>!bad(c));
   [...deckUids].forEach(u=>{ if(deletedUids.has(u)) deckUids.delete(u); });
-  const all=[...activeDeck,...grandDeck,...hand,...graveyard,...pendingRewardCards,...sealedCards,...accOwned.flatMap(o=>o.held||[])]; const live=new Set(all.map(c=>c.uid));
+  const all=[...activeDeck,...grandDeck,...hand,...graveyard,...pendingRewardCards,...sealedCards,...(pocket?[pocket]:[]),...accOwned.flatMap(o=>o.held||[])]; const live=new Set(all.map(c=>c.uid));
   [...deckUids].forEach(u=>{ if(!live.has(u) && !flags.some(f=>f.cards.some(c=>c&&c.uid===u))) deckUids.delete(u); });
 }
 /* ----- 宝箱 ----- */
@@ -8232,7 +8344,8 @@ const accPrice=d=>{ const f=Math.round(accPriceBase(d)*ACC_PRICE_MULT); return f
 function accPriceBase(d){
   const id=d.id;
   if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150; if(id.startsWith('blade_')) return (COMBO_BLADES[d.color]||{}).price||350;
-  if(id==='sp_double') return 150; if(id==='purple_out') return 120;
+  if(id==='sp_double') return 150; if(id.endsWith('_out')) return 120;
+  { const NP={almost_ring:100,big_bracelet:150,small_bracelet:150,rainbow_brooch:150,tiara:200,medal:250,sandal:150,first_badge:120,last_badge:120,abacus:150,haggle:150,piggy:120,shield_gold:200,fang:150,thorns:200,last_stand:200,full_pride:150,discard_glove:200,lantern:150,pocket:150,charm_curse:100,antidote:100,combo_bank:200,color_bond:200,combo_ins:150,first_ring:150,foresight:150,rod:100,slow_chain:150,rage_bell:200,saving_anklet:120,union_bond:150,gambler:100}; if(NP[id]) return NP[id]; }   // 新しい40個の基本の値段（ここで調整）
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
   if(id==='yaku_only') return 200; if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
   if(id==='glass') return 200;
@@ -8515,7 +8628,7 @@ function renderShop_(){
       apply:()=>{ if(shopOnce.res) delete shopOnce.res[d.id]; accOwned.push({aid:accSeq++,id:d.id}); shopStock=shopStock.filter(x=>x!==d.id); hint(`${d.name}を買った。`); }}); });
     accEmpty=!stock.length;
   }
-  items.forEach((x,i)=>{ x.tab=i<nDeck?'deck':'acc'; });
+  items.forEach((x,i)=>{ x.tab=i<nDeck?'deck':'acc'; if(hasAcc('haggle')&&!x.sold&&!x.reserved&&x.price>0) x.price=Math.max(1,Math.round(x.price*Math.max(0,1-ACC_NEW.haggle*accX()))); });   // 値切りの財布
   // 個数：＋で1→2…、−で減らす。上限は品ごと（交換は何回でも、それ以外は1個まで）
   items.forEach(x=>{ x.max=x.sold?0:((x.special||x.multi)?99:1); });
   Object.keys(buyQty).forEach(k=>{ const x=items.find(y=>y.key===k); if(!x||buyQty[k]<=0||buyQty[k]>x.max) delete buyQty[k]; });
@@ -8769,7 +8882,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-11d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-11e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -8794,7 +8907,7 @@ function saveGame(force){
     if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
-    const st={v:1, lad:8, gn:growN, hb:hpBonus, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+    const st={v:1, lad:8, gn:growN, pk:pocket, gu:gloveUsed, lu:lanternUsed, hb:hpBonus, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, scSpent, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
@@ -8838,7 +8951,7 @@ function resumeGame(){
     }
     if(st.lad===8&&st.intro){ introOn=!!st.intro[0]; introAdv=!!st.intro[1]; } else { introOn=false; introAdv=false; } }
   foughtIdx=new Set((st.lad===8&&Array.isArray(st.fought))?st.fought:[stageIndex]);
-  growN=st.gn||0; hpBonus=st.hb||0; waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; wormUp=st.wormUp||0; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase; bashRateNow=(st.bashRateNow>0)?st.bashRateNow:DIS_PARAM.bashRate; bashHist=Array.isArray(st.bashHist)&&st.bashHist.length?st.bashHist:[bashDmg]; bashRateHist=Array.isArray(st.bashRateHist)&&st.bashRateHist.length?st.bashRateHist:[bashRateNow];
+  growN=st.gn||0; pocket=st.pk||null; gloveUsed=st.gu||0; lanternUsed=!!st.lu; hpBonus=st.hb||0; waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; wormUp=st.wormUp||0; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase; bashRateNow=(st.bashRateNow>0)?st.bashRateNow:DIS_PARAM.bashRate; bashHist=Array.isArray(st.bashHist)&&st.bashHist.length?st.bashHist:[bashDmg]; bashRateHist=Array.isArray(st.bashRateHist)&&st.bashRateHist.length?st.bashRateHist:[bashRateNow];
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=stripDisabledEv(st.enemySched||{}); prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; scSpent=st.scSpent||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[]},ac.cond||{}); hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
