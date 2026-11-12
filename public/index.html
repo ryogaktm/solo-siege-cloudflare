@@ -130,24 +130,14 @@
   .char-name{ font-size:16px; font-weight:800; color:var(--gold); }
   .char-name small{ font-size:11px; color:var(--cream-2); font-weight:400; margin-left:8px; }
   .char-desc{ font-size:11.5px; line-height:1.55; margin-top:4px; }
-  .char-spec{ font-size:10.5px; margin-top:6px; color:var(--glow); opacity:.9; }
-  .title-flagcount{ margin-bottom:20px; }
-  .title-flagcount-label{ font-size:10.5px; color:var(--cream-2); opacity:.7; margin-bottom:6px; }
-  .title-flagcount-row{ display:flex; gap:8px; justify-content:center; }
-  .flagcount-btn{
-    width:38px; height:38px; border-radius:50%; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.2);
-    color:var(--cream-2); font-family:'Cinzel',serif; font-size:15px; font-weight:700; cursor:pointer;
-  }
-  .flagcount-btn.active{ background:rgba(226,192,106,.25); border-color:var(--gold); color:var(--gold); }
+
   .title-startbtn{ display:block; width:220px; margin:0 auto 10px; font-size:16px; padding:14px; }
   .title-howtobtn{ display:block; width:220px; margin:0 auto; }
   .title-sound-row{ display:flex; gap:10px; justify-content:center; margin-top:16px; }
 
   /* ---------- header ---------- */
   .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; flex:0 0 auto; gap:8px; }
-  .brand{ font-family:'Cinzel',serif; font-weight:800; font-size:15px; letter-spacing:.14em; color:var(--gold);
-    text-shadow:0 1px 0 rgba(0,0,0,.6); }
-  .brand small{ display:block; font-family:'Shippori Mincho',serif; font-size:10px; letter-spacing:.2em; color:var(--cream-2); opacity:.75; }
+
   .iconbtn{ width:30px; height:30px; border-radius:50%; border:1px solid var(--gold-3); background:rgba(0,0,0,.35);
     color:var(--gold); font-family:'Cinzel',serif; font-weight:800; cursor:pointer; font-size:14px; flex:0 0 auto; }
   .topbar-btns{ display:flex; gap:6px; align-items:center; }
@@ -199,8 +189,7 @@
   .char-foot{ position:fixed; left:0; right:0; bottom:0; z-index:20; display:flex; justify-content:center; gap:10px; padding:10px 14px calc(10px + env(safe-area-inset-bottom)); background:rgba(8,12,10,.96); border-top:1px solid rgba(226,192,106,.4); }
   .char-foot .btn{ flex:1; max-width:190px; }
   .char-screen.wide-sel .char-inner{ padding-bottom:84px; }
-  .mon-pop-st{ margin:10px 0; padding:8px 10px; background:rgba(0,0,0,.3); border-radius:8px; font-size:12px; line-height:1.8; color:var(--cream-2); text-align:left; }
-  .mon-pop-st span{ color:var(--gold); margin-right:6px; }
+
   .mon-tile:active{ transform:scale(.97); border-color:var(--gold); }
   .mon-tile b{ font-size:11px; color:var(--gold); line-height:1.25; }
   .mon-tile small{ font-size:9.5px; color:var(--glow); }
@@ -235,7 +224,6 @@
   .dmgpop{ position:absolute; z-index:6; transform:translate(-50%,0); font-family:'Cinzel',serif; font-weight:800; font-size:20px; color:#fff; text-shadow:0 0 6px #ff4a2a,0 2px 0 #7a1208; pointer-events:none; animation:dmgRise 1s ease-out forwards; }
   .dmgpop.me{ color:#ffd0d0; text-shadow:0 0 6px #ff2a4a,0 2px 0 #50061a; }
   @keyframes dmgRise{ 0%{ opacity:0; margin-top:6px; } 15%{ opacity:1; } 100%{ opacity:0; margin-top:-26px; } }
-  @keyframes sprHit{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
   .char-badge{ display:flex; flex-direction:column; line-height:1.3; }
   .char-badge-name{ white-space:nowrap; font-size:13px; font-weight:800; color:var(--gold); font-family:'Noto Sans JP',sans-serif; }
   .char-badge-score{ font-size:10.5px; color:var(--cream-2); opacity:.8; }
@@ -253,18 +241,9 @@
   .menu-item.muted{ opacity:.5; }
 
   .wavebar{ text-align:center; margin-bottom:12px; padding:0 4px; flex:0 0 auto; }
-  .boss-hp-row{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+  
   .boss-hp-bar{ flex:1; height:9px; background:rgba(0,0,0,.45); border-radius:5px; overflow:hidden; border:1px solid rgba(224,90,74,.35); }
-  .boss-attack-fly{
-    position:fixed; z-index:300; transform:translate(-50%,-50%);
-    pointer-events:none; filter:drop-shadow(0 0 8px rgba(255,180,60,.9));
-    display:flex; align-items:center; gap:6px; white-space:nowrap;
-  }
-  .baf-sword{ font-size:48px; }
-  .baf-dmg{
-    font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:#fff2c0;
-    text-shadow:0 0 8px rgba(0,0,0,.8), 0 0 14px rgba(255,180,60,.9);
-  }
+
   .big-fx{ position:fixed; left:0; right:0; top:34%; z-index:9990; text-align:center; pointer-events:none; animation:big-fx-in 2.4s ease-out forwards; }
   .big-fx .bf-ic{ font-size:84px; line-height:1; filter:drop-shadow(0 0 18px #ff6a00); }
   .big-fx .bf-t{ font-size:30px; font-weight:900; color:#fff; text-shadow:0 0 12px #f33,0 0 4px #000; margin-top:4px; }
@@ -329,11 +308,7 @@
   .wt-badge small{ font-family:'Noto Sans JP',sans-serif; font-weight:600; font-size:9.5px; color:var(--cream-2); margin-left:4px; }
   .wt-name{ flex:1 1 auto; min-width:0; font-weight:800; font-size:13.5px; color:#f0a8d0; text-shadow:0 0 10px rgba(224,106,168,.35); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .wt-meta{ flex:0 0 auto; font-size:9.5px; color:var(--cream-2); opacity:.8; white-space:nowrap; }
-  .wave-threshold{ font-size:11px; color:var(--cream-2); margin-top:2px; }
-  .wave-threshold b{ color:var(--danger); font-family:'Cinzel',serif; font-size:13px; }
 
-  .timerbar{ height:6px; background:rgba(0,0,0,.4); border-radius:3px; overflow:hidden; margin-bottom:8px; }
-  .hprow{ display:flex; align-items:center; gap:8px; margin-bottom:2px; }
   .hp-icon{ color:#ff6a7a; font-size:15px; line-height:1; flex:0 0 auto; width:22px; text-align:center; }
   .hp-icon.foe{ font-size:14px; }
   .phpbar,.boss-hp-bar{ position:relative; }
@@ -349,14 +324,9 @@
   .hp-num b{ color:#ff9aa8; font-family:'Cinzel',serif; font-size:12.5px; }
   .vs{ font-size:10px; color:var(--cream-2); opacity:.6; margin:0 2px; }
   .enemy-num{ color:#ff8a7a !important; }
-  .duel{ display:flex; align-items:flex-end; gap:8px; }
-  .duel-side{ display:flex; flex-direction:column; line-height:1.05; }
-  .duel-side.foe{ align-items:flex-end; }
-  .duel-label{ font-size:9.5px; color:var(--cream-2); letter-spacing:.06em; opacity:.85; }
-  .duel-side.foe .duel-label{ color:#ff9a8a; }
-  .duel-vs{ font-size:10px; color:var(--cream-2); opacity:.6; padding-bottom:5px; }
+
   .tug{ height:6px; border-radius:4px; background:#e0503f; margin:3px 0 4px; overflow:hidden; border:1px solid rgba(0,0,0,.4); }
-  .tug-me{ height:100%; width:50%; background:linear-gradient(90deg,#4fd69a,#8ff0c4); transition:width .35s ease; }
+  
   .pm-sw{ font-size:15px; margin-right:5px; color:#ffe9a8; }
   .pm-diff{ font-size:12px; font-weight:800; margin-left:6px; white-space:nowrap; }
   .pm-pos{ color:#8ff0c4; } .pm-neg{ color:#ff9a8a; } .pm-zero{ color:var(--cream-2); }
@@ -365,9 +335,7 @@
   .st-row{ position:absolute; left:0; right:0; z-index:3; display:flex; gap:10px; padding:0 12px; pointer-events:none; }
   .st-hp{ top:10px; }
   .st-atk{ top:44px; }
-  .st-dis{ top:78px; }
-  .dis-tag{ font-size:10px; font-weight:900; color:#d9b8ff; text-shadow:0 1px 2px #000; }
-  .dis-txt{ display:inline-flex; gap:4px; flex-wrap:nowrap; }
+
   .dis-chip{ font-size:10px; font-weight:800; color:#efe0ff; background:rgba(60,30,90,.72); border:1px solid rgba(197,140,255,.7); border-radius:9px; padding:1px 5px; white-space:nowrap; line-height:1.25; }
   .dis-chip b{ margin-left:3px; color:#fff; }
   .dis-chip.near{ border-color:#ff5a48; color:#ffd6d0; animation:evSoft 2.2s ease-in-out infinite; }
@@ -375,7 +343,7 @@
   /* 縦が足りない画面（アプリ内ビューアなど）では、上の部分を詰めて盤面に高さを回す */
   .app.compact{ padding-top:calc(2px + var(--st)); }
   .app.compact .stage{ height:118px; margin:2px 0 6px; }
-  .app.compact .st-hp{ top:6px; } .app.compact .st-atk{ top:36px; } .app.compact .st-dis{ top:66px; }
+  .app.compact .st-hp{ top:6px; } .app.compact .st-atk{ top:36px; }
   .app.compact .wavebar{ margin-bottom:6px; }
   .app.compact .upcoming-wrap{ margin-bottom:6px; gap:3px; }
   .app.compact .board-wrap{ margin-bottom:4px; }
@@ -383,7 +351,7 @@
   .app.tight .upcoming-wrap{ margin-bottom:3px; gap:2px; }
   .app.tight .fc{ padding:2px 2px; } .app.tight .fc b{ font-size:11px; } .app.tight .fc small{ font-size:7.5px; } .app.tight .fc:has(> small.fc-sw){ flex-direction:row; gap:1px; } .app.tight .fc small.fc-sw{ display:inline; font-size:9px; }
   .app.tight .stage{ height:104px; margin:2px 0 4px; }
-  .app.tight .st-hp{ top:4px; } .app.tight .st-atk{ top:28px; } .app.tight .st-dis{ top:52px; }
+  .app.tight .st-hp{ top:4px; } .app.tight .st-atk{ top:28px; }
   .st-side{ flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px; }
   .st-hp .st-side{ background:rgba(0,0,0,.5); border-radius:10px; padding:5px 10px; }
   .st-hp .hp-icon{ width:16px; font-size:13px; }
@@ -417,10 +385,7 @@
   .sp-label{ color:#d9b8ff; }
   .fc.now{ border-color:var(--gold); }
   .fc.fc-clock{ border-color:#7fd6ff; background:rgba(90,190,255,.16); } .fc.fc-clock b{ font-size:16px; }
-  .timerrow{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-  .clock-icon{ font-size:16px; flex:0 0 auto; }
-  .clock-seconds{ font-size:11px; font-family:'Cinzel',serif; font-weight:800; color:var(--cream-2); flex:0 0 auto; min-width:2.6em; }
-  .clock-seconds.boosted{ color:#8ff0c4; text-shadow:0 0 6px rgba(143,240,196,.7); }
+
   .giveup-btn{
     flex:1; background:rgba(224,90,74,.18); border:1px solid rgba(224,90,74,.6);
     color:#ffcfc2; font-size:12px; font-weight:800; padding:4px 8px; border-radius:10px; line-height:1.2;
@@ -477,7 +442,6 @@
   .specrow .spec-btn[data-gp]::after{ z-index:1; }
   .specrow .spec-btn[data-gp="max"]::after{ background:#ffd75e; }
 
-
   .ev-warn{ position:fixed; inset:0; z-index:150; pointer-events:none; display:none; }
   .ev-warn.on{ display:block; animation:ev-warn-pulse 1.6s ease-in-out infinite; box-shadow:inset 0 0 28px 2px rgba(255,90,60,.28); }
   .ev-warn.k1{ animation-duration:1s; box-shadow:inset 0 0 40px 4px rgba(255,80,50,.42); }
@@ -509,26 +473,17 @@
   .fighter.mo.enraged{ animation:mo-rage .9s ease-out; } @keyframes mo-rage{ 0%{transform:scale(1);filter:none;} 25%{transform:scale(1.5);filter:drop-shadow(0 0 8px #f33) brightness(1.5);} 100%{transform:scale(1);filter:none;} }
   .spec-btn.glow{ animation:choosable-pulse .8s ease-in-out infinite; box-shadow:0 0 0 2px var(--glow), 0 0 14px rgba(255,220,100,.9); }
   .spec-btn.on{ background:rgba(143,240,196,.4); box-shadow:0 0 8px rgba(143,240,196,.7); }
-  .shuffle-btn{
-    flex:1; background:rgba(143,240,196,.18); border:1px solid rgba(143,240,196,.65);
-    color:#c8ffe4; font-size:12px; font-weight:800; padding:4px 8px; border-radius:10px; line-height:1.2;
-    cursor:pointer; white-space:nowrap; font-family:'Noto Sans JP',sans-serif;
-  }
-  .shuffle-btn:active{ background:rgba(143,240,196,.35); }
-  .shuffle-btn:disabled{ opacity:.35; cursor:default; }
-  .shuffle-btn.urgent-glow{ animation:choosable-pulse 1s ease-in-out infinite; box-shadow:0 0 0 2px var(--glow), 0 0 16px rgba(143,240,196,.8); }
+
   .actionrow{ display:flex; gap:8px; margin-bottom:4px; }
   .actionrow.topact{ margin:0; gap:5px; }
-  .topact .shuffle-btn,.topact .giveup-btn{ white-space:nowrap; flex:none; padding:5px 9px; font-size:11.5px; }
+  .topact .giveup-btn{ white-space:nowrap; flex:none; padding:5px 9px; font-size:11.5px; }
   .topbar-btns{ gap:5px; }
-  .timerrow .timerbar{ flex:1; margin-bottom:0; }
-  .timerfill{ height:100%; width:100%; background:linear-gradient(90deg, var(--glow), var(--gold)); transition:width .12s linear, background .3s; }
-  .timerfill.warn{ background:linear-gradient(90deg, var(--danger), #ff9a6a); box-shadow:0 0 10px rgba(224,90,74,.9); animation:timer-pulse .5s ease-in-out infinite; }
+
   @keyframes timer-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
-  .timerbar.urgent{ height:9px; box-shadow:0 0 0 1px rgba(224,90,74,.7), 0 0 12px rgba(224,90,74,.5); }
+  
   .urgency-vignette{ position:fixed; inset:0; pointer-events:none; z-index:150; display:none; }
   .urgency-vignette.active{ display:block; animation:vignette-pulse .6s ease-in-out infinite; }
-  .urgency-vignette.critical{ animation-duration:.3s; }
+  
   @keyframes vignette-pulse{
     0%,100%{ box-shadow:inset 0 0 60px 20px rgba(224,90,74,.35); }
     50%{ box-shadow:inset 0 0 100px 45px rgba(224,90,74,.7); }
@@ -542,16 +497,10 @@
   .countdown-big.show{ display:block; animation:countdown-pop .45s ease-out; }
   @keyframes countdown-pop{ 0%{ transform:translate(-50%,-50%) scale(1.7); opacity:0; } 100%{ transform:translate(-50%,-50%) scale(1); opacity:1; } }
 
-  .statsrow{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px; flex:0 0 auto; }
-  .powerstats{ text-align:left; margin-bottom:0; flex:1 1 auto; min-width:0; }
   .power-main{ display:flex; align-items:baseline; justify-content:flex-start; gap:8px; }
-  .power-label{ font-size:11px; color:var(--cream-2); letter-spacing:.12em; }
+  
   .power-num{ font-family:'Cinzel',serif; font-weight:800; font-size:27px; color:var(--gold); transition:color .2s, transform .15s; }
   .power-num.bump{ color:#fff; transform:scale(1.15); }
-  .power-sub{ font-size:10.5px; color:var(--cream-2); opacity:.85; margin-top:2px; }
-  .power-charname{ font-size:11px; color:var(--gold); opacity:.85; font-family:'Noto Sans JP',sans-serif; align-self:flex-end; margin-left:2px; }
-  .power-sub b{ color:var(--gold); font-family:'Cinzel',serif; }
-  .power-sub .sep{ opacity:.4; }
 
   .pilerow{ display:flex; flex-direction:column; align-items:center; gap:14px; margin:0; flex:0 0 auto; opacity:.75; transition:opacity .2s; }
   .pilerow:active, .pilerow:hover, .pilerow.force-visible{ opacity:1; }
@@ -581,8 +530,6 @@
   .pcard.back.grave::before{ border-color:rgba(240,150,120,.5); }
   .pcard.back.grand{ background:linear-gradient(160deg,#3a2e14,#1a1406); }
   .pcard.back.grand::before{ border-color:rgba(226,192,106,.7); }
-  .pcard.back.exclude{ background:linear-gradient(160deg,#2a2a2a,#0a0a0a); }
-  .pcard.back.exclude::before{ border-color:rgba(150,150,150,.5); }
 
   /* ---------- telop ---------- */
   #tutArrow{ position:fixed; left:0; right:0; z-index:40; display:none; flex-direction:column; align-items:center; pointer-events:none; }
@@ -600,17 +547,6 @@
   }
   .telop b{ flex:0 0 auto; font-family:'Cinzel',serif; font-size:10px; letter-spacing:.1em; padding:2px 7px; border-radius:4px; color:#201808; background:var(--glow); }
   .telop span{ font-size:11.5px; color:#eafff2; font-weight:700; line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-  .cancelbtn{
-    margin-left:auto; flex:0 0 auto; width:22px; height:22px; border-radius:50%;
-    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3);
-    color:var(--cream-2); font-size:12px; cursor:pointer; line-height:1;
-  }
-  .confirmbtn{
-    margin-left:auto; flex:0 0 auto; padding:4px 10px; border-radius:12px;
-    background:rgba(143,240,196,.25); border:1px solid rgba(143,240,196,.6);
-    color:var(--glow); font-size:11px; font-weight:700; cursor:pointer; font-family:'Noto Sans JP',sans-serif;
-  }
-  .confirmbtn + .cancelbtn{ margin-left:6px; }
 
   /* ---------- card ---------- */
   .pcard{
@@ -729,9 +665,7 @@
     transition:box-shadow .2s, border-color .2s, transform .15s, opacity .2s;
     cursor:pointer;
   }
-  .hand .pcard .eq-bonus, #hand .pcard .eq-bonus{ display:none; }
-  .pcard .eq-bonus{ position:absolute; left:50%; bottom:3px; transform:translateX(-50%); white-space:nowrap; font-size:10px; font-weight:800; color:#201808; background:var(--gold); border-radius:8px; padding:1px 6px; box-shadow:0 1px 3px rgba(0,0,0,.5); z-index:3; }
-  .slot .pcard.mini .eq-bonus{ font-size:9px; padding:0 4px; }
+
   .smoke{ position:absolute; inset:0; z-index:12; border-radius:inherit; pointer-events:none; display:flex; align-items:flex-end; justify-content:center; padding-bottom:6px; background:radial-gradient(circle at 30% 30%,rgba(40,40,48,.97),rgba(8,8,12,.98) 70%); animation:smokeDrift 3s ease-in-out infinite alternate; }
   .smoke span{ font-size:11px; font-weight:900; color:#cfcfe0; background:rgba(0,0,0,.5); border-radius:8px; padding:1px 8px; }
   @keyframes smokeDrift{ from{ filter:brightness(1); } to{ filter:brightness(1.35); } }
@@ -775,7 +709,6 @@
   @keyframes glow{ 0%,100%{ box-shadow:0 0 0 1px var(--glow) inset, 0 0 10px rgba(143,240,196,.4);} 50%{ box-shadow:0 0 0 1px var(--glow) inset, 0 0 18px rgba(143,240,196,.85);} }
   @keyframes closePulse{ 0%{ box-shadow:0 0 0 0 var(--pulse-color, rgba(226,192,106,.8));} 100%{ box-shadow:0 0 0 20px rgba(0,0,0,0);} }
   .flag.just-closed{ animation:closePulse .75s ease-out; }
-  .flag.fogged{ border-color:rgba(143,240,196,.35); }
 
   .particle{ position:absolute; width:6px; height:6px; border-radius:50%; background:var(--gold); pointer-events:none;
     animation:burst .65s cubic-bezier(.2,.7,.3,1) forwards; box-shadow:0 0 6px var(--gold); }
@@ -1061,7 +994,7 @@
   .howto-det[open]>summary{ border-bottom:1px solid rgba(255,255,255,.07); margin-bottom:8px; }
   .howto-section{ margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,.07); }
   .howto-section:last-child{ border-bottom:none; }
-  .howto-title{ font-family:'Cinzel',serif; font-size:13px; color:var(--gold); margin:0 0 4px; }
+  
   .howto-section p{ font-size:12px; line-height:1.75; color:var(--cream-2); margin:0; }
   .howto-section .formation-example{ margin-top:8px; }
   .pcard.xs{ width:38px; height:38px; border-radius:5px; }
@@ -1076,9 +1009,6 @@
   .formation-example .ex-name{ font-family:'Cinzel',serif; font-weight:800; font-size:12.5px; color:var(--gold); }
   .formation-example .ex-name .mult{ color:var(--cream-2); font-weight:400; font-size:11px; font-family:'Noto Sans JP',sans-serif; }
   .formation-example .ex-desc{ font-size:10.5px; color:var(--cream-2); margin-top:2px; line-height:1.5; }
-
-  .beststat{ text-align:center; font-size:11px; color:var(--cream-2); opacity:.85; margin-top:4px; }
-  .beststat b{ color:var(--gold); font-family:'Cinzel',serif; }
 
   .flag .eqtag{ position:absolute; left:50%; bottom:3px; transform:translateX(-50%); z-index:6; pointer-events:none; font-size:10px; font-weight:900; padding:1px 7px; border-radius:9px; white-space:nowrap; border:1px solid; }
   .flag .eqtag.pos{ background:rgba(20,70,40,.88); color:#b6ffd0; border-color:#4fd68a; }
@@ -1104,10 +1034,7 @@
     flex:0 0 100%; white-space:nowrap; font-size:14px; color:#f2a0cc; font-weight:900; margin-left:2px;
     text-shadow:0 0 8px rgba(242,160,204,.9);
   }
-  .frb-time-tag{
-    font-size:11px; color:#8ff0c4; font-weight:800; margin-left:4px;
-    text-shadow:0 0 8px rgba(143,240,196,.8);
-  }
+  
   @keyframes combo-boost-pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
   .flag .badge.monbadge{ background:#e06aa8; color:#2a0a1c; white-space:normal; width:max-content; max-width:calc(100% - 6px); text-align:center; line-height:1.15; }   /* 長い名前は、旗の幅に収まるよう2行に折り返す */
   .flag .badge.timeoutbadge{ background:#5a5a5a; color:#ddd; }
@@ -1151,9 +1078,7 @@
   .pn-tag.cum{ background:rgba(120,170,255,.25); color:#bcd4ff; } .pn-tag.fin{ background:rgba(255,120,100,.25); color:#ffc4b8; }
   .pn-stamp{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:900 18px/1 'Cinzel',serif; color:rgba(143,240,196,.5); transform:rotate(-14deg); pointer-events:none; letter-spacing:.06em; }
   .pn-grid.sm .pn-cell{ min-height:70px; } .pn-grid.sm .pn-t{ font-size:10px; }
-  .pn-mini{ display:inline-grid; grid-template-columns:repeat(9,7px); gap:2px; vertical-align:middle; }
-  .pn-mini i{ width:7px; height:7px; border-radius:2px; background:rgba(226,192,106,.25); border:1px solid rgba(226,192,106,.6); }
-  .pn-mini i.ok{ background:#8ff0c4; border-color:#8ff0c4; }
+
   .db-page.side{ opacity:.45; transform:scale(.96); }
   .db-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:46px; height:46px; border-radius:50%; border:2px solid var(--gold); background:rgba(10,16,12,.88); color:var(--gold); font-size:22px; line-height:1; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.6); padding:0; }
   .db-arrow.l{ left:2px; } .db-arrow.r{ right:2px; }
@@ -1340,17 +1265,6 @@
   </div>
 </div>
 
-<div class="modal-bg" id="rewardModal" style="display:none;">
-  <div class="reward-box">
-    <div class="reward-title">🎉 コンボ報酬</div>
-    <div class="reward-sub" id="rewardSub"></div>
-    <div class="reward-options" id="rewardOptions"></div>
-    <div class="db-sec" id="rewardDeckLabel" style="margin-top:14px"></div>
-    <div class="cardgrid" id="rewardDeck" style="max-height:none"></div>
-  </div>
-</div>
-
-
 <div class="modal-bg" id="chestModal" style="display:none;">
   <div class="reward-box">
     <div class="reward-title">🎁 宝箱</div>
@@ -1467,6 +1381,9 @@
         <details class="howto-det"><summary>🃏 デッキ・手札</summary><div id="howtoExchange"></div></details>
         <details class="howto-det"><summary>☠ 呪いカードと聖水</summary><div id="howtoCurse"></div></details>
         <details class="howto-det"><summary>⚡ 特殊技</summary><div id="howtoSkill"></div></details>
+        <details class="howto-det"><summary>🎯 アクセサリー獲得パネル</summary><div id="howtoPanel"></div></details>
+        <details class="howto-det"><summary>💍 アクセサリー</summary><div id="howtoAcc"></div></details>
+        <details class="howto-det"><summary>👾 モンスターの体・合体・宇宙人</summary><div id="howtoMon"></div></details>
       </div>
     </div>
 
@@ -2534,7 +2451,7 @@ function saveHighScore(charId, v){
 function loadOverallHighScore(){
   return Math.max(0, ...CHARACTERS.map(c=>loadHighScore(c.id)));
 }
-let stageIndex=0, waveAttempt=1, bossHp=0, displayedBossHp=0, victory=false, waveAdvancing=false, freeShuffles=0, rewardPicksRemaining=0, pendingRewardCards=[], handSlotBonus=0;
+let stageIndex=0, waveAttempt=1, bossHp=0, displayedBossHp=0, victory=false, waveAdvancing=false, freeShuffles=0, pendingRewardCards=[], handSlotBonus=0;
 let totalWaves=0, immortalKills=0, carryDamage=0;
 let tutDiscarded=false;   // ミジンコの案内：墓地へ捨てて交換できた
 let introOn=false, introAdv=false;   // ミジンコで始めた時だけ、最初にリーダー→キングと戦う
@@ -3403,7 +3320,7 @@ function randomizeStartDeck(bias){ // 初期山札はランダム（大山札か
 function init(){
   powerHist=[]; coinUsed=0; scSpent={};
   applyEnemyNames();
-  score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; tutDiscarded=false; tutStep=0; tutT=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   /* ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） */ lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; rewardPicksRemaining=0; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
+  score=0; totalScore=0; displayedScore=0; picked=null; pending=null; gameEnded=false; busy=false; infoIdx=null; justClosed=[]; graveyard=[]; turnCounter=0; tutDiscarded=false; tutStep=0; tutT=0; introOn=false; introAdv=false; stageIndex=(CHARACTER.mon==='ミジンコ')?INTRO_LEADER:(CHARACTER.mon==='ミジンコリーダー')?INTRO_KING:BASE_IDX[0]; battleNo=1;   /* ミジンコはリーダー、リーダーはキングと戦う（キングからは普通） */ lastDefeatedIdx=-1; nextStageIdx=-1; lastDealt=0; waveAttempt=1; victory=false; waveAdvancing=false; freeShuffles=0; pendingRewardCards=[]; handSlotBonus=0; totalWaves=0; immortalKills=0; carryDamage=0;
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
@@ -3454,7 +3371,6 @@ function deckSortCmp(a,b){
   if(a.kind==='monster') return (a.sub>b.sub)?1:(a.sub<b.sub?-1:(a.value||0)-(b.value||0));
   return (a.type>b.type)?1:-1;
 }
-function canDeckBuild(){ const a=allCardsUnique().filter(deckEligible); return a.some(c=>c.inDeck) && a.some(c=>!c.inDeck); }
 let dbOut=new Set(), dbIn=new Set(), dbLimit=0, dbDone=null, dbPhase=1, dbAdded=new Set(), dbRemoved=[], dbFinalLabel='ゲーム開始';
 function showDeckBuild(limit,title,done){
   dbOut=new Set(); dbIn=new Set(); dbLimit=limit; dbDone=done; dbPhase=1; dbAdded=new Set(); dbRemoved=[]; dbFinalLabel=/最初/.test(title)?'ゲーム開始':'次へ進む';
@@ -3541,13 +3457,6 @@ function applyDeckBuild(){
   dbAdded=new Set(ins.map(c=>c.uid)); dbRemoved=outs;
   dlog('info',{msg:'山札構築',swapped:dbOut.size});
   dbPhase=2; renderDeckBuild();
-}
-function startRebuild(){
-  const all=allCardsUnique().filter(c=>!c.temp);
-  activeDeck=shuffle(all.filter(c=>c.inDeck)); grandDeck=shuffle(all.filter(c=>!c.inDeck));
-  hand=[]; graveyard=[];
-  for(let i=0;i<currentHandMax();i++){ const c=drawFromPools(); if(c) hand.push(c); }
-  render(); layoutHand(true);
 }
 
 /* ================= RULES ================= */
@@ -6280,7 +6189,7 @@ function fillPage(id, html){
 function buildHowtoPage(){
   const FN=(CHARACTER&&CHARACTER.flags)||4;   // 旗の数はキャラで違う（4つ、王は6つ）
   fillPage('howtoBasic', `<div class="howto-section" id="howtoBasicSec">
-    <p>${FN}つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた戦力で<b style="color:var(--danger)">ボスにダメージ</b>を与えよう。役が揃うと、役ごとの倍率（×3〜×10）が掛かる。<b style="color:#f2a0cc">スーパーコンボ</b>は、象徴の色が同じ「役の旗」が2つ以上同じマークのつながりごとに、先に閉じた旗から順に<b style="color:#f2a0cc">×2、×3、×4…</b>と倍率が上がっていく。攻撃のあとも連続は続き、次のシートでは続きの倍率（例：2つ決めたあとは×4から）になる。敵を倒して次の敵に進んでも連続は持ち越せる。倍率に上限はない。スーパーコンボが決まらない攻撃をするとリセットされる。役のない旗はスーパーコンボの対象外</p>
+    <p>${FN}つの旗にカードを3枚ずつ揃えて<b style="color:var(--gold)">封鎖</b>し、役に応じた戦力で<b style="color:var(--danger)">ボスにダメージ</b>を与えよう。役が揃うと、役ごとの倍率（×3〜×10）が掛かる。<b style="color:#f2a0cc">スーパーコンボ</b>は、象徴の色が同じ「役の旗」が2つ以上同じマークのつながりごとに、先に閉じた旗から順に<b style="color:#f2a0cc">×2、×3、×4…</b>と倍率が上がっていく。攻撃のあとも連続は続き、次のシートでは続きの倍率（例：2つ決めたあとは×4から）になる。スーパーコンボが決まらない攻撃をするとリセットされる。<b>最初のうちは倍率×${COMBO_CAP}まで・次の敵への持ち越しなし</b>。宇宙人「月の民」を倒すと、倍率の上限がなくなり、次の敵にも連続を持ち越せるようになる。役のない旗はスーパーコンボの対象外</p>
     <p style="margin-top:8px;">${FN}旗すべてが封鎖されると<b style="color:var(--gold)">一斉攻撃</b>！ <b style="color:var(--gold)">自分の戦力と敵の攻撃力がぶつかり合い、その差分だけ</b>が相手のHPを削る。自分が上回れば敵に、下回れば自分にダメージ。旗は空に戻り、敵の攻撃力もリセットされる。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">ボスのHPが残っていれば同じステージのままWAVEだけ進み、次の戦いが始まる</b>（鼓舞・複製・融合の効果は次の戦いには持ち越されない）。<b style="color:var(--gold)">ボスを倒すと次のステージへ進み、そこで初めて手札も一新</b>される。</p>
     <p style="margin-top:8px;">敵の攻撃力は<b style="color:var(--danger)">カードを1枚使うごとに増えていく</b>。戦力・敵の攻撃力・その差分は、カードを1枚置くたびにリアルタイムで更新される。ためすぎは禁物、頃合いを見て旗を全部そろえて攻撃しよう。</p>
@@ -6312,10 +6221,22 @@ function buildHowtoPage(){
     <p style="margin-top:6px;"><b>💀 カラフルフィールド／🌀 パニックフィールド／➖ マイナスの武器</b>：旗に置く敵のカード。特定の色しか置けなくなる／数字が逆転する／旗の合計が減る。</p>
     <p style="margin-top:10px;"><b style="color:var(--gold)">💧 聖水（軍師カード）</b>：発動後、<b>手札の呪いカード</b>か、<b>呪いが乗った旗</b>（敵の装備・ボム・封鎖・ワームホール・ブラインド）をタップすると取り除ける。スーパーコンボのペナルティはない。呪いが無い時は使えない。</p>
     <p style="margin-top:8px;"><b style="color:var(--gold)">🧪 薬（特殊技）</b>：毒と封鎖を止め、手札と旗の呪いをまとめて消す（「特殊技」タブ）。</p></div>`);
-  fillPage('howtoSkill', `<div class="howto-section"><p>画面の特殊技ボタンから使える。使える技と回数は、キャラやアクセサリー、プレイモンスターによって変わる。</p>`+Object.values(SPEC_INFO).map(x=>`<p style="margin-top:8px;"><b>${x.title}</b>：${x.desc}</p>`).join('')+`<p style="margin-top:8px;"><b>バレットタイムの注意</b>：連続では使えない。今のバレットタイムが終わるまで待つ必要があり、使うとアラートが出る。</p></div>`);
+  fillPage('howtoSkill', `<div class="howto-section"><p>画面の特殊技ボタンから使える。使える技は、いま使っているモンスターの体で決まる（合体中は2体分）。</p><p style="margin-top:6px;"><b style="color:var(--gold)">技の払い方は3種類</b>：<br>・<b>体力を払う技</b>（❤の数字）：払ったあとに体力が1以上残る時だけ使える。<br>・<b>スーパーコンボを払う技</b>（色のマーク×数）：その色でためたスーパーコンボの連続を、数のぶんだけ減らして使う。<br>・<b>回数で使う技</b>：1回の戦闘で使える回数が決まっている。<br>お金を一緒に払う技もある。ボタンを押すと、技の説明と払うものが出る。「体質」と書かれた技は、ボタンを押さなくてもずっと効いている。</p><p style="margin-top:6px;"><b style="color:var(--gold)">共通の特殊技</b>（キャラによって使えるものが違う）：</p>`+Object.values(SPEC_INFO).map(x=>`<p style="margin-top:8px;"><b>${x.title}</b>：${x.desc}</p>`).join('')+`<p style="margin-top:8px;"><b>バレットタイムの注意</b>：連続では使えない。今のバレットタイムが終わるまで待つ必要があり、使うとアラートが出る。</p></div>`);
+  fillPage('howtoPanel', `<div class="howto-section"><p>アクセサリーは、<b style="color:var(--gold)">3×3のパネル</b>の条件をクリアして手に入れる。</p>
+    <p style="margin-top:6px;">・パネルには9マスあり、マスごとに条件が1つ書いてある。どのマスから狙ってもいい。<br>・<b>1マスクリアするごとに、戦闘後にアクセサリーを1つ選べる</b>（3つの中から1つ）。<br>・<b style="color:var(--gold)">9マス全部クリアすると、特別なアクセサリー</b>を1つ選べて、次の戦闘から次のパネルに進む。パネルは進むほど条件が厳しくなる。<br>・パネルは1ゲームの間ずっと続く（ゲームオーバーで1枚目に戻る）。</p>
+    <p style="margin-top:6px;"><b style="color:var(--gold)">マスの種類</b>：<br>・<b>1戦で</b>：1回の戦闘の中で達成する。戦闘が変わると途中までの数は0に戻る（マスは残る）。<br>・<b>累計</b>：パネルが出てからの合計。戦闘をまたいで数える。<br>・<b>倒した時</b>：敵を倒した瞬間に判定する（例：体力が半分を切らずに倒す）。</p>
+    <p style="margin-top:6px;"><b style="color:var(--gold)">見かた</b>：戦闘中は、敵の下のバーにまだクリアしていない条件が流れる（タップで次の条件）。上の🎯ボタンでパネル全体が見られる。</p>
+    <p style="margin-top:6px;"><b style="color:var(--gold)">特別なアクセサリー</b>（店には出ない。重ねて持つと効果も重なる）：<br>${ACC_DEFS_ALL.filter(d=>d.special).map(d=>`・${d.icon} <b>${d.name}</b>：${d.desc.replace('【パネル全クリアの特別品】','')}`).join('<br>')}</p>
+    <p style="margin-top:6px;opacity:.85;">※ ミジンコの体で遊んでいる間は、パネルは出ない。</p></div>`);
+  fillPage('howtoAcc', `<div class="howto-section"><p>アクセサリーは、<b style="color:var(--gold)">装備している間ずっと効く</b>道具。持っているだけでは効かない。</p>
+    <p style="margin-top:6px;">・<b>手に入れ方</b>：パネルのマスをクリアして選ぶ／準備画面の「アクセサリーを買う」で買う。<br>・<b>装備</b>：付けられるのは基本3つまで。上の🎒ボタン（準備画面では「装備する」）で付け替える。<br>・<b>売る</b>：準備画面の「売る」で売れる（売値は買値の約3割）。<br>・<b>条件つきのアクセサリー</b>：説明に書かれた条件を戦闘中に満たすと、お金やボーナスが入るものがある。<br>・同じアクセサリーは基本1つだけ（「重ねて持てる」と書かれたものは別）。</p></div>`);
+  fillPage('howtoMon', `<div class="howto-section"><p><b style="color:var(--gold)">倒したモンスターの体で遊べる</b>。敵を倒すと、その敵とそれより弱い敵が全部、次のゲームからキャラ選択で選べるようになる。</p>
+    <p style="margin-top:6px;">・モンスターは全部で${WAVES.length}体。体ごとに<b>体力</b>と<b>特殊技</b>が違う。<br>・強い体ほど強いとは限らない。技の相性で選ぼう。<br>・自分と同じ種類の敵が出る時は「別の○○」と表示される。</p>
+    <p style="margin-top:6px;"><b style="color:var(--gold)">次の敵の決まり方</b>：敵を倒した時の攻撃力が高いほど、より強い敵へ飛ぶ。一番上の敵まで倒すとゲームクリア（不死身の魔王は、2回倒すと完全勝利）。</p>
+    <p style="margin-top:6px;"><b style="color:var(--gold)">宇宙人</b>：ある強さの敵まで進んでから負けると、宇宙人が現れて勝負になる。勝つと、その宇宙人の体が使えるようになり、ずっと残る強化がもらえる。<br>・🌙 <b>月の民</b>：スーパーコンボの制限がなくなる（倍率の上限なし・次の敵へ持ち越し）。<br>・🔴 <b>火星人</b>：<b>合体</b>ができるようになる。キャラ選択で「合体」を押して、足にするモンスターを選ぶ。見た目は1体目の頭と胴＋2体目の足。特殊技は2体分使える。<br>・その先の宇宙人の強化は準備中。</p></div>`);
   fillPage('howtoExchange', `<div class="howto-section" id="howtoExchangeSec"><p>手札のカードをタップすると説明が見られる。ドラッグで旗に置いてみよう。</p><p style="margin-top:8px;">${FN}つの旗が全て埋まると自動で戦力が確定し、旗が空の状態に戻る。同時に<b style="color:var(--gold)">大山札</b>にある全てのカードがシャッフルされ、そこから40枚が山札に補充されてプレイが続く。<b style="color:var(--danger)">必要戦力に届いていなくても終了にはならず、そのまま次の敵と続けて戦う</b>。ヘッダーには次に引かれるカードが先読みで表示される。</p></div>`);
 
-  fillPage('howtoCombo', `<div class="howto-section" id="howtoComboSec"><p>旗を封鎖すると<b style="color:var(--gold)">最後（3枚目）に置いたカードの色</b>がその旗の「象徴」になる。（役が揃った旗の）象徴の色が同じ旗がWAVE終了時に2つ以上あると、<b style="color:#f2a0cc">スーパーコンボ</b>が発動し、つながった旗は先に閉じた順に×2、×3、×4…と倍率が上がる（役が無い旗は対象外）。攻撃のあとも連続は続き、次のシートは続きの倍率から（色が違ってもOK）。決まらない攻撃や次の敵でリセット。<b style="color:var(--gold)">ボスを倒してステージをクリアすると</b>、報酬選択のチャンスが1回もらえ、「いつでもシャッフル＋1（上限3）」「軍師カード2枚 or ♾️カード2枚（ランダム）」「手札のスペース+1（上限3）」から好きなものを選べる。獲得したカード（軍師・♾️）は次のステージの山札に確実に加わり、<b style="color:#e8b8d8">★マーク付きの特別な見た目</b>になる。使われるまで何ステージ経っても山札に残り続けるが、<b style="color:var(--danger)">一度使うと二度と戻ってこない</b>。</p></div>`);
+  fillPage('howtoCombo', `<div class="howto-section" id="howtoComboSec"><p>旗を封鎖すると<b style="color:var(--gold)">最後（3枚目）に置いたカードの色</b>がその旗の「象徴」になる。（役が揃った旗の）象徴の色が同じ旗がWAVE終了時に2つ以上あると、<b style="color:#f2a0cc">スーパーコンボ</b>が発動し、つながった旗は先に閉じた順に×2、×3、×4…と倍率が上がる（役が無い旗は対象外）。攻撃のあとも連続は続き、次のシートは続きの倍率から（色が違ってもOK）。決まらない攻撃でリセット（月の民を倒すまでは、次の敵に進んだ時もリセット）。</p><p style="margin-top:8px;"><b style="color:var(--gold)">敵を倒すと</b>：①宝箱でお金が入る → ②アクセサリー獲得パネルでクリアしたマスの数だけ、アクセサリーを3つの中から1つずつ選ぶ → ③準備画面（アクセサリーを買う・デッキを買う・売る・装備する）→ 次の敵へ。</p></div>`);
   exRow(document.getElementById('howtoComboSec'),
     [{color:'blue',value:8},{color:'blue',value:4},{color:'blue',value:2}],
     '例：象徴＝青14','この旗が青で締まると「象徴：青14」に。他の旗も青で締まれば合計値どうしが掛け合わされる。');
@@ -6531,105 +6452,6 @@ function showEnd(reason,giftDone){
     { const cc=document.getElementById('endChangeChar'); if(cc){ cc.classList.remove('ghost'); cc.style.marginTop='0'; } }
     document.getElementById('endModal').style.display='flex';
   }
-}
-function rollRewardOptions(){
-  const tacticsPool = TACTICS_ON.filter(t=>t.type!=='alexander'&&t.type!=='darius');
-  const wildPool = [TACTICS.find(t=>t.type==='alexander'), TACTICS.find(t=>t.type==='darius')].filter(t=>(t.type==='alexander'?CHARACTER.blueInf:CHARACTER.redInf));
-  const doubleType = (!CHARACTER.tactics || Math.random()<0.5) ? 'wild' : 'tactics';
-  const pool = doubleType==='wild' ? wildPool : tacticsPool;
-  const cardCount = doubleType==='wild' ? 1 : 2;
-  const cards=[];
-  for(let i=0;i<cardCount;i++) cards.push(pool[Math.floor(Math.random()*pool.length)]);
-  const all=[{kind:'double_cards', cardType:doubleType, cards}];
-  if(CHARACTER.startShuffles!==Infinity && freeShuffles<CHARACTER.maxShuffles) all.push({kind:'shuffle_charge'});
-  if(CHARACTER.rewardMode!=='redOnly'){
-    const cols=shuffle(GAME_COLORS.slice());
-    all.push({kind:'color_up', color:cols[0]});
-    all.push({kind:'color_change', from:cols[1], to:cols[2]});
-  }
-  if(handSlotBonus<CHARACTER.maxHandSlot) all.push({kind:'hand_slot'});
-  // 山札構築は毎回必ず提示。残りは毎回ランダムに選ぶ（賞品が固定にならないように）
-  let options=shuffle(all).slice(0,canDeckBuild()?3:4);
-  if(canDeckBuild()) options=shuffle(options.concat([{kind:'deck_build'}]));
-  return options;
-}
-function showRewardPick(){
-  document.getElementById('rewardSub').textContent=`残り選択回数：${rewardPicksRemaining}`;
-  const options=rollRewardOptions();
-  const box=document.getElementById('rewardOptions');
-  box.innerHTML='';
-  options.forEach(opt=>{
-    const el=document.createElement('button');
-    el.className='reward-option';
-    if(opt.kind==='shuffle_charge'){
-      const maxed = freeShuffles>=CHARACTER.maxShuffles;
-      el.innerHTML=`<div class="reward-icon"><svg viewBox="0 0 100 100" fill="none" stroke="#8ff0c4" stroke-width="10"><path d="M20 35 A32 32 0 0 1 82 30 M80 65 A32 32 0 0 1 18 70"/><path d="M82 12 L82 30 L64 30 M18 88 L18 70 L36 70" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="reward-name">いつでもシャッフル+1${maxed?'（上限）':''}</div>`;
-    } else if(opt.kind==='double_cards'){
-      const isWild = opt.cardType==='wild';
-      const icons = opt.cards.map(c=>{
-        const color = isWild ? (c.type==='darius'?'#e05a4a':'#5aa8e0') : '#f0a38a';
-        const shape = isWild ? EMBLEM.wild : EMBLEM.tactic;
-        return `<svg viewBox="0 0 100 100" fill="${color}" style="width:26px;height:26px;">${shape}</svg>`;
-      }).join('');
-      const names = opt.cards.map(c=>c.name).join('<br>');
-      el.innerHTML=`<div class="reward-icon" style="display:flex;gap:2px;width:auto;">${icons}</div><div class="reward-name">${names}</div>`;
-    } else if(opt.kind==='color_up'){
-      el.innerHTML=`<div class="reward-icon"><svg viewBox="0 0 100 100" fill="${CFILL[opt.color]}">${EMBLEM[opt.color]}</svg></div><div class="reward-name">${CNAME[opt.color]}を<br>ランダム3枚+1</div>`;
-    } else if(opt.kind==='color_change'){
-      el.innerHTML=`<div class="reward-icon" style="display:flex;align-items:center;gap:1px;width:auto;"><svg viewBox="0 0 100 100" fill="${CFILL[opt.from]}" style="width:22px;height:22px;">${EMBLEM[opt.from]}</svg><span style="color:var(--gold);font-size:12px;">→</span><svg viewBox="0 0 100 100" fill="${CFILL[opt.to]}" style="width:22px;height:22px;">${EMBLEM[opt.to]}</svg></div><div class="reward-name">${CNAME[opt.from]}3枚を<br>${CNAME[opt.to]}に変更</div>`;
-    } else if(opt.kind==='deck_build'){
-      el.innerHTML=`<div class="reward-icon"><svg viewBox="0 0 100 100" fill="none" stroke="#e2c06a" stroke-width="8"><rect x="22" y="14" width="46" height="62" rx="6"/><path d="M32 86 H78 V28" stroke-linecap="round"/></svg></div><div class="reward-name">山札構築<br>3枚まで交換</div>`;
-    } else {
-      const maxed = handSlotBonus>=CHARACTER.maxHandSlot;
-      el.innerHTML=`<div class="reward-icon"><svg viewBox="0 0 100 100" fill="none" stroke="#e2c06a" stroke-width="8"><rect x="15" y="20" width="70" height="60" rx="8"/><path d="M50 40 L50 60 M40 50 L60 50" stroke-linecap="round"/></svg></div><div class="reward-name">手札+1${maxed?'（上限）':''}</div>`;
-    }
-    el.onclick=()=>resolveRewardPick(opt);
-    box.appendChild(el);
-  });
-  { const deck=allCardsUnique().filter(deckEligible).filter(c=>c.inDeck).sort(deckSortCmp);
-    const extra=allCardsUnique().filter(c=>c.purchased).length;
-    document.getElementById('rewardDeckLabel').textContent=`現在の山札 ${deck.length+extra}枚`;
-    const g=document.getElementById('rewardDeck'); g.innerHTML='';
-    deck.concat(allCardsUnique().filter(c=>c.purchased)).forEach(c=>g.appendChild(cardEl(c,true))); }
-  document.getElementById('rewardModal').style.display='flex';
-}
-function resolveRewardPick(opt){
-  document.getElementById('rewardModal').style.display='none';
-  if(opt.kind==='deck_build'){ showDeckBuild(3,'山札構築',finishRewardPick); return; }
-  if(opt.kind==='shuffle_charge'){
-    if(freeShuffles>=CHARACTER.maxShuffles){
-      hint(`いつでもシャッフルは上限（${CHARACTER.maxShuffles}）に達しています。`);
-    } else {
-      freeShuffles++;
-      hint('いつでもシャッフルを獲得！');
-    }
-  } else if(opt.kind==='double_cards'){
-    opt.cards.forEach(data=>{
-      pendingRewardCards.push({kind:'tactics',...data,uid:uid(),purchased:true});
-    });
-    hint(`${opt.cards[0].name}を${opt.cards.length}枚（購入品）獲得！次のステージの山札に加わる。`);
-  } else if(opt.kind==='color_up'){
-    const n=applyColorPlus3(opt.color);
-    hint(n>0?`${CNAME[opt.color]}のカード${n}枚が+1された！`:`${CNAME[opt.color]}の+1できるカードが無かった…`);
-  } else if(opt.kind==='color_change'){
-    const n=applyColorChange3(opt.from, opt.to);
-    hint(n>0?`${CNAME[opt.from]}のカード${n}枚が${CNAME[opt.to]}に変わった！`:`${CNAME[opt.from]}のカードが無かった…`);
-  } else if(opt.kind==='hand_slot'){
-    if(handSlotBonus>=CHARACTER.maxHandSlot){
-      hint('手札の上限は既にMAXです。');
-    } else {
-      handSlotBonus++;
-      hint('手札のスペースが1つ増えた！');
-    }
-  }
-  finishRewardPick();
-}
-function finishRewardPick(){
-  rewardPicksRemaining--;
-  setTimeout(()=>{
-    if(rewardPicksRemaining>0) showRewardPick();
-    else advanceToNextStage();
-  }, 450);
 }
 function cleanMods(cards){
   const keep=[];
@@ -7856,7 +7678,7 @@ document.getElementById('titleHowtoBtn').onclick=()=>{
 
 /* ===== エラー詳細をデバッグログに残す（「Script error.」で原因が見えない対策） ===== */
 (function(){
-  const names=['render','renderBattle','renderUpcoming','updateEvCountdown','playOnFlag','advanceTurn','checkWaveOutcome','finishWaveOutcome','advanceToNextStage','advanceWaveAttempt','grantStageReward','discardDraw','specUse','performFreeShuffle','applyEnemyEvent','endCheck','closeCheck','showRewardPick','resolveRewardPick','showDeckBuild','renderDeckBuild','applyDeckBuild','startRebuild','init','layoutHand','autoRefill','resolveMonsterDefeatByRef'];
+  const names=['render','renderBattle','renderUpcoming','updateEvCountdown','playOnFlag','advanceTurn','checkWaveOutcome','finishWaveOutcome','advanceToNextStage','advanceWaveAttempt','grantStageReward','discardDraw','specUse','performFreeShuffle','applyEnemyEvent','endCheck','closeCheck','showDeckBuild','renderDeckBuild','applyDeckBuild','init','layoutHand','autoRefill','resolveMonsterDefeatByRef'];
   names.forEach(n=>{
     const f=window[n]; if(typeof f!=='function') return;
     window[n]=function(){
@@ -8958,7 +8780,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -8980,12 +8802,12 @@ function saveGame(force){
   try{
     if(gameEnded||(!force&&!inPrep&&(busy||waveAdvancing))||pending||!CHARACTER) return;  // 準備画面（戦闘が終わった直後）は状態が安定しているので保存してよい
     const open=id=>{ const e=document.getElementById(id); return e && e.style.display==='flex'; };
-    if(open('deckBuildModal')||open('rewardModal')||open('endModal')) return;
+    if(open('deckBuildModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
     const st={v:1, lad:8, gn:growN, pk:pocket, gu:gloveUsed, lu:lanternUsed, hb:hpBonus, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
       score, totalScore, carryMap, scSpent, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,panel,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
-      activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
+      activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
 }
@@ -9004,7 +8826,7 @@ function resumeGame(){
   document.getElementById('titleScreen').style.display='none';
   document.getElementById('charScreen').style.display='none';
   document.getElementById('appRoot').style.display='';
-  ['deckBuildModal','rewardModal','endModal','specModal','cardInfoBg','rehireModal','cardListModal','chestModal','prepModal','shopModal','accModal','pickModal'].forEach(i=>{ const e=document.getElementById(i); if(e) e.style.display='none'; });
+  ['deckBuildModal','endModal','specModal','cardInfoBg','rehireModal','cardListModal','chestModal','prepModal','shopModal','accModal','pickModal'].forEach(i=>{ const e=document.getElementById(i); if(e) e.style.display='none'; });
   { const H=HUMAN_INS, N=LADDER_N;
     const T=i=>i>=H?i+1:i;                                    // 基本配置(人間なし・敵69体)→今の配置
     const R=i=>{ if(i<0) return -1; if(i>=69) return N+(i-69); return T(i); };          // lad4/6：人間なしの配置
@@ -9033,7 +8855,7 @@ function resumeGame(){
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[],special:0},ac.cond||{}); panel=ac.panel||null; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0},st.spec||{}); guardOn=st.guardOn; defendOn=!!st.defendOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
-  deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
+  deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); victory=!!st.victory;
   lastDealt=st.lastDealt||0; lastPower=st.lastPower||0; powerHist=Array.isArray(st.powerHist)?st.powerHist.slice(-3):[]; coinUsed=st.coinUsed||0;
   try{   // 無限のチェーンネックレスは廃止：古いセーブに残っている橙のカード（数字・色の装備）と橙の色を消す
     const isO=c=>c&&c.color==='orange'&&!c.temp&&!c.enemyPlaced&&((c.kind==='troop')||(c.kind==='monster'&&c.sub==='mark'));
