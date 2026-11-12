@@ -42,7 +42,7 @@
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Sans+JP:wght@400;500;700;900&family=Shippori+Mincho:wght@600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{
+  :root{ --st:calc(env(safe-area-inset-top,0px) * 1.5);
     --felt-1:#1f5a44; --felt-2:#123a2b; --felt-3:#0a2119;
     --rail:#4a2f1a; --rail-hi:#7a5231;
     --gold:#e2c06a; --gold-2:#b8923e; --gold-3:#7a5f28;
@@ -75,9 +75,10 @@
     content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
     box-shadow: inset 0 0 120px 40px rgba(0,0,0,.55);
   }
-  .app{ position:relative; z-index:1; max-width:460px; margin:0 auto; padding:calc(8px + env(safe-area-inset-top) * 1.5) 16px calc(184px + env(safe-area-inset-bottom)); box-sizing:border-box; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+  .app{ position:relative; z-index:1; max-width:460px; margin:0 auto; padding:calc(8px + var(--st)) 16px calc(184px + env(safe-area-inset-bottom)); box-sizing:border-box; height:100%; display:flex; flex-direction:column; overflow:hidden; }
   .title-screen{
     position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    box-sizing:border-box; padding-top:var(--st);
     background:radial-gradient(circle at 50% 30%, #1a2a20 0%, #0d1810 60%, #060a08 100%);
   }
   .title-inner{ text-align:center; padding:20px; position:relative; z-index:2; }
@@ -115,7 +116,7 @@
   .title-startbtn:active, .title-howtobtn:active{ transform:translateY(3px); box-shadow:0 0 0 2px #2a1608, 0 1px 0 2px #2a1608 !important; }
   .title-howtobtn{ background:rgba(6,8,16,.72) !important; border:2px solid #e2c06a !important; color:var(--cream) !important; }
   .title-sound-row .iconbtn{ border-radius:0; border:2px solid #e2c06a; background:rgba(6,8,16,.72); box-shadow:0 0 0 2px #2a1608; }
-  .char-inner{ width:100%; max-width:420px; padding:calc(18px + env(safe-area-inset-top) * 1.5) 14px 18px; text-align:center; max-height:100%; overflow-y:auto; }
+  .char-inner{ width:100%; max-width:420px; padding:18px 14px; text-align:center; max-height:100%; overflow-y:auto; }
   .char-story{ font-size:14px; line-height:1.7; color:var(--cream); font-weight:700; margin-bottom:10px; }
   .char-prompt{ font-size:12px; color:var(--gold); letter-spacing:.08em; margin-bottom:14px; }
   .char-list{ display:flex; flex-direction:column; gap:10px; }
@@ -372,7 +373,7 @@
   .dis-chip.near{ border-color:#ff5a48; color:#ffd6d0; animation:evSoft 2.2s ease-in-out infinite; }
   .dis-chip.none{ opacity:.6; }
   /* 縦が足りない画面（アプリ内ビューアなど）では、上の部分を詰めて盤面に高さを回す */
-  .app.compact{ padding-top:calc(2px + env(safe-area-inset-top)); }
+  .app.compact{ padding-top:calc(2px + var(--st)); }
   .app.compact .stage{ height:118px; margin:2px 0 6px; }
   .app.compact .st-hp{ top:6px; } .app.compact .st-atk{ top:36px; } .app.compact .st-dis{ top:66px; }
   .app.compact .wavebar{ margin-bottom:6px; }
@@ -910,7 +911,8 @@
     transition:left .34s cubic-bezier(.22,.8,.25,1), top .34s cubic-bezier(.22,.8,.25,1), width .34s, height .34s, transform .34s, opacity .3s; }
 
   /* ---------- modals ---------- */
-  .modal-bg{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:max(16px, calc(env(safe-area-inset-top) * 1.5)) 16px 16px; }
+  .modal-bg{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:max(16px, var(--st)) 16px 16px; box-sizing:border-box; }
+  .modal-bg>.modal, .modal-bg>.reward-box{ max-height:100% !important; }
   .modal{ width:100%; max-width:380px; max-height:86vh; overflow-y:auto; border-radius:12px; padding:22px 20px;
     background:linear-gradient(180deg, #1a2b22, #0f1c16); border:1px solid var(--gold-3);
     box-shadow:0 20px 50px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05); }
@@ -977,20 +979,20 @@
   .reward-box{ width:100%; max-width:420px; max-height:96vh; overflow-y:auto; text-align:center; background:var(--panel); border:1px solid rgba(226,192,106,.3); border-radius:16px; padding:20px 16px; }
   .prep-deckview{ position:absolute; top:8px; right:8px; z-index:2; padding:4px 10px; font-size:11.5px; line-height:1.3; border-radius:999px; border:1px solid var(--gold-3); background:rgba(0,0,0,.4); color:var(--gold); cursor:pointer; }
   #prepModal .prep-head{ padding-top:16px; }
-  .topback{ position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); left:calc(10px + env(safe-area-inset-left,0px)); z-index:400; display:block; width:fit-content; margin:0; padding:6px 14px; font-size:13px; font-weight:800; line-height:1.3; text-align:left; border-radius:999px; border:1px solid var(--gold-3); background:rgba(10,18,14,.92); color:var(--gold); font-family:inherit; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
+  .topback{ position:fixed; top:calc(10px + var(--st)); left:calc(10px + env(safe-area-inset-left,0px)); z-index:400; display:block; width:fit-content; margin:0; padding:6px 14px; font-size:13px; font-weight:800; line-height:1.3; text-align:left; border-radius:999px; border:1px solid var(--gold-3); background:rgba(10,18,14,.92); color:var(--gold); font-family:inherit; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .topback:active{ transform:translateY(1px); }
-  .modal-bg:has(.topback){ padding-top:calc(54px + env(safe-area-inset-top,0px)); }
+  .modal-bg:has(.topback){ padding-top:calc(54px + var(--st)); }
   #shopModal .reward-box{ display:flex; flex-direction:column; overflow:hidden; height:min(94vh,820px); height:min(94svh,820px); max-height:none; }
   #shopModal #shopBody{ flex:1 1 auto; min-height:0; overflow-y:auto; }
   #shopDeckMini,#accDeckMini{ flex:0 1 auto; max-height:56%; min-height:0; margin-top:6px; padding:4px 6px 2px; border-top:1px solid rgba(226,192,106,.35); background:rgba(0,0,0,.28); border-radius:8px; overflow-y:auto; text-align:left; }
   #shopModal #shopBody{ flex:1 1 0; }
   #shopModal #shopBody{ flex-wrap:nowrap; justify-content:flex-start; }
-  #shopModal.modal-bg:has(.topback), #accModal.modal-bg:has(.topback){ padding:calc(44px + env(safe-area-inset-top,0px)) 12px calc(6px + env(safe-area-inset-bottom,0px)); }
+  #shopModal.modal-bg:has(.topback), #accModal.modal-bg:has(.topback){ padding:calc(44px + var(--st)) 12px calc(6px + env(safe-area-inset-bottom,0px)); }
   #shopModal .reward-box, #accModal.inprep .reward-box{ padding:6px 12px 6px; }
   #shopModal .reward-title, #accModal.inprep .reward-title{ font-size:17px; margin:0; line-height:1.2; }
   #shopModal .reward-sub, #accModal.inprep .reward-sub{ margin-bottom:4px; line-height:1.2; }
   #shopModal #shopBody{ margin-top:2px !important; }
-  #shopModal .reward-box, #accModal.inprep .reward-box{ height:min(94vh,860px); height:min(100svh - 50px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px),880px); }
+  #shopModal .reward-box, #accModal.inprep .reward-box{ height:min(94vh,860px); height:min(100svh - 50px - var(--st) - env(safe-area-inset-bottom,0px),880px); }
   .shop-act{ position:sticky; top:0; z-index:5; background:#0a120d; padding:2px 0 8px; margin-top:-2px; }
   #shopModal #shopBody>*{ flex:0 0 auto; }
   #shopModal, #accModal.inprep{ background:rgba(6,10,8,.97); }
@@ -8249,7 +8251,7 @@ function runGoalToast(){
   if(goalToastBusy||!goalToastQ.length) return;
   goalToastBusy=true;
   let el=document.getElementById('goalToast');
-  if(!el){ el=document.createElement('div'); el.id='goalToast'; el.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 4px);transform:translateX(-50%);z-index:9999;width:max-content;max-width:92vw;box-sizing:border-box;background:rgba(20,16,8,.94);border:2px solid var(--gold,#e8c050);color:#fff;border-radius:10px;padding:6px 12px;font-size:12px;line-height:1.4;font-weight:700;text-align:center;white-space:pre-line;box-shadow:0 4px 18px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .25s'; document.body.appendChild(el); }
+  if(!el){ el=document.createElement('div'); el.id='goalToast'; el.style.cssText='position:fixed;left:50%;top:calc(var(--st) + 4px);transform:translateX(-50%);z-index:9999;width:max-content;max-width:92vw;box-sizing:border-box;background:rgba(20,16,8,.94);border:2px solid var(--gold,#e8c050);color:#fff;border-radius:10px;padding:6px 12px;font-size:12px;line-height:1.4;font-weight:700;text-align:center;white-space:pre-line;box-shadow:0 4px 18px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .25s'; document.body.appendChild(el); }
   el.textContent=goalToastQ.shift(); el.style.opacity='1';
   try{ playSfx('reward'); }catch(e){}
   setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>{ goalToastBusy=false; runGoalToast(); },300); },2600);
@@ -8945,7 +8947,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-12e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -9287,7 +9289,7 @@ function lgImport(x){
     }catch(e){ alert('失敗: '+e); }
   }
   function open(){
-    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:99998;align-items:flex-start;padding-top:max(16px,env(safe-area-inset-top,0px));box-sizing:border-box;height:100dvh';
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:99998;align-items:flex-start;padding-top:max(16px,var(--st));box-sizing:border-box;height:100dvh';
     const m=document.createElement('div'); m.className='modal'; m.style.cssText='max-height:90vh;max-height:calc(100dvh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))';   // iPhoneのSafariは、下のバーの裏まで90vhが伸びて、下のボタンが押せなくなる→dvhで収める
     m.innerHTML='<button class="topback" id="dbgX">◀ 戻る</button><h2>🛠 デバッグ</h2><div style="font-size:11.5px;opacity:.8;line-height:1.6;margin-bottom:8px">チェックポイントを選ぶと、このブラウザの保存データを書き換えて再読み込みします。（デバッグ中は、公開サイトへの自動バックアップを止めています）</div>'
       +'<div style="font-size:12px;font-weight:900;margin:6px 0 2px">モンスターの解放</div><select id="dbgMon" style="width:100%;padding:8px;font-size:14px;margin-bottom:10px"><option value="std">チェックポイントに合わせる（標準）</option><option value="all">全モンスター解放</option><option value="mini">ミジンコ系のみ</option><option value="none">解放なし（0体）</option><option value="keep">今のまま（変更しない）</option></select>'
