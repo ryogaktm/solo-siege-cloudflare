@@ -1610,7 +1610,7 @@ const TACTICS = [
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
   {type:'swap',name:'交換',short:'交換',desc:'未完成の旗に置いてある数字カード1枚（敵が置いたカードもOK）と、手札の数字カード1枚を入れ替える',count:NEWTAC_COUNT,isNew:true},
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える。めくった他のカードは山札の下に戻す',count:NEWTAC_COUNT,isNew:true},
-  {type:'promote',name:'昇格',short:'昇格',desc:`旗に置いてある自分の数字カード1枚の数字を+${PROMOTE_UP}する（最大10）`,count:NEWTAC_COUNT,isNew:true},
+  {type:'promote',name:'昇格',short:'昇格',desc:`選んだ旗にある数字カード全部の数字を+${PROMOTE_UP}する（最大10）`,count:NEWTAC_COUNT,isNew:true},
   {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードを1枚引く`,count:NEWTAC_COUNT,isNew:true},
   {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ消す`,count:NEWTAC_COUNT,isNew:true},
 ];
@@ -5313,18 +5313,19 @@ function useReinforce(handIdx){
     busy=false; hint(`🪖 援軍：${cardDisplayName(found)}が来た！（めくった${flipped.length}枚は山札の下へ）`); endCheck(); render();
   });
 }
-function usePromote(handIdx){
-  const fl=ownFlagTroops().filter(x=>x.c.value<10);
-  if(!fl.length) return hint('数字を上げられるカードが旗にありません。',true);
+function usePromote(handIdx){   // 昇格：選んだ旗にある数字カード全部を+PROMOTE_UP（最大10。敵が置いたカードも上がる）
+  const fl=[]; flags.forEach((f,fi)=>{ if(f.closed||flagMonster(f)) return; const cs=f.cards.filter(c=>c&&c.kind==='troop'&&!c.enemyCard&&c.value<10); if(cs.length) fl.push({fi,cs}); });
+  if(!fl.length) return hint('数字を上げられるカードがある旗がありません。',true);
   const huid=hand[handIdx].uid;
-  pickDialog(`⬆ 昇格：どのカードを+${PROMOTE_UP}する？`, fl.map(x=>({label:`旗${x.fi+1}：${cardDisplayName(x.c)}  →  ${Math.min(10,x.c.value+PROMOTE_UP)}`})), a=>{
-    const src=fl[a], f=flags[src.fi], c=f.cards[src.ci], hi=hand.findIndex(x=>x.uid===huid);
-    if(hi<0||!c||c.uid!==src.c.uid||f.closed) return hint('盤面が変わったので、もう一度やり直してください。',true);
-    if(c.origValue===undefined) c.origValue=c.value; const was=c.value; c.value=Math.min(10,c.value+PROMOTE_UP);
+  pickDialog(`⬆ 昇格：どの旗のカードを全部+${PROMOTE_UP}する？`, fl.map(x=>({label:`旗${x.fi+1}：${x.cs.map(c=>`${cardDisplayName(c)}→${Math.min(10,c.value+PROMOTE_UP)}`).join('、')}`})), a=>{
+    const src=fl[a], f=flags[src.fi], hi=hand.findIndex(x=>x.uid===huid);
+    if(hi<0||!f||f.closed) return hint('盤面が変わったので、もう一度やり直してください。',true);
+    const cs=f.cards.filter(c=>c&&c.kind==='troop'&&!c.enemyCard&&c.value<10); if(!cs.length) return hint('盤面が変わったので、もう一度やり直してください。',true);
+    const ch=cs.map(c=>{ if(c.origValue===undefined) c.origValue=c.value; const was=c.value; c.value=Math.min(10,c.value+PROMOTE_UP); return `${was}→${c.value}`; });
     busy=true; const used=hand.splice(hi,1)[0]; graveyard.push(used);
     advanceTurn(used); const refilled=autoRefill(1);
     render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-    busy=false; hint(`⬆ 昇格：旗${src.fi+1}のカードが${was}→${c.value}になった！`); endCheck(); render();
+    busy=false; hint(`⬆ 昇格：旗${src.fi+1}のカードが全部上がった！（${ch.join('、')}）`); endCheck(); render();
   });
 }
 function useRation(handIdx){
@@ -9061,7 +9062,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
