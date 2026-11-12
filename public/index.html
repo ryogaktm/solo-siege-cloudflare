@@ -1584,7 +1584,7 @@ const TACTICS = [
   {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
   {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など。1は1と1の2枚）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
-  {type:'swap',name:'交換',short:'交換',desc:'未完成の旗に置いてある自分の数字カード1枚と、手札の数字カード1枚を入れ替える',count:NEWTAC_COUNT,isNew:true},
+  {type:'swap',name:'交換',short:'交換',desc:'未完成の旗に置いてある数字カード1枚（敵が置いたカードもOK）と、手札の数字カード1枚を入れ替える',count:NEWTAC_COUNT,isNew:true},
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える。めくった他のカードは山札の下に戻す',count:NEWTAC_COUNT,isNew:true},
   {type:'promote',name:'昇格',short:'昇格',desc:`旗に置いてある自分の数字カード1枚の数字を+${PROMOTE_UP}する（最大10）`,count:NEWTAC_COUNT,isNew:true},
   {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードを1枚引く`,count:NEWTAC_COUNT,isNew:true},
@@ -5249,12 +5249,16 @@ function placeValueFx(card){   // 置いた時にかかる、数字を変える�
   if(monIs('炎の巨人王')&&card.color==='red'&&v<10){ v+=1; fx.push('🔥 王の炎'); }
   return {v,fx};
 }
+function swapFlagTroops(){   // 交換の対象：未完成の旗の数字カード（自分のカードも、敵が置いたカードも）
+  const out=[]; flags.forEach((f,fi)=>{ if(f.closed||flagMonster(f)) return; f.cards.forEach((c,ci)=>{ if(c&&c.kind==='troop'&&!c.enemyCard) out.push({fi,ci,c}); }); });
+  return out;
+}
 function useSwap(handIdx){
-  const fl=ownFlagTroops(), hv=hand.map((c,i)=>({c,i})).filter(x=>x.c.kind==='troop'&&x.i!==handIdx);
-  if(!fl.length) return hint('未完成の旗に、自分の数字カードがありません。',true);
+  const fl=swapFlagTroops(), hv=hand.map((c,i)=>({c,i})).filter(x=>x.c.kind==='troop'&&x.i!==handIdx);
+  if(!fl.length) return hint('未完成の旗に、数字カードがありません。',true);
   if(!hv.length) return hint('手札に数字カードがありません。',true);
   const huid=hand[handIdx].uid;
-  pickDialog('🔁 交換：旗のどのカードを手札に戻す？', fl.map(x=>({label:`旗${x.fi+1}：${cardDisplayName(x.c)}`})), a=>{
+  pickDialog('🔁 交換：旗のどのカードを手札に持ってくる？', fl.map(x=>({label:`旗${x.fi+1}：${cardDisplayName(x.c)}${x.c.autoPlaced?'（敵が置いたカード）':''}`})), a=>{
     const src=fl[a];
     pickDialog('🔁 交換：手札のどのカードと入れ替える？', hv.map(x=>({label:cardDisplayName(x.c)})), b=>{
       const hi=hand.findIndex(c=>c.uid===huid); if(hi<0) return;
@@ -8972,7 +8976,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-12i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
