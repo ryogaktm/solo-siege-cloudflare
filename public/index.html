@@ -1133,6 +1133,19 @@
   .sd-chips span{ font-size:14px; font-weight:800; color:var(--cream); background:rgba(226,192,106,.14); border:1px solid rgba(226,192,106,.45); border-radius:10px; padding:2px 10px; }
   .sd-chips span b{ color:var(--gold); font-size:16px; margin-left:3px; }
   .sd-hint{ display:block; font-size:11px; opacity:.7; margin-bottom:2px; }
+  .pn-box{ max-width:440px; }
+  .pn-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+  .pn-cell{ position:relative; min-height:92px; padding:6px 5px 5px; border-radius:10px; border:2px solid rgba(226,192,106,.55); background:linear-gradient(160deg,rgba(60,48,20,.9),rgba(24,20,10,.95)); display:flex; flex-direction:column; gap:3px; text-align:left; overflow:hidden; }
+  .pn-cell.ok{ border-color:#8ff0c4; background:linear-gradient(160deg,rgba(20,70,50,.9),rgba(10,30,22,.95)); }
+  .pn-t{ font-size:11px; line-height:1.3; font-weight:700; color:var(--cream,#f4ead2); }
+  .pn-p{ margin-top:auto; font-size:11px; font-weight:900; color:var(--gold); }
+  .pn-tag{ align-self:flex-start; font-size:9px; font-weight:900; padding:0 5px; border-radius:6px; background:rgba(255,255,255,.12); color:#ddd; }
+  .pn-tag.cum{ background:rgba(120,170,255,.25); color:#bcd4ff; } .pn-tag.fin{ background:rgba(255,120,100,.25); color:#ffc4b8; }
+  .pn-stamp{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:900 18px/1 'Cinzel',serif; color:rgba(143,240,196,.5); transform:rotate(-14deg); pointer-events:none; letter-spacing:.06em; }
+  .pn-grid.sm .pn-cell{ min-height:70px; } .pn-grid.sm .pn-t{ font-size:10px; }
+  .pn-mini{ display:inline-grid; grid-template-columns:repeat(9,7px); gap:2px; vertical-align:middle; }
+  .pn-mini i{ width:7px; height:7px; border-radius:2px; background:rgba(226,192,106,.25); border:1px solid rgba(226,192,106,.6); }
+  .pn-mini i.ok{ background:#8ff0c4; border-color:#8ff0c4; }
   .db-page.side{ opacity:.45; transform:scale(.96); }
   .db-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:46px; height:46px; border-radius:50%; border:2px solid var(--gold); background:rgba(10,16,12,.88); color:var(--gold); font-size:22px; line-height:1; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.6); padding:0; }
   .db-arrow.l{ left:2px; } .db-arrow.r{ right:2px; }
@@ -2511,7 +2524,8 @@ const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copy
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
-function tryRevive(){ if(immortalReady){ immortalReady=false; playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
+function phxReady(){ return hasAcc('sp_phoenix')&&(accStat.phx||0)<accCount('sp_phoenix'); }
+function tryRevive(){ if(phxReady()){ accStat.phx=(accStat.phx||0)+1; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} hint('🪶 不死鳥の羽！ 体力が半分で生き返った！',true); playSfx('combo'); return true; } if(immortalReady){ immortalReady=false; playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
@@ -4214,7 +4228,7 @@ function checkWaveOutcome(){
   dlog('attack_calc',{stage:stageIndex+1, wave:waveAttempt, flags:dbgFlags0, scoreBefore:dbgScore0, superBonus:synergyBonus, superDetail:dbgSyn?dbgSyn.details:[], superMultUsed:dbgSyn&&dbgSyn.bonus>0?[].concat.apply([],dbgSyn.details.map(d=>d.mults)):null, superCarryAfter:carryTxt(), poison:atkPoison, atkTurn:atkTurn, enemyTurnNow:enemyTurn, pAtk:pAtk, eAtk:eAtk, eAtkNow:currentEnemyAtk(), diff:diff, dealt:dealt, taken:taken, dmgMult:damageMult(), takenReal:takenReal, rolesAllDone:allRolesDone(), sealPenalty:sealPenalty, pHpBefore:dbgP0, pHpAfter:playerHp, eHpBefore:dbgB0, eHpAfter:bossHp, defeated:defeated});
   hint(`${halved?`🛡敵の防御で攻撃が半分に！（${rawAtk}→${pAtk}）\n`:''}攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
   let revivedNow=false;
-  if(!defeated && playerHp<=0 && (hpStock>0||zombieRevive||immortalReady)){ revivedNow=tryRevive(); }
+  if(!defeated && playerHp<=0 && (hpStock>0||zombieRevive||immortalReady||phxReady())){ revivedNow=tryRevive(); }
   if(!defeated && playerHp<=0){
     setTimeout(()=>{
       triggerPlayerHitFX(takenReal+sealPenalty, ()=>{
@@ -7970,6 +7984,7 @@ function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリ�
   if(hasAcc('sandal') && atkTurn>=ACC_NEW.sandalTurn) P.push(['🩴じっくりのサンダル',1+ACC_NEW.sandalInc*k]);
   if(hasAcc('last_stand') && playerHpMax>0 && playerHp<=playerHpMax*ACC_NEW.lastHp) P.push(['🏰最後の砦',1+ACC_NEW.lastInc*k]);
   if(hasAcc('full_pride') && playerHpMax>0 && playerHp>=playerHpMax) P.push(['🦁満タンの誇り',1+ACC_NEW.fullInc*k]);
+  if(hasAcc('sp_crown')) P.push(['👑王者の冠',1+0.5*accCount('sp_crown')]);
   return P;
 }
 const accAtkMul=t=>accAtkParts(t).reduce((a,p)=>a*p[1],1);
@@ -8037,6 +8052,7 @@ function buildAccDefs(){
   L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、時間が止まる（敵も、ターンも進まない。連続では使えない）'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));
+  [['sp_crown','王者の冠','👑','総攻撃力が1.5倍になる（重ねて持つと×2、×2.5…）'],['sp_phoenix','不死鳥の羽','🪶','体力が0になっても、1回の戦闘に1回、体力が半分で生き返る（重ねて持つと回数が増える）'],['sp_scale','黄金の天秤','⚖️','戦闘で手に入るお金が2倍になる（重ねて持つと3倍、4倍…）']].forEach(([id,name,icon,desc])=>L.push({id,name,icon,desc:desc+'【パネル全クリアの特別品】',special:true,repeat:true}));
   L.push({id:'sp_double',name:'倍化のアンクレット',icon:'🔁',desc:'特殊技を使える回数が2倍になる'});
   L.push({id:'del3',name:'断捨離のピアス',icon:'🗑',desc:'山札から好きな3枚を削除する（装備中のみ。外すと戻る）'});
   [['tac','軍師','軍師のイヤリング','📜'],['weapon','武器','武器のブローチ','⚔️'],['armor','防具','防具のカフス','🛡️'],['num','数字','数字のチョーカー','🔢']].forEach(([k,jp,nm,ic])=>L.push({id:'add3_'+k,addKind:k,name:nm,icon:ic,desc:`好きな${jp}カード${k==='tac'?1:k==='num'?2:3}枚を山札に加える（装備中のみ。外すと消える）`}));
@@ -8083,7 +8099,7 @@ function buildAccDefs(){
 }
 const ACC_DEFS_ALL=buildAccDefs();
 const ACC_OFF=['reflect_mirror','sp_shuffle','sp_beg','sp_punch','sp_guard','sp_cure','sp_bullet'];   // 一旦取り下げ：特殊技が使えるようになるアクセサリー（持っている分の効果は残る。消したい時はここを空に戻すと復活）
-const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id));
+const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id)&&!d.special);   // 特別品（パネル全クリア）は、店・宝箱には出さない
 /* ★お金の獲得条件（全試合・ゲーム共通）：ここを書き換える。cash＝もらえる金額(G)、final＝敵を倒した時に判定、avail＝出す条件。戦闘が終わった時の結果画面でだけ出す */
 const TURN_BONUS={turns:12, cash:250};   // 速く倒したボーナス：ターン数がturns以内なら、cash分のお金（数字はここで調整）
 const BONUS_GOALS=[
@@ -8113,7 +8129,7 @@ var ACC_SLOTS=3+accSlotBonus;   // ミジンコ・ミジンコリーダーの体
 function resetAccessories(){
   sunUsed=false; _streakDone=false; accSlotBonus=0; shopOnce={}; gameFuse=fuseOpen();
   ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3);   // 買った装備枠を持ち越さない
-  accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; hpGlassSave=null; hpBonus=0; specBonusK={}; specProg={}; specPlusBought=0; accStat=blankBattleStat(); gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
+  accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; hpGlassSave=null; hpBonus=0; specBonusK={}; specProg={}; specPlusBought=0; accStat=blankBattleStat(); panel=null; panelNew=false; gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
   GAME_COLORS.length=0; ALL_GAME_COLORS.forEach(c=>GAME_COLORS.push(c));
 }
 function accEquippedDefs(){ return accEq.map(aid=>accOwned.find(o=>o.aid===aid)).filter(Boolean).map(o=>accDef(o.id)); }
@@ -8197,7 +8213,17 @@ function goalDef(d){
 /* ===== アクセサリーの獲得条件（戦闘中に1つずつ出る。最大COND_MAX個。クリアするたびに「3つの中から1つ選ぶ」権利が1回ふえる） ===== */
 const COND_MAX=3;       // 1回の戦闘で出るアクセサリー獲得条件の数（最大）
 const ACC_PICK_N=3;     // 条件を1つクリアするごとに出る、選べるアクセサリーの数
-let accCond={n:0,cur:null,picks:0,used:[],ok:[]};   // n＝いままでに出した数／cur＝いま出ている条件／picks＝選べる残り回数／used＝出した条件の文／ok＝クリアした条件の文
+let accCond={n:0,cur:null,picks:0,used:[],ok:[],special:0};   // picks＝戦闘後に選べる回数／ok＝この戦闘でクリアしたマスの文／special＝特別アクセサリーを選べる回数
+/* ===== ビンゴパネル（ストラックアウト式）：9マスそれぞれに獲得条件。1マスクリアごとにアクセサリーを1つ選べる。9マス全部で特別アクセサリー → 次のパネルへ（だんだん厳しくなる）。1ゲームの間ずっと続く ===== */
+const PANEL_N=9;
+const PANEL_LV={lo:1, hi:3.2, step:0.7, max:6};   // パネルk枚目：一番やさしいマス lo+(k-1)*step 〜 一番むずかしいマス hi+(k-1)*step（難しさの上限 max）
+const PANEL_MIX={final:2, cum:3, fam:2};   // …／似た条件（文の頭が同じもの。例：「軍師カード「○○」を使う」「1回の攻撃で…」）は1枚に2つまで
+const famOf=k=>k.startsWith('c_')?k:(condDef(k)||{text:k}).text.replace(/「[^」]*」/g,'').replace(/[0-9０-９×.]+/g,'').slice(0,7);   // 1枚のパネルに入れる「倒した時に判定」のマスの上限／「累計」のマスの数
+const PANEL_CUM_GROW=0.5;   // 累計の条件の数は、パネルが1枚進むごとに基本の数×0.5ずつ増える
+/* ★累計の条件（戦闘をまたいで数える。パネルが出てからの合計）：[種類, 基本の数, 文（{n}が数）, 単位] */
+const CUM_DEF=[['tac',6,'軍師カードを累計{n}枚使う','枚'],['role',6,'役のある旗（ホスト以外）を累計{n}回完成させる','回'],['win',2,'敵を累計{n}体倒す','体'],['atk',8,'一斉攻撃を累計{n}回する','回'],['eq',4,'5以上の装備カードを累計{n}枚使う','枚']];
+const CUM_MULS=[1,1.5,2,3];   // 同じ種類でも、数を何倍にした条件を作るか（倍が大きいほどむずかしいマス）
+let panel=null;   // {no:何枚目, cells:[{key,lv,ok}], cum:{種類:前の戦闘までの合計}, clear:全部クリアしたか}
 let goalToastQ=[], goalToastBusy=false;
 /* ★条件をふやす・変える時はここ。キーの形：x_種類_数字…／lv＝難しさ（1やさしい〜6むずかしい）。戦闘の何個目か・ゲームの進み具合に合わせて、近い難しさの条件が出る */
 const COND_LV={first:1, perSlot:1.2, perGame:3, range:1};   // 1個目はlv1付近／1つ進むごとに+perSlot／ゲームの最初→最後で+perGame（ゆるやかに上がる）／出す幅±range
@@ -8237,6 +8263,7 @@ function extraDef(key){
 }
 function condDef(key){   // 条件のキー→内容。'a:○○'＝アクセサリー○○の元々の条件、'x_…'＝上の追加条件
   if(!key) return null;
+  if(key.startsWith('c_')) return cumDef(key);
   let g;
   if(key.startsWith('a:')){ const id=key.slice(2); g=goalDef(ACC_DEFS_ALL.find(d=>d.id===id)||{id}); if(g&&g.lv==null) g.lv={easy:1.5,mid:3.5,hard:5.5}[g.tier]||3; return g; }
   return extraDef(key);
@@ -8252,29 +8279,44 @@ function condPool(){   // 出せる条件の全部（同じ文の条件は1つ�
 }
 function condTarget(slot){ const p=Math.min(1,Math.max(0,stageIndex/Math.max(1,LADDER_N-1))); return COND_LV.first+slot*COND_LV.perSlot+p*COND_LV.perGame; }   // 何個目か・ゲームの進み具合から、出したい難しさ
 const condOff=()=>isWeakBody()||introOn;   // ミジンコの時は、アクセサリー獲得条件は出さない
-function condReveal(){   // 次の条件をランダムでひとつ出す（達成済みは出さない。「倒した時に判定」は最後の1つにだけ。難しさは、何個目か・ゲームの進み具合に合わせる）
-  if(accCond.n>=COND_MAX||condOff()){ accCond.cur=null; return; }
-  let pool=condPool().filter(x=>!accCond.used.includes(x.g.text)&&(x.g.final||!x.g.done()));
-  if(accCond.n<COND_MAX-1) pool=pool.filter(x=>!x.g.final);
-  const t=condTarget(accCond.n); let near=[], w=COND_LV.range;
-  for(let k=0;k<6&&!near.length;k++,w+=0.5) near=pool.filter(x=>Math.abs(x.g.lv-t)<=w);
-  if(!near.length) near=pool;
-  if(!near.length){ accCond.cur=null; accCond.n=COND_MAX; return; }
-  const p=near[Math.floor(Math.random()*near.length)];
-  accCond.cur=p.key; accCond.used.push(p.g.text); accCond.n++;
-}
-function checkGoalAnnounce(final){   // 攻撃のたび・戦闘が終わった時に、いま出ている条件を判定。達成したら次の条件を出す
-  if(condOff()||introNoAcc()||inPrep){ return; }
-  let guard=0;
-  while(accCond.cur && guard++<COND_MAX+1){
-    const g=condDef(accCond.cur); if(!g) break;
-    if(g.final&&!final) break;
-    if(!g.done()) break;
-    accCond.picks++; accCond.ok.push(g.text); accCond.cur=null;
-    goalToastQ.push(`条件「${g.text}」を達成！\n戦闘後にアクセサリーを1つ選べます`);
-    condReveal();
+function condReveal(){}   // （古い1つずつ出す方式の名残り。今はビンゴパネル）
+const panelRange=no=>{ const lo=Math.min(PANEL_LV.max-1,PANEL_LV.lo+(no-1)*PANEL_LV.step), hi=Math.min(PANEL_LV.max,PANEL_LV.hi+(no-1)*PANEL_LV.step); return [lo,Math.max(lo+0.5,hi)]; };
+function cumBattleVal(kind){ const S=accStat; if(S.folded) return 0;
+  switch(kind){ case 'tac': return S.tac||0; case 'role': return Object.keys(S.roles||{}).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0); case 'win': return S.won||0; case 'atk': return Math.max(0,totalWaves-(S.w0||0)); case 'eq': return S.eq5||0; }
+  return 0; }
+const cumVal=kind=>((panel&&panel.cum&&panel.cum[kind])||0)+cumBattleVal(kind);
+function cumDef(key){ const p=key.split('_'), kind=p[1], n=+p[2], d=CUM_DEF.find(x=>x[0]===kind); if(!d||!n) return null;
+  return {text:d[2].replace('{n}',n),cum:true,done:()=>cumVal(kind)>=n,prog:`${Math.min(n,cumVal(kind))} / ${n}${d[3]}`}; }
+function cumAllowed(kind){ return kind==='tac'?!!CHARACTER.tactics:kind==='eq'?!!CHARACTER.equipment:true; }
+function makePanel(no){   // パネルを1枚作る：難しさを lo→hi に並べた9マスに、近い難しさの条件を1つずつ入れる
+  const [lo,hi]=panelRange(no), used=new Set(), cells=[];
+  const battle=condPool().filter(x=>!(x.g.done&&!x.g.final&&x.g.done()));
+  const cum=[]; CUM_DEF.filter(d=>cumAllowed(d[0])).forEach(d=>CUM_MULS.forEach((m,mi)=>{ const n=Math.round(d[1]*m*(1+PANEL_CUM_GROW*(no-1))); cum.push({key:`c_${d[0]}_${n}`,kind:d[0],lv:lo+(hi-lo)*mi/(CUM_MULS.length-1)}); }));
+  const cumSlots=new Set(shuffle([0,1,2,3,4,5,6,7,8]).slice(0,PANEL_MIX.cum)); let finals=0; const cumKinds=new Set(), fam={};
+  for(let i=0;i<PANEL_N;i++){
+    const t=lo+(hi-lo)*i/(PANEL_N-1);
+    if(cumSlots.has(i)){ const c=cum.filter(x=>!cumKinds.has(x.kind)).sort((a,b)=>Math.abs(a.lv-t)-Math.abs(b.lv-t)).slice(0,3); if(c.length){ const x=c[Math.floor(Math.random()*c.length)]; cumKinds.add(x.kind); used.add(cumDef(x.key).text); cells.push({key:x.key,lv:+t.toFixed(2),ok:false}); continue; } }
+    let near=[], w=0.6;
+    for(let k=0;k<8&&!near.length;k++,w+=0.5) near=battle.filter(x=>!used.has(x.g.text)&&(fam[famOf(x.key)]||0)<PANEL_MIX.fam&&(!x.g.final||finals<PANEL_MIX.final)&&Math.abs((x.g.lv||3)-t)<=w);
+    if(!near.length) near=battle.filter(x=>!used.has(x.g.text)&&(fam[famOf(x.key)]||0)<PANEL_MIX.fam);
+    if(!near.length) near=battle.filter(x=>!used.has(x.g.text));
+    if(!near.length) break;
+    const x=near[Math.floor(Math.random()*near.length)]; used.add(x.g.text); if(x.g.final) finals++; fam[famOf(x.key)]=(fam[famOf(x.key)]||0)+1;
+    cells.push({key:x.key,lv:+t.toFixed(2),ok:false});
   }
-  runGoalToast();
+  return {no,cells:shuffle(cells),cum:{},clear:false};
+}
+function ensurePanel(){ if(condOff()||introNoAcc()) return false; if(!panel||!panel.cells||!panel.cells.length){ panel=makePanel(1); panelNew=true; } return true; }
+let panelNew=false;   // 新しいパネルが出たところ（戦闘の最初にパネルを大きく見せる）
+function foldPanelBattle(){   // 戦闘が終わった時：この戦闘の数を、パネルの累計に足す
+  if(!panel||accStat.folded) return; panel.cum=panel.cum||{}; CUM_DEF.forEach(d=>{ panel.cum[d[0]]=(panel.cum[d[0]]||0)+cumBattleVal(d[0]); }); accStat.folded=true; }
+function checkGoalAnnounce(final){   // 攻撃のたび・戦闘が終わった時に、パネルのマスを判定。クリアしたマス1つにつき、戦闘後にアクセサリーを1つ選べる
+  if(condOff()||introNoAcc()||inPrep){ return; }
+  if(!ensurePanel()) return;
+  panel.cells.forEach(c=>{ if(c.ok) return; const g=condDef(c.key); if(!g) return; if(g.final&&!final) return; let d=false; try{ d=g.done(); }catch(e){} if(!d) return;
+    c.ok=true; accCond.picks++; accCond.ok.push(g.text); goalToastQ.push(`🎯 マス「${g.text}」クリア！\n戦闘後にアクセサリーを1つ選べます`); });
+  if(!panel.clear&&panel.cells.every(c=>c.ok)){ panel.clear=true; accCond.special=(accCond.special||0)+1; goalToastQ.push(`🏆 パネル${panel.no}枚目を全部クリア！\n戦闘後に特別なアクセサリーを選べます`); }
+  runGoalToast(); try{ renderCondBar(); }catch(e){}
 }
 function runGoalToast(){
   if(goalToastBusy||!goalToastQ.length) return;
@@ -8287,20 +8329,29 @@ function runGoalToast(){
 }
 const COND_SHOW_MS=4000;   // 戦闘の最初にアクセサリー獲得条件を大きく出す時間（ms）
 function startBattleGoals(){ lanternUsed=false; accStat=blankBattleStat(); accStat.minHp=playerHpMax?playerHp/playerHpMax:1; accStat.turn0=turnCounter; accStat.w0=totalWaves;
-  accCond={n:0,cur:null,picks:0,used:[],ok:[]}; goalToastQ=[]; lastSpecMax=null; condRerolled=false;
-  if(!introNoAcc()&&!condOff()) condReveal();
+  accCond={n:0,cur:null,picks:0,used:[],ok:[],special:0}; goalToastQ=[]; lastSpecMax=null; condRerolled=false;
+  if(introNoAcc()||condOff()){ try{ renderCondBar(); }catch(e){} return; }
+  if(panel&&panel.clear){ panel=makePanel(panel.no+1); panelNew=true; }   // 前のパネルを全部クリアしていたら、次の（もっと厳しい）パネルへ
+  ensurePanel();
   try{ renderCondBar(); }catch(e){}
-  try{ const g=accCond.cur&&condDef(accCond.cur); if(g){ let tries=0; const show=()=>{ const blocked=[...document.querySelectorAll('.modal-bg')].some(e=>getComputedStyle(e).display!=='none'); if(blocked&&++tries<200){ setTimeout(show,300); return; } bigFx('🎯','アクセサリー獲得条件',`${g.text}${g.final?'（倒した時に判定）':''}`,false,COND_SHOW_MS); }; setTimeout(show,500); } }catch(e){}   // 山札の選択・敵ランキング（戦闘開始）など、画面が開いている間は出さない。全部閉じてから出す
+  try{ let tries=0; const show=()=>{ const blocked=[...document.querySelectorAll('.modal-bg')].some(e=>getComputedStyle(e).display!=='none'); if(blocked&&++tries<200){ setTimeout(show,300); return; }
+      if(panelNew){ panelNew=false; showPanel(); } else { const left=panel.cells.filter(c=>!c.ok).length; bigFx('🎯',`パネル${panel.no}枚目`,`残り${left}マス（タップで確認）`,false,2200); } };
+    setTimeout(show,500); }catch(e){}   // 山札の選択・敵ランキング（戦闘開始）など、画面が開いている間は出さない。全部閉じてから出す
 }
-function renderCondBar(){   // 戦闘中は、いまのアクセサリー獲得条件を常に出しておく
+function panelCellHtml(c){ const g=condDef(c.key); if(!g) return ''; const tag=g.cum?'<span class="pn-tag cum">累計</span>':g.final?'<span class="pn-tag fin">倒した時</span>':'<span class="pn-tag">1戦で</span>';
+  return `<div class="pn-cell${c.ok?' ok':''}">${tag}<div class="pn-t">${g.text}</div>${!c.ok&&g.prog?`<div class="pn-p">${g.prog}</div>`:''}${c.ok?'<div class="pn-stamp">CLEAR</div>':''}</div>`; }
+function showPanel(){   // パネル（3×3）を大きく見せる
+  if(!panel) return; document.getElementById('panelModal')?.remove();
+  const k=panel.cells.filter(c=>c.ok).length, bg=document.createElement('div'); bg.className='modal-bg'; bg.id='panelModal'; bg.style.cssText='display:flex;z-index:10000';
+  bg.innerHTML=`<div class="reward-box pn-box"><div class="reward-title">🎯 アクセサリー獲得パネル ${panel.no}枚目</div><div class="reward-sub">クリア ${k} / ${panel.cells.length}　／　1マスごとにアクセサリーを1つ選べる<br>🏆 全部クリアで特別なアクセサリー → 次のパネルへ</div><div class="pn-grid">${panel.cells.map(panelCellHtml).join('')}</div><button class="btn" id="pnClose" style="margin-top:10px;width:100%">閉じる</button></div>`;
+  document.body.appendChild(bg); bg.querySelector('#pnClose').onclick=()=>bg.remove(); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); });
+}
+function renderCondBar(){   // 戦闘中は、パネルの進み具合を常に出しておく（タップでパネルを開く）
   const el=document.getElementById('condBar'); if(!el) return;
-  if(condOff()||introNoAcc()||inPrep||gameEnded||(!accCond.cur&&!accCond.picks&&!accCond.ok.length)){ el.style.display='none'; return; }
-  let t;
-  if(accCond.cur){ const g=condDef(accCond.cur); t=g?`🎯 ${accCond.n}/${COND_MAX}　${g.text}${g.prog?`（${g.prog}）`:''}${g.final?'（倒した時に判定）':''}`:''; }
-  else t=`🎯 条件クリア！ 戦闘後にアクセサリーを選べます`;
-  if(accCond.picks>0) t+=`　🎁×${accCond.picks}`;
-  el.textContent=t; el.style.display='';
-  if(monIs('魔王の側近')&&accCond.cur&&!condRerolled&&totalWaves===accStat.w0){ const b=document.createElement('button'); b.className='btn'; b.style.cssText='margin-left:8px;padding:2px 8px;font-size:11px'; b.textContent='🤝引き直す'; b.onclick=condReroll; el.appendChild(b); }
+  if(condOff()||introNoAcc()||inPrep||gameEnded||!panel){ el.style.display='none'; return; }
+  const k=panel.cells.filter(c=>c.ok).length;
+  el.innerHTML=`🎯 パネル${panel.no}枚目　<span class="pn-mini">${panel.cells.map(c=>`<i class="${c.ok?'ok':''}"></i>`).join('')}</span>　${k}/${panel.cells.length}${accCond.picks>0?`　🎁×${accCond.picks}`:''}${accCond.special>0?'　🏆':''}　<u>見る</u>`;
+  el.style.display=''; el.style.cursor='pointer'; el.onclick=showPanel;
 }
 /* ===== プレイ記録の送信（公開版のみ。個人情報は送らない。受け取り側は server/collect.php） ===== */
 const LOG_URL='/api/collect';   // ★受け取りサーバーのURL。空文字にすると送信しない
@@ -8471,12 +8522,15 @@ function grantStageReward(){
     advanceToNextStage(); return;
   }
   closeStrayModals();
+  accStat.won=1;
   try{ checkGoalAnnounce(true); }catch(e){}   // 倒した時に判定する条件を、ここで最終判定
+  foldPanelBattle();
   inPrep=true; shopRe=false;
   playSfx('bossDefeat');
   setTimeout(()=>playSfx('reward'), 350);
   const res=moneyResults(); let total=res.filter(x=>x.ok).reduce((t,x)=>t+x.cash,0);
   const dbl=!!mummyOn; if(dbl&&total>0) total*=2; mummyOn=false;   // ミイラの財宝：この戦いで手に入るお金が2倍
+  if(hasAcc('sp_scale')&&total>0) total*=1+accCount('sp_scale');   // 黄金の天秤
   gold+=total; lastBattleRes={money:res,total,dbl};
   try{ saveGame(); }catch(e){}  // 戦闘が終わったところで保存（やめても準備画面から再開）
   showChest();
@@ -8494,17 +8548,28 @@ function showChest(){   // 戦闘が終わった画面：お金の条件の結�
     blk(`💰 基本条件 クリア ${okN}／${R.money.length}`, R.money.map(x=>x.ok?`<div class="acc-desc" style="text-align:left">☑ ${x.text}<span style="color:var(--gold)">　+${x.cash}G</span></div>`:`<div class="acc-desc" style="text-align:left;opacity:.45">☐ ${x.text}</div>`).join('')
       +`<div class="acc-desc" style="text-align:right;color:var(--gold);font-weight:800;margin-top:4px">合計 +${R.total}G${R.dbl?'（過去の財宝で2倍）':''}　所持金 ${gold}G</div>`);
   }
-  const cl=accCond.used;
+  const cl=panel?panel.cells:[];
   if(cl.length){
-    blk(`🎯 アクセサリー条件 クリア ${accCond.ok.length}／${cl.length}`, cl.map(t=>accCond.ok.includes(t)?`<div class="acc-desc" style="text-align:left">☑ ${t}</div>`:`<div class="acc-desc" style="text-align:left;opacity:.45">☐ ${t}</div>`).join(''));
+    blk(`🎯 パネル${panel.no}枚目　クリア ${cl.filter(c=>c.ok).length}／${cl.length}${accCond.ok.length?`（この戦闘で +${accCond.ok.length}マス）`:''}`, `<div class="pn-grid sm">${cl.map(panelCellHtml).join('')}</div>`+(accCond.special>0?'<div class="acc-desc" style="color:var(--gold);font-weight:800;margin-top:4px">🏆 パネル全部クリア！ 特別なアクセサリーを選べます。次の戦闘から次のパネルへ</div>':''));
   }
   if(!R.money.length&&!cl.length) sub.textContent='今回は、お金もアクセサリーもありません';
   const b=document.createElement('button'); b.className='btn';
-  b.textContent=accCond.picks>0?'アクセサリーを選ぶ':'準備へ'; b.onclick=()=>runAccPicks(); box.appendChild(b);
+  b.textContent=(accCond.picks>0||accCond.special>0)?'アクセサリーを選ぶ':'準備へ'; b.onclick=()=>runAccPicks(); box.appendChild(b);
   m.style.display='flex';
 }
 function accPickPool(){ return ACC_DEFS.filter(d=>!accOwned.some(o=>o.id===d.id)&&!soldIds.has(d.id)&&(!d.color||GAME_COLORS.includes(d.color))); }
-function runAccPicks(resumed){   // 条件をクリアした回数ぶん、ランダムな3つの中から1つずつ選ぶ
+function runAccPicks(resumed){   // 条件をクリアした回数ぶん、ランダムな3つの中から1つずつ選ぶ（パネル全クリアの特別アクセサリーが先）
+  if(accCond.special>0&&!isWeakBody()){
+    const cs=ACC_DEFS_ALL.filter(d=>d.special);
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+    bg.innerHTML=`<div class="reward-box"><div class="reward-title">🏆 特別なアクセサリーを1つ選ぼう</div><div class="reward-sub">パネル全部クリアのごほうび（同じものを重ねて持つと、効果も重なる）</div><div class="reward-options" style="flex-direction:column"></div></div>`;
+    const L=bg.querySelector('.reward-options');
+    cs.forEach(d=>{ const el=document.createElement('div'); el.className='reward-option acc-opt'; el.style.cursor='pointer';
+      el.innerHTML=`<div class="acc-ico">${accIconHtml(d)}</div><div class="acc-txt"><div class="reward-name">${d.name}</div><div class="acc-desc">${d.desc}</div></div>`;
+      el.onclick=()=>{ const no={aid:accSeq++,id:d.id}; accOwned.push(no); accCond.special--; bg.remove(); try{ playSfx('reward'); }catch(e){} try{ saveGame(); }catch(e){} hint(`🏆「${d.name}」を手に入れた。`); offerEquip([no],()=>runAccPicks(resumed)); };
+      L.appendChild(el); });
+    document.body.appendChild(bg); return;
+  }
   if(accCond.picks<=0||isWeakBody()){ accCond.picks=0; finishChest(resumed); return; }
   const cs=shuffle(accPickPool().slice()).slice(0,ACC_PICK_N);
   if(!cs.length){ accCond.picks=0; hint('もらえるアクセサリーが残っていません。'); finishChest(resumed); return; }
@@ -8976,7 +9041,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
@@ -9002,7 +9067,7 @@ function saveGame(force){
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
     const st={v:1, lad:8, gn:growN, pk:pocket, gu:gloveUsed, lu:lanternUsed, hb:hpBonus, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, scSpent, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+      score, totalScore, carryMap, scSpent, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,panel,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, rewardPicksRemaining, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -9048,7 +9113,7 @@ function resumeGame(){
   growN=st.gn||0; pocket=st.pk||null; gloveUsed=st.gu||0; lanternUsed=!!st.lu; hpBonus=st.hb||0; waveAttempt=st.waveAttempt; bossHp=st.bossHp; displayedBossHp=st.bossHp; playerHp=st.playerHp; playerHpMax=st.playerHpMax; monAtkMult=st.monAtkMult||1; wormUp=st.wormUp||0; buzzTurns=st.buzzTurns||0; topUsed=!!st.topUsed; hpStock=st.hpStock||0; plAtkMult=st.plAtkMult||1; autoQ=st.autoQ||{}; autoSeq=st.autoSeq||0; bashDmg=st.bashDmg||DIS_PARAM.bashBase; bashRateNow=(st.bashRateNow>0)?st.bashRateNow:DIS_PARAM.bashRate; bashHist=Array.isArray(st.bashHist)&&st.bashHist.length?st.bashHist:[bashDmg]; bashRateHist=Array.isArray(st.bashRateHist)&&st.bashRateHist.length?st.bashRateHist:[bashRateNow];
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=stripDisabledEv(st.enemySched||{}); prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; scSpent=st.scSpent||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
-  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[]},ac.cond||{}); hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
+  { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[],special:0},ac.cond||{}); panel=ac.panel||null; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
   spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0},st.spec||{}); guardOn=st.guardOn; defendOn=!!st.defendOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); rewardPicksRemaining=0; victory=!!st.victory;
@@ -9072,8 +9137,8 @@ function resumeGame(){
   pickHowTip();
   inPrep=!!st.prep;
   if(!(st.acc&&st.acc.ast)){ accStat.w0=totalWaves; accStat.turn0=turnCounter; }   // 古いセーブは、再開した時点から数え直す
-  if(!inPrep && !accCond.cur && !accCond.n && !introNoAcc() && !isWeakBody()) condReveal();   // 古いセーブなど、条件がまだ出ていない時
-  if(inPrep && accCond.picks>0) setTimeout(()=>runAccPicks(true),500);   // アクセサリーを選ぶ途中でやめた時は、続きから
+  if(!inPrep && !introNoAcc() && !isWeakBody()) ensurePanel();   // 古いセーブなど、パネルがまだない時
+  if(inPrep && (accCond.picks>0||accCond.special>0)) setTimeout(()=>runAccPicks(true),500);   // アクセサリーを選ぶ途中でやめた時は、続きから
   const winResume=!inPrep && bossHp<=0 && (st.win || true);   // 敵を倒した後の保存は、必ず勝利の続きへ進める
   if(winResume){ busy=true; waveAdvancing=true; }   // 再開の描画で「勝利の保存」を上書きしないよう、先に操作不能にしておく
   render(); layoutHand(true);
