@@ -1129,7 +1129,7 @@
   .db-page.side{ opacity:.45; transform:scale(.96); }
   .db-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:46px; height:46px; border-radius:50%; border:2px solid var(--gold); background:rgba(10,16,12,.88); color:var(--gold); font-size:22px; line-height:1; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.6); padding:0; }
   .db-arrow.l{ left:2px; } .db-arrow.r{ right:2px; }
-  .db-arrow[disabled]{ opacity:0; pointer-events:none; }
+  .db-arrow[disabled]{ display:none; }
   .db-dots{ justify-content:center; gap:10px; padding:6px 0; }
   .db-dots i{ width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.25); cursor:pointer; }
   .db-dots i.on{ background:var(--gold); }
@@ -3464,29 +3464,34 @@ function startSlideLabel(){
   document.getElementById('dbSec').innerHTML=`◀ ▶ 横にスライド、または矢印で選ぶ<br><b>${startDeckIdx+1}/${startDecks.length}　${d.label}</b>　数字${c.n}・軍師${c.t}・装備${c.e}`;
   document.querySelectorAll('#dbDots i').forEach((el,i)=>el.classList.toggle('on',i===startDeckIdx));
 }
-function renderStartSlide(on){   // 最初の山札：5つの山札を横に並べて、スライドで見比べる（止まった山札が選ばれる）
+function renderStartSlide(on){   // 最初の山札：5つの山札を横に並べて、スライドで見比べる（止まった山札が選ばれる）。端はつながっていて、1つ目の左は最後の山札（ぐるっと回る）
   const sl=document.getElementById('dbSlide'), dots=document.getElementById('dbDots'), g=document.getElementById('dbDeck');
   const wr=document.getElementById('dbSlideWrap'); wr.style.display=on?'flex':'none'; dots.style.display=on?'flex':'none'; g.style.display=on?'none':'';
   if(!on) return;
   sl.innerHTML=''; dots.innerHTML='';
-  startDecks.forEach((d,i)=>{
+  const N=startDecks.length, order=N>1?[N-1,...startDecks.map((_,i)=>i),0]:[0];   // 両端に、反対側の山札の写しを置く
+  const off=N>1?1:0;   // 本物の山札 i は、並びの i+off 番目
+  order.forEach(i=>{ const d=startDecks[i];
     const pg=document.createElement('div'); pg.className='db-page cardgrid';
     [...d.active,...d.hand].sort(deckSortCmp).forEach(c=>{ const el=cardEl(c,true); el.classList.add('db-card'); pg.appendChild(el); });
-    sl.appendChild(pg);
-    const dot=document.createElement('i'); dot.onclick=()=>go(i); dots.appendChild(dot);
-  });
+    sl.appendChild(pg); });
+  startDecks.forEach((d,i)=>{ const dot=document.createElement('i'); dot.onclick=()=>goPos(i+off); dots.appendChild(dot); });
   const pages=()=>[...sl.children];
-  const leftOf=i=>{ const p=pages()[i]; return p?p.offsetLeft-(sl.clientWidth-p.offsetWidth)/2:0; };   // その山札が真ん中に来る位置
-  const idxNow=()=>{ const ps=pages(), mid=sl.scrollLeft+sl.clientWidth/2; let b=0,bd=1e9; ps.forEach((p,i)=>{ const d=Math.abs(p.offsetLeft+p.offsetWidth/2-mid); if(d<bd){ bd=d; b=i; } }); return b; };
-  function go(i){ i=Math.max(0,Math.min(startDecks.length-1,i)); sl.scrollTo({left:leftOf(i),behavior:'smooth'}); }
-  const mark=i=>{ pages().forEach((p,k)=>p.classList.toggle('side',k!==i)); const pv=document.getElementById('dbPrev'), nx=document.getElementById('dbNext'); pv.disabled=i<=0; nx.disabled=i>=startDecks.length-1; };
-  document.getElementById('dbPrev').onclick=()=>go(idxNow()-1);
-  document.getElementById('dbNext').onclick=()=>go(idxNow()+1);
+  const leftOf=k=>{ const p=pages()[k]; return p?p.offsetLeft-(sl.clientWidth-p.offsetWidth)/2:0; };   // 並びの k 番目が真ん中に来る位置
+  const posNow=()=>{ const ps=pages(), mid=sl.scrollLeft+sl.clientWidth/2; let b=0,bd=1e9; ps.forEach((p,k)=>{ const d=Math.abs(p.offsetLeft+p.offsetWidth/2-mid); if(d<bd){ bd=d; b=k; } }); return b; };
+  const deckOf=k=>order[k];
+  function goPos(k){ k=Math.max(0,Math.min(order.length-1,k)); sl.scrollTo({left:leftOf(k),behavior:'smooth'}); }
+  const mark=k=>{ pages().forEach((p,j)=>p.classList.toggle('side',j!==k)); const one=N<=1; document.getElementById('dbPrev').disabled=one; document.getElementById('dbNext').disabled=one; };
+  document.getElementById('dbPrev').onclick=()=>goPos(posNow()-1);
+  document.getElementById('dbNext').onclick=()=>goPos(posNow()+1);
   let t=null;
-  sl.onscroll=()=>{ clearTimeout(t); mark(idxNow()); t=setTimeout(()=>{ const i=idxNow(); mark(i); if(i!==startDeckIdx){ applyStartDeck(i); render(); layoutHand(true); try{ playSfx('place'); }catch(e){} } startSlideLabel(); },80); };
+  sl.onscroll=()=>{ clearTimeout(t); mark(posNow()); t=setTimeout(()=>{ let k=posNow();
+      if(N>1&&(k===0||k===order.length-1)){ k=deckOf(k)+off; sl.scrollLeft=leftOf(k); }   // 写しの所で止まったら、本物の山札へ瞬間移動（見た目は同じ）
+      mark(k); const i=deckOf(k);
+      if(i!==startDeckIdx){ applyStartDeck(i); render(); layoutHand(true); try{ playSfx('place'); }catch(e){} } startSlideLabel(); },120); };
   startSlideLabel();
-  mark(startDeckIdx);
-  requestAnimationFrame(()=>{ sl.scrollLeft=leftOf(startDeckIdx); });
+  mark(startDeckIdx+off);
+  requestAnimationFrame(()=>{ sl.scrollLeft=leftOf(startDeckIdx+off); });
 }
 function applyDeckBuild(){
   const all=allCardsUnique().filter(deckEligible);
@@ -8960,7 +8965,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-12g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
