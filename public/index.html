@@ -1598,7 +1598,7 @@ const TACTICS = [
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地からカードを1枚選んで手札に戻す',count:2},
   {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚、手札に戻す',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
-  {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする（最大10）',count:3},
+  {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする',count:3},
   {type:'plead',name:'命乞い',short:'命乞い',desc:'これから来る敵の技（攻撃力×2・妨害技、すべて）の発動を3ターン遅らせる（ターンと敵の攻撃力の上昇は普通に進む）',count:2,isNew:true},
   {type:'defend',name:'防御',short:'防御',desc:'このwaveは攻撃しない代わりに、攻撃力×2で防御する（敵のHPは減らない）',count:2},
   {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚複製する',count:2},
@@ -1607,7 +1607,7 @@ const TACTICS = [
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
   {type:'swap',name:'交換',short:'交換',desc:'未完成の旗に置いてある数字カード1枚（敵が置いたカードもOK）と、手札の数字カード1枚を入れ替える',count:NEWTAC_COUNT,isNew:true},
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える。めくった他のカードは山札の下に戻す',count:NEWTAC_COUNT,isNew:true},
-  {type:'promote',name:'昇格',short:'昇格',desc:`選んだ旗にある数字カード全部の数字を+${PROMOTE_UP}する（最大10）`,count:NEWTAC_COUNT,isNew:true},
+  {type:'promote',name:'昇格',short:'昇格',desc:`選んだ旗にある数字カード全部の数字を+${PROMOTE_UP}する`,count:NEWTAC_COUNT,isNew:true},
   {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードを1枚引く`,count:NEWTAC_COUNT,isNew:true},
   {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ消す`,count:NEWTAC_COUNT,isNew:true},
 ];
@@ -2452,7 +2452,7 @@ const TACTIC_EXTRA = {
   revolution:'手札の部隊の数字が反転する（1↔10、2↔9…）。',
   split:'手札の部隊を1枚選ぶと、ランダムに2枚へ分裂する。',
   plead:'敵の技が'+PLEAD_TURNS+'ターン遅れる。',
-  inspire:'手札の部隊・力の装備の数字が+3される（最大10）。',
+  inspire:'手札の部隊・力の装備の数字が+3される。',
   duplicate:'手札のカードを1枚選んでコピーする。この戦いの間だけ有効。',
   fusion:'部隊を2枚選ぶ。高い方が10、低い方が余りになる（合計10以下なら1枚にまとまる）。',
 };
@@ -6673,7 +6673,7 @@ function resolveRewardPick(opt){
     hint(`${opt.cards[0].name}を${opt.cards.length}枚（購入品）獲得！次のステージの山札に加わる。`);
   } else if(opt.kind==='color_up'){
     const n=applyColorPlus3(opt.color);
-    hint(n>0?`${CNAME[opt.color]}のカード${n}枚が+1された！（最大10）`:`${CNAME[opt.color]}の+1できるカードが無かった…`);
+    hint(n>0?`${CNAME[opt.color]}のカード${n}枚が+1された！`:`${CNAME[opt.color]}の+1できるカードが無かった…`);
   } else if(opt.kind==='color_change'){
     const n=applyColorChange3(opt.from, opt.to);
     hint(n>0?`${CNAME[opt.from]}のカード${n}枚が${CNAME[opt.to]}に変わった！`:`${CNAME[opt.from]}のカードが無かった…`);
@@ -8786,7 +8786,7 @@ function renderShop_(){
   const items=[];
   {
     items.push({key:'swap',head:'山札の入れ替え',icon:'🔀',name:'山札のカードを大山札と交換',desc:'好きな山札のカードを（まとめて）選んで、完全ランダムなカードに入れ替える（同じカードが来ることもある）',price:SWAP_PRICE,special:true});
-    items.push({key:'up',icon:miniIcon(EMBLEM[deckOffer.up],CFILL[deckOffer.up]),name:`${CNAME[deckOffer.up]}をランダム3枚+1`,desc:`${CNAME[deckOffer.up]}のカード3枚（ランダム）の数字が+1（最大10）`,price:UP_PRICE,sold:deckOffer.upUsed,
+    items.push({key:'up',icon:miniIcon(EMBLEM[deckOffer.up],CFILL[deckOffer.up]),name:`${CNAME[deckOffer.up]}をランダム3枚+1`,desc:`${CNAME[deckOffer.up]}のカード3枚（ランダム）の数字が+1`,price:UP_PRICE,sold:deckOffer.upUsed,
       apply:()=>{ deckOffer.upUsed=true; const n=applyColorPlus3(deckOffer.up); hint(n>0?`${CNAME[deckOffer.up]}のカード${n}枚が+1された！`:`+1できるカードが無かった…`); }});
     items.push({key:'ch',icon:`<span style="display:inline-flex;align-items:center;gap:1px">${miniIcon(EMBLEM[deckOffer.from],CFILL[deckOffer.from])}→${miniIcon(EMBLEM[deckOffer.to],CFILL[deckOffer.to])}</span>`,name:`${CNAME[deckOffer.from]}3枚を${CNAME[deckOffer.to]}に変更`,desc:`${CNAME[deckOffer.from]}のカード3枚（ランダム）が${CNAME[deckOffer.to]}になる`,price:CH_PRICE,sold:deckOffer.chUsed,
       apply:()=>{ deckOffer.chUsed=true; const n=applyColorChange3(deckOffer.from,deckOffer.to); hint(n>0?`${CNAME[deckOffer.from]}のカード${n}枚が${CNAME[deckOffer.to]}に変わった！`:`${CNAME[deckOffer.from]}のカードが無かった…`); }});
@@ -9068,7 +9068,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
