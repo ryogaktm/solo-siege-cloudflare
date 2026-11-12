@@ -13,7 +13,7 @@ with sync_playwright() as p:
     pg.goto(GAME); pg.wait_for_timeout(600)
     ev=lambda js:pg.evaluate(js)
     check('起動でJSエラーが出ない',not errs,errs)
-    check('通常の敵が84体',ev("()=>WAVES.filter(w=>!w.boss).length")==84)
+    check('通常の敵が94体（ラスボス6体と合わせて100体）',ev("()=>[WAVES.filter(w=>!w.boss).length,WAVES.length]")==[94,100])
     bad=ev("()=>{const n=WAVES.filter(w=>!w.boss);return n.filter((w,i)=>i&&w.hp<n[i-1].hp).map(w=>w.name)}")
     check('敵のHPが下がる箇所がない（順位が上がるほど強い）',not bad,bad)
     bad=ev("()=>{const n=WAVES.filter(w=>!w.boss);return n.filter((w,i)=>i&&w.atk<n[i-1].atk).map(w=>w.name)}")
@@ -47,29 +47,35 @@ with sync_playwright() as p:
     check('早撃ちのブーツ：持っていなければ等倍',r['none']==1,r)
     check('早撃ちのブーツ：12ターン以内は×5、13〜15ターンは×1.5、16ターン目からは等倍',r['in12']==5 and r['out']==1.5 and r['out16']==1,r)
     check('早撃ちのブーツ：倍の腕輪で増え分が2倍（×9）',r['dbl']==9,r)
-    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); inPrep=false; const o={}; startBattleGoals();
-      o.n1=accCond.n; o.cur1=!!accCond.cur; o.bar=document.getElementById('condBar').style.display!=='none'; o.txt=document.getElementById('condBar').textContent;
-      // 1つ目をクリア→次の条件がひとつ出る
-      accCond.cur='x:role2'; accCond.cur='x_role_2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.picks1=accCond.picks; o.n2=accCond.n; o.next=accCond.cur&&accCond.cur!=='x_role_2';
-      // 最後まで（最大3つ）
-      accCond.cur='x_role_6'; accStat.roles={'ウェッジ':9}; accStat.super={red:9}; accStat.tac=9; accStat.maxKinds=9; accStat.maxSame=9; accStat.maxDealt=99999; for(let i=0;i<4;i++) checkGoalAnnounce(false);
-      o.n3=accCond.n; o.picks3=accCond.picks; o.max=COND_MAX;
-      // 最初の2つは「倒した時に判定」の条件にならない
-      let bad=0; for(let t=0;t<40;t++){ startBattleGoals(); if(condDef(accCond.cur).final) bad++; checkGoalAnnounce(false); if(accCond.n===2&&accCond.cur&&condDef(accCond.cur).final) bad++; accStat=blankBattleStat(); } o.bad=bad;
+    r=ev("""()=>{ CHARACTER=CHARACTERS[1]; init(); introOn=false; stageIndex=WAVES.findIndex(w=>w.lv===30); inPrep=false; const o={}; panel=null; startBattleGoals();
+      o.no=panel.no; o.cells=panel.cells.length; o.texts=new Set(panel.cells.map(c=>condDef(c.key).text)).size; o.bar=document.getElementById('condBar').style.display!=='none';
+      o.cum=panel.cells.filter(c=>c.key.startsWith('c_')).length; o.fin=panel.cells.filter(c=>condDef(c.key).final).length;
+      // 1マスクリア→選ぶ権利が1回ふえる
+      panel.cells[0].key='x_role_2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.ok1=panel.cells[0].ok; o.picks1=accCond.picks;
+      // 累計のマス：前の戦闘の分＋今の戦闘の分で数える
+      panel.cells[1].key='c_tac_5'; panel.cum={tac:3}; accStat.tac=1; checkGoalAnnounce(false); o.cumNo=panel.cells[1].ok; accStat.tac=2; checkGoalAnnounce(false); o.cumOk=panel.cells[1].ok;
+      // 戦闘が終わると、その戦闘の分が累計に足される（2回足さない）
+      panel.cum={tac:3}; accStat.folded=false; foldPanelBattle(); foldPanelBattle(); o.fold=panel.cum.tac;
+      // 9マス全部→特別アクセサリー1回、次の戦闘で次のパネル（もっと厳しい）
+      const lv1=panel.cells.reduce((a,c)=>a+c.lv,0); panel.cells.forEach((c,i)=>{ if(i<8) c.ok=true; }); panel.cells[8].ok=false; panel.cells[8].key='x_role_2'; checkGoalAnnounce(false);
+      o.clear=panel.clear; o.special=accCond.special; startBattleGoals(); o.no2=panel.no; o.cells2=panel.cells.length; o.harder=panel.cells.reduce((a,c)=>a+c.lv,0)>lv1; o.cum2=Object.keys(panel.cum).length;
+      o.spDefs=ACC_DEFS_ALL.filter(d=>d.special).length; o.spInShop=ACC_DEFS.some(d=>d.special);
       return o}""")
-    check('取得条件：戦闘が始まると条件が1つ出て、戦闘画面に常に表示される',r['n1']==1 and r['cur1'] and r['bar'] and '1/3' in r['txt'],r)
-    check('取得条件：クリアすると選択権が1回ふえ、次の条件がひとつ出る／最大3つで終わる',r['picks1']==1 and r['n2']==2 and r['next'] and r['n3']==3 and r['picks3']>=2 and r['max']==3,r)
-    check('取得条件：最初の2つに「倒した時に判定」の条件は出ない',r['bad']==0,r)
+    check('パネル：戦闘が始まると9マスのパネルが出る（文の重複なし・累計3マス・「倒した時」は2マスまで）',r['no']==1 and r['cells']==9 and r['texts']==9 and r['bar'] and r['cum']==3 and r['fin']<=2,r)
+    check('パネル：マスをクリアすると選ぶ権利が1回ふえる',r['ok1'] and r['picks1']==1,r)
+    check('パネル：累計のマスは前の戦闘までの数＋今の戦闘の数で判定／戦闘の分は1回だけ足す',(not r['cumNo']) and r['cumOk'] and r['fold']==5,r)
+    check('パネル：9マス全部で特別アクセサリー1回、次の戦闘で2枚目（もっと厳しい・累計は0から）',r['clear'] and r['special']==1 and r['no2']==2 and r['cells2']==9 and r['harder'] and r['cum2']==0,r)
+    check('パネル：特別アクセサリーは3種類あり、店・宝箱の候補には入らない',r['spDefs']==3 and not r['spInShop'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS.find(c=>c.equipment&&c.tactics&&c.combo); init(); introOn=false; inPrep=false; const o={}; startBattleGoals();
       const txt=condPool().map(x=>x.g.text); o.two=txt.some(t=>/2色以上でスーパーコンボ/.test(t)); o.eq=txt.some(t=>/以上の装備カードを/.test(t)); o.tt=txt.some(t=>/軍師カード「/.test(t)); o.any=txt.some(t=>/^どれかの色でスーパーコンボを戦闘で×2以上決める/.test(t));
-      accCond.cur='x_eq_5_1'; advanceTurn({kind:'monster',sub:'number',value:6,uid:uid()}); o.eqOk=accCond.picks===1;
-      accCond.cur='x_two_2'; accStat.super={red:2,blue:3}; checkGoalAnnounce(false); o.twoOk=accCond.picks===2;
-      const tt=condPool().find(x=>x.key.startsWith('x_tt_')&&x.key.endsWith('_1')); accCond.cur=tt.key; const ty=tt.key.split('_')[2]; advanceTurn({kind:'tactics',type:ty,uid:uid()}); o.ttOk=accCond.picks===3;
-      // 難しさ：序盤の1個目は易しく、終盤の3個目は難しい（上がり方はゆるやか）
-      o.t0=condTarget(0); stageIndex=LADDER_N-1; o.t2=condTarget(2); stageIndex=0; o.t1=condTarget(1);
+      panel.cells.forEach(c=>c.ok=true); const C=panel.cells; C[0].ok=false; C[0].key='x_eq_5_1'; advanceTurn({kind:'monster',sub:'number',value:6,uid:uid()}); o.eqOk=accCond.picks===1;
+      C[1].ok=false; C[1].key='x_two_2'; accStat.super={red:2,blue:3}; checkGoalAnnounce(false); o.twoOk=accCond.picks===2;
+      const tt=condPool().find(x=>x.key.startsWith('x_tt_')&&x.key.endsWith('_1')); C[2].ok=false; C[2].key=tt.key; const ty=tt.key.split('_')[2]; advanceTurn({kind:'tactics',type:ty,uid:uid()}); o.ttOk=accCond.picks===3;
+      // 難しさ：パネルが進むほど、マスの難しさの範囲が上がる
+      o.r1=panelRange(1); o.r2=panelRange(2); o.r5=panelRange(5);
       return o}""")
     check('取得条件：色を限定しない／2色以上のコンボ、5以上の装備カードを使う、特定の軍師カードを使う条件がある',r['two'] and r['eq'] and r['tt'] and r['any'] and r['eqOk'] and r['twoOk'] and r['ttOk'],r)
-    check('取得条件：2個目・3個目や終盤ほど難しくなる（ゆるやかに）',r['t0']<r['t1'] and r['t1']<r['t2'] and r['t2']-r['t0']<=7,r)
+    check('パネル：枚数が進むほど難しさの範囲が上がる（上限あり）',r['r1'][0]<r['r2'][0] and r['r2'][0]<r['r5'][0] and r['r1'][1]<r['r2'][1] and r['r5'][1]<=6,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS.find(c=>c.equipment&&c.tactics&&c.combo); init(); introOn=false; inPrep=false; startBattleGoals(); const o={}; const g1=condDef('x_allsame_1'), g3=condDef('x_allsame_3'); o.pool=condPool().some(x=>x.key==='x_allsame_3'); o.lv=[g1.lv,g3.lv];
       accStat.sameRun=2; accStat.maxSameRun=2; o.no=g3.done(); accStat.maxSameRun=3; o.yes=condDef('x_allsame_3').done(); return o}""")
     check('取得条件：全旗同色（1回）と、3回連続（究極）の条件がある',r['pool'] and r['lv'][1]>r['lv'][0] and r['no']==False and r['yes']==True,r)
@@ -434,8 +440,8 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e12; displayedBossHp=1e12; const o={}; const rnd=Math.random; bashRateNow=0.7; Math.random=()=>0.99; monSkillUse(); o.miss=bashRateNow; busy=false; Math.random=()=>0.1; monSkillUse(); o.hit=bashRateNow; Math.random=rnd; return o}""")
     check('斧：当たると命中率が10％下がり、外れたら据え置き',abs(r['miss']-0.7)<1e-9 and abs(r['hit']-0.6)<1e-9,r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); const o={}; o.base=specMax('mon'); specBonusK.mon=9; o.cap=specMax('mon'); return o}""")
-    r=ev("()=>Object.values(MON_SKILL).filter(m=>m.kind&&!['punch','bullet'].includes(m.kind)).map(m=>m.name).filter(n=>SPEC_CAP[n]==null)")
-    check('モンスター技はすべて技ごとの上限値を持つ',r==[],r)
+    r=ev("()=>Object.values(MON_SKILL).filter(m=>m.kind&&!m.cost&&!['punch','bullet'].includes(m.kind)).map(m=>m.name).filter(n=>SPEC_CAP[n]==null)")
+    check('回数で使うモンスター技（コストを払う技以外）は、すべて技ごとの上限値を持つ',r==[],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); specBonusK.mon=9; return {cap:specMax('mon')} }""")
     check('特殊技の回数は上限5回を超えない',r['cap']<=5,r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; const o={}; o.before=specMax('mon'); specProg.mon=0; spec.mon=1; render(); const bt=document.getElementById('specMon'); o.gp1=bt.style.getPropertyValue('--gp'); o.has=bt.hasAttribute('data-gp'); advanceToNextStage(); o.mid=specMax('mon'); o.prog=specProg.mon; spec.mon=1; advanceToNextStage(); o.after=specMax('mon'); specBonusK.mon=9; spec.mon=9; advanceToNextStage(); o.cap=specMax('mon'); return o}""")
