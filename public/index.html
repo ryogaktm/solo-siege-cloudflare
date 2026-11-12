@@ -1123,9 +1123,16 @@
   .db-grid{ flex:1; max-height:none; min-height:0; align-content:flex-start; }
   .db-sec{ font-size:12px; color:var(--gold); margin:6px 0 2px; text-align:center; }
   .db-slide-wrap{ position:relative; flex:1; min-height:0; display:flex; margin:0 -14px; }
-  .db-slide{ flex:1; min-height:0; display:flex; gap:10px; padding:0 9%; scroll-padding:0 9%; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .db-slide{ flex:1; min-height:0; display:flex; gap:8px; padding:0 7%; scroll-padding:0 7%; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
   .db-slide::-webkit-scrollbar{ display:none; }
-  .db-page{ flex:0 0 82%; max-height:none; height:100%; box-sizing:border-box; scroll-snap-align:center; scroll-snap-stop:always; align-content:flex-start; background:rgba(0,0,0,.22); border:1px solid rgba(226,192,106,.25); border-radius:12px; transition:opacity .2s, transform .2s; }
+  .db-page{ flex:0 0 86%; gap:4px; padding:6px 3px; max-height:none; height:100%; box-sizing:border-box; scroll-snap-align:center; scroll-snap-stop:always; align-content:flex-start; background:rgba(0,0,0,.22); border:1px solid rgba(226,192,106,.25); border-radius:12px; transition:opacity .2s, transform .2s; }
+  .db-page .db-card{ zoom:.78; }
+  .sd-name{ display:block; font-size:21px; font-weight:900; color:var(--gold); margin:4px 0 4px; letter-spacing:.04em; }
+  .sd-name small{ font-size:13px; opacity:.75; margin-right:8px; font-weight:800; }
+  .sd-chips{ display:flex; justify-content:center; gap:6px; flex-wrap:wrap; }
+  .sd-chips span{ font-size:14px; font-weight:800; color:var(--cream); background:rgba(226,192,106,.14); border:1px solid rgba(226,192,106,.45); border-radius:10px; padding:2px 10px; }
+  .sd-chips span b{ color:var(--gold); font-size:16px; margin-left:3px; }
+  .sd-hint{ display:block; font-size:11px; opacity:.7; margin-bottom:2px; }
   .db-page.side{ opacity:.45; transform:scale(.96); }
   .db-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:46px; height:46px; border-radius:50%; border:2px solid var(--gold); background:rgba(10,16,12,.88); color:var(--gold); font-size:22px; line-height:1; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.6); padding:0; }
   .db-arrow.l{ left:2px; } .db-arrow.r{ right:2px; }
@@ -3461,7 +3468,7 @@ function renderDeckResult(){
 function startDeckCount(d){ const c={n:0,t:0,e:0}; [...d.active,...d.hand].forEach(x=>{ c[x.kind==='troop'?'n':x.kind==='monster'?'e':'t']++; }); return c; }
 function startSlideLabel(){
   const d=startDecks[startDeckIdx]; if(!d) return; const c=startDeckCount(d);
-  document.getElementById('dbSec').innerHTML=`◀ ▶ 横にスライド、または矢印で選ぶ<br><b>${startDeckIdx+1}/${startDecks.length}　${d.label}</b>　数字${c.n}・軍師${c.t}・装備${c.e}`;
+  document.getElementById('dbSec').innerHTML=`<span class="sd-hint">◀ ▶ 横にスライド、または矢印で選ぶ</span><span class="sd-name"><small>${startDeckIdx+1}/${startDecks.length}</small>${d.label}</span><span class="sd-chips"><span>数字<b>${c.n}</b></span><span>軍師<b>${c.t}</b></span><span>装備<b>${c.e}</b></span></span>`;
   document.querySelectorAll('#dbDots i').forEach((el,i)=>el.classList.toggle('on',i===startDeckIdx));
 }
 function renderStartSlide(on){   // 最初の山札：5つの山札を横に並べて、スライドで見比べる（止まった山札が選ばれる）。端はつながっていて、1つ目の左は最後の山札（ぐるっと回る）
@@ -8965,7 +8972,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-12h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
