@@ -1133,6 +1133,15 @@
   .sd-chips span{ font-size:14px; font-weight:800; color:var(--cream); background:rgba(226,192,106,.14); border:1px solid rgba(226,192,106,.45); border-radius:10px; padding:2px 10px; }
   .sd-chips span b{ color:var(--gold); font-size:16px; margin-left:3px; }
   .sd-hint{ display:block; font-size:11px; opacity:.7; margin-bottom:2px; }
+  #condBar{ margin:3px 10px 0; padding:3px 8px 4px; border-radius:8px; background:rgba(232,192,80,.12); border:1px solid rgba(232,192,80,.35); color:var(--gold,#e8c050); cursor:pointer; }
+  #condBar .cb-head{ position:relative; font-size:11px; font-weight:800; text-align:center; opacity:.9; }
+  #condBar .cb-idx{ position:absolute; right:0; top:0; font-size:10px; opacity:.8; }
+  #condBar .cb-idx::before{ content:'◀ スライド ▶　'; opacity:.7; }
+  #condBar .cb-track{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  #condBar .cb-track::-webkit-scrollbar{ display:none; }
+  #condBar .cb-item{ flex:0 0 100%; scroll-snap-align:center; display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; font-weight:800; line-height:1.3; color:var(--cream,#f4ead2); min-height:20px; }
+  #condBar .cb-t{ text-align:left; }
+  #condBar .cb-p{ color:var(--gold); white-space:nowrap; font-size:12px; }
   .pn-box{ max-width:440px; }
   .pn-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
   .pn-cell{ position:relative; min-height:92px; padding:6px 5px 5px; border-radius:10px; border:2px solid rgba(226,192,106,.55); background:linear-gradient(160deg,rgba(60,48,20,.9),rgba(24,20,10,.95)); display:flex; flex-direction:column; gap:3px; text-align:left; overflow:hidden; }
@@ -1219,7 +1228,7 @@
 <div class="actionrow topact">
         <button class="giveup-btn" id="giveupBtn">ギブアップ</button>
       </div>
-      <button class="iconbtn" id="rankBtn">📊</button>
+      <button class="iconbtn" id="panelBtn" aria-label="アクセサリー獲得パネル">🎯</button>
       <button class="iconbtn" id="accBtn">🎒</button>
       <button class="iconbtn" id="helpBtn">?</button>
       <button class="iconbtn" id="menuBtn">☰</button>
@@ -1246,7 +1255,7 @@
     <div class="fighter mo" id="fighterMo"><span id="waveSpr"></span></div>
     <div id="evBanner" class="ev-banner"></div>
   </div>
-  <div id="condBar" style="display:none;margin:3px 10px 0;padding:3px 8px;border-radius:8px;background:rgba(232,192,80,.12);border:1px solid rgba(232,192,80,.35);color:var(--gold,#e8c050);font-size:12px;line-height:1.3;font-weight:700;text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+  <div id="condBar" style="display:none"></div>
   <div class="wavebar">
     <div class="wave-main">
     <div class="wave-title" id="waveTitle">ステージ1・WAVE1：ゴブリンの大群</div>
@@ -8346,12 +8355,21 @@ function showPanel(){   // パネル（3×3）を大きく見せる
   bg.innerHTML=`<div class="reward-box pn-box"><div class="reward-title">🎯 アクセサリー獲得パネル ${panel.no}枚目</div><div class="reward-sub">クリア ${k} / ${panel.cells.length}　／　1マスごとにアクセサリーを1つ選べる<br>🏆 全部クリアで特別なアクセサリー → 次のパネルへ</div><div class="pn-grid">${panel.cells.map(panelCellHtml).join('')}</div><button class="btn" id="pnClose" style="margin-top:10px;width:100%">閉じる</button></div>`;
   document.body.appendChild(bg); bg.querySelector('#pnClose').onclick=()=>bg.remove(); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); });
 }
-function renderCondBar(){   // 戦闘中は、パネルの進み具合を常に出しておく（タップでパネルを開く）
+let condBarSig='';
+function renderCondBar(){   // 戦闘中は、パネルの未達成の条件を1つずつ出す（横にスライドで次の条件。タップでパネル全体）
   const el=document.getElementById('condBar'); if(!el) return;
-  if(condOff()||introNoAcc()||inPrep||gameEnded||!panel){ el.style.display='none'; return; }
-  const k=panel.cells.filter(c=>c.ok).length;
-  el.innerHTML=`🎯 パネル${panel.no}枚目　<span class="pn-mini">${panel.cells.map(c=>`<i class="${c.ok?'ok':''}"></i>`).join('')}</span>　${k}/${panel.cells.length}${accCond.picks>0?`　🎁×${accCond.picks}`:''}${accCond.special>0?'　🏆':''}　<u>見る</u>`;
-  el.style.display=''; el.style.cursor='pointer'; el.onclick=showPanel;
+  if(condOff()||introNoAcc()||inPrep||gameEnded||!panel){ el.style.display='none'; condBarSig=''; return; }
+  const left=panel.cells.filter(c=>!c.ok).map(c=>({c,g:condDef(c.key)})).filter(x=>x.g), k=panel.cells.length-left.length;
+  const tagOf=g=>g.cum?'<span class="pn-tag cum">累計</span>':g.final?'<span class="pn-tag fin">倒した時</span>':'<span class="pn-tag">1戦で</span>';
+  const head=`<div class="cb-head">🎯 パネル${panel.no}枚目 ${k}/${panel.cells.length}${accCond.picks>0?`　🎁×${accCond.picks}`:''}${accCond.special>0?'　🏆':''}${left.length>1?`<span class="cb-idx">1/${left.length}</span>`:''}</div>`;
+  const items=left.length?left.map(x=>`<div class="cb-item">${tagOf(x.g)}<span class="cb-t">${x.g.text}</span>${x.g.prog?`<span class="cb-p">${x.g.prog}</span>`:''}</div>`).join(''):`<div class="cb-item"><span class="cb-t">🏆 パネル全部クリア！ 戦闘後に特別なアクセサリーを選べます</span></div>`;
+  const sig=head+items; el.style.display=''; if(sig===condBarSig) return;
+  const old=el.querySelector('.cb-track'), keep=old?old.scrollLeft:0;
+  condBarSig=sig; el.innerHTML=head+`<div class="cb-track">${items}</div>`;
+  const tr=el.querySelector('.cb-track'), idx=el.querySelector('.cb-idx');
+  const upd=()=>{ if(idx) idx.textContent=`${Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth))+1}/${left.length}`; };
+  tr.scrollLeft=keep; upd(); tr.onscroll=upd;
+  el.onclick=showPanel;
 }
 /* ===== プレイ記録の送信（公開版のみ。個人情報は送らない。受け取り側は server/collect.php） ===== */
 const LOG_URL='/api/collect';   // ★受け取りサーバーのURL。空文字にすると送信しない
@@ -9007,7 +9025,7 @@ document.getElementById('prepDeckView').onclick=()=>{ try{ showCardListModal('�
 document.getElementById('prepBuyAcc').onclick=()=>openShop('buyacc');
 document.getElementById('prepBuyDeck').onclick=()=>openShop('buydeck');
 document.getElementById('prepSell').onclick=()=>openShop('sell');
-document.getElementById('rankBtn').onclick=()=>openRanking(true,{view:true});
+document.getElementById('panelBtn').onclick=()=>{ if(panel) showPanel(); else hint('いまはアクセサリー獲得パネルがありません。'); };   // 敵ランキングのボタンは廃止（戦闘開始時には今まで通り出る）
 function openRanking(first,opts){
   opts=opts||{}; const pre=!!opts.pre;
   let m=document.getElementById('rankModal');
@@ -9041,7 +9059,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
