@@ -1122,9 +1122,14 @@
   .db-modal{ position:relative; width:100%; max-width:560px; height:100%; max-height:100%; display:flex; flex-direction:column; }
   .db-grid{ flex:1; max-height:none; min-height:0; align-content:flex-start; }
   .db-sec{ font-size:12px; color:var(--gold); margin:6px 0 2px; text-align:center; }
-  .db-slide{ flex:1; min-height:0; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .db-slide-wrap{ position:relative; flex:1; min-height:0; display:flex; margin:0 -14px; }
+  .db-slide{ flex:1; min-height:0; display:flex; gap:10px; padding:0 9%; scroll-padding:0 9%; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
   .db-slide::-webkit-scrollbar{ display:none; }
-  .db-page{ flex:0 0 100%; max-height:none; height:100%; box-sizing:border-box; scroll-snap-align:center; scroll-snap-stop:always; align-content:flex-start; }
+  .db-page{ flex:0 0 82%; max-height:none; height:100%; box-sizing:border-box; scroll-snap-align:center; scroll-snap-stop:always; align-content:flex-start; background:rgba(0,0,0,.22); border:1px solid rgba(226,192,106,.25); border-radius:12px; transition:opacity .2s, transform .2s; }
+  .db-page.side{ opacity:.45; transform:scale(.96); }
+  .db-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:46px; height:46px; border-radius:50%; border:2px solid var(--gold); background:rgba(10,16,12,.88); color:var(--gold); font-size:22px; line-height:1; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.6); padding:0; }
+  .db-arrow.l{ left:2px; } .db-arrow.r{ right:2px; }
+  .db-arrow[disabled]{ opacity:0; pointer-events:none; }
   .db-dots{ justify-content:center; gap:10px; padding:6px 0; }
   .db-dots i{ width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.25); cursor:pointer; }
   .db-dots i.on{ background:var(--gold); }
@@ -1478,7 +1483,7 @@
     <div class="db-sec" id="dbSec">入れ替えるカードを選択 <b id="dbCountOut">0/0</b></div>
     <div class="cardgrid db-grid" id="dbDeck"></div>
     <div id="dbRemWrap" style="display:none"><div class="db-sec">外したカード</div><div class="cardgrid db-rem" id="dbRem"></div></div>
-    <div class="db-slide" id="dbSlide" style="display:none"></div>
+    <div class="db-slide-wrap" id="dbSlideWrap" style="display:none"><div class="db-slide" id="dbSlide"></div><button class="db-arrow l" id="dbPrev" aria-label="前の山札">◀</button><button class="db-arrow r" id="dbNext" aria-label="次の山札">▶</button></div>
     <div class="db-dots" id="dbDots" style="display:none"></div>
     <button class="btn" id="dbOk">このまま進む</button>
   </div>
@@ -3456,24 +3461,32 @@ function renderDeckResult(){
 function startDeckCount(d){ const c={n:0,t:0,e:0}; [...d.active,...d.hand].forEach(x=>{ c[x.kind==='troop'?'n':x.kind==='monster'?'e':'t']++; }); return c; }
 function startSlideLabel(){
   const d=startDecks[startDeckIdx]; if(!d) return; const c=startDeckCount(d);
-  document.getElementById('dbSec').innerHTML=`◀ 横にスライドして選ぶ ▶<br><b>${startDeckIdx+1}/${startDecks.length}　${d.label}</b>　数字${c.n}・軍師${c.t}・装備${c.e}`;
+  document.getElementById('dbSec').innerHTML=`◀ ▶ 横にスライド、または矢印で選ぶ<br><b>${startDeckIdx+1}/${startDecks.length}　${d.label}</b>　数字${c.n}・軍師${c.t}・装備${c.e}`;
   document.querySelectorAll('#dbDots i').forEach((el,i)=>el.classList.toggle('on',i===startDeckIdx));
 }
 function renderStartSlide(on){   // 最初の山札：5つの山札を横に並べて、スライドで見比べる（止まった山札が選ばれる）
   const sl=document.getElementById('dbSlide'), dots=document.getElementById('dbDots'), g=document.getElementById('dbDeck');
-  sl.style.display=on?'flex':'none'; dots.style.display=on?'flex':'none'; g.style.display=on?'none':'';
+  const wr=document.getElementById('dbSlideWrap'); wr.style.display=on?'flex':'none'; dots.style.display=on?'flex':'none'; g.style.display=on?'none':'';
   if(!on) return;
   sl.innerHTML=''; dots.innerHTML='';
   startDecks.forEach((d,i)=>{
     const pg=document.createElement('div'); pg.className='db-page cardgrid';
     [...d.active,...d.hand].sort(deckSortCmp).forEach(c=>{ const el=cardEl(c,true); el.classList.add('db-card'); pg.appendChild(el); });
     sl.appendChild(pg);
-    const dot=document.createElement('i'); dot.onclick=()=>sl.scrollTo({left:i*sl.clientWidth,behavior:'smooth'}); dots.appendChild(dot);
+    const dot=document.createElement('i'); dot.onclick=()=>go(i); dots.appendChild(dot);
   });
+  const pages=()=>[...sl.children];
+  const leftOf=i=>{ const p=pages()[i]; return p?p.offsetLeft-(sl.clientWidth-p.offsetWidth)/2:0; };   // その山札が真ん中に来る位置
+  const idxNow=()=>{ const ps=pages(), mid=sl.scrollLeft+sl.clientWidth/2; let b=0,bd=1e9; ps.forEach((p,i)=>{ const d=Math.abs(p.offsetLeft+p.offsetWidth/2-mid); if(d<bd){ bd=d; b=i; } }); return b; };
+  function go(i){ i=Math.max(0,Math.min(startDecks.length-1,i)); sl.scrollTo({left:leftOf(i),behavior:'smooth'}); }
+  const mark=i=>{ pages().forEach((p,k)=>p.classList.toggle('side',k!==i)); const pv=document.getElementById('dbPrev'), nx=document.getElementById('dbNext'); pv.disabled=i<=0; nx.disabled=i>=startDecks.length-1; };
+  document.getElementById('dbPrev').onclick=()=>go(idxNow()-1);
+  document.getElementById('dbNext').onclick=()=>go(idxNow()+1);
   let t=null;
-  sl.onscroll=()=>{ clearTimeout(t); t=setTimeout(()=>{ const i=Math.max(0,Math.min(startDecks.length-1,Math.round(sl.scrollLeft/Math.max(1,sl.clientWidth)))); if(i!==startDeckIdx){ applyStartDeck(i); render(); layoutHand(true); try{ playSfx('place'); }catch(e){} } startSlideLabel(); },80); };
+  sl.onscroll=()=>{ clearTimeout(t); mark(idxNow()); t=setTimeout(()=>{ const i=idxNow(); mark(i); if(i!==startDeckIdx){ applyStartDeck(i); render(); layoutHand(true); try{ playSfx('place'); }catch(e){} } startSlideLabel(); },80); };
   startSlideLabel();
-  requestAnimationFrame(()=>{ sl.scrollLeft=startDeckIdx*sl.clientWidth; });
+  mark(startDeckIdx);
+  requestAnimationFrame(()=>{ sl.scrollLeft=leftOf(startDeckIdx); });
 }
 function applyDeckBuild(){
   const all=allCardsUnique().filter(deckEligible);
@@ -8947,7 +8960,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-12f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
