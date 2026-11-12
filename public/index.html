@@ -1137,13 +1137,10 @@
   #condBar:not([style*="none"]){ display:flex !important; }
   #condBar .cb-head{ flex:0 0 auto; font-size:11px; font-weight:900; white-space:nowrap; }
   #condBar .cb-idx{ flex:0 0 auto; font-size:10px; font-weight:800; opacity:.85; white-space:nowrap; }
-  #condBar .cb-idx::before{ content:'◀▶ '; opacity:.7; }
-  #condBar .cb-track{ flex:1 1 auto; min-width:0; display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
-  #condBar .cb-track::-webkit-scrollbar{ display:none; }
-  #condBar .cb-item{ flex:0 0 100%; min-width:0; scroll-snap-align:center; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:800; line-height:1.3; color:var(--cream,#f4ead2); white-space:nowrap; }
-  #condBar .cb-item .pn-tag{ flex:0 0 auto; align-self:center; }
-  #condBar .cb-t{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
-  #condBar .cb-p{ flex:0 0 auto; color:var(--gold); font-size:11px; }
+  #condBar .cb-view{ position:relative; flex:1 1 auto; min-width:0; height:20px; overflow:hidden; }
+  #condBar .cb-run{ position:absolute; left:0; top:50%; margin-top:-9px; height:18px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; font-weight:800; color:var(--cream,#f4ead2); will-change:transform; }
+  #condBar .cb-run .pn-tag{ align-self:center; margin-right:4px; }
+  #condBar .cb-p{ color:var(--gold); font-size:12px; }
   .pn-box{ max-width:440px; }
   .pn-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
   .pn-cell{ position:relative; min-height:92px; padding:6px 5px 5px; border-radius:10px; border:2px solid rgba(226,192,106,.55); background:linear-gradient(160deg,rgba(60,48,20,.9),rgba(24,20,10,.95)); display:flex; flex-direction:column; gap:3px; text-align:left; overflow:hidden; }
@@ -8358,22 +8355,31 @@ function showPanel(){   // パネル（3×3）を大きく見せる
   bg.innerHTML=`<div class="reward-box pn-box"><div class="reward-title">🎯 アクセサリー獲得パネル ${panel.no}枚目</div><div class="reward-sub">クリア ${k} / ${panel.cells.length}　／　1マスごとにアクセサリーを1つ選べる<br>🏆 全部クリアで特別なアクセサリー → 次のパネルへ</div><div class="pn-grid">${panel.cells.map(panelCellHtml).join('')}</div><button class="btn" id="pnClose" style="margin-top:10px;width:100%">閉じる</button></div>`;
   document.body.appendChild(bg); bg.querySelector('#pnClose').onclick=()=>bg.remove(); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); });
 }
-let condBarSig='';
-function renderCondBar(){   // 戦闘中は、パネルの未達成の条件を1つずつ出す（横にスライドで次の条件。タップでパネル全体）
+let condBarSig='', cbI=0, cbKeys='', cbAnim=null;
+const CB_SPEED=55;   // 獲得条件の文字が流れる速さ（px/秒）
+function renderCondBar(){   // 戦闘中は、パネルの未達成の条件を1行で流す（流れ終わると次の条件。タップでも次へ）
   const el=document.getElementById('condBar'); if(!el) return;
-  if(condOff()||introNoAcc()||inPrep||gameEnded||!panel){ el.style.display='none'; condBarSig=''; return; }
+  if(condOff()||introNoAcc()||inPrep||gameEnded||!panel){ el.style.display='none'; condBarSig=''; cbKeys=''; if(cbAnim){ cbAnim.cancel(); cbAnim=null; } return; }
   const left=panel.cells.filter(c=>!c.ok).map(c=>({c,g:condDef(c.key)})).filter(x=>x.g), k=panel.cells.length-left.length;
   const tagOf=g=>g.cum?'<span class="pn-tag cum">累計</span>':g.final?'<span class="pn-tag fin">倒した時</span>':'<span class="pn-tag">1戦で</span>';
-  const head=`<span class="cb-head">🎯${k}/${panel.cells.length}${accCond.picks>0?` 🎁${accCond.picks}`:''}${accCond.special>0?' 🏆':''}</span>`;
-  const items=left.length?left.map(x=>`<div class="cb-item">${tagOf(x.g)}<span class="cb-t">${x.g.text}</span>${x.g.prog?`<span class="cb-p">${x.g.prog}</span>`:''}</div>`).join(''):`<div class="cb-item"><span class="cb-t">🏆 パネル全部クリア！ 戦闘後に特別なアクセサリーを選べます</span></div>`;
-  const sig=head+items; el.style.display=''; if(sig===condBarSig) return;
-  const old=el.querySelector('.cb-track'), keep=old?old.scrollLeft:0;
-  condBarSig=sig; el.innerHTML=head+`<div class="cb-track">${items}</div>`+(left.length>1?`<span class="cb-idx">1/${left.length}</span>`:'');
-  const tr=el.querySelector('.cb-track'), idx=el.querySelector('.cb-idx');
-  const upd=()=>{ if(idx) idx.textContent=`${Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth))+1}/${left.length}`; };
-  tr.scrollLeft=keep; upd(); tr.onscroll=upd;
-  el.onclick=showPanel;
+  const items=left.length?left.map(x=>`${tagOf(x.g)} <span class="cb-t">${x.g.text}</span>${x.g.prog?`　<span class="cb-p">${x.g.prog}</span>`:''}`):['<span class="cb-t">🏆 パネル全部クリア！ 戦闘後に特別なアクセサリーを選べます</span>'];
+  const keys=left.map(x=>x.c.key).join('|');
+  el.style.display='';
+  if(!el.querySelector('.cb-view')){ el.innerHTML='<span class="cb-head"></span><div class="cb-view"><span class="cb-run"></span></div><span class="cb-idx"></span>'; cbKeys=''; el.onclick=()=>cbNext(); }
+  el.querySelector('.cb-head').textContent=`🎯${k}/${panel.cells.length}${accCond.picks>0?` 🎁${accCond.picks}`:''}${accCond.special>0?' 🏆':''}`;
+  el._items=items;
+  if(keys!==cbKeys||!cbAnim){ cbKeys=keys; if(cbI>=items.length) cbI=0; cbPlay(); return; }
+  const run=el.querySelector('.cb-run'); if(run.innerHTML!==items[cbI]) run.innerHTML=items[cbI];   // 進み具合だけ変わった時は、流れを止めずに文字だけ差し替える
 }
+function cbPlay(){   // いまの条件を、右から入って左へ流す
+  const el=document.getElementById('condBar'); if(!el||!el._items) return;
+  const items=el._items, run=el.querySelector('.cb-run'), view=el.querySelector('.cb-view'), idx=el.querySelector('.cb-idx');
+  if(cbAnim){ cbAnim.onfinish=null; cbAnim.cancel(); cbAnim=null; }
+  run.innerHTML=items[cbI]; idx.textContent=items.length>1?`${cbI+1}/${items.length}`:'';
+  const W=view.clientWidth||200, T=run.scrollWidth||200, dist=W+T;
+  try{ cbAnim=run.animate([{transform:`translateX(${W}px)`},{transform:`translateX(${-T}px)`}],{duration:Math.max(2500,dist/CB_SPEED*1000),easing:'linear'}); cbAnim.onfinish=()=>{ cbAnim=null; cbNext(); }; }catch(e){ cbAnim=null; }
+}
+function cbNext(){ const el=document.getElementById('condBar'); if(!el||!el._items) return; cbI=(cbI+1)%el._items.length; cbPlay(); }
 /* ===== プレイ記録の送信（公開版のみ。個人情報は送らない。受け取り側は server/collect.php） ===== */
 const LOG_URL='/api/collect';   // ★受け取りサーバーのURL。空文字にすると送信しない
 const LOG_ON=()=>{ try{ return !!LOG_URL && /^https?:$/.test(location.protocol) && !window.claude && localStorage.getItem('soloSiegeNoLog')!=='1'; }catch(e){ return false; } };
@@ -9062,7 +9068,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
