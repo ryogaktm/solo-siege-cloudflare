@@ -115,7 +115,7 @@
   .title-startbtn:active, .title-howtobtn:active{ transform:translateY(3px); box-shadow:0 0 0 2px #2a1608, 0 1px 0 2px #2a1608 !important; }
   .title-howtobtn{ background:rgba(6,8,16,.72) !important; border:2px solid #e2c06a !important; color:var(--cream) !important; }
   .title-sound-row .iconbtn{ border-radius:0; border:2px solid #e2c06a; background:rgba(6,8,16,.72); box-shadow:0 0 0 2px #2a1608; }
-  .char-inner{ width:100%; max-width:420px; padding:18px 14px; text-align:center; max-height:100%; overflow-y:auto; }
+  .char-inner{ width:100%; max-width:420px; padding:calc(18px + env(safe-area-inset-top) * 1.5) 14px 18px; text-align:center; max-height:100%; overflow-y:auto; }
   .char-story{ font-size:14px; line-height:1.7; color:var(--cream); font-weight:700; margin-bottom:10px; }
   .char-prompt{ font-size:12px; color:var(--gold); letter-spacing:.08em; margin-bottom:14px; }
   .char-list{ display:flex; flex-direction:column; gap:10px; }
@@ -910,7 +910,7 @@
     transition:left .34s cubic-bezier(.22,.8,.25,1), top .34s cubic-bezier(.22,.8,.25,1), width .34s, height .34s, transform .34s, opacity .3s; }
 
   /* ---------- modals ---------- */
-  .modal-bg{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal-bg{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:max(16px, calc(env(safe-area-inset-top) * 1.5)) 16px 16px; }
   .modal{ width:100%; max-width:380px; max-height:86vh; overflow-y:auto; border-radius:12px; padding:22px 20px;
     background:linear-gradient(180deg, #1a2b22, #0f1c16); border:1px solid var(--gold-3);
     box-shadow:0 20px 50px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05); }
@@ -8945,7 +8945,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-12c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-12d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
