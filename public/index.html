@@ -1522,7 +1522,6 @@ const TACTICS = [
   {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
   {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など。1は1と1の2枚）',count:2,isNew:true},
   {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
-  {type:'swap',name:'交換',short:'交換',desc:'未完成の旗に置いてある数字カード1枚（敵が置いたカードもOK）と、手札の数字カード1枚を入れ替える',count:NEWTAC_COUNT,isNew:true},
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える。めくった他のカードは山札の下に戻す',count:NEWTAC_COUNT,isNew:true},
   {type:'promote',name:'昇格',short:'昇格',desc:`選んだ旗にある数字カード全部の数字を+${PROMOTE_UP}する`,count:NEWTAC_COUNT,isNew:true},
   {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードを1枚引く`,count:NEWTAC_COUNT,isNew:true},
@@ -1530,7 +1529,7 @@ const TACTICS = [
 ];
 const TACTIC_OFF=['plead'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
 const TACTICS_ON=TACTICS.filter(t=>!TACTIC_OFF.includes(t.type));
-const GLOBAL_TACTIC_TYPES=['swap','reinforce','promote','ration','bribe','scout','shuffle','inspire','rehire','conscript','revolution','plead','defend'];
+const GLOBAL_TACTIC_TYPES=['reinforce','promote','ration','bribe','scout','shuffle','inspire','rehire','conscript','revolution','plead','defend'];
 const PLEAD_TURNS=3;   // 命乞いカード：敵の大技を遅らせるターン数
 const HAND_MAX_BASE = 6, WAVE_DRAW = 40;
 let FLAG_COUNT = 6;
@@ -5111,7 +5110,7 @@ function useDefend(handIdx){
   busy=false; hint('🛡 防御：このwaveは攻撃せず、攻撃力×2で防御する！'); playSfx('shuffle'); endCheck(); render();
 }
 
-/* ----- 新しい軍師カード（交換・援軍・昇格・兵糧・買収） ----- */
+/* ----- 新しい軍師カード（援軍・昇格・兵糧・買収） ----- */
 function pickDialog(title, items, onPick){   // 選択ウィンドウ：items=[{label,html?}] → 選んだ番号を onPick へ
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
   bg.innerHTML=`<div class="reward-box"><div class="reward-title">${title}</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:60vh;overflow:auto">${items.map((it,i)=>`<button class="btn" data-i="${i}">${it.html||it.label}</button>`).join('')}</div><button class="btn" id="pdNo" style="margin-top:10px;width:100%">やめる</button></div>`;
@@ -5129,30 +5128,6 @@ function placeValueFx(card){   // 置いた時にかかる、数字を変える�
   if(poisonOn()&&!hasAcc('antidote')&&v>1){ v-=1; fx.push('🌧 マイナスレイン'); }
   if(monIs('炎の巨人王')&&card.color==='red'&&v<10){ v+=1; fx.push('🔥 王の炎'); }
   return {v,fx};
-}
-function swapFlagTroops(){   // 交換の対象：未完成の旗の数字カード（自分のカードも、敵が置いたカードも）
-  const out=[]; flags.forEach((f,fi)=>{ if(f.closed) return; f.cards.forEach((c,ci)=>{ if(c&&c.kind==='troop'&&!c.enemyCard) out.push({fi,ci,c}); }); });
-  return out;
-}
-function useSwap(handIdx){
-  const fl=swapFlagTroops(), hv=hand.map((c,i)=>({c,i})).filter(x=>x.c.kind==='troop'&&x.i!==handIdx);
-  if(!fl.length) return hint('未完成の旗に、数字カードがありません。',true);
-  if(!hv.length) return hint('手札に数字カードがありません。',true);
-  const huid=hand[handIdx].uid;
-  pickDialog('🔁 交換：旗のどのカードを手札に持ってくる？', fl.map(x=>({label:`旗${x.fi+1}：${cardDisplayName(x.c)}${x.c.autoPlaced?'（敵が置いたカード）':''}`})), a=>{
-    const src=fl[a];
-    pickDialog('🔁 交換：手札のどのカードと入れ替える？', hv.map(x=>({label:cardDisplayName(x.c)})), b=>{
-      const hi=hand.findIndex(c=>c.uid===huid); if(hi<0) return;
-      const f=flags[src.fi], fc=f.cards[src.ci]; const hc=hv[b].c, hci=hand.indexOf(hc);
-      if(!fc||fc.uid!==src.c.uid||hci<0||f.closed) return hint('盤面が変わったので、もう一度やり直してください。',true);
-      const nc=Object.assign({},hc); f.cards[src.ci]=nc; hand[hci]=fc;
-      delete fc.autoPlaced; delete fc.autoFresh;
-      busy=true; const hj=hand.findIndex(c=>c.uid===huid); const used=hand.splice(hj,1)[0]; graveyard.push(used);
-      advanceTurn(used); const refilled=autoRefill(1);
-      render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-      busy=false; hint(`🔁 交換：旗${src.fi+1}の${cardDisplayName(fc)}と、手札の${cardDisplayName(hc)}を入れ替えた。`); endCheck(); render();
-    });
-  });
 }
 function useReinforce(handIdx){
   if(!activeDeck.length) return hint('山札がありません。',true);
@@ -5635,6 +5610,7 @@ function render(){
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
     else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); { const ne=document.getElementById('specMonN'); ne.textContent=specNoLimit('mon')?'':specRemain('mon'); ne.style.display=specNoLimit('mon')?'none':''; } mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) document.getElementById('specMonL').innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; } } } }
+  { const isSw=c=>c&&c.kind==='tactic'&&c.type==='swap'; if(hand.some(isSw)||activeDeck.some(isSw)||graveyard.some(isSw)){ hand=hand.filter(c=>!isSw(c)); activeDeck=activeDeck.filter(c=>!isSw(c)); graveyard=graveyard.filter(c=>!isSw(c)); } }   // 廃止した軍師カード「交換」は、古いセーブから取り除く
   if(accOwned.some(o=>o.id==='pocket')){ accOwned=accOwned.filter(o=>o.id!=='pocket'); accEq=accEq.filter(a=>accOwned.some(o=>o.aid===a)); }   // 廃止した「予備のポケット」は、古いセーブから取り除く
   if(pocket){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); }   // 廃止したポケットに入っていた古いセーブのカードは、山札へ戻す
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
@@ -6869,7 +6845,6 @@ function useTacticByIdx(idx,c){   // 手札のカードを発動する（軍師�
   else if(c.type==='revolution'){ useRevolution(idx); }
   else if(c.type==='split'){ useSplit(idx); }
   else if(c.type==='conscript'){ useConscript(idx); }
-  else if(c.type==='swap'){ useSwap(idx); }
   else if(c.type==='reinforce'){ useReinforce(idx); }
   else if(c.type==='promote'){ usePromote(idx); }
   else if(c.type==='ration'){ useRation(idx); }
@@ -8782,7 +8757,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
