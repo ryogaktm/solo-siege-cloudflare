@@ -1507,25 +1507,25 @@ const EMBLEM = {
 };
 const NEWTAC_COUNT=2, PROMOTE_UP=2, RATION_HEAL=30, BRIBE_COST=100;   // 新しい軍師カード：山札に入る枚数／昇格の上がる数／兵糧の回復量／買収の値段
 const TACTICS = [
-  {type:'alexander',name:'青♾️',short:'青♾️',desc:'万能・強さ8',count:1},
-  {type:'darius',name:'赤♾️',short:'赤♾️',desc:'万能・強さ8／3枚目のみ',count:1},
-  {type:'scout',name:'補充',short:'補充',desc:'3枚引き2枚捨てる（墓地へ）',count:4},
-  {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ送り、その枚数を山札から引き直す',count:3},
-  {type:'holy',name:'聖水',short:'聖水',desc:'手札の呪いのカード、または旗に置かれた呪い（敵の装備・ボム・封鎖・ワームホール・ブラインド）を1つ選んで取り除く',count:2},
-  {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地からカードを1枚選んで手札に戻す',count:2},
-  {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚、手札に戻す',count:2},
-  {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面の状態で、すぐに攻撃する（閉じた旗の役やスーパーコンボは有効）',count:2},
-  {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字をすべて+3にする',count:3},
-  {type:'plead',name:'命乞い',short:'命乞い',desc:'これから来る敵の技（攻撃力×2・妨害技、すべて）の発動を3ターン遅らせる（ターンと敵の攻撃力の上昇は普通に進む）',count:2,isNew:true},
-  {type:'defend',name:'防御',short:'防御',desc:'このwaveは攻撃しない代わりに、攻撃力×2で防御する（敵のHPは減らない）',count:2},
-  {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚複製する',count:2},
-  {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードをすべて反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
-  {type:'split',name:'分裂',short:'分裂',desc:'手札の部隊カード1枚を選んで、ランダムに2枚へ分裂させる（8なら2と6、3と5など。1は1と1の2枚）',count:2,isNew:true},
-  {type:'fusion',name:'融合',short:'融合',desc:'手札の部隊カード2枚を選んで数字を両極端に分裂させる（1枚にまとまる時のマークは、数字が高い方のカードのもの）',count:2},
-  {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える。めくった他のカードは山札の下に戻す',count:NEWTAC_COUNT,isNew:true},
-  {type:'promote',name:'昇格',short:'昇格',desc:`選んだ旗にある数字カード全部の数字を+${PROMOTE_UP}する（完成した旗でもOK。役と点も計算し直す）`,count:NEWTAC_COUNT,isNew:true},
-  {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードを1枚引く`,count:NEWTAC_COUNT,isNew:true},
-  {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ消す`,count:NEWTAC_COUNT,isNew:true},
+  {type:'alexander',name:'青♾️',short:'青♾️',desc:'どの色・どの数字にもなれる万能カード（点数は8として数える）',count:1},
+  {type:'darius',name:'赤♾️',short:'赤♾️',desc:'どの色・どの数字にもなれる万能カード（点数は8として数える）。旗の3枚目にだけ置ける',count:1},
+  {type:'scout',name:'補充',short:'補充',desc:'山札から3枚引いて、手札から2枚を選んで墓地へ捨てる',count:4},
+  {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ捨て、同じ枚数を山札から引き直す',count:3},
+  {type:'holy',name:'聖水',short:'聖水',desc:'呪いを取り除く。手札の呪いのカードなら1枚、旗を選んだらその旗の呪い（敵の装備・ボム・封鎖・ワームホール・煙）を全部消す。自分のカードと役はそのまま',count:2},
+  {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地のカードを1枚選んで、手札に戻す',count:2},
+  {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚選んで、手札に戻す（敵が置いた数字カードも取れる）。完成した旗から取ると、その旗は未完成に戻り役の点も消える',count:2},
+  {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面のまま、すぐに一斉攻撃する（完成した旗の役とスーパーコンボは有効）',count:2},
+  {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字カードを全部+3する',count:3},
+  {type:'plead',name:'命乞い',short:'命乞い',desc:'これから来る敵の技（攻撃力×2・妨害、すべて）を3ターン遅らせる（ターンと敵の攻撃力の上昇は普通に進む）',count:2,isNew:true},
+  {type:'defend',name:'防御',short:'防御',desc:'このwaveは攻撃しない。代わりに攻撃力を2倍にして、敵の攻撃を受け止める（敵の体力は減らない）',count:2},
+  {type:'duplicate',name:'複製',short:'複製',desc:'手札のカードを1枚選んで、同じカードをもう1枚手札に作る（作ったカードはこの戦闘だけ）',count:2},
+  {type:'revolution',name:'大革命',short:'大革命',desc:'手札の数字カードを全部反転する（1↔10、2↔9、3↔8、4↔7、5↔6）',count:2,isNew:true},
+  {type:'split',name:'分裂',short:'分裂',desc:'手札の数字カードを1枚選んで、数字を足すと元になる2枚にランダムで分ける（8なら2と6、3と5など。1は1と1。増えた1枚はこの戦闘だけ）',count:2,isNew:true},
+  {type:'fusion',name:'融合',short:'融合',desc:'手札の数字カードを2枚選んで、数字を1枚にまとめる（最大10。10を超えた分はもう1枚に残る。まとまったカードのマークは数字が高い方）',count:2},
+  {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える（めくった他のカードは山札の下へ）',count:NEWTAC_COUNT,isNew:true},
+  {type:'promote',name:'昇格',short:'昇格',desc:`旗を1つ選んで、そこの数字カード（数字のある装備も）を全部+${PROMOTE_UP}する。完成した旗でもOK（役と点を計算し直し、役が上がれば役ボーナスも出る）`,count:NEWTAC_COUNT,isNew:true},
+  {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードをいつもより1枚多く引く`,count:NEWTAC_COUNT,isNew:true},
+  {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ取り消す`,count:NEWTAC_COUNT,isNew:true},
 ];
 const TACTIC_OFF=['plead'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
 const TACTICS_ON=TACTICS.filter(t=>!TACTIC_OFF.includes(t.type));
@@ -8805,7 +8805,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
