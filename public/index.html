@@ -3579,6 +3579,7 @@ function equipmentReachable(eq, f){
 function targetsFor(card){
   const out=[];
   flags.forEach((f,i)=>{
+    if(card.type==='promote'){ if(!f.capturedByEnemy&&f.cards.some(c=>promotable(c))) out.push(i); return; }   // 昇格：数字カード（数字のある装備も）がある旗ならどこでも（完成した旗・装備のある旗もOK）
     if(card.type==='wipe'){
       if(f.cards.length>0||isLocked(f)) out.push(i);   // 敵に封鎖された旗にも使える（封鎖も解ける）
       return;
@@ -4402,6 +4403,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     return false;
   }
   if(card.type==='curse_bomb'){ picked=null; doCurse(handIdx, fi); return true; }
+  if(card.type==='promote'){ picked=null; promoteFlag(card.uid, fi); return true; }   // 昇格を旗にドラッグ：その旗をそのまま昇格
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
     if(!noAsk && card.kind==='troop' && cm && (cm.sub==='cfield'||cm.sub==='combined') && !satisfiesMonster(card,f)){
       const uidK=card.uid, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
@@ -5167,21 +5169,22 @@ function useReinforce(handIdx){
   });
 }
 const promotable=c=>!!c&&!c.enemyCard&&c.value<10&&(c.kind==='troop'||(c.kind==='monster'&&(c.sub==='number'||c.sub==='combined')&&c.value>0));   // 昇格の対象：数字カードと、数字のある装備
-function usePromote(handIdx){   // 昇格：選んだ旗にある数字カード全部を+PROMOTE_UP（最大10。敵が置いたカードも上がる）
-  const fl=[]; flags.forEach((f,fi)=>{ if(f.capturedByEnemy) return; const cs=f.cards.filter(c=>promotable(c)); if(cs.length) fl.push({fi,cs}); });   // 完成した旗も対象
+function usePromote(handIdx){
+  const fl=[]; flags.forEach((f,fi)=>{ if(f.capturedByEnemy) return; const cs=f.cards.filter(c=>promotable(c)); if(cs.length) fl.push({fi,cs}); });
   if(!fl.length) return hint('数字を上げられるカードがある旗がありません。',true);
   const huid=hand[handIdx].uid;
-  pickDialog(`⬆ 昇格：どの旗のカードを全部+${PROMOTE_UP}する？`, fl.map(x=>({label:`旗${x.fi+1}${flags[x.fi].closed?'（完成済み）':''}：${x.cs.map(c=>`${cardDisplayName(c)}→${Math.min(10,c.value+PROMOTE_UP)}`).join('、')}`})), a=>{
-    const src=fl[a], f=flags[src.fi], hi=hand.findIndex(x=>x.uid===huid);
-    if(hi<0||!f||f.capturedByEnemy) return hint('盤面が変わったので、もう一度やり直してください。',true);
-    const cs=f.cards.filter(c=>promotable(c)); if(!cs.length) return hint('盤面が変わったので、もう一度やり直してください。',true);
-    const ch=cs.map(c=>{ if(c.origValue===undefined) c.origValue=c.value; const was=c.value; c.value=Math.min(10,c.value+PROMOTE_UP); return `${was}→${c.value}`; });
-    refreshClosedFlags();   // 完成した旗なら、役と点を計算し直す
-    busy=true; const used=hand.splice(hi,1)[0]; graveyard.push(used);
-    advanceTurn(used); const refilled=autoRefill(1);
-    render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-    busy=false; hint(`⬆ 昇格：旗${src.fi+1}のカードが全部上がった！（${ch.join('、')}）`); endCheck(); render();
-  });
+  pickDialog(`⬆ 昇格：どの旗のカードを全部+${PROMOTE_UP}する？（旗にドラッグしてもOK）`, fl.map(x=>({label:`旗${x.fi+1}${flags[x.fi].closed?'（完成済み）':''}：${x.cs.map(c=>`${cardDisplayName(c)}→${Math.min(10,c.value+PROMOTE_UP)}`).join('、')}`})), a=>promoteFlag(huid, fl[a].fi));
+}
+function promoteFlag(huid, fi){   // 昇格の本体：旗fiの数字カード（数字のある装備も）を全部+PROMOTE_UP
+  const f=flags[fi], hi=hand.findIndex(x=>x.uid===huid);
+  if(hi<0||!f||f.capturedByEnemy) return hint('盤面が変わったので、もう一度やり直してください。',true);
+  const cs=f.cards.filter(c=>promotable(c)); if(!cs.length) return hint('この旗には上げられるカードがありません。',true);
+  const ch=cs.map(c=>{ if(c.origValue===undefined) c.origValue=c.value; const was=c.value; c.value=Math.min(10,c.value+PROMOTE_UP); return `${was}→${c.value}`; });
+  refreshClosedFlags();   // 完成した旗なら、役と点を計算し直す
+  busy=true; const used=hand.splice(hi,1)[0]; graveyard.push(used);
+  advanceTurn(used); const refilled=autoRefill(1);
+  render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+  busy=false; hint(`⬆ 昇格：旗${fi+1}のカードが全部上がった！（${ch.join('、')}）`); endCheck(); render();
 }
 function useRation(handIdx){
   busy=true; const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
@@ -5635,7 +5638,7 @@ function render(){
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
     else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); { const ne=document.getElementById('specMonN'); ne.textContent=specNoLimit('mon')?'':specRemain('mon'); ne.style.display=specNoLimit('mon')?'none':''; } mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) document.getElementById('specMonL').innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; } } } }
-  { const isSw=c=>c&&c.kind==='tactic'&&c.type==='swap'; if(hand.some(isSw)||activeDeck.some(isSw)||graveyard.some(isSw)){ hand=hand.filter(c=>!isSw(c)); activeDeck=activeDeck.filter(c=>!isSw(c)); graveyard=graveyard.filter(c=>!isSw(c)); } }   // 廃止した軍師カード「交換」は、古いセーブから取り除く
+  { const isSw=c=>c&&(c.kind==='tactics'||c.kind==='tactic')&&c.type==='swap'; if([hand,activeDeck,grandDeck,graveyard,pendingRewardCards].some(a=>a.some(isSw))){ hand=hand.filter(c=>!isSw(c)); activeDeck=activeDeck.filter(c=>!isSw(c)); grandDeck=grandDeck.filter(c=>!isSw(c)); graveyard=graveyard.filter(c=>!isSw(c)); pendingRewardCards=pendingRewardCards.filter(c=>!isSw(c)); } }   // 廃止した軍師カード「交換」は、古いセーブから取り除く
   if(accOwned.some(o=>o.id==='pocket')){ accOwned=accOwned.filter(o=>o.id!=='pocket'); accEq=accEq.filter(a=>accOwned.some(o=>o.aid===a)); }   // 廃止した「予備のポケット」は、古いセーブから取り除く
   if(pocket){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); }   // 廃止したポケットに入っていた古いセーブのカードは、山札へ戻す
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
@@ -8782,7 +8785,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
