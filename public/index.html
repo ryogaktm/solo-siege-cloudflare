@@ -5121,7 +5121,7 @@ function pickDialog(title, items, onPick){   // 選択ウィンドウ：items=[{
 }
 const CSHORT={red:'赤',orange:'橙',yellow:'黄',green:'緑',blue:'青',purple:'紫'};
 function ownFlagTroops(){   // 未完成の旗に置いてある自分の数字カード
-  const out=[]; flags.forEach((f,fi)=>{ if(f.closed||flagMonster(f)) return; f.cards.forEach((c,ci)=>{ if(c&&c.kind==='troop'&&!c.enemyCard&&!c.autoPlaced) out.push({fi,ci,c}); }); });
+  const out=[]; flags.forEach((f,fi)=>{ if(f.closed) return; f.cards.forEach((c,ci)=>{ if(c&&c.kind==='troop'&&!c.enemyCard&&!c.autoPlaced) out.push({fi,ci,c}); }); });
   return out;
 }
 function placeValueFx(card){   // 置いた時にかかる、数字を変える効果（役が崩れる原因にもなるので、置く前の確認にも使う）
@@ -5131,7 +5131,7 @@ function placeValueFx(card){   // 置いた時にかかる、数字を変える�
   return {v,fx};
 }
 function swapFlagTroops(){   // 交換の対象：未完成の旗の数字カード（自分のカードも、敵が置いたカードも）
-  const out=[]; flags.forEach((f,fi)=>{ if(f.closed||flagMonster(f)) return; f.cards.forEach((c,ci)=>{ if(c&&c.kind==='troop'&&!c.enemyCard) out.push({fi,ci,c}); }); });
+  const out=[]; flags.forEach((f,fi)=>{ if(f.closed) return; f.cards.forEach((c,ci)=>{ if(c&&c.kind==='troop'&&!c.enemyCard) out.push({fi,ci,c}); }); });
   return out;
 }
 function useSwap(handIdx){
@@ -5170,7 +5170,7 @@ function useReinforce(handIdx){
   });
 }
 function usePromote(handIdx){   // 昇格：選んだ旗にある数字カード全部を+PROMOTE_UP（最大10。敵が置いたカードも上がる）
-  const fl=[]; flags.forEach((f,fi)=>{ if(f.closed||flagMonster(f)) return; const cs=f.cards.filter(c=>c&&c.kind==='troop'&&!c.enemyCard&&c.value<10); if(cs.length) fl.push({fi,cs}); });
+  const fl=[]; flags.forEach((f,fi)=>{ if(f.closed) return; const cs=f.cards.filter(c=>c&&c.kind==='troop'&&!c.enemyCard&&c.value<10); if(cs.length) fl.push({fi,cs}); });
   if(!fl.length) return hint('数字を上げられるカードがある旗がありません。',true);
   const huid=hand[handIdx].uid;
   pickDialog(`⬆ 昇格：どの旗のカードを全部+${PROMOTE_UP}する？`, fl.map(x=>({label:`旗${x.fi+1}：${x.cs.map(c=>`${cardDisplayName(c)}→${Math.min(10,c.value+PROMOTE_UP)}`).join('、')}`})), a=>{
@@ -8782,7 +8782,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
