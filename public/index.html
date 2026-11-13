@@ -1247,7 +1247,6 @@
       <button class="spec-btn" id="specGuard"><span class="si">🛡</span><span class="sl">防御</span><b id="specGuardN">1</b></button>
       <button class="spec-btn" id="specCure"><span class="si">🧪</span><span class="sl">薬</span><b id="specCureN">1</b></button>
       <button class="spec-btn" id="specBullet"><span class="si">⏱</span><span class="sl">バレットタイム</span><b id="specBulletN">1</b></button>
-      <button class="spec-btn" id="pocketBtn" style="display:none"><span class="si">👝</span><span class="sl" id="pocketL">ポケット</span></button>
       <button class="spec-btn" id="specMon" style="display:none"><span class="si" id="specMonI">✨</span><span class="sl" id="specMonL"></span><b id="specMonN">1</b></button>
       <button class="spec-btn" id="specMon2" style="display:none"><span class="si" id="specMon2I">✨</span><span class="sl" id="specMon2L"></span><b id="specMon2N">1</b></button>
       <span class="spec-ph"></span><span class="spec-ph"></span><span class="spec-ph"></span>
@@ -5636,7 +5635,8 @@ function render(){
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
     else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); { const ne=document.getElementById('specMonN'); ne.textContent=specNoLimit('mon')?'':specRemain('mon'); ne.style.display=specNoLimit('mon')?'none':''; } mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) document.getElementById('specMonL').innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; } } } }
-  { const pb=document.getElementById('pocketBtn'); if(pb){ const on=hasAcc('pocket'); pb.style.display=on?'':'none'; if(on){ document.getElementById('pocketL').textContent=pocket?('👝 '+cardDisplayName(pocket)):'ポケット（空）'; pb.onclick=pocketUse; } } }
+  if(accOwned.some(o=>o.id==='pocket')){ accOwned=accOwned.filter(o=>o.id!=='pocket'); accEq=accEq.filter(a=>accOwned.some(o=>o.aid===a)); }   // 廃止した「予備のポケット」は、古いセーブから取り除く
+  if(pocket){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); }   // 廃止したポケットに入っていた古いセーブのカードは、山札へ戻す
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
     if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) L.innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; { const ne=document.getElementById('specMon2N'); ne.textContent=specNoLimit('mon2')?'':specRemain('mon2'); ne.style.display=specNoLimit('mon2')?'none':''; } mb.disabled=specRemain('mon2')<=0; } } }
   { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return coinUsed>=MONSK.samuraiMax?'(使い切り)':`💥${fmtCompact(gold*MONSK.samuraiMul)} 残り${MONSK.samuraiMax-coinUsed}回`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
@@ -7731,16 +7731,6 @@ function shieldAbsorb(d){   // 金の盾：受けるダメージを先にお金�
   const pay=Math.min(gold,d); gold-=pay; try{ stageDmgPop('player','🛡金の盾 −'+pay+'G','',true); hint(`🛡 金の盾！ ${pay}ダメージを${pay}Gで払った。`,true); }catch(e){}
   return d-pay;
 }
-function pocketUse(){   // 予備のポケット：手札のカードを1枚しまう／取り出す（ターンは使わない）
-  if(busy||pending||gameEnded) return;
-  if(pocket){
-    if(hand.length>=currentHandMax()) return hint('手札がいっぱいで、ポケットから出せません。',true);
-    hand.push(pocket); const nm=cardDisplayName(pocket); pocket=null; hint(`👝 ${nm}をポケットから出した。`); render(); layoutHand(false); return;
-  }
-  if(!hand.length) return hint('しまえるカードが手札にありません。',true);
-  pickDialog('👝 どのカードをポケットにしまう？', hand.map(c=>({html:cardLabelHtml(c)})), k=>{
-    const c=hand[k]; if(!c) return; hand.splice(k,1); pocket=c; hint(`👝 ${cardDisplayName(c)}をポケットにしまった。`); render(); layoutHand(false); });
-}
 function lanternRefill(){   // 墓守のランタン：山札が尽きた時、墓地を切り直して山札にする（1戦に1回）
   if(activeDeck.length>0||!hasAcc('lantern')||lanternUsed||!graveyard.length) return false;
   lanternUsed=true; const n=graveyard.length; activeDeck=shuffle(graveyard.splice(0)); hint(`🏮 墓守のランタン！ 墓地の${n}枚を切り直して山札にした。`,true); playSfx('combo'); return true;
@@ -7818,7 +7808,6 @@ function buildAccDefs(){
    ['full_pride','満タンの誇り','🦁','体力が満タンの時、攻撃力が1.3倍になる'],
    ['discard_glove','捨て上手の手袋','🧤','手札を捨てて引く時、ターンを使わない（1つのwaveに3回まで）'],
    ['lantern','墓守のランタン','🏮','山札が尽きた時、墓地を切り直して山札にする（1戦に1回）'],
-   ['pocket','予備のポケット','👝','手札とは別に、カードを1枚しまっておける（しまう・出すにターンは使わない）'],
    ['charm_curse','呪い除けのお守り','🧿','呪いのカードを捨てる時の、スーパーコンボのペナルティがなくなる'],
    ['antidote','毒消しのスカーフ','🧣','毒・マイナスレインの「数字−1」を受けない'],
    ['combo_bank','コンボ貯金のブレスレット','🏦','次の戦いへ持ち越すスーパーコンボが、持っている色すべてで+1される'],
@@ -7836,7 +7825,7 @@ function buildAccDefs(){
   return L;
 }
 const ACC_DEFS_ALL=buildAccDefs();
-const ACC_OFF=['reflect_mirror','sp_shuffle','sp_beg','sp_punch','sp_guard','sp_cure','sp_bullet'];   // 一旦取り下げ：特殊技が使えるようになるアクセサリー（持っている分の効果は残る。消したい時はここを空に戻すと復活）
+const ACC_OFF=['pocket','reflect_mirror','sp_shuffle','sp_beg','sp_punch','sp_guard','sp_cure','sp_bullet'];   // 一旦取り下げ：特殊技が使えるようになるアクセサリー（持っている分の効果は残る。消したい時はここを空に戻すと復活）
 const ACC_DEFS=ACC_DEFS_ALL.filter(d=>!ACC_OFF.includes(d.id)&&!d.special);   // 特別品（パネル全クリア）は、店・宝箱には出さない
 /* ★お金の獲得条件（全試合・ゲーム共通）：ここを書き換える。cash＝もらえる金額(G)、final＝敵を倒した時に判定、avail＝出す条件。戦闘が終わった時の結果画面でだけ出す */
 const TURN_BONUS={turns:12, cash:250};   // 速く倒したボーナス：ターン数がturns以内なら、cash分のお金（数字はここで調整）
@@ -8793,7 +8782,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
