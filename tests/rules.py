@@ -490,7 +490,7 @@ with sync_playwright() as p:
       setup('ガーゴイル'); carryMap={red:12}; const hp0=bossHp; monSkillUse(); o.gar=carryMap.red===7&&bossHp<=hp0-Math.floor(hp0/3)+1&&bossHp>=hp0-Math.floor(hp0/3)-1;
       setup('ガーゴイル'); carryMap={red:4}; const hp1=bossHp; monSkillUse(); o.garLow=bossHp===hp1&&carryMap.red===4;
       setup('ゾンビ'); carryMap={green:5}; monSkillUse(); o.zom=zombieRevive&&!carryMap.green; playerHp=0; o.zrev=tryRevive()&&playerHp===Math.ceil(playerHpMax/2)&&!zombieRevive;
-      setup('モンク'); monSkillUse(); o.mon=monkQ.join()==='0.5,2';
+      setup('モンク'); monSkillUse(); o.mon=monkQ.join()==='0.5,3';
       setup('ミミズ'); o.worm=playerHp===Math.max(1,Math.ceil(playerHpMax/2))&&specMax('beg')===specMaxBase('beg')+MONSK.wormSpec&&!CHARACTER.sp.includes('mon')&&monAtkMult===1; setup('カエル'); o.wormNo=specMax('beg')===specMaxBase('beg')&&playerHp===playerHpMax; 
       setup('侍'); gold=7; const hp2=bossHp; monSkillUse(); o.sam=gold===0&&bossHp===Math.max(0,hp2-700)&&coinUsed===1; coinUsed=MONSK.samuraiMax; gold=7; const hp3=bossHp; monSkillUse(); o.sam=o.sam&&gold===7&&bossHp===hp3; coinUsed=0;
       setup('農夫'); playerHp=Math.max(1,playerHpMax-500); const h3=playerHp; monSkillUse(); o.farm0=playerHp===h3&&farmerHealAt>0; advanceTurn(null); o.farm=playerHp===h3+MONSK.farmerHeal&&farmerHealAt===0;

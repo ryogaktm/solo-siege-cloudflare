@@ -1643,7 +1643,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ミイラ':{kind:'treasure',name:'過去の財宝',icon:'🏺',desc:'紫のスーパーコンボを1失う代わりに、この戦いで手に入るお金が2倍になります。'},
   'ガーゴイル':{kind:'fire',name:'ファイアブレス',icon:'🔥',desc:'赤のスーパーコンボを5減らす代わりに、敵の今のHPを3分の1減らします。（赤のスーパーコンボが5以上ないと使えません）'},
   'ゾンビ':{kind:'revive',name:'蘇り',icon:'🧟',desc:'緑のスーパーコンボを5減らす代わりに、この戦いの間、HPが0になっても半分で生き返ります。（緑のスーパーコンボが5以上ないと使えません）'},
-  'モンク':{kind:'charge',name:'ためる',icon:'🧘',desc:'次の攻撃の攻撃力が半分になる代わりに、その次の攻撃の攻撃力が2倍になります。'},
+  'モンク':{kind:'charge',name:'ためる',icon:'🧘',desc:'次の攻撃の攻撃力が半分になる代わりに、その次の攻撃の攻撃力が3倍になります。'},
   '侍':{kind:'coin',name:'銭投げ',icon:'🪙',get desc(){ return `所持金×${MONSK.samuraiMul}のダメージを敵に与えます。（所持金は0になります／ゲームを通して${MONSK.samuraiMax}回まで）`; }},
   '農夫':{kind:'harvest',name:'収穫祭',icon:'🌾',desc:'次のターンに、HPが100回復します。'},
   '騎士':{kind:'armed',name:'完全武装',icon:'🛡',desc:'赤のスーパーコンボを3減らす代わりに、このwaveの間、武器カードの攻撃力が2倍になります。（カードを置く条件は同じ）'},
@@ -1681,10 +1681,10 @@ const MON_SKILL_NEW={
   '革命者':{kind:'tac_revolution',name:'革命',icon:'🔁',cost:{hp:30},desc:'大革命のカード効果を発動させる。'},
   '追従者':{kind:'tac_duplicate',name:'複製',icon:'📑',cost:{hp:30},desc:'複製のカード効果を発動させる。'},
   '聖職者':{kind:'tac_holy',name:'聖水',icon:'💧',cost:{hp:30},desc:'聖水のカード効果を発動させる。'},
-  '敗者':{kind:'tac_wipe',name:'全滅',icon:'💥',cost:{hp:30},desc:'全滅のカード効果を発動させる。'},
+  '敗者':{kind:'tac_wipe',name:'立て直し',icon:'🧹',cost:{hp:30},desc:'旗を1つ選んで、そこにある敵のカード・ボム・封鎖・煙などの効果をすべて消す。（自分のカードは残る）'},
   '躍動者':{kind:'tac_inspire',name:'鼓舞',icon:'📣',cost:{hp:30},desc:'鼓舞のカード効果を発動させる。'},
   '元の身体':{name:'成長',icon:'🌱',desc:`体質：敵を倒すごとに、戦闘の最初から持ってる攻撃力が＋${SKP.growAtk}される。`},
-  '暗黒騎士':{kind:'oath',name:'闇の誓い',icon:'🌑',cost:{hp:100},desc:'旗をすべて更地にする（カードも効果もすべてなくなる。持ち越しの効果も無効）。次の一斉攻撃の攻撃力を3倍にする。（体力100を払う。払ったあとに体力が1以上残る時だけ使える）'},
+  '暗黒騎士':{kind:'oath',name:'闇の誓い',icon:'🌑',cost:{hp:100},desc:'旗をすべて更地にする（旗のカードは墓地へ、敵のカードや効果もなくなる。貯めたスーパーコンボは消えない）。次の一斉攻撃の攻撃力を3倍にする。（体力100を払う。払ったあとに体力が1以上残る時だけ使える）'},
   '小竜':{name:'成長期',icon:'🐉',desc:`体質：敵を倒すたびに、最大体力が${SKP.growHp}増える（ゲームを通して）。`},
   '火を吹くワイバーン':{kind:'flame',name:'火炎放射',icon:'🔥',cost:{combo:['red',1]},desc:'シートが炎に包まれる。このwaveの間、赤の旗の攻撃力が2倍になる。'},
   '古龍':{kind:'wisdom',name:'古の知恵',icon:'📜',cost:{combo:['purple',1]},desc:'手札とシートの異常を全て消す。'},
@@ -1818,7 +1818,8 @@ SKFN.oath=m=>{
   if(!skPay(m)) return;
   const had=flags.reduce((n,f)=>n+f.cards.length,0);
   flags.forEach(f=>{ graveyard.push(...f.cards.filter(c=>c&&!c.temp&&!isEnemyCard(c)&&!isEnemyEq(c))); });   // 旗のカードは墓地へ（敵のカード・効果は消える）
-  flags=freshFlags(); haunt={}; score=0; displayedScore=0; carryMap={}; hostCarry=0; scSpent={}; frozenMults={}; frozenHost={}; justClosed=[]; try{ clearPf(); }catch(e){}
+  if(CHARACTER.combo) carryMap=carryNext(); scSpent={}; hostCarry=hostNext();   // 盤面で揃っていたスーパーコンボも、持ち越しに移してから更地にする（倍率は失わない）
+  flags=freshFlags(); haunt={}; score=0; displayedScore=0; frozenMults={}; frozenHost={}; justClosed=[]; try{ clearPf(); }catch(e){}
   atkFx.oath=true; skDone(`🌑 闇の誓い！ 旗をすべて更地にした（${had}枚）。次の一斉攻撃の攻撃力が${SKP.oath}倍になる。`);
 };
 SKFN.lead=m=>{
@@ -1850,7 +1851,15 @@ tacSkill('tac_revolution','revolution',()=>hasTroopInHand()?null:'手札に数�
 tacSkill('tac_inspire','inspire',()=>hasTroopInHand()?null:'手札に数字カードがありません。');
 tacSkill('tac_duplicate','duplicate',()=>hand.length?null:'複製できる手札のカードがありません。');
 tacSkill('tac_holy','holy',()=>(hand.some(holyHandOK)||holyFlagCands().length)?null:'消せる呪いがありません。');
-tacSkill('tac_wipe','wipe',()=>flags.some(f=>f.cards.length>0||isLocked(f))?null:'カードのある旗がありません。');
+SKFN.tac_wipe=m=>{   // 敗者「立て直し」：旗1つの敵の効果だけを消す（自分のカードは消さない）
+  const isE=c=>c&&(c.autoPlaced||isEnemyEq(c)||(c.kind==='monster'&&(c.enemyCard||c.sub==='cfield'||c.sub==='pfield')));
+  const cand=flags.map((f,i)=>({f,i,n:(f.closed?0:f.cards.filter(isE).length)+(f.bomb?1:0)+(f.lockedUntil>turnCounter?1:0)+(f.blindUntil?1:0)+(f.eater?1:0)})).filter(x=>x.n>0);
+  if(!cand.length) return hint('敵の効果がかかっている旗がありません。',true);
+  pickDialog('🧹 立て直し：どの旗の敵の効果を消す？', cand.map(x=>({label:`旗${x.i+1}：敵の効果 ${x.n}個`})), a=>{
+    const x=cand[a], f=x.f; if(!skPay(m)) return;
+    if(!f.closed) f.cards=f.cards.filter(c=>!isE(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0;
+    skDone(`🧹 立て直し！ 旗${x.i+1}の敵の効果を${x.n}個消した。`); });
+};
 SKFN.explore=m=>{
   const keep=hand.filter(c=>isCurse(c)||isEnemyEq(c)), need=currentHandMax()-keep.length;
   if(need<=0) return hint('手札がいっぱいで探索できません。',true);
@@ -1940,7 +1949,7 @@ const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メ�
   boneshield:[()=>wallOn?'すでに次の攻撃を防ぐ準備ができています。':null, ()=>{ wallOn=true; return '🦴 骨の盾！ 次に受ける敵の攻撃を1回だけ無効にする。'; }],
   phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
-  cauldron:[()=>!graveyard.some(c=>!c.temp)?'墓地にカードがありません。':hand.length>=currentHandMax()?'手札がいっぱいです。':null, ()=>{ const got=[]; for(let i=0;i<2&&hand.length<currentHandMax();i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
+  cauldron:[()=>!graveyard.some(c=>!c.temp&&!isCurse(c)&&!isEnemyEq(c))?'墓地にカードがありません。':hand.length>=currentHandMax()?'手札がいっぱいです。':null, ()=>{ const got=[]; for(let i=0;i<2&&hand.length<currentHandMax();i++){ const ix=graveyard.map((c,j)=>(c.temp||isCurse(c)||isEnemyEq(c))?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
   stampede:[()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>a.result.base>=f.result.base?a:f); const d=mx.result.base; mx.result.base*=2; score+=d; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
   dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が1.5倍になる。'; }],
 };
@@ -2462,7 +2471,7 @@ let anyDragActive=false;
 /* ===== バトル状態 ===== */
 const BUZZ_TURNS=1;   // ハエ「ブーン」の効果ターン数
 let monAtkMult=1, wormUp=0, buzzTurns=0, stomach=[], topUsed=false;
-const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:100, samuraiMax:5, wormSpec:3, monkHalf:0.5, monkBoost:2};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
+const MONSK={moonCost:1, moonMul:2, trollCost:1, trollAtk:10000, orcCost:1, copyBase:1, mummyCost:1, armedCost:3, possessCost:1, possessTurns:3, stoneCost:1, stoneTurns:3, gargoyleCost:5, gargoyleHp:1/3, zombieCost:5, farmerHeal:100, samuraiMul:100, samuraiMax:5, wormSpec:3, monkHalf:0.5, monkBoost:3};   // 21〜28の特殊技の数字（SC＝スーパーコンボ）
 let warnedDisTurn=-1;   // 妨害の予告を出したターン（同じ妨害で2回出さない）
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
@@ -7051,7 +7060,7 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
     if(!scPay('green',MONSK.zombieCost,()=>MONSK.zombieCost)) return false;
     zombieRevive=true; hint('🧟 蘇りの準備ができた！ HPが0になっても半分で生き返る。',true); playSfx('combo');
   } else if(k==='charge'){
-    monkQ.push(MONSK.monkHalf,MONSK.monkBoost); hint('🧘 ためる！ 次の攻撃は半分、その次の攻撃は2倍になる。',true); playSfx('shuffle');
+    monkQ.push(MONSK.monkHalf,MONSK.monkBoost); hint('🧘 ためる！ 次の攻撃は半分、その次の攻撃は3倍になる。',true); playSfx('shuffle');
   } else if(k==='coin'){
     if(coinUsed>=MONSK.samuraiMax){ hint(`銭投げは、ゲームを通して${MONSK.samuraiMax}回までです。`,true); return false; }
     if(!(gold>0)){ hint('所持金がありません。',true); return false; }
@@ -8791,7 +8800,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
