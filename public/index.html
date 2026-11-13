@@ -8599,7 +8599,7 @@ function startSwap(){
   openPicker({title:'交換するカードを選ぶ',sub:`山札から${n}枚まで選ぼう（完全ランダムなカードに入れ替わる）`,count:n,need:1,tabs:[{name:'山札',items}],okText:'交換する',
     done:sel=>{
       const pool=swapPool(), res=[];
-      sel.forEach(it=>{
+      lgOp('山札の入れ替え',()=>sel.forEach(it=>{
         const out=it.c, tpl=pool[Math.floor(Math.random()*pool.length)];
         const inn={...tpl,uid:uid(),inDeck:true};
         gold-=SWAP_PRICE;
@@ -8607,7 +8607,7 @@ function startSwap(){
         out.inDeck=false; deckUids.delete(out.uid); grandDeck.push(out);
         deckUids.add(inn.uid); activeDeck.push(inn);
         res.push({out,inn});
-      });
+      }));   // 入れ替えで来たカードは、記録の監査に「正規の入手」として登録する
       shuffle(activeDeck);
       hint(res.map(r=>`${cardDisplayName(r.out)} → ${cardDisplayName(r.inn)}`).join(' ／ ')+' に交換した。');
       swapLeft=Math.max(0,swapLeft-res.length);
@@ -8757,7 +8757,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
