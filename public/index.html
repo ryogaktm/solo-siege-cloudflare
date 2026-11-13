@@ -1941,7 +1941,7 @@ const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メ�
   boneshield:[()=>wallOn?'すでに次の攻撃を防ぐ準備ができています。':null, ()=>{ wallOn=true; return '🦴 骨の盾！ 次に受ける敵の攻撃を1回だけ無効にする。'; }],
   phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
-  cauldron:[()=>!graveyard.some(c=>!c.temp)?'墓地にカードがありません。':hand.length>=currentHandMax()?'手札がいっぱいです。':null, ()=>{ const got=[]; for(let i=0;i<2&&hand.length<currentHandMax();i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
+  cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':hand.length>=currentHandMax()?'手札がいっぱいです。':null; }, ()=>{ const got=[]; for(let i=0;i<2&&hand.length<currentHandMax();i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
   stampede:[()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>a.result.base>=f.result.base?a:f); const d=mx.result.base; mx.result.base*=2; score+=d; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
   dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が1.5倍になる。'; }],
 };
@@ -5650,6 +5650,7 @@ function render(){
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
     const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','punch','guard','cure','bullet'].filter(specEnabled).length+(CHARACTER&&CHARACTER.monSkill?1:0)+(CHARACTER&&CHARACTER.monSkillB?1:0); row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
+  if(graveyard.some(isEnemyCard)) graveyard=graveyard.filter(c=>!isEnemyCard(c));   // 敵の妨害カード（呪い・押し付けられた装備）は、墓地に行かず消える
   document.getElementById('graveCount').textContent=graveyard.length;
   document.getElementById('gravePileBtn').classList.toggle('pile-ready', picked!==null && !pending && !gameEnded);
   const guidanceDiscardable = pending && pending.type==='guidance' && pending.step===1;
@@ -8792,7 +8793,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-13m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-13n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
