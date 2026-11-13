@@ -3697,6 +3697,26 @@ function flagSymbolColor(f){
   });
   return last;
 }
+const yakuGold=yn=>Math.round((YAKU_GOLD[yn]||0)*BATTLE_GOLD_MULT*(hasAcc('abacus')?1+ACC_NEW.abacusInc*accX():1));
+const flagSig=f=>f.cards.map(c=>(c.kind||'')+(c.color||'')+(c.altColor||'')+(c.value||0)+(c.voided?'v':'')).join('|');
+let refreshingFlags=false;
+function refreshClosedFlags(){   // どのカード効果でも、完成した旗の中身が変わったら、役と点を計算し直す（役が上がれば役ボーナスのゴールドも出る）
+  if(refreshingFlags) return; refreshingFlags=true;
+  try{ flags.forEach((f,fi)=>{
+    if(!f.closed||f.capturedByEnemy||!f.result) return;
+    const sig=flagSig(f);
+    if(f.sig===undefined){ f.sig=sig; f.rawBase=evaluate(f).base; return; }   // 古いセーブ：いまの中身を基準にする
+    if(sig===f.sig) return;
+    const old=f.result, k=(f.rawBase>0&&old.base>0)?old.base/f.rawBase:1, nr=evaluate(f); f.rawBase=nr.base;
+    if(f.negated){ nr.base=-Math.abs(nr.base||nr.sum||0); nr.mult=1; } else nr.base=Math.round(nr.base*k);
+    const diff=nr.base-old.base; f.result=nr; f.sig=sig; f.baseCombo=nr.mult>1; if(f.baseCombo) f.comboMult=nr.mult; else delete f.comboMult;
+    f.sheetSum=nr.sum; f.symbolColor=flagSymbolColor(f); if(diff) addScore(diff);
+    const yg=yakuGold(nr.name), more=Math.max(0,yg-(f.yakuPaid||0));
+    if(more>0){ gold+=more; f.yakuPaid=yg; }
+    if(old.name!==nr.name||diff) hint(`✨ 旗${fi+1}：${old.name||'役なし'}→${nr.name||'役なし'}（${diff>=0?'+':''}${diff}）${more>0?` 役ボーナス +${more}G`:''}`,true);
+    dlog('flag_reeval',{flag:fi+1,from:old.name,to:nr.name,diff,gold:more});
+  }); }catch(e){} finally{ refreshingFlags=false; }
+}
 function closeCheck(fi, closedByEnemy){
   const f=flags[fi];
   if(!f.closed&&f.cards.length>=3&&(closedByEnemy||!flagMonster(f))){   // 装備(武器など)が乗っている間は、数字カード2枚+装備でも閉じない（装備を数字カードで換装して3枚そろった時に閉じる）
@@ -3713,6 +3733,7 @@ function closeCheck(fi, closedByEnemy){
     } else {
       f.baseCombo = f.result.mult>1;
       if(f.baseCombo && f.symbolColor && f.symbolColor!=='red' && hasAcc('blade_'+f.symbolColor) && CHARACTER.combo) bladeFire(f.symbolColor);   // 色の武器（雷鳴刀・氷結の槍・大樹の杖・冥府の鎌）
+      f.rawBase=f.result.base; f.sig=flagSig(f);   // 役の計算し直し用：バッジ前の点と、いまの中身を覚えておく
       if(accEq.length&&f.result.base>0){   // 一番槍・しんがりのバッジ：そのwaveで最初／最後に閉じた旗の攻撃力が2倍
         const k=accX(), others=flags.filter(g=>g!==f), notes=[];
         if(hasAcc('first_badge') && !others.some(g=>g.closed&&!g.capturedByEnemy)){ f.result.base=Math.round(f.result.base*(1+ACC_NEW.badgeInc*k)); notes.push('🥇一番槍のバッジ'); }
@@ -3723,7 +3744,7 @@ function closeCheck(fi, closedByEnemy){
       if(f.baseCombo){ f.comboMult=f.result.mult; }  // 役が付いた旗＝スーパーコンボの対象。得点は役の倍率のみ（追加の倍率なし）
       addScore(f.result.base);
       f.sheetSum = f.result.sum;
-      { const yn=f.result.name, yg=Math.round((YAKU_GOLD[yn]||0)*BATTLE_GOLD_MULT*(hasAcc('abacus')?1+ACC_NEW.abacusInc*accX():1)); if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
+      { const yn=f.result.name, yg=yakuGold(yn); f.yakuPaid=yg; if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
     }
     if(f.bomb){ const okB=!closedByEnemy&&f.baseCombo; if(okB){ f.bomb=0; hint('💣 ボム解除！ 役が揃って爆発を防いだ。',true); } else bombBoom(fi); }
     justClosed.push({fi, result:f.result, played:false});
@@ -4013,6 +4034,7 @@ function deckOut(){
   setTimeout(()=>showEnd('deckout'),600);
 }
 function endCheck(){
+  refreshClosedFlags();
   if(gameEnded) return;
   if(mushKill){ mushKill=false; if(bossHp<=0){ strikeBoss(0,'🍄 毒の胞子で敵を倒した！','mushroom'); return; } }   // 毒でHPが0になったら、そのまま倒す
   if(activeDeck.length===0) lanternRefill();
@@ -5153,14 +5175,8 @@ function usePromote(handIdx){   // 昇格：選んだ旗にある数字カード
     const src=fl[a], f=flags[src.fi], hi=hand.findIndex(x=>x.uid===huid);
     if(hi<0||!f||f.capturedByEnemy) return hint('盤面が変わったので、もう一度やり直してください。',true);
     const cs=f.cards.filter(c=>promotable(c)); if(!cs.length) return hint('盤面が変わったので、もう一度やり直してください。',true);
-    const old=f.closed?f.result:null, e0=old?(evaluate(f).base||0):0;   // 完成済みの旗は、上げる前の役の点も覚えておく
     const ch=cs.map(c=>{ if(c.origValue===undefined) c.origValue=c.value; const was=c.value; c.value=Math.min(10,c.value+PROMOTE_UP); return `${was}→${c.value}`; });
-    if(old){   // 完成済みの旗：役と点を計算し直して、増えた分だけ今の攻撃力に足す（バッジなどの倍率はそのまま）
-      const k=e0>0&&old.base>0?old.base/e0:1, nr=evaluate(f);
-      if(f.negated){ nr.base=-Math.abs(nr.base||nr.sum||0); nr.mult=1; } else nr.base=Math.round(nr.base*k);
-      const diff=nr.base-old.base; f.result=nr; f.baseCombo=nr.mult>1; if(f.baseCombo) f.comboMult=nr.mult; else delete f.comboMult; f.sheetSum=nr.sum; f.symbolColor=flagSymbolColor(f);
-      if(diff) addScore(diff);
-    }
+    refreshClosedFlags();   // 完成した旗なら、役と点を計算し直す
     busy=true; const used=hand.splice(hi,1)[0]; graveyard.push(used);
     advanceTurn(used); const refilled=autoRefill(1);
     render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
@@ -5609,6 +5625,7 @@ function updateSpecGauges(){   // 特殊技ボタンの下に、「次の+1ま�
     const got=Math.min(mx,(specProg[k]||0)+(spec[k]||0)); b.setAttribute('data-gp','1'); b.style.setProperty('--gp',got/mx); b.title='貯まり '+got+'/'+mx+'（貯まりきると次の戦いから回数+1）'; });
 }
 function render(){
+  refreshClosedFlags();
   if(slotStash&&!pending) slotBack();
   sanitizeHandAndDeck();
   document.getElementById('grandCount').textContent=grandDeck.length;
@@ -8765,7 +8782,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
