@@ -3579,7 +3579,11 @@ function equipmentReachable(eq, f){
 function targetsFor(card){
   const out=[];
   flags.forEach((f,i)=>{
-    if(card.type==='promote'){ if(!f.capturedByEnemy&&f.cards.some(c=>promotable(c))) out.push(i); return; }   // 昇格：数字カード（数字のある装備も）がある旗ならどこでも（完成した旗・装備のある旗もOK）
+    if(card.type==='promote'){ if(!f.capturedByEnemy&&f.cards.some(c=>promotable(c))) out.push(i); return; }
+    if(isDropTactic(card)){   // 軍師カード：旗にドラッグして発動できる（装備のある旗・完成した旗でもOK）
+      if(card.type==='guidance'){ if(guidanceTargets(0).includes(i)) out.push(i); return; }
+      if(tacticUsable(card)) out.push(i); return;
+    }   // 昇格：数字カード（数字のある装備も）がある旗ならどこでも（完成した旗・装備のある旗もOK）
     if(card.type==='wipe'){
       if(f.cards.length>0||isLocked(f)) out.push(i);   // 敵に封鎖された旗にも使える（封鎖も解ける）
       return;
@@ -3625,6 +3629,16 @@ function targetsFor(card){
     }
   });
   return out;
+}
+function isDropTactic(c){ return !!c&&c.kind==='tactics'&&!isCurse(c)&&!isAlexanderCard(c)&&!isDariusCard(c)&&c.type!=='promote'&&c.type!=='curse_bomb'&&c.type!=='wipe'; }
+function tacticUsable(c){   // 軍師カードを今使えるか（旗へのドラッグの可否に使う）
+  if(isGlobalEffect(c)) return true;
+  if(c.type==='duplicate') return hand.length>=2;
+  if(c.type==='split') return hand.some(x=>x.kind==='troop');
+  if(c.type==='fusion') return hand.filter(x=>x.kind==='troop').length>=2;
+  if(c.type==='holy') return hand.some(x=>x!==c&&holyHandOK(x))||holyFlagCands().length>0;
+  if(c.type==='guidance') return guidanceTargets(0).length>0;
+  return true;
 }
 function canPlayAnything(){
   return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||c.type==='holy'||(c.type==='split'&&hand.some(x=>x.kind==='troop'))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
@@ -4404,6 +4418,12 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   }
   if(card.type==='curse_bomb'){ picked=null; doCurse(handIdx, fi); return true; }
   if(card.type==='promote'){ picked=null; promoteFlag(card.uid, fi); return true; }   // 昇格を旗にドラッグ：その旗をそのまま昇格
+  if(isDropTactic(card)){   // ほかの軍師カード：旗にドラッグしたら発動（撤収・聖水は落とした旗を選んだことにする）
+    picked=null;
+    if(card.type==='guidance'){ useGuidance(handIdx); if(pending&&pending.type==='guidance') tapFlag(fi); return true; }
+    if(card.type==='holy'){ useHoly(handIdx); if(pending&&pending.type==='holy'&&holyFlagCands().some(x=>x.i===fi)) tapFlag(fi); return true; }
+    useTacticByIdx(handIdx, card); return true;
+  }
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
     if(!noAsk && card.kind==='troop' && cm && (cm.sub==='cfield'||cm.sub==='combined') && !satisfiesMonster(card,f)){
       const uidK=card.uid, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
@@ -4642,7 +4662,7 @@ function useDuplicate(handIdx){
   hint('複製したい手札のカードをタップしてください。');
 }
 const holyHandOK=c=>isCurse(c)||isEnemyEq(c);
-const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.closed&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)));
+const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.capturedByEnemy&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)));
 function useHoly(handIdx){
   const others=hand.some((c,i)=>i!==handIdx&&holyHandOK(c));
   if(!others && !holyFlagCands().length) return hint('取り除ける呪いがありません（手札にも旗にも、呪いがありません）。',true);
@@ -5917,7 +5937,7 @@ function showCloseBanner(flagEl, jc, cards){
 }
 function animateScore(){
   try{ const sw=document.getElementById('plAtkSw'); if(sw) sw.textContent=defendOn?'🛡':'⚔'; }catch(e){}
-  const el=document.getElementById('scoreNum'); const liveNow=liveAtk(); if(displayedScore===liveNow){ el.textContent=liveNow; return; }
+  const el=document.getElementById('scoreNum'); const liveNow=liveAtk(); if(displayedScore===liveNow){ el.textContent=Math.round(liveNow); return; }   // ×1.3などの倍率で端数が出ても、表示は整数
   const from=displayedScore,to=liveNow,t0=performance.now(); el.classList.add('bump');
   (function step(t){ const p=Math.min(1,(t-t0)/500), e=1-Math.pow(1-p,3); el.textContent=Math.round(from+(to-from)*e);
     if(p<1) requestAnimationFrame(step); else { displayedScore=to; el.classList.remove('bump'); } })(t0);
@@ -8785,7 +8805,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
