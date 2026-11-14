@@ -2292,6 +2292,7 @@ const EXTRA_MONSTERS=[
   {name:'キメラ',after:'悪魔の軍団',spr:'chimera'}
 ], MON_SPR_EXTRA={};
 const REMOVED_MONSTERS=[];   // ここに名前を入れると、その敵は出なくなる
+const CURVE_FROM='骸骨戦士の集団', CURVE_TO='深淵の魔王';   // 強さをなめらかに並べ直す範囲（この2体の間。内部名：骸骨戦士の集団＝画面では「侍」）
 const WAVES=(()=>{
   const base=BALANCE.enemies.map((e,i)=>i===0?{...e}:{...e,hp:e.hp*10,atk:e.atk*10,grow:Math.round(e.grow*100)/10});
   const out=[];
@@ -2327,6 +2328,9 @@ const WAVES=(()=>{
     out.splice(ii+1,0,{...a,name:x.name,hp:Math.round(g(a.hp,b.hp)),atk:Math.round(g(a.atk,b.atk)),grow:Math.round(g(a.grow,b.grow)*10)/10,isNew:true,immortal:false,enrageAt:undefined,hue:0});
     if(x.spr) MON_SPR_EXTRA[x.name]=[x.spr]; }); }
   out.forEach(w=>{ w.hp=Math.round(w.hp*ENEMY_SCALE); w.atk=Math.round(w.atk*ENEMY_SCALE); w.grow=Math.round(w.grow*ENEMY_SCALE*10)/10; });  // 全体の強さ調整（0.9＝10%弱く）
+  { const ia=out.findIndex(w=>w.name===CURVE_FROM), id=out.findIndex(w=>w.name===CURVE_TO);   // 侍〜深淵の魔王の強さを、なめらかに（毎回同じ割合で）上がるように並べ直す。両端の強さはそのまま
+    if(ia>=0&&id>ia+1){ const A=out[ia], D=out[id], g=(x,y,t)=>x*Math.pow(y/x,t);
+      for(let i=ia+1;i<id;i++){ const t=(i-ia)/(id-ia), w=out[i]; w.hp=Math.round(g(A.hp,D.hp,t)); w.atk=Math.round(g(A.atk,D.atk,t)); w.grow=Math.round(g(A.grow,D.grow,t)*10)/10; } } }
   out.forEach((w,i)=>{ w.lv=i+1; w.rank=out.length-i; w.threshold=w.hp; });
   return out;
 })();
@@ -8833,7 +8837,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
