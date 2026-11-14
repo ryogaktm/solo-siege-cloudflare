@@ -2802,7 +2802,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} v+=fireBonus(); }
   flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
-  return Math.max(0, v-poisonPenalty)*quickMult(enemyTurn,hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?1.5:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(enemyTurn);
+  return Math.max(0, v-poisonPenalty)*quickMult(waveTurns(),hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?1.5:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(waveTurns());
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -3660,11 +3660,12 @@ function autoRefill(n){
 
 /* ================= ACTIONS ================= */
 let prevSnap=null;
+const waveTurns=()=>Math.max(0,turnCounter-((typeof accStat!=='undefined'&&accStat&&accStat.turn0)||0));   // このwaveで自分が使ったターン数（画面の「ターンN/12」と同じ数え方。早撃ちのブーツ・じっくりのサンダルはこれで判定）
 function advanceTurn(usedCard){
   if(usedCard&&!usedCard.curse&&!isCurse(usedCard)&&!(mimicFree)){ if(usedCard.kind==='tactics') lastAct={type:'tactic',t:usedCard.type}; else if(usedCard.kind==='troop'||(usedCard.kind==='monster'&&!usedCard.enemyCard)||usedCard.kind==='wild') lastAct={type:'card',card:{...usedCard}}; }
   if(usedCard&&usedCard.kind==='tactics'&&!isCurse(usedCard)) { accStat.tac=(accStat.tac||0)+1; accStat.tacBy=accStat.tacBy||{}; accStat.tacBy[usedCard.type]=(accStat.tacBy[usedCard.type]||0)+1; checkGoalAnnounce(false); }
   if(usedCard&&usedCard.kind==='monster'&&!usedCard.enemyCard&&usedCard.sub==='number'){ const v=+usedCard.value||0; if(v>=5) accStat.eq5=(accStat.eq5||0)+1; if(v>=8) accStat.eq8=(accStat.eq8||0)+1; checkGoalAnnounce(false); }   // 取得条件：数字の装備カードを使った数
-  prevSnap={t:enemyTurn,pp:poisonPenalty};
+  prevSnap={t:enemyTurn,pp:poisonPenalty,wt:waveTurns()};
   if(CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='bash') { bashRateNow=Math.max(DIS_PARAM.bashRateMin,bashRateNow-DIS_PARAM.bashTurnDown); bashRateHist.push(bashRateNow); if(bashRateHist.length>30) bashRateHist.shift(); }   // 斧：1ターン進むごとに命中率が下がる
   const bt=bulletLeft>0;   // バレットタイム中は時間が止まる：ターンも、敵も、毒・封鎖・ボムの時間も進まない
   if(bt){ bulletLeft--; if(enemyFreeze>0) enemyFreeze--; }
@@ -4101,10 +4102,10 @@ function checkWaveOutcome(){
   try{ const nm={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
-  const noRoleQ=hasNoRoleFlag(), qm=quickMult(atkTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
-  if(atkTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
-  if(qm>1){ try{ hint(`👢 早撃ち！ ${atkTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
-  const accParts=accAtkParts(atkTurn), coinHead=hasAcc('gambler')?Math.random()<0.5:null, coinM=coinHead===null?1:coinHead?1+ACC_NEW.coinWin*accX():ACC_NEW.coinLose, accM2=accParts.reduce((a,p)=>a*p[1],1)*coinM;
+  const qTurn=prevSnap&&prevSnap.wt!=null?prevSnap.wt:waveTurns(), noRoleQ=hasNoRoleFlag(), qm=quickMult(qTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
+  if(qTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
+  if(qm>1){ try{ hint(`👢 早撃ち！ ${qTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
+  const accParts=accAtkParts(qTurn), coinHead=hasAcc('gambler')?Math.random()<0.5:null, coinM=coinHead===null?1:coinHead?1+ACC_NEW.coinWin*accX():ACC_NEW.coinLose, accM2=accParts.reduce((a,p)=>a*p[1],1)*coinM;
   const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?1.5:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accM2, pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1)*(atkFx.slime?0.5:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
   if(atkFx.rush||atkFx.oath){ try{ stageDmgPop('player',(atkFx.oath?'🌑闇の誓い ×'+SKP.oath+' ':'')+(atkFx.rush?'🐂突進 ×2':''),'',true); }catch(e){} atkFx.rush=false; atkFx.oath=false; }
   if(atkFx.dive||atkFx.golem||atkFx.slime){ try{ stageDmgPop('player',[atkFx.dive?'🦅急降下 ×1.5':'',atkFx.golem?'🗿石の体 ×0.5':'',atkFx.slime?'🐌ぬめり 敵×0.5':''].filter(Boolean).join(' '),'',true); }catch(e){} atkFx.dive=false; atkFx.golem=false; atkFx.slime=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
@@ -5626,7 +5627,7 @@ function renderBattle(){
       const sg=v=>{ const t=fmtCompact(Math.abs(v)); return v>0?`<span class="pm-pos">+${t}</span>`:v<0?`<span class="pm-neg">-${t}</span>`:`<span class="pm-zero">±0</span>`; };   // 敵の攻撃力との差（−＝自分がダメージ、＋＝敵にダメージ）
       const dl=defendOn?Math.min(0,lo*2-eA):lo-eA, dh=defendOn?Math.min(0,hi*2-eA):hi-eA;
       sr.innerHTML = `<span class="pm-sw">${defendOn?'🛡':'⚔'}</span>` + (lo===hi ? `${fmtCompact(hi)}` : `${fmtCompact(lo)}〜${fmtCompact(hi)}`) + `<span class="pm-diff">(${dl===dh?sg(dh):sg(dl)+'〜'+sg(dh)})</span>`
-      + (()=>{ if(pend||!hasAcc('quick_boots')) return ''; const lim=enemyTurn<=ACC_PARAM.quickTurns?ACC_PARAM.quickTurns:enemyTurn<=ACC_PARAM.quickTurns2?ACC_PARAM.quickTurns2:0; if(!lim) return ''; const m=quickMult(enemyTurn,hasNoRoleFlag()); return `<span class="pm-diff" id="quickLimit" style="display:block;margin:0;font-size:11px;color:#ffd27a"> あと${lim-enemyTurn}ターンまでに完成で×${+m.toFixed(2)}</span>`; })(); } }
+      + (()=>{ if(pend||!hasAcc('quick_boots')) return ''; const wt=waveTurns(), lim=wt<=ACC_PARAM.quickTurns?ACC_PARAM.quickTurns:wt<=ACC_PARAM.quickTurns2?ACC_PARAM.quickTurns2:0; if(!lim) return ''; const m=quickMult(wt,hasNoRoleFlag()); return `<span class="pm-diff" id="quickLimit" style="display:block;margin:0;font-size:11px;color:#ffd27a"> あと${lim-wt}ターンまでに完成で×${+m.toFixed(2)}</span>`; })(); } }
   if(!pend){ // 置きかけの旗が完成した場合の見込み（範囲）
     const rng=predictAttackRange(pA);
     if(rng){
@@ -8805,7 +8806,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
