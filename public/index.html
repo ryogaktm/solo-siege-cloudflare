@@ -5608,7 +5608,7 @@ function renderBattle(){
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
     if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×'+SKP.oath); if(fireOn) a.push('🔥火炎放射:このwaveは赤の旗の攻撃力×'+SKP.fireMul); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の'+bulletLeft+'回の行動はターンを使わない'); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); try{ accAtkParts(enemyTurn).forEach(p=>a.push(p[0]+':総攻撃力×'+(Math.round(p[1]*100)/100))); if(hasAcc('discard_glove')) a.push(`🧤手袋あと${Math.max(0,ACC_NEW.glove*accX()-gloveUsed)}回`); if(hasAcc('lantern')) a.push(lanternUsed?'🏮ランタン使用済み':'🏮ランタン待機中'); if(hasAcc('rod')) a.push('⚡避雷針:妨害は一番カードが少ない旗へ'); }catch(e){} db.textContent=a.join('  '); }
-    try{ document.body.classList.toggle('rain-on', !!poisonOn()); }catch(e){} }
+    try{ document.body.classList.toggle('rain-on', !!poisonOn()&&!gameEnded&&document.getElementById('titleScreen').style.display!=='flex'); }catch(e){} }
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
   document.getElementById('enemyAtkNum').textContent=eA;
@@ -6422,6 +6422,7 @@ function populateResultModal(){
   document.getElementById('flagTable').innerHTML=flagRows+comboLines+recap;
 }
 function showEnd(reason,giftDone){
+  document.body.classList.remove('rain-on');   // マイナスレインの雨は、戦闘が終わったら止める
   closeStrayModals();
   if(!giftDone && (reason==='hpzero'||reason==='deckout')){
     if(alienEnc){ const a=alienEnc; gameEnded=true; victory=false; alienSurgery(a.id,()=>{ alienEnc=null; showEnd(a.reason,true); }); return; }   // 宇宙人との戦いに負けた
@@ -6954,7 +6955,7 @@ document.getElementById('menuToTitleBtn').onclick=()=>{
     document.getElementById('appRoot').style.display='none';
     document.getElementById('charScreen').style.display='none';
     updateTitleHs();
-    document.getElementById('titleScreen').style.display='flex';
+    document.getElementById('titleScreen').style.display='flex'; document.body.classList.remove('rain-on');
     try{ refreshResumeBtn(); }catch(e){}
   });
 };
@@ -7271,7 +7272,7 @@ document.getElementById('dbBack').onclick=()=>{   // 最初の山札画面から
   document.getElementById('appRoot').style.display='none';
   document.getElementById('charScreen').style.display='none';
   try{ updateTitleHs(); }catch(_){}
-  document.getElementById('titleScreen').style.display='flex';
+  document.getElementById('titleScreen').style.display='flex'; document.body.classList.remove('rain-on');
   try{ refreshResumeBtn(); }catch(_){}
 };
 document.getElementById('dbOk').onclick=()=>{
@@ -7719,7 +7720,7 @@ updateSoundButtons();
 document.getElementById('charBackBtn').onclick=()=>{
   document.getElementById('charScreen').style.display='none';
   updateTitleHs();
-  document.getElementById('titleScreen').style.display='flex';
+  document.getElementById('titleScreen').style.display='flex'; document.body.classList.remove('rain-on');
 };
 document.getElementById('titleHowtoBtn').onclick=()=>{
   try{ buildHowtoPage(); }catch(e){ console.error('buildHowtoPage error:',e); }
@@ -8832,7 +8833,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
