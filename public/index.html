@@ -7791,10 +7791,12 @@ function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリ�
   return P;
 }
 const accAtkMul=t=>accAtkParts(t).reduce((a,p)=>a*p[1],1);
-function shieldAbsorb(d){   // 金の盾：受けるダメージを先にお金で払う（1ダメージ＝1G）
+const SHIELD_GOLD_RATE=50;   // 金の盾：1Gで防げるダメージ
+function shieldAbsorb(d){   // 金の盾：受けるダメージを先にお金で払う（1Gで50ダメージ）
   if(d<=0||!hasAcc('shield_gold')||gold<=0) return d;
-  const pay=Math.min(gold,d); gold-=pay; try{ stageDmgPop('player','🛡金の盾 −'+pay+'G','',true); hint(`🛡 金の盾！ ${pay}ダメージを${pay}Gで払った。`,true); }catch(e){}
-  return d-pay;
+  const pay=Math.min(gold,Math.ceil(d/SHIELD_GOLD_RATE)), block=Math.min(d,pay*SHIELD_GOLD_RATE); gold-=pay;
+  try{ stageDmgPop('player','🛡金の盾 −'+pay+'G','',true); hint(`🛡 金の盾！ ${block}ダメージを${pay}Gで払った。`,true); }catch(e){}
+  return d-block;
 }
 function lanternRefill(){   // 墓守のランタン：山札が尽きた時、墓地を切り直して山札にする（1戦に1回）
   if(activeDeck.length>0||!hasAcc('lantern')||lanternUsed||!graveyard.length) return false;
@@ -7866,7 +7868,7 @@ function buildAccDefs(){
    ['abacus','商人のそろばん','🧮','役でもらえるお金が2倍になる'],
    ['haggle','値切りの財布','👛','お店の値段が2割引になる'],
    ['piggy','利子の貯金箱','🐷','敵を倒した時、所持金の1割が増える（1回200Gまで）'],
-   ['shield_gold','金の盾','🛡','受けるダメージを、先にお金で払う（1ダメージ＝1G）。お金が尽きたら体力が減る'],
+   ['shield_gold','金の盾','🛡','受けるダメージを、先にお金で払う（1Gで50ダメージ）。お金が尽きたら体力が減る'],
    ['fang','吸血の牙','🦷','攻撃で与えたダメージの1割だけ、体力が回復する'],
    ['thorns','とげの鎧','🌵','敵の攻撃でダメージを受けた時、同じ量のダメージを敵にも与える'],
    ['last_stand','最後の砦','🏰','体力が3割以下の時、攻撃力が2倍になる'],
@@ -8847,7 +8849,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
