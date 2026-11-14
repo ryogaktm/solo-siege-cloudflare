@@ -1515,7 +1515,7 @@ const TACTICS = [
   {type:'darius',name:'赤♾️',short:'赤♾️',desc:'どの色・どの数字にもなれる万能カード（点数は8として数える）。旗の3枚目にだけ置ける',count:1},
   {type:'scout',name:'補充',short:'補充',desc:'山札から3枚引いて、手札から2枚を選んで墓地へ捨てる',count:4},
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ捨て、同じ枚数を山札から引き直す',count:3},
-  {type:'holy',name:'聖水',short:'聖水',desc:'敵の呪い・妨害を1つ取り除く。手札の呪いのカード1枚／旗1つの呪い全部（敵の装備・ボム・封鎖・ワームホール・煙・デスイーター）／今かかっている効果（マイナスレイン・色封じ・毒など）／これから来る妨害1つ（特殊攻撃レーンのマーク）。自分のカードと役はそのまま',count:2},
+  {type:'holy',name:'聖水',short:'聖水',desc:'敵の呪い・妨害を1つ取り除く。手札の呪いのカード1枚／旗1つの呪い全部（敵の装備・ボム・封鎖・ワームホール・煙・デスイーター）／今かかっている効果（マイナスレイン・色封じ・毒など）／これから来る妨害1つ（特殊攻撃レーンのマーク。暗殺は除く）。自分のカードと役はそのまま',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地のカードを1枚選んで、手札に戻す',count:2},
   {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚選んで、手札に戻す（敵が置いた数字カードも取れる）。完成した旗から取ると、その旗は未完成に戻り役の点も消える',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面のまま、すぐに一斉攻撃する（完成した旗の役とスーパーコンボは有効）',count:2},
@@ -4693,9 +4693,10 @@ const holyGlobals=()=>{ const L=[];   // 聖水で消せる「今かかってい
   if(nullOn()) L.push({k:'null',label:'🚫 無効を解く',clear:()=>{ dis.nullUntil=0; }});
   if(disGuardOn()||dis.halfNext) L.push({k:'guard',label:'🛡 敵の防御を解く',clear:()=>{ dis.guardN=0; dis.guardUntil=0; dis.halfNext=false; try{ syncGuardFx(); }catch(e){} }});
   return L; };
-const holySchedT=()=>Object.keys(enemySched).map(Number).filter(t=>t>enemyTurn&&enemySched[t]&&enemySched[t]!=='rage');   // これから来る妨害（攻撃力×2は除く）
+const HOLY_NO_SCHED=['rage','assassin'];   // 聖水で取り消せない予定（攻撃力×2・暗殺）
+const holySchedT=()=>Object.keys(enemySched).map(Number).filter(t=>t>enemyTurn&&enemySched[t]&&!HOLY_NO_SCHED.includes(enemySched[t]));   // これから来る妨害
 function holyCancelSched(t){   // 聖水：予定の妨害を1つ取り消す（特殊攻撃レーンのマークをタップ）
-  const ev=enemySched[t]; if(!ev||ev==='rage') return hint('それは聖水では消せません。',true);
+  const ev=enemySched[t]; if(!ev||HOLY_NO_SCHED.includes(ev)) return hint(`「${(EVENT_INFO[ev]||{}).label||ev}」は聖水では消せません。`,true);
   delete enemySched[t]; if(FLAG_EVS.includes(ev)) takeAutoPlan(ev);
   finishHoly(`💧 聖水：これから来る「${(EVENT_INFO[ev]||{}).label||ev}」を取り消した！`);
 }
@@ -8870,7 +8871,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
