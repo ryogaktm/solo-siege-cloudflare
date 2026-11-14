@@ -4561,6 +4561,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       const keep = (card.enemyCard && !existingMon.enemyCard) ? existingMon : card;   // 敵のカードを重ねるときは、こちらの装備のuidを残す
       const bothEnemy = !!card.enemyCard && !!existingMon.enemyCard;
       const placed={kind:'monster', sub, value, color, uid:keep.uid, accumulatedBonus:newAccumulated}; if(existingMon.pf) placed.pf=true;
+      if(!keep.enemyCard){ const o={...keep}; delete o.accumulatedBonus; delete o.pf; placed.stackOrig=o; }   // 重ねてできた装備は、旗から離れたら元のカードに戻す（合体カードが山札に残らないように）
       if(bothEnemy) placed.enemyCard=true;
       const midx=f.cards.indexOf(existingMon);
       const cancelled = (sub==='number' && value===0);
@@ -5670,6 +5671,11 @@ function render(){
   { const mb=document.getElementById('specMon'); if(mb&&CHARACTER&&monDisp()==='毒キノコ'){ mb.style.display=''; document.getElementById('specMonI').textContent='🍄'; document.getElementById('specMonL').textContent='次のダメージ'; document.getElementById('specMonN').textContent=fmtCompact(mushDmg); mb.disabled=false; }
     else if(mb){ const on=specEnabled('mon'), ms=CHARACTER.monSkill; mb.style.display=on?'':'none'; if(on&&ms){ document.getElementById('specMonI').textContent=ms.icon||'✨'; const sw=ms.kind==='swallow'; document.getElementById('specMonL').textContent=(sw&&stomach.length)?'吐き出す':(sw?'飲み込む':(ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％ ×'+Math.round(bashMulNow()*100)/100:(ms.name||''))); { const ne=document.getElementById('specMonN'); ne.textContent=specNoLimit('mon')?'':specRemain('mon'); ne.style.display=specNoLimit('mon')?'none':''; } mb.disabled=specRemain('mon')<=0&&!(sw&&stomach.length);
       { const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); document.getElementById('specMonL').innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) document.getElementById('specMonL').innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; } } } }
+  { const un=c=>{ if(!c||c.kind!=='monster') return c; if(c.stackOrig) return c.stackOrig;   // 旗の上で重ねた装備は、旗から離れたら元のカードに戻す
+      if(c.sub==='combined'&&!c.enemyCard){ const d=MONSTERS.find(m=>m.sub==='number'&&m.value===c.value); if(d) return {kind:'monster',...d,uid:c.uid}; }   // 古いセーブで残った合体カード：数字の装備に戻す
+      return c; };
+    const bad=c=>c&&c.kind==='monster'&&(c.stackOrig||(c.sub==='combined'&&!c.enemyCard));
+    if([hand,activeDeck,grandDeck,graveyard,pendingRewardCards].some(a=>a.some(bad))){ hand=hand.map(un); activeDeck=activeDeck.map(un); grandDeck=grandDeck.map(un); graveyard=graveyard.map(un); pendingRewardCards=pendingRewardCards.map(un); } }
   { const isSw=c=>c&&(c.kind==='tactics'||c.kind==='tactic')&&c.type==='swap'; if([hand,activeDeck,grandDeck,graveyard,pendingRewardCards].some(a=>a.some(isSw))){ hand=hand.filter(c=>!isSw(c)); activeDeck=activeDeck.filter(c=>!isSw(c)); grandDeck=grandDeck.filter(c=>!isSw(c)); graveyard=graveyard.filter(c=>!isSw(c)); pendingRewardCards=pendingRewardCards.filter(c=>!isSw(c)); } }   // 廃止した軍師カード「交換」は、古いセーブから取り除く
   if(accOwned.some(o=>o.id==='pocket')){ accOwned=accOwned.filter(o=>o.id!=='pocket'); accEq=accEq.filter(a=>accOwned.some(o=>o.aid===a)); }   // 廃止した「予備のポケット」は、古いセーブから取り除く
   if(pocket){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); }   // 廃止したポケットに入っていた古いセーブのカードは、山札へ戻す
@@ -8823,7 +8829,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
