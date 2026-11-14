@@ -277,7 +277,7 @@ with sync_playwright() as p:
     r=pg.evaluate("""()=>{ unlockMon('ミジンコキング'); ['月の民','火星人','水星人','金星人','太陽神'].forEach(unlockMon); buildCharList(); const g=document.getElementById('monGrid');
       const t=[...g.querySelectorAll('.mon-tile')].map(e=>({n:e.querySelector('b').textContent.replace(/\\s/g,''),a:e.classList.contains('alien')}));
       const ix=n=>t.findIndex(x=>x.n===n); return {n:t.length,aliens:t.filter(x=>x.a).map(x=>x.n),moonAfterSpider:ix('月の民')>ix('大グモ')&&ix('月の民')<ix('コボルト'),marsBetween:ix('火星人')>ix('モンク')&&ix('火星人')<ix('侍'),lastNotAlien:!t[t.length-1].a||t[t.length-1].n==='太陽神'} }""")
-    check('モンスター一覧：宇宙人は強さの位置に並び（下に固まらない）、背景色で見分けられる',len(r['aliens'])>=5 and r['moonAfterSpider'] and r['marsBetween'],r)
+    check('モンスター一覧：宇宙人は強さの位置に並び（下に固まらない）、ほかと同じ見た目（色分けしない）',len(r['aliens'])==0 and r['moonAfterSpider'] and r['marsBetween'],r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false;f.blindUntil=0}); enemyTurn=5; enemySched={8:'blind'}; autoQ={}; autoSeq=0; render();
       const a=autoForecast(), fi=+Object.keys(a)[0]; enemyTurn=7; applyEnemyEvent('blind'); const o={fi,on:flags.map(f=>blindOn(f)),smoke:document.querySelectorAll('.smoke').length};
       // 煙の間は、他の妨害の対象から外れる
