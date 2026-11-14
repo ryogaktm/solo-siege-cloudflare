@@ -51,7 +51,7 @@ with sync_playwright() as p:
       o.no=panel.no; o.cells=panel.cells.length; o.texts=new Set(panel.cells.map(c=>condDef(c.key).text)).size; o.bar=document.getElementById('condBar').style.display!=='none';
       o.cum=panel.cells.filter(c=>c.key.startsWith('c_')).length; o.fin=panel.cells.filter(c=>condDef(c.key).final).length;
       // 1マスクリア→選ぶ権利が1回ふえる
-      panel.cells[0].key='x_role_2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.ok1=panel.cells[0].ok; o.picks1=accCond.picks;
+      panel.cells[0].key='x_role_2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.ok1=panel.cells[0].ok; o.picks1=accCond.picks; o.okN=panel.cells.filter(c=>c.ok).length;   // 同じ条件で別のマスも同時にクリアされることがある（パネルはランダム）
       // 累計のマス：前の戦闘の分＋今の戦闘の分で数える
       panel.cells[1].key='c_tac_5'; panel.cum={tac:3}; accStat.tac=1; checkGoalAnnounce(false); o.cumNo=panel.cells[1].ok; accStat.tac=2; checkGoalAnnounce(false); o.cumOk=panel.cells[1].ok;
       // 戦闘が終わると、その戦闘の分が累計に足される（2回足さない）
@@ -62,7 +62,7 @@ with sync_playwright() as p:
       o.spDefs=ACC_DEFS_ALL.filter(d=>d.special).length; o.spInShop=ACC_DEFS.some(d=>d.special);
       return o}""")
     check('パネル：戦闘が始まると9マスのパネルが出る（文の重複なし・累計3マス・「倒した時」は2マスまで）',r['no']==1 and r['cells']==9 and r['texts']==9 and r['bar'] and r['cum']==3 and r['fin']<=2,r)
-    check('パネル：マスをクリアすると選ぶ権利が1回ふえる',r['ok1'] and r['picks1']==1,r)
+    check('パネル：マスをクリアすると選ぶ権利が1回ふえる（クリアしたマスの数と同じ）',r['ok1'] and r['picks1']==r['okN'],r)
     check('パネル：累計のマスは前の戦闘までの数＋今の戦闘の数で判定／戦闘の分は1回だけ足す',(not r['cumNo']) and r['cumOk'] and r['fold']==5,r)
     check('パネル：9マス全部で特別アクセサリー1回、次の戦闘で2枚目（もっと厳しい・累計は0から）',r['clear'] and r['special']==1 and r['no2']==2 and r['cells2']==9 and r['harder'] and r['cum2']==0,r)
     check('パネル：特別アクセサリーは3種類あり、店・宝箱の候補には入らない',r['spDefs']==3 and not r['spInShop'],r)
