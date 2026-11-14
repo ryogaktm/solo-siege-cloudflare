@@ -1755,7 +1755,15 @@ function skPay(m){ const bad=skCheck(m); if(bad){ gameAlert(bad); return false; 
   if(cb && !scPay(cb[0],cb[1],()=>cb[1])) return false;
   if(c.comboAll && !scPay(c.comboAll,1,v=>v)) return false;
   if(hpN) playerHp-=hpN; if(c.gold) gold-=c.gold; if(c.count) spec.mon++; return true; }
-function skDone(msg){ if(msg) hint(msg,true); playSfx('combo'); render(); try{ layoutHand(false); }catch(e){} }
+function skDone(msg){ if(msg) hint(msg,true); playSfx('combo'); render(); try{ layoutHand(false); }catch(e){} trimHand(); }
+function trimHand(cb){   // 鉄則：手札が上限をこえたら、こえた分を選んで墓地へ捨てる（キャンセル不可）
+  const over=hand.length-currentHandMax(), cand=hand.filter(c=>!isCurse(c)&&!isEnemyEq(c));
+  if(over<=0||!cand.length){ if(cb) cb(); return; }
+  const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">手札が上限（${currentHandMax()}枚）をこえました</div><div class="reward-sub">捨てるカードを選んでください（あと${over}枚）</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:60vh;overflow:auto">${cand.map((c,i)=>`<button class="btn" data-i="${i}">${cardLabelHtml(c)}</button>`).join('')}</div></div>`;
+  document.body.appendChild(bg);
+  bg.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ bg.remove(); const c=cand[+b.dataset.i], ix=hand.indexOf(c); if(ix>=0) graveyard.push(hand.splice(ix,1)[0]); render(); try{ layoutHand(false); }catch(e){} trimHand(cb); });
+}
 function waitIdle(){ return new Promise(res=>{ const t=()=>{ if(!busy&&!pending) res(); else setTimeout(t,80); }; t(); }); }
 function dyeClear(){ try{ [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(arr) arr.forEach(c=>{ if(c&&c.dyeOrig){ Object.assign(c,c.dyeOrig); delete c.dyeOrig; } }); }); }catch(e){} }
 const SKFN={};
@@ -1766,7 +1774,7 @@ function skUse(m){
 }
 SKFN.plunder=m=>{
   const T=activeDeck.filter(c=>c.kind==='troop'); if(!T.length) return hint('山札に数字カードがありません。',true);
-  // 手札がいっぱいでも使える（上限を1枚こえて手札に入る）
+  // 手札がいっぱいでも使える（上限をこえた分は、あとで選んで捨てる）
   const seen={}, items=[]; T.forEach(c=>{ const k=c.color+c.value+(c.mixed?c.altColor:''); if(!seen[k]){ seen[k]=1; items.push(c); } });
   items.sort((a,b)=>GAME_COLORS.indexOf(a.color)-GAME_COLORS.indexOf(b.color)||b.value-a.value);
   pickDialog('🏴‍☠️ 強奪：山札から1枚選ぶ', items.map(c=>({html:`<span style="color:${CFILL[c.color]}">■</span> ${cardDisplayName(c)}`})), i=>{
@@ -1808,7 +1816,7 @@ SKFN.airraid=m=>{
 };
 SKFN.rush=m=>{ if(atkFx.rush) return hint('すでに突進の準備ができています。',true); if(!skPay(m)) return; atkFx.rush=true; skDone('🐂 突進！ 次の一斉攻撃は、敵と自分の攻撃力が2倍になる。'); };
 SKFN.hire=m=>{
-  // 手札がいっぱいでも使える（上限をこえて手札に入る）
+  // 手札がいっぱいでも使える（上限をこえた分は、あとで選んで捨てる）
   const ts=TACTICS_ON.filter(t=>t.type!=='alexander'&&t.type!=='darius');
   pickDialog('💼 雇われ仕事：軍師カードを1枚選ぶ', ts.map(t=>({html:`<b>${t.name}</b> <small>${t.desc}</small>`})), i=>{
     if(!skPay(m)) return; const t=ts[i]; hand.push({kind:'tactics',...t,uid:uid(),temp:true});
@@ -8815,7 +8823,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
