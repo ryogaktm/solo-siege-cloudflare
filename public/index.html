@@ -1628,7 +1628,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'撤収カードを手札に加えます。（旗のカードを1枚、手札に戻せます）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
-  'ミミズ':{name:'エサになる',icon:'🪱',get desc(){ return `特異体質：戦いが始まると体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増えます。（技ではなく、常に働きます）`; }},
+  'ミミズ':{name:'エサになる',icon:'🪱',get desc(){ return `特異体質：戦いが始まると体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増え、特殊技のコスト（体力・スーパーコンボ・お金）が半分になります。（技ではなく、常に働きます）`; }},
   'アリ':{name:'砂糖供給',icon:'🍬',desc:'毎ターン、最大体力の10分の1が回復します。'},
   '毒キノコ':{name:'毒の胞子',icon:'🍄',desc:'数字カードを場に置くと、表示されているダメージを敵に与え、そのダメージが2倍になります（最初は1）。数字カード以外の行動をすると、次のダメージは半分になります。敵のHPが0になれば、そのまま倒せます。（敵が変わると1に戻ります）'},
   '野ネズミ':{kind:'eat',name:'悪食',icon:'🐭',desc:'手札のカードを1枚食べて、体力が50回復し、新しいカードを1枚引きます。（なんでも食べられます）'},
@@ -1726,26 +1726,29 @@ const fireBonus=()=>fireOn?flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.symbo
 let pocket=null, gloveUsed=0, lanternUsed=false;   // 予備のポケットの中のカード／捨て上手の手袋の今のwaveの使用数／墓守のランタン（1戦に1回）
 let growN=0, immortalReady=false, shopRe=false, atkFx={rush:false,oath:false};   // growN＝倒した敵の数（体質）／atkFx＝次の攻撃にかかる倍率（突進・闇の誓い）
 let lastAct=null, mimicFree=null, mountOn=false;   // lastAct＝直前の行動（見よう見まね用）／mountOn＝山のように／buried＝埋めたカード
-function skHpCost(c){ return c.hpPct?Math.floor(playerHp*c.hpPct/100):(c.hp||0); }
+function skHpCost(c){ const v=c.hpPct?Math.floor(playerHp*c.hpPct/100):(c.hp||0); return (v&&hasWormBody())?Math.max(1,Math.ceil(v/2)):v; }   // ミミズの体：体力のコストが半分
+function skGoldCost(c){ const v=c.gold||0; return (v&&hasWormBody())?Math.max(1,Math.ceil(v/2)):v; }   // ミミズの体：お金のコストが半分
 function skCombo(c){   // 払うスーパーコンボ：[色,数]。comboBest＝いちばん多い色から
   if(c.combo) return c.combo;
   if(c.comboBest){ const mp=CHARACTER.combo?carryNext():carryMap; let best=null,bv=0; GAME_COLORS.forEach(k=>{ const v=mp[k]||0; if(v>bv){ bv=v; best=k; } }); return [best||GAME_COLORS[0],c.comboBest]; }
   return null; }
 function skCostHtml(m){ const c=m&&m.cost; if(!c) return ''; const a=[];
   if(c.combo) a.push(miniIcon(EMBLEM[c.combo[0]],CFILL[c.combo[0]])+'×'+wormCost(c.combo[1]));
-  if(c.comboBest) a.push('最多色コンボ×'+c.comboBest);
+  if(c.comboBest) a.push('最多色コンボ×'+wormCost(c.comboBest));
   if(c.comboAll) a.push(miniIcon(EMBLEM[c.comboAll],CFILL[c.comboAll])+'×全部');
-  if(c.hp) a.push('❤'+c.hp); if(c.hpPct) a.push('❤'+c.hpPct+'%'); if(c.gold) a.push(c.gold+'G'); return a.join(' '); }
+  const wb=hasWormBody(), hf=v=>wb?Math.max(1,Math.ceil(v/2)):v;
+  if(c.hp) a.push('❤'+hf(c.hp)); if(c.hpPct) a.push('❤'+(wb?c.hpPct/2:c.hpPct)+'%'); if(c.gold) a.push(hf(c.gold)+'G'); return a.join(' '); }
 function skCostText(m){ const c=m&&m.cost; if(!c) return ''; const a=[];
-  if(c.combo) a.push(CNAME[c.combo[0]].replace('旗','')+'のスーパーコンボ'+c.combo[1]);
-  if(c.comboBest) a.push('一番多い色のスーパーコンボ'+c.comboBest);
+  if(c.combo) a.push(CNAME[c.combo[0]].replace('旗','')+'のスーパーコンボ'+wormCost(c.combo[1]));
+  if(c.comboBest) a.push('一番多い色のスーパーコンボ'+wormCost(c.comboBest));
   if(c.comboAll) a.push(CNAME[c.comboAll].replace('旗','')+'のスーパーコンボ全部');
-  if(c.hp) a.push('体力'+c.hp); if(c.hpPct) a.push('体力'+c.hpPct+'%'); if(c.gold) a.push(c.gold+'G'); if(c.count) a.push('1戦に'+c.count+'回まで'); return a.join('＋'); }
+  const wb=hasWormBody(), hf=v=>wb?Math.max(1,Math.ceil(v/2)):v;
+  if(c.hp) a.push('体力'+hf(c.hp)); if(c.hpPct) a.push('体力'+(wb?c.hpPct/2:c.hpPct)+'%'); if(c.gold) a.push(hf(c.gold)+'G'); if(c.count) a.push('1戦に'+c.count+'回まで'); return a.join('＋'); }
 function skCheck(m){   // 払えるか（払わずに調べる）。払えない時は理由を返す
   if(mimicFree&&mimicFree.kind===m.kind) return null;   // 見よう見まねで真似する時は、コストなし
   const c=m.cost||{}, hpN=skHpCost(c);
   if(hpN && playerHp-hpN<1) return `体力が足りません。（${hpN}払うと体力が残らない／いま${Math.round(playerHp)}）\n最大体力を増やすと使えます。`;
-  if(c.gold && gold<c.gold) return `お金が足りません。（${c.gold}G必要／いま${gold}G）`;
+  if(c.gold && gold<skGoldCost(c)) return `お金が足りません。（${skGoldCost(c)}G必要／いま${gold}G）`;
   if(c.comboAll){ const v=CHARACTER.combo?(carryNext()[c.comboAll]||0):(carryMap[c.comboAll]||0); if(v<1) return `${CNAME[c.comboAll]}のスーパーコンボがありません。`; }
   { const cb=skCombo(c); if(cb){ const v=CHARACTER.combo?(carryNext()[cb[0]]||0):(carryMap[cb[0]]||0), need=wormCost(cb[1]); if(v<need) return c.comboBest?`スーパーコンボが${need}以上ないと使えません。\n（いまは最大でも${v}）`:`${CNAME[cb[0]]}のスーパーコンボが${need}以上ないと使えません。\n（いま${v}）`; } }
   return null; }
@@ -1755,7 +1758,7 @@ function skPay(m){ const bad=skCheck(m); if(bad){ gameAlert(bad); return false; 
   const c=m.cost||{}, hpN=skHpCost(c), cb=skCombo(c);
   if(cb && !scPay(cb[0],cb[1],()=>cb[1])) return false;
   if(c.comboAll && !scPay(c.comboAll,1,v=>v)) return false;
-  if(hpN) playerHp-=hpN; if(c.gold) gold-=c.gold; if(c.count) spec.mon++; return true; }
+  if(hpN) playerHp-=hpN; if(c.gold) gold-=skGoldCost(c); if(c.count) spec.mon++; return true; }
 function skDone(msg){ if(msg) hint(msg,true); playSfx('combo'); render(); try{ layoutHand(false); }catch(e){} trimHand(); }
 function trimHand(cb){   // 鉄則：手札が上限をこえたら、こえた分を選んで墓地へ捨てる（キャンセル不可）
   const over=hand.length-currentHandMax(), cand=hand.filter(c=>!isCurse(c)&&!isEnemyEq(c));
@@ -7030,7 +7033,7 @@ function strikeBoss(dmg,text,name,raw){   // raw＝敵のHPで切り捨てる前
   }); });
   render();
 }
-const wormCost=n=>{ let r=hasWormBody()?Math.max(1,n-1):n; if(hasAcc('saving_anklet')) r=Math.max(1,r-ACC_NEW.anklet*accX()); return r; };   // ミミズの特異体質：スーパーコンボを払う技のコストが1減る（もともと1ならそのまま1）
+const wormCost=n=>{ let r=hasWormBody()?Math.max(1,Math.ceil(n/2)):n; if(hasAcc('saving_anklet')) r=Math.max(1,r-ACC_NEW.anklet*accX()); return r; };   // ミミズの特異体質：スーパーコンボを払う技のコストが1減る（もともと1ならそのまま1）
 function scPay(col,min,loss){   // スーパーコンボを払う（足りなければ払わずに false）
   min=wormCost(min); const loss0=loss; loss=v=>wormCost(loss0(v));
   const v=CHARACTER.combo?(carryNext()[col]||0):(carryMap[col]||0);   // 盤面で揃った役のコンボも、使える（一個揃った時点で払える）
@@ -8861,7 +8864,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
