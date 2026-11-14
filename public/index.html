@@ -4423,6 +4423,7 @@ function whyNotPlace(card,fi){   // 置けない理由（できるだけ具体�
 }
 function playOnFlag(handIdx, fi, fromRect, noAsk){
   const card=hand[handIdx], f=flags[fi];
+  if(!card||!f) return false;   // 手札の並びが変わった直後など、カードが見つからない時は何もしない
   try{ if(!noAsk) dlog('place_try',{置く:dbgCardStr(card), idx:handIdx, 掴んだ表示:dbgGrab, 手札:hand.map(dbgCardStr).join(' '), 画面の手札:[...document.querySelectorAll('.hand .pcard')].map(e=>{ const c=hand.find(x=>x.uid===e.dataset.uid); return (e.querySelector('.corner')||{}).textContent+'/'+(c?dbgCardStr(c):'?'); }).join(' '), 旗:fi+1, 結果:(targetsFor(card).includes(fi)?'置ける':'置けない'), 理由:(targetsFor(card).includes(fi)?'':(f.closed?'閉じた旗':isLocked(f)?'封鎖中':(f.cards.length>=3?'3枚埋まっている':'役・装備の条件に合わない'))), 旗の中:f.cards.map(dbgCardStr).join(' ')}); }catch(e){}
   if(!targetsFor(card).includes(fi)){
     if(!noAsk) gameAlert(whyNotPlace(card,fi)||'この旗には置けません。');
@@ -4578,7 +4579,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       });
       return true;
     }
-    const placed={kind:'monster', sub:card.sub, value:card.value, color:card.color, uid:card.uid};
+    const placed={kind:'monster', sub:card.sub, value:card.value, color:card.color, uid:card.uid}; if(card.origValue!==undefined) placed.origValue=card.origValue;   // 毒で下がった装備の数字は、旗から離れたら元に戻す
     if(card.enemyCard) placed.enemyCard=true;
     if(card.sub==='cfield'||card.sub==='pfield') placed.accumulatedBonus=0;
     f.cards.push(placed); eaterEatPlaced(f,placed,null,-1);
@@ -6503,6 +6504,7 @@ function cleanMods(cards){
   cards.forEach(c=>{
     if(!c||c.temp) return;
     if(c.kind==='wild'&&c.base) c=c.base;   // 盤面に置いた♾️は、元の軍師カードに戻す
+    if(c.kind==='monster'&&c.stackOrig) c=c.stackOrig;   // 重ねてできた装備は、元のカードに戻す
     if(c.origValue!==undefined){ c.value=c.origValue; delete c.origValue; }
     if(c.origColor!==undefined){ c.color=c.origColor; c.altColor=c.origAlt; c.mixed=c.origMixed; delete c.origColor; delete c.origAlt; delete c.origMixed; }
     keep.push(c);
@@ -8829,7 +8831,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
