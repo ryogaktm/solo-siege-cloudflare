@@ -1766,11 +1766,11 @@ function skUse(m){
 }
 SKFN.plunder=m=>{
   const T=activeDeck.filter(c=>c.kind==='troop'); if(!T.length) return hint('山札に数字カードがありません。',true);
-  if(hand.length>=currentHandMax()) return hint('手札がいっぱいです。',true);
+  // 手札がいっぱいでも使える（上限を1枚こえて手札に入る）
   const seen={}, items=[]; T.forEach(c=>{ const k=c.color+c.value+(c.mixed?c.altColor:''); if(!seen[k]){ seen[k]=1; items.push(c); } });
   items.sort((a,b)=>GAME_COLORS.indexOf(a.color)-GAME_COLORS.indexOf(b.color)||b.value-a.value);
   pickDialog('🏴‍☠️ 強奪：山札から1枚選ぶ', items.map(c=>({html:`<span style="color:${CFILL[c.color]}">■</span> ${cardDisplayName(c)}`})), i=>{
-    const ix=activeDeck.indexOf(items[i]); if(ix<0||hand.length>=currentHandMax()) return;
+    const ix=activeDeck.indexOf(items[i]); if(ix<0) return;
     if(!skPay(m)) return; const c=activeDeck.splice(ix,1)[0]; hand.push(c); shuffle(activeDeck);
     skDone(`🏴‍☠️ 強奪！ ${cardDisplayName(c)}を奪った。山札を切り直した。`); });
 };
@@ -1808,10 +1808,10 @@ SKFN.airraid=m=>{
 };
 SKFN.rush=m=>{ if(atkFx.rush) return hint('すでに突進の準備ができています。',true); if(!skPay(m)) return; atkFx.rush=true; skDone('🐂 突進！ 次の一斉攻撃は、敵と自分の攻撃力が2倍になる。'); };
 SKFN.hire=m=>{
-  if(hand.length>=currentHandMax()) return hint('手札がいっぱいです。',true);
+  // 手札がいっぱいでも使える（上限をこえて手札に入る）
   const ts=TACTICS_ON.filter(t=>t.type!=='alexander'&&t.type!=='darius');
   pickDialog('💼 雇われ仕事：軍師カードを1枚選ぶ', ts.map(t=>({html:`<b>${t.name}</b> <small>${t.desc}</small>`})), i=>{
-    if(hand.length>=currentHandMax()||!skPay(m)) return; const t=ts[i]; hand.push({kind:'tactics',...t,uid:uid(),temp:true});
+    if(!skPay(m)) return; const t=ts[i]; hand.push({kind:'tactics',...t,uid:uid(),temp:true});
     skDone(`💼 雇われ仕事！ 軍師カード「${t.name}」を手札に加えた。（この戦いの間だけ）`); });
 };
 SKFN.oath=m=>{
@@ -1882,10 +1882,10 @@ SKFN.explore=m=>{
   },1000);
 };
 SKFN.eye=m=>{
-  if(!activeDeck.length) return hint('山札がありません。',true); if(hand.length>=currentHandMax()) return hint('手札がいっぱいです。',true);
+  if(!activeDeck.length) return hint('山札がありません。',true);
   const top=activeDeck.slice(-5).reverse();   // 先頭＝いちばん上
   pickDialog('🦅 上空からの目：山札の上'+top.length+'枚から1枚引く', top.map(c=>({html:cardLabelHtml(c)})), i=>{
-    const c=top[i], ix=activeDeck.indexOf(c); if(ix<0||hand.length>=currentHandMax()) return;
+    const c=top[i], ix=activeDeck.indexOf(c); if(ix<0) return;
     if(!skPay(m)) return; activeDeck.splice(ix,1); hand.push(c); skDone(`🦅 上空からの目！ ${cardDisplayName(c)}を引いた。`); });
 };
 
@@ -1942,7 +1942,7 @@ const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メ�
   boneshield:[()=>wallOn?'すでに次の攻撃を防ぐ準備ができています。':null, ()=>{ wallOn=true; return '🦴 骨の盾！ 次に受ける敵の攻撃を1回だけ無効にする。'; }],
   phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
-  cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':hand.length>=currentHandMax()?'手札がいっぱいです。':null; }, ()=>{ const got=[]; for(let i=0;i<2&&hand.length<currentHandMax();i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
+  cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':null; }, ()=>{ const got=[]; for(let i=0;i<2;i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
   stampede:[()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>a.result.base>=f.result.base?a:f); const d=mx.result.base; mx.result.base*=2; score+=d; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
   dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が1.5倍になる。'; }],
 };
@@ -1952,8 +1952,8 @@ SKFN.chimera=m=>{   // キメラ：今使えるものからランダムに1つ
   if(!skPay(m)) return; const k=ok[Math.floor(Math.random()*ok.length)]; skDone('🦁 3つの顔！ '+NEWMON_FX[k][1]());
 };
 SKFN.bunshin=m=>{
-  const T=hand.filter(c=>c.kind==='troop'); if(!T.length) return hint('手札に数字カードがありません。',true); if(hand.length>=currentHandMax()) return hint('手札がいっぱいです。',true);
-  pickDialog('🥷 分身：どのカードを増やす？', T.map(c=>({label:cardDisplayName(c)})), a=>{ const src=T[a]; if(!hand.includes(src)||hand.length>=currentHandMax()||!skPay(m)) return; const c={...src,uid:uid(),temp:true}; delete c.autoPlaced; delete c.autoFresh; hand.push(c); skDone(`🥷 分身！ ${cardDisplayName(src)}が1枚増えた。（この戦いの間だけ）`); });
+  const T=hand.filter(c=>c.kind==='troop'); if(!T.length) return hint('手札に数字カードがありません。',true);
+  pickDialog('🥷 分身：どのカードを増やす？', T.map(c=>({label:cardDisplayName(c)})), a=>{ const src=T[a]; if(!hand.includes(src)||!skPay(m)) return; const c={...src,uid:uid(),temp:true}; delete c.autoPlaced; delete c.autoFresh; hand.push(c); skDone(`🥷 分身！ ${cardDisplayName(src)}が1枚増えた。（この戦いの間だけ）`); });
 };
 SKFN.tentacle=m=>{
   const fl=ownFlagTroops(); if(!fl.length) return hint('未完成の旗に、戻せる数字カードがありません。',true);
@@ -8815,7 +8815,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14l';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
