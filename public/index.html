@@ -2258,6 +2258,8 @@ const NEW_MONSTERS=[
 ];
 const TOP_MONSTERS=['深淵の魔王','終焉の魔王','滅びの化身','星を喰らうもの','次元を砕く者','時の支配者','世界の終わり','全てを無に帰すもの'];
 const LOW_MONSTERS=['ハエの群れ','カエルの群れ','ミミズの群れ','アリの行列','コガネムシの群れ'];
+const ROLE_INCL={'バタリオン':['バタリオン','ウェッジ','ロイヤルファランクス'],'ファランクス':['ファランクス','ロイヤルファランクス'],'スカーミッシュ':['スカーミッシュ','ウェッジ']};   // 条件の言い方に当てはまる役は全部数える（同じ色をそろえた＝バタリオン・ウェッジ・ロイヤルファランクス など）
+const roleN=(S,role)=>(ROLE_INCL[role]||[role]).reduce((a,k)=>a+((S.roles||{})[k]||0),0);
 const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファランクス':'同じ色・同じ数字をそろえた','ファランクス':'同じ数字をそろえた','スカーミッシュ':'連番にした','バタリオン':'同じ色をそろえた','ホスト':'役のない'};  // 役名→わかりやすい言い方（アクセサリー説明用）
 const ENEMY_SCALE=0.9;
 const HUMAN_INS=36; let HUMAN_IDX=38; const HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
@@ -7968,7 +7970,7 @@ function specRemain(k){ if(!specEnabled(k)) return 0; if(k==='mon'&&CHARACTER.mo
 function blankBattleStat(){ return {fastAtk:0,super:{},roles:{},tac:0,maxDealt:0,lowHpWin:0,overkill:0,minHp:1,turn0:0,w0:0,maxKinds:0,maxSame:0,overMax:0,tacBy:{},eq5:0,eq8:0,allSame:0,sameRun:0,maxSameRun:0}; }
 function goalDef(d){
   const id=d.id, S=accStat, thr=WAVES[stageIndex].threshold, cn=d.color?SHORTC(d.color):'';
-  const R=(role,n)=>({tier:'easy',text:`${ROLE_P[role]||role}旗を${n}回完成させる`,done:()=>(S.roles[role]||0)>=n,prog:`${Math.min(n,S.roles[role]||0)} / ${n}回`});
+  const R=(role,n)=>({tier:'easy',text:`${ROLE_P[role]||role}旗を${n}回完成させる`,done:()=>roleN(S,role)>=n,prog:`${Math.min(n,roleN(S,role))} / ${n}回`});
   if(id.startsWith('super15_')) return {tier:'mid',text:`${cn}旗のスーパーコンボを×3まで決める`,done:()=>(S.super[d.color]||0)>=3,prog:`×${Math.min(3,S.super[d.color]||0)} / ×3`};
   if(id.startsWith('blade_')){ const b=COMBO_BLADES[d.color]; return {tier:'hard',text:`${cn}旗のスーパーコンボを×${b.goal}まで決める`,done:()=>(S.super[d.color]||0)>=b.goal,prog:`×${Math.min(b.goal,S.super[d.color]||0)} / ×${b.goal}`}; }
   if(id.startsWith('super2_')) return {tier:'hard',text:`${cn}旗のスーパーコンボを×5まで決める`,done:()=>(S.super[d.color]||0)>=5,prog:`×${Math.min(5,S.super[d.color]||0)} / ×5`};
@@ -7982,11 +7984,11 @@ function goalDef(d){
     case 'add3_tac3': return Object.assign(R('ウェッジ',1),{tier:'hard'});
     case 'add3_num': return R('バタリオン',1);
     case 'yaku_only': return {tier:'mid',text:'役のある旗を5回完成させる',done:()=>Object.values(S.roles).reduce((a,b)=>a+(b||0),0)>=5,prog:`${Math.min(5,Object.values(S.roles).reduce((a,b)=>a+(b||0),0))} / 5回`};
-    case 'role_wedge': return {tier:'hard',text:`${ROLE_P['ウェッジ']}旗を2回完成させる`,done:()=>(S.roles['ウェッジ']||0)>=2,prog:`${Math.min(2,S.roles['ウェッジ']||0)} / 2回`};
-    case 'role_royal': return {tier:'hard',text:`${ROLE_P['ロイヤルファランクス']}旗を1回完成させる`,done:()=>(S.roles['ロイヤルファランクス']||0)>=1,prog:`${Math.min(1,S.roles['ロイヤルファランクス']||0)} / 1回`};
-    case 'role_phalanx': return {tier:'mid',text:`${ROLE_P['ファランクス']}旗を2回完成させる`,done:()=>(S.roles['ファランクス']||0)>=2,prog:`${Math.min(2,S.roles['ファランクス']||0)} / 2回`};
-    case 'role_skirmish': return {tier:'mid',text:`${ROLE_P['スカーミッシュ']}旗を2回完成させる`,done:()=>(S.roles['スカーミッシュ']||0)>=2,prog:`${Math.min(2,S.roles['スカーミッシュ']||0)} / 2回`};
-    case 'role_battalion': return {tier:'mid',text:`${ROLE_P['バタリオン']}旗を2回完成させる`,done:()=>(S.roles['バタリオン']||0)>=2,prog:`${Math.min(2,S.roles['バタリオン']||0)} / 2回`};
+    case 'role_wedge': return {tier:'hard',text:`${ROLE_P['ウェッジ']}旗を2回完成させる`,done:()=>roleN(S,'ウェッジ')>=2,prog:`${Math.min(2,roleN(S,'ウェッジ'))} / 2回`};
+    case 'role_royal': return {tier:'hard',text:`${ROLE_P['ロイヤルファランクス']}旗を1回完成させる`,done:()=>roleN(S,'ロイヤルファランクス')>=1,prog:`${Math.min(1,roleN(S,'ロイヤルファランクス'))} / 1回`};
+    case 'role_phalanx': return {tier:'mid',text:`${ROLE_P['ファランクス']}旗を2回完成させる`,done:()=>roleN(S,'ファランクス')>=2,prog:`${Math.min(2,roleN(S,'ファランクス'))} / 2回`};
+    case 'role_skirmish': return {tier:'mid',text:`${ROLE_P['スカーミッシュ']}旗を2回完成させる`,done:()=>roleN(S,'スカーミッシュ')>=2,prog:`${Math.min(2,roleN(S,'スカーミッシュ'))} / 2回`};
+    case 'role_battalion': return {tier:'mid',text:`${ROLE_P['バタリオン']}旗を2回完成させる`,done:()=>roleN(S,'バタリオン')>=2,prog:`${Math.min(2,roleN(S,'バタリオン'))} / 2回`};
     case 'sp_punch': return Object.assign(R('ウェッジ',1),{tier:'mid'});
     case 'hp_x15': return {tier:'mid',text:'体力が半分を切らずに敵を倒す',done:()=>S.minHp>=0.5,prog:hpTxt(),final:true};
     case 'hp_x2': return {tier:'hard',text:'体力が80%を切らずに敵を倒す',done:()=>S.minHp>=0.8,prog:hpTxt(),final:true};
@@ -8845,7 +8847,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
