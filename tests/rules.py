@@ -53,7 +53,7 @@ with sync_playwright() as p:
       // 1マスクリア→選ぶ権利が1回ふえる
       panel.cells[0].key='x_role_2'; accStat.roles={'ウェッジ':2}; checkGoalAnnounce(false); o.ok1=panel.cells[0].ok; o.picks1=accCond.picks; o.okN=panel.cells.filter(c=>c.ok).length;   // 同じ条件で別のマスも同時にクリアされることがある（パネルはランダム）
       // 累計のマス：前の戦闘の分＋今の戦闘の分で数える
-      panel.cells[1].key='c_tac_5'; panel.cum={tac:3}; accStat.tac=1; checkGoalAnnounce(false); o.cumNo=panel.cells[1].ok; accStat.tac=2; checkGoalAnnounce(false); o.cumOk=panel.cells[1].ok;
+      panel.cells[1].key='c_tac_5'; panel.cells[1].ok=false; panel.cum={tac:3}; accStat.tac=1; checkGoalAnnounce(false); o.cumNo=panel.cells[1].ok; accStat.tac=2; checkGoalAnnounce(false); o.cumOk=panel.cells[1].ok;
       // 戦闘が終わると、その戦闘の分が累計に足される（2回足さない）
       panel.cum={tac:3}; accStat.folded=false; foldPanelBattle(); foldPanelBattle(); o.fold=panel.cum.tac;
       // 9マス全部→特別アクセサリー1回、次の戦闘で次のパネル（もっと厳しい）
@@ -127,7 +127,7 @@ with sync_playwright() as p:
       // 聖水：手札の呪いを消す
       hand=[]; applyEnemyEvent('wipe'); applyEnemyEvent('null'); const holy=Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()}); hand.push(holy);
       useHoly(hand.findIndex(c=>c.type==='holy')); await sleep(300);
-      o.handClean=!hand.some(c=>c.type==='curse_null'||c.type==='curse_wipe'); o.holyUsed=!hand.some(c=>c.type==='holy'); busy=false; pending=null;
+      o.handClean=!hand.some(c=>c.type==='curse_null'||c.type==='curse_wipe'); o.holyUsed=!hand.some(c=>c.uid===holy.uid);   // 補充で別の聖水を引くことがあるので、使ったカードそのもので確かめる busy=false; pending=null;
       // 聖水：旗の敵装備・ボム・マイナスレイン・色封じを一度に全部消す（予定の妨害は残る）
       flags.forEach(f=>{f.cards=[];f.closed=false;f.bomb=0}); flags[2].cards=[makeMinusEq()]; flags[2].bomb=3; flags[1].eater=enemyTurn+3; dis.poisonUntil=turnCounter+5; dis.halfColor='red'; dis.halfUntil=enemyTurn+5; enemySched={}; enemySched[enemyTurn+3]='assassin';
       hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); await sleep(300);
@@ -232,9 +232,9 @@ with sync_playwright() as p:
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); introOn=false; busy=false;pending=null;gameEnded=false;inPrep=false; const o={}, mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
       const setup=()=>{ flags.forEach(f=>{f.cards=[];f.closed=false;f.lockedUntil=0;f.eater=0}); flags[1].cards=[mk('red',3),mk('red',4)]; enemyTurn=5; autoQ={}; };
       // 発動：旗に居座る（まだ食べない）
-      setup(); enemySched={8:'deatheater'}; autoForecast(); enemyTurn=8; const t=autoTargetIdx(autoQ.deatheater[0]); applyEnemyEvent('deatheater'); o.sit=flags[t].eater===8+EATER_TURNS&&flags[t].cards.length===2; o.badge=(render(),!!document.querySelector('.flag[data-index="'+t+'"]')&&document.body.innerText.includes('デスイーター あと3'));
+      setup(); enemySched={8:'deatheater'}; autoForecast(); enemyTurn=8; const t=autoTargetIdx(autoQ.deatheater[0]), n0=flags[t].cards.length; applyEnemyEvent('deatheater'); o.sit=flags[t].eater===8+EATER_TURNS&&flags[t].cards.length===n0; o.badge=(render(),!!document.querySelector('.flag[data-index="'+t+'"]')&&document.body.innerText.includes('デスイーター あと3'));
       // 置いたカードが食べられる
-      const f=flags[t]; hand=[mk('blue',9)]; const g0=graveyard.length; f.cards.push(hand[0]); const ok=eaterEatPlaced(f,f.cards[2],null,-1); o.eatPlaced=ok&&f.cards.length===2&&graveyard.length===g0+1&&!f.eater;
+      const f=flags[t]; hand=[mk('blue',9)]; const g0=graveyard.length; f.cards.push(hand[0]); const ok=eaterEatPlaced(f,f.cards[n0],null,-1); o.eatPlaced=ok&&f.cards.length===n0&&graveyard.length===g0+1&&!f.eater;
       // 3ターン置かなければ、1枚目が食べられる
       setup(); enemySched={}; flags[1].eater=enemyTurn+3; const first=flags[1].cards[0]; enemyTurn+=2; eaterExpire(); o.early=flags[1].cards.length===2; enemyTurn+=1; eaterExpire(); o.expire=flags[1].cards.length===1&&flags[1].cards[0]!==first&&!flags[1].eater;
       return o}""")

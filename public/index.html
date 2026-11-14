@@ -3045,7 +3045,8 @@ function evCands(type){
     if(type==='pfield'){ const m=flagMonster(f); return m?(!m.enemyCard&&!m.pf&&(m.sub==='number'||m.sub==='combined')&&m.value>0):f.cards.length<3; }   // パニックフィールド：空きのある旗、または自分の力の装備が乗った旗（装備に逆転がかかる。予告した旗に武器を置いても、旗は変わらない）
     if(type==='cfield') return !flagMonster(f)&&f.cards.length<3;
     if(type==='minus'){ const m=flagMonster(f); return f.cards.length<3&&(!m||m.sub==='number'||m.sub==='combined'); }
-    return f.cards.length>0;   // デスイーター・暗殺：カードのある旗
+    if(type==='deatheater') return true;   // デスイーター：完成していない旗ならどこでも（カードがなくても予告を出す。居座った旗に置いたカードを食べる）
+    return f.cards.length>0;   // 暗殺：カードのある旗
   });
 }
 function newAutoPlan(type){
@@ -5462,7 +5463,7 @@ const EVENT_DESC={
   punch:()=>`ターンになると強制的に発動。${Math.round(DIS_PARAM.punchRate*100)}%の確率で、あなたに${DIS_PARAM.punchDmg}ダメージ（外れることもある）。`,
   blind:()=>`ターンになると強制的に発動。ランダムな旗（完成済み・封鎖中・すでに煙に覆われた旗は対象外）を前もって決め（旗の右上に予告が出る）、${DIS_PARAM.blindTurns}ターンの間、黒い煙で覆う。カードは置けるが、中身が見えなくなる。煙の間、その旗は敵の他の妨害の対象からも外れる。`,
   assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）を前もって決め（旗の右上に表示）、その旗のカードからランダムに1枚を墓地へ送る。敵が置いたカードや装備も対象。',
-  deatheater:()=>'カードが置いてある旗をランダムに1つ選んで、3ターンの間、その旗の上に居座る。その間にその旗へカードを置くと、置いたカードが食べられて墓地へ行く。3ターン置かなかったら、その旗の1枚目のカードが食べられる（完成済みの旗と、封鎖中の旗は対象外）。',
+  deatheater:()=>'完成していない旗をランダムに1つ選んで（旗の右上に予告が出る）、3ターンの間、その旗の上に居座る。その間にその旗へカードを置くと、置いたカードが食べられて墓地へ行く。3ターン置かなかったら、その旗の1枚目のカードが食べられる（完成済みの旗と、封鎖中の旗は対象外）。',
   ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで旗に残らず、効果も出ずに墓地へ消える（数字カードも装備も同じ。敵が置くカードも消える）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
@@ -8860,7 +8861,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
