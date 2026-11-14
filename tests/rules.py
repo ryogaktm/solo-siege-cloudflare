@@ -133,7 +133,7 @@ with sync_playwright() as p:
       hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); tapFlag(2); await sleep(300);
       o.flagClean=!flags[2].cards.some(isEnemyEq)&&!flags[2].bomb; busy=false; pending=null;
       // 聖水は呪いが無ければ使えない
-      flags.forEach(f=>{f.cards=[];f.bomb=0;f.lockedUntil=0}); haunt={}; hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); o.noTarget=!pending;
+      flags.forEach(f=>{f.cards=[];f.bomb=0;f.lockedUntil=0}); haunt={}; enemySched={}; dis.poisonUntil=0; dis.halfUntil=0; hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); o.noTarget=!pending;
       o.noWipeTactic=!TACTICS.some(t=>t.type==='wipe');
       return o}""")
     check('全滅：敵の妨害カードになり、使うと旗のカードが消える',r['wipeCard'] and r['wiped'],r)

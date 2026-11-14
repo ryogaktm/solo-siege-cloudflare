@@ -1515,7 +1515,7 @@ const TACTICS = [
   {type:'darius',name:'赤♾️',short:'赤♾️',desc:'どの色・どの数字にもなれる万能カード（点数は8として数える）。旗の3枚目にだけ置ける',count:1},
   {type:'scout',name:'補充',short:'補充',desc:'山札から3枚引いて、手札から2枚を選んで墓地へ捨てる',count:4},
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ捨て、同じ枚数を山札から引き直す',count:3},
-  {type:'holy',name:'聖水',short:'聖水',desc:'呪いを取り除く。手札の呪いのカードなら1枚、旗を選んだらその旗の呪い（敵の装備・ボム・封鎖・ワームホール・煙）を全部消す。自分のカードと役はそのまま',count:2},
+  {type:'holy',name:'聖水',short:'聖水',desc:'敵の呪い・妨害を1つ取り除く。手札の呪いのカード1枚／旗1つの呪い全部（敵の装備・ボム・封鎖・ワームホール・煙・デスイーター）／今かかっている効果（マイナスレイン・色封じ・毒など）／これから来る妨害1つ（特殊攻撃レーンのマーク）。自分のカードと役はそのまま',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地のカードを1枚選んで、手札に戻す',count:2},
   {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚選んで、手札に戻す（敵が置いた数字カードも取れる）。完成した旗から取ると、その旗は未完成に戻り役の点も消える',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面のまま、すぐに一斉攻撃する（完成した旗の役とスーパーコンボは有効）',count:2},
@@ -1860,7 +1860,7 @@ const hasTroopInHand=()=>hand.some(c=>c.kind==='troop');
 tacSkill('tac_revolution','revolution',()=>hasTroopInHand()?null:'手札に数字カードがありません。');
 tacSkill('tac_inspire','inspire',()=>hasTroopInHand()?null:'手札に数字カードがありません。');
 tacSkill('tac_duplicate','duplicate',()=>hand.length?null:'複製できる手札のカードがありません。');
-tacSkill('tac_holy','holy',()=>(hand.some(holyHandOK)||holyFlagCands().length)?null:'消せる呪いがありません。');
+tacSkill('tac_holy','holy',()=>(hand.some(holyHandOK)||holyFlagCands().length||holyGlobals().length||holySchedT().length)?null:'消せる呪いがありません。');
 tacSkill('tac_wipe','wipe',()=>flags.some(f=>f.cards.length>0||isLocked(f))?null:'カードのある旗がありません。');
 SKFN.explore=m=>{
   const keep=hand.filter(c=>isCurse(c)||isEnemyEq(c)), need=currentHandMax()-keep.length;
@@ -3655,7 +3655,7 @@ function tacticUsable(c){   // 軍師カードを今使えるか（旗へのド�
   if(c.type==='duplicate') return hand.length>=2;
   if(c.type==='split') return hand.some(x=>x.kind==='troop');
   if(c.type==='fusion') return hand.filter(x=>x.kind==='troop').length>=2;
-  if(c.type==='holy') return hand.some(x=>x!==c&&holyHandOK(x))||holyFlagCands().length>0;
+  if(c.type==='holy') return hand.some(x=>x!==c&&holyHandOK(x))||holyFlagCands().length>0||holyGlobals().length>0||holySchedT().length>0;
   if(c.type==='guidance') return guidanceTargets(0).length>0;
   return true;
 }
@@ -4442,7 +4442,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
   if(isDropTactic(card)){   // ほかの軍師カード：旗にドラッグしたら発動（撤収・聖水は落とした旗を選んだことにする）
     picked=null;
     if(card.type==='guidance'){ useGuidance(handIdx); if(pending&&pending.type==='guidance') tapFlag(fi); return true; }
-    if(card.type==='holy'){ useHoly(handIdx); if(pending&&pending.type==='holy'&&holyFlagCands().some(x=>x.i===fi)) tapFlag(fi); return true; }
+    if(card.type==='holy'){ if(holyFlagCands().some(x=>x.i===fi)){ busy=false; pending={type:'holy',uid:card.uid}; tapFlag(fi); } else useHoly(handIdx); return true; }   // 呪いのある旗に落としたら、その旗をそのまま清める
     useTacticByIdx(handIdx, card); return true;
   }
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
@@ -4684,12 +4684,38 @@ function useDuplicate(handIdx){
   hint('複製したい手札のカードをタップしてください。');
 }
 const holyHandOK=c=>isCurse(c)||isEnemyEq(c);
-const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.capturedByEnemy&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)));
+const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.capturedByEnemy&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)||(f.eater&&f.eater>enemyTurn)));
+const holyGlobals=()=>{ const L=[];   // 聖水で消せる「今かかっている敵の効果」（旗ではなく全体にかかるもの）
+  if(poisonOn()) L.push({k:'rain',label:'🌧 マイナスレインを止める',clear:()=>{ dis.poisonUntil=0; }});
+  if(dis.halfColor&&enemyTurn<dis.halfUntil) L.push({k:'col',label:`🎨 ${CNAME[dis.halfColor]}の${dis.halfMul===0?'色封じ':'色半減'}を解く`,clear:()=>{ dis.halfColor=null; dis.halfUntil=0; }});
+  if((dis.venomUntil||0)>0&&turnCounter<=dis.venomUntil) L.push({k:'venom',label:'☠ 毒を消す',clear:()=>{ dis.venomUntil=0; }});
+  if(disDarkOn()) L.push({k:'dark',label:'🌑 暗闇を晴らす',clear:()=>{ dis.darkUntil=0; }});
+  if(nullOn()) L.push({k:'null',label:'🚫 無効を解く',clear:()=>{ dis.nullUntil=0; }});
+  if(disGuardOn()||dis.halfNext) L.push({k:'guard',label:'🛡 敵の防御を解く',clear:()=>{ dis.guardN=0; dis.guardUntil=0; dis.halfNext=false; try{ syncGuardFx(); }catch(e){} }});
+  return L; };
+const holySchedT=()=>Object.keys(enemySched).map(Number).filter(t=>t>enemyTurn&&enemySched[t]&&enemySched[t]!=='rage');   // これから来る妨害（攻撃力×2は除く）
+function holyCancelSched(t){   // 聖水：予定の妨害を1つ取り消す（特殊攻撃レーンのマークをタップ）
+  const ev=enemySched[t]; if(!ev||ev==='rage') return hint('それは聖水では消せません。',true);
+  delete enemySched[t]; if(FLAG_EVS.includes(ev)) takeAutoPlan(ev);
+  finishHoly(`💧 聖水：これから来る「${(EVENT_INFO[ev]||{}).label||ev}」を取り消した！`);
+}
+function holyCancelDeckCurse(ck){   // 聖水：山札にある呪いのカード（次に来るもの）を消す
+  const ty=ck==='poison'?'curse_poison':'curse_seal'; for(let i=activeDeck.length-1;i>=0;i--){ if(activeDeck[i]&&activeDeck[i].type===ty){ activeDeck.splice(i,1); return finishHoly(`💧 聖水：山札の${ck==='poison'?'毒':'封鎖'}のカードを消した！`); } }
+  hint('その呪いのカードは見つかりませんでした。',true);
+}
 function useHoly(handIdx){
-  const others=hand.some((c,i)=>i!==handIdx&&holyHandOK(c));
-  if(!others && !holyFlagCands().length) return hint('取り除ける呪いがありません（手札にも旗にも、呪いがありません）。',true);
-  busy=false; pending={type:'holy', uid:hand[handIdx].uid}; picked=null; render();
-  hint('取り除く呪いを、手札のカードか旗からタップしてください。（キャンセルすると使いません）');
+  const others=hand.some((c,i)=>i!==handIdx&&holyHandOK(c)), G=holyGlobals(), sch=holySchedT().length>0;
+  if(!others && !holyFlagCands().length && !G.length && !sch) return hint('取り除ける呪いがありません（手札・旗・敵の効果・これから来る妨害のどれにもありません）。',true);
+  const uidH=hand[handIdx].uid;
+  const tapMode=()=>{ busy=false; pending={type:'holy', uid:uidH}; picked=null; render();
+    hint('取り除く呪いを、手札のカード・旗・特殊攻撃レーンの妨害マークからタップしてください。（キャンセルすると使いません）'); };
+  if(!G.length) return tapMode();
+  const opts=G.map(g=>({label:g.label})); if(others||holyFlagCands().length||sch) opts.push({label:'手札・旗・これから来る妨害から選ぶ'});
+  pickDialog('💧 聖水：何を取り除く？', opts, a=>{
+    if(a>=G.length) return tapMode();
+    if(hand.findIndex(c=>c.uid===uidH)<0) return;
+    G[a].clear(); pending={type:'holy', uid:uidH}; finishHoly(`💧 聖水：${G[a].label.replace(/^\S+ /,'')}！`);
+  });
 }
 function finishHoly(msg,extra){
   const hi=hand.findIndex(c=>c.uid===pending.uid), used=hand[hi]; pending=null;
@@ -5464,7 +5490,9 @@ function showEventPopup(ev,cd){
 /* 妨害・特殊攻撃のマークをタップ → 説明のポップアップ。click が届かない端末（iPhone等）でも開くように、指を離した時（pointerup）でも開く。二重に開かないよう0.7秒の間引きをする */
 (function(){
   const SEL='#upcomingRow .fc[data-ev],#upcomingRow2 .fc[data-ev]'; let last=0, dn=null;
-  const open=c=>{ const n=Date.now(); if(n-last<700) return; last=n; showEventPopup(c.dataset.ev,+c.dataset.cd||0); };
+  const open=c=>{ const n=Date.now(); if(n-last<700) return; last=n;
+    if(pending&&pending.type==='holy'){ if(c.dataset.t) return holyCancelSched(+c.dataset.t); if(c.dataset.curse) return holyCancelDeckCurse(c.dataset.ev); return hint('それは聖水では消せません。',true); }   // 聖水を使っている時は、タップした妨害を取り消す
+    showEventPopup(c.dataset.ev,+c.dataset.cd||0); };
   document.addEventListener('pointerdown',e=>{ const c=e.target.closest&&e.target.closest(SEL); dn=c?{c,x:e.clientX,y:e.clientY,t:Date.now()}:null; },true);
   document.addEventListener('pointerup',e=>{ const c=e.target.closest&&e.target.closest(SEL); if(c&&dn&&dn.c===c&&Math.abs(e.clientX-dn.x)<12&&Math.abs(e.clientY-dn.y)<12&&Date.now()-dn.t<800) open(c); dn=null; },true);
   document.addEventListener('click',e=>{ const c=e.target.closest&&e.target.closest(SEL); if(c) open(c); });
@@ -5502,7 +5530,7 @@ function renderUpcoming(){
       html+=`<div class="fc ${info.cls}" data-ev="rage"${slowStyle(t)}><b>${info.icon}</b><small>${info.label}</small></div>`; html2+=cur?curseCell(cur):'<div class="fc fc-empty"><b>–</b></div>';
     } else {
       html+=`<div class="fc"${slowStyle(t)}><small class="fc-sw">${slowLabel(t,k===1)}</small><b>${fmtCompact(enemyAtkAt(t))}</b></div>`;
-      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}">${ev==='autonum'?(()=>{ try{ const pl=planAt('autonum',evOrd(t,'autonum',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}${pl.v}</b>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]}</small>`; } })():ev==='minus'?(()=>{ try{ const pl=planAt('minus',evOrd(t,'minus',baseT)); return `<b>${info.icon}${pl.v}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; } })():ev==='cfield'?(()=>{ try{ const pl=planAt('cfield',evOrd(t,'cfield',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${info.icon}${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; } })():`<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`}<small class="fc-cd">あと${k+nClk}</small></div>`; }
+      if(ev&&EVENT_INFO[ev]){ const info=EVENT_INFO[ev]; anySp=true; html2+=`<div class="fc ${info.cls}" data-ev="${ev}" data-cd="${k+nClk}" data-t="${t}">${ev==='autonum'?(()=>{ try{ const pl=planAt('autonum',evOrd(t,'autonum',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}${pl.v}</b>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]}</small>`; } })():ev==='minus'?(()=>{ try{ const pl=planAt('minus',evOrd(t,'minus',baseT)); return `<b>${info.icon}${pl.v}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; } })():ev==='cfield'?(()=>{ try{ const pl=planAt('cfield',evOrd(t,'cfield',baseT)); return `<b style="display:flex;align-items:center;justify-content:center;gap:2px;color:${CFILL[pl.col]}">${info.icon}${miniIcon(EMBLEM[pl.col],CFILL[pl.col])}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; }catch(e){ return `<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`; } })():`<b>${info.icon}</b><small>${EVENT_SHORT[ev]||info.label}</small>`}<small class="fc-cd">あと${k+nClk}</small></div>`; }
       else if(cur) html2+=curseCell(cur);
       else html2+='<div class="fc fc-empty"><b>–</b></div>';
     }
@@ -8842,7 +8870,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
