@@ -1509,7 +1509,7 @@ const EMBLEM = {
   armor:  '<path d="M50 6 L78 18 V32 C78 58 66 78 50 92 C34 78 22 58 22 32 V18 Z M50 20 C42 20 34 24 34 24 V34 C34 52 42 66 50 78 C58 66 66 52 66 34 V24 C66 24 58 20 50 20 Z" fill-rule="evenodd"/>',
   necro:  '<path d="M50 6 L90 50 L50 94 L10 50 Z" fill-opacity=".55"/><circle cx="50" cy="50" r="16"/>'
 };
-const NEWTAC_COUNT=2, PROMOTE_UP=2, RATION_HEAL=30, BRIBE_COST=100;   // 新しい軍師カード：山札に入る枚数／昇格の上がる数／兵糧の回復量／買収の値段
+const NEWTAC_COUNT=2, PROMOTE_UP=2, BRIBE_COST=100;   // 新しい軍師カード：山札に入る枚数／昇格の上がる数／買収の値段
 const TACTICS = [
   {type:'alexander',name:'青♾️',short:'青♾️',desc:'どの色・どの数字にもなれる万能カード（点数は8として数える）',count:1},
   {type:'darius',name:'赤♾️',short:'赤♾️',desc:'どの色・どの数字にもなれる万能カード（点数は8として数える）。旗の3枚目にだけ置ける',count:1},
@@ -1528,12 +1528,12 @@ const TACTICS = [
   {type:'fusion',name:'融合',short:'融合',desc:'手札の数字カードを2枚選んで、数字を1枚にまとめる（最大10。10を超えた分はもう1枚に残る。まとまったカードのマークは数字が高い方）',count:2},
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える（めくった他のカードは山札の下へ）',count:NEWTAC_COUNT,isNew:true},
   {type:'promote',name:'昇格',short:'昇格',desc:`旗を1つ選んで、そこの数字カード（数字のある装備も）を全部+${PROMOTE_UP}する。完成した旗でもOK（役と点を計算し直し、役が上がれば役ボーナスも出る）`,count:NEWTAC_COUNT,isNew:true},
-  {type:'ration',name:'兵糧',short:'兵糧',desc:`体力を${RATION_HEAL}回復して、カードをいつもより1枚多く引く`,count:NEWTAC_COUNT,isNew:true},
   {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ取り消す`,count:NEWTAC_COUNT,isNew:true},
 ];
 const TACTIC_OFF=['plead'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
 const TACTICS_ON=TACTICS.filter(t=>!TACTIC_OFF.includes(t.type));
-const GLOBAL_TACTIC_TYPES=['reinforce','promote','ration','bribe','scout','shuffle','inspire','rehire','conscript','revolution','plead','defend'];
+const REMOVED_TACTICS=['swap','ration'];   // 廃止した軍師カード
+const GLOBAL_TACTIC_TYPES=['reinforce','promote','bribe','scout','shuffle','inspire','rehire','conscript','revolution','plead','defend'];
 const PLEAD_TURNS=3;   // 命乞いカード：敵の大技を遅らせるターン数
 const HAND_MAX_BASE = 6, WAVE_DRAW = 40;
 let FLAG_COUNT = 6;
@@ -5176,7 +5176,7 @@ function useDefend(handIdx){
   busy=false; hint('🛡 防御：このwaveは攻撃せず、攻撃力×2で防御する！'); playSfx('shuffle'); endCheck(); render();
 }
 
-/* ----- 新しい軍師カード（援軍・昇格・兵糧・買収） ----- */
+/* ----- 新しい軍師カード（援軍・昇格・買収） ----- */
 function pickDialog(title, items, onPick){   // 選択ウィンドウ：items=[{label,html?}] → 選んだ番号を onPick へ
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
   bg.innerHTML=`<div class="reward-box"><div class="reward-title">${title}</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:60vh;overflow:auto">${items.map((it,i)=>`<button class="btn" data-i="${i}">${it.html||it.label}</button>`).join('')}</div><button class="btn" id="pdNo" style="margin-top:10px;width:100%">やめる</button></div>`;
@@ -5227,13 +5227,6 @@ function promoteFlag(huid, fi){   // 昇格の本体：旗fiの数字カード�
   advanceTurn(used); const refilled=autoRefill(1);
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
   busy=false; hint(`⬆ 昇格：旗${fi+1}のカードが全部上がった！（${ch.join('、')}）`); endCheck(); render();
-}
-function useRation(handIdx){
-  busy=true; const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
-  const before=playerHp; healPlayer(RATION_HEAL); playerHp=Math.min(playerHpMax,playerHp);
-  advanceTurn(used); const refilled=autoRefill(2);
-  render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-  busy=false; hint(`🍙 兵糧：体力が${Math.round(playerHp-before)}回復して、カードを1枚多く引いた。`); playSfx('shuffle'); endCheck(); render();
 }
 function useBribe(handIdx){
   if(gold<BRIBE_COST) return hint(`お金が足りません。（${BRIBE_COST}G必要）`,true);
@@ -5685,7 +5678,7 @@ function render(){
       return c; };
     const bad=c=>c&&c.kind==='monster'&&(c.stackOrig||(c.sub==='combined'&&!c.enemyCard));
     if([hand,activeDeck,grandDeck,graveyard,pendingRewardCards].some(a=>a.some(bad))){ hand=hand.map(un); activeDeck=activeDeck.map(un); grandDeck=grandDeck.map(un); graveyard=graveyard.map(un); pendingRewardCards=pendingRewardCards.map(un); } }
-  { const isSw=c=>c&&(c.kind==='tactics'||c.kind==='tactic')&&c.type==='swap'; if([hand,activeDeck,grandDeck,graveyard,pendingRewardCards].some(a=>a.some(isSw))){ hand=hand.filter(c=>!isSw(c)); activeDeck=activeDeck.filter(c=>!isSw(c)); grandDeck=grandDeck.filter(c=>!isSw(c)); graveyard=graveyard.filter(c=>!isSw(c)); pendingRewardCards=pendingRewardCards.filter(c=>!isSw(c)); } }   // 廃止した軍師カード「交換」は、古いセーブから取り除く
+  { const isSw=c=>c&&(c.kind==='tactics'||c.kind==='tactic')&&REMOVED_TACTICS.includes(c.type); if([hand,activeDeck,grandDeck,graveyard,pendingRewardCards].some(a=>a.some(isSw))){ hand=hand.filter(c=>!isSw(c)); activeDeck=activeDeck.filter(c=>!isSw(c)); grandDeck=grandDeck.filter(c=>!isSw(c)); graveyard=graveyard.filter(c=>!isSw(c)); pendingRewardCards=pendingRewardCards.filter(c=>!isSw(c)); } }   // 廃止した軍師カード（交換・兵糧）は、古いセーブから取り除く
   if(accOwned.some(o=>o.id==='pocket')){ accOwned=accOwned.filter(o=>o.id!=='pocket'); accEq=accEq.filter(a=>accOwned.some(o=>o.aid===a)); }   // 廃止した「予備のポケット」は、古いセーブから取り除く
   if(pocket){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); }   // 廃止したポケットに入っていた古いセーブのカードは、山札へ戻す
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
@@ -6924,7 +6917,6 @@ function useTacticByIdx(idx,c){   // 手札のカードを発動する（軍師�
   else if(c.type==='conscript'){ useConscript(idx); }
   else if(c.type==='reinforce'){ useReinforce(idx); }
   else if(c.type==='promote'){ usePromote(idx); }
-  else if(c.type==='ration'){ useRation(idx); }
   else if(c.type==='bribe'){ useBribe(idx); }
   else if(isCurse(c)){ useCurse(idx); }
   else if(c.type==='blank'){ discardDraw(idx); }
@@ -8849,7 +8841,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
