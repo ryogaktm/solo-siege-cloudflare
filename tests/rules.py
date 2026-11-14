@@ -126,19 +126,19 @@ with sync_playwright() as p:
       const wi=hand.findIndex(c=>c.type==='curse_wipe'); useCurse(wi); o.pickMode=pending&&pending.wipe===true; flags.forEach((f,i)=>{}); tapFlag(1); await sleep(300); o.wiped=flags[1].cards.length===0; busy=false; pending=null;
       // 聖水：手札の呪いを消す
       hand=[]; applyEnemyEvent('wipe'); applyEnemyEvent('null'); const holy=Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()}); hand.push(holy);
-      useHoly(hand.findIndex(c=>c.type==='holy')); o.holyPend=pending&&pending.type==='holy'; const ni=hand.findIndex(c=>c.type==='curse_null'); tapHand(ni); await sleep(300);
-      o.nullGone=!hand.some(c=>c.type==='curse_null'); o.wipeStay=hand.some(c=>c.type==='curse_wipe'); busy=false; pending=null;
-      // 聖水：旗の敵装備・ボムを消す
-      flags.forEach(f=>{f.cards=[];f.closed=false;f.bomb=0}); flags[2].cards=[makeMinusEq()]; flags[2].bomb=3;
-      hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); tapFlag(2); await sleep(300);
-      o.flagClean=!flags[2].cards.some(isEnemyEq)&&!flags[2].bomb; busy=false; pending=null;
-      // 聖水は呪いが無ければ使えない
-      flags.forEach(f=>{f.cards=[];f.bomb=0;f.lockedUntil=0}); haunt={}; enemySched={}; dis.poisonUntil=0; dis.halfUntil=0; hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); o.noTarget=!pending;
+      useHoly(hand.findIndex(c=>c.type==='holy')); await sleep(300);
+      o.handClean=!hand.some(c=>c.type==='curse_null'||c.type==='curse_wipe'); o.holyUsed=!hand.some(c=>c.type==='holy'); busy=false; pending=null;
+      // 聖水：旗の敵装備・ボム・マイナスレイン・色封じを一度に全部消す（予定の妨害は残る）
+      flags.forEach(f=>{f.cards=[];f.closed=false;f.bomb=0}); flags[2].cards=[makeMinusEq()]; flags[2].bomb=3; flags[1].eater=enemyTurn+3; dis.poisonUntil=turnCounter+5; dis.halfColor='red'; dis.halfUntil=enemyTurn+5; enemySched={}; enemySched[enemyTurn+3]='assassin';
+      hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); await sleep(300);
+      o.flagClean=!flags[2].cards.some(isEnemyEq)&&!flags[2].bomb&&!flags[1].eater&&!poisonOn()&&!(dis.halfColor&&enemyTurn<dis.halfUntil); o.schedStay=Object.values(enemySched).includes('assassin'); busy=false; pending=null;
+      // 聖水は状態異常が無ければ使えない
+      flags.forEach(f=>{f.cards=[];f.bomb=0;f.lockedUntil=0;f.eater=0}); haunt={}; dis.poisonUntil=0; dis.halfUntil=0; hand=[Object.assign({kind:'tactics'},TACTICS.find(t=>t.type==='holy'),{uid:uid()})]; useHoly(0); o.noTarget=hand.some(c=>c.type==='holy');
       o.noWipeTactic=!TACTICS.some(t=>t.type==='wipe');
       return o}""")
     check('全滅：敵の妨害カードになり、使うと旗のカードが消える',r['wipeCard'] and r['wiped'],r)
-    check('聖水：手札の呪いを選んで消せる（他の呪いは残る）',r['holyPend'] and r['nullGone'] and r['wipeStay'],r)
-    check('聖水：旗の敵の装備・ボムを消せる／呪いが無ければ使えない／全滅は軍師カードから消えた',r['flagClean'] and r['noTarget'] and r['noWipeTactic'],r)
+    check('聖水：手札の呪いをまとめて消す',r['handClean'] and r['holyUsed'],r)
+    check('聖水：旗の呪い・デスイーター・マイナスレイン・色封じを一度に消す／予定の妨害は残る／状態異常が無ければ使えない／全滅は軍師カードから消えた',r['flagClean'] and r['schedStay'] and r['noTarget'] and r['noWipeTactic'],r)
     r=ev("""()=>{ const sim=(lo,hi)=>{ const o={soft:0,big:0,n:0}; WAVES.filter(w=>!w.boss&&w.lv>=lo&&w.lv<=hi).forEach(w=>{ stageIndex=WAVES.indexOf(w); for(let k=0;k<40;k++){ const s=genSchedule(); Object.values(s).forEach(e=>{ if(e==='rage') return; o.n++; if(SOFT_DIS.includes(e)) o.soft++; else o.big++; }); } }); return o}; return {mid:sim(20,40),hi:sim(50,72)} }""")
     print('妨害の内訳 (soft=カード/場荒らし, big=大きい不可逆)',r)
     check('妨害の出る割合：カード・場荒らし系が半数以上',r['mid']['soft']>r['mid']['big'] and r['hi']['soft']>=r['hi']['big']*0.8,r)
