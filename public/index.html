@@ -3559,6 +3559,7 @@ function satisfiesMonster(card, f){
 function yakuFits(card, f){   // 役のみの指輪：置いたあとに役が成り立つ（または、あと1枚で成り立つ余地がある）カードだけ置ける
   if(isWildCard(card)) return true;
   { const pm=flagMonster(f); if(pm&&(pm.sub==='pfield'||pm.pf)&&card.kind==='troop') card=Object.assign({},card,{value:11-card.value}); }   // パニックフィールドの旗は、逆転後の数字で役を判定する
+  if(card.kind==='troop'){ try{ const pv=placeValueFx(card).v; if(pv!==card.value) card=Object.assign({},card,{value:pv}); }catch(e){} }   // マイナスレインなど、置いた時に変わる数字で役を判定する
   const cur=f.cards.filter(c=>c&&c.kind!=='monster');
   if(cur.length===0) return true;
   const ok=cs=>{ const r=evaluate({cards:cs,eqBonus:0}); return !!r && r.name!=='ホスト'; };
@@ -8831,7 +8832,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
