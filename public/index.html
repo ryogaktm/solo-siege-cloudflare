@@ -155,8 +155,11 @@
   .mon-grid.wide{ grid-template-columns:repeat(4,1fr); gap:6px; }
   .mon-grid.wide .mon-tile{ padding:6px 2px; }
   .mon-grid.wide .mon-tile b{ font-size:9.5px; }
-  .mon-tile.alien{ background:linear-gradient(160deg,rgba(96,52,170,.62),rgba(24,70,126,.55)); border-color:#a58cf5; }   /* 宇宙人は背景色を変えて、並びの中で見分けられるように */
-  .mon-tile.alien b{ color:#e2d4ff; }
+  .mon-tile.f1,.mon-tile.f2{ position:relative; border:2px solid var(--gold); background:rgba(226,192,106,.12); box-shadow:0 0 10px rgba(226,192,106,.6); }   /* 合体1・合体2に入っているモンスター */
+  .mon-tile.f1::after,.mon-tile.f2::after{ position:absolute; top:3px; left:5px; font-size:17px; font-weight:900; color:var(--gold); line-height:1; }
+  .mon-tile.f1::after{ content:'①'; } .mon-tile.f2::after{ content:'②'; }
+  .mon-tile.f1.nofuse::after{ content:''; }
+  .mon-tile.taken{ opacity:.55; }   /* もう片方の枠に入っているので、今の枠では選べない */
   .mon-tile.locked{ opacity:.28; cursor:default; filter:grayscale(.6); }
   .cur-panel{ flex-wrap:wrap; position:sticky; top:0; z-index:6; display:flex; align-items:center; gap:8px; padding:10px; margin-bottom:10px; background:rgba(10,16,12,.96); border:1px solid rgba(226,192,106,.5); border-radius:10px; text-align:left; box-shadow:0 4px 12px rgba(0,0,0,.5); }
   .cp-box{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; }
@@ -7517,16 +7520,20 @@ function buildCharList(){
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
-  const fuseUi=()=>{ charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} };
+  const fuse2Init=fuse2;   // リセットで戻す「前回の選択」
+  const markTiles=()=>{ if(!wide) return; const s1=picked?picked.id:curMonId(), s2=fuseOk?fuse2:'';
+    grid.querySelectorAll('.mon-tile').forEach(t=>{ const id=t.dataset.id; t.classList.toggle('f1',id===s1); t.classList.toggle('f2',!!s2&&id===s2); t.classList.toggle('nofuse',!fuseOk); t.classList.toggle('taken',fuseOk&&((fuseSlot===1&&!!s2&&id===s2)||(fuseSlot===2&&id===s1))); });
+    const cb=document.getElementById('charCancel'); if(cb) cb.textContent=(picked||fuse2!==fuse2Init)?'リセット':'キャンセル'; };
+  const fuseUi=()=>{ charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} try{ markTiles(); }catch(e){} };
   const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId();
-    if(d.id===first){ if(picked&&curMonId()!==d.id){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } else return monAlert('合体1は今使っているモンスターなので、外せません。'); fuse2=d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); return; }   // 合体1に入っているモンスターを合体2へ：合体1の選択は消える
+    if(d.id===first) return;   // 合体1に入っているモンスターは、合体2には選べない
     fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); };   // 合体2を選んだあとも、選択は合体2のまま（能力を見比べやすいように）   // 合体2（足）に入れる
   if(fuseOk){ document.getElementById('curPanel').onclick=e=>{ const t=e.target.closest&&e.target.closest('[data-fs]'); if(!t) return; if(t.dataset.fs==='1') fuseSlot=1; else if(fuseSlot===2&&fuse2){ fuse2=''; lsSet(SEL2_KEY,''); fuseSlot=1; } else fuseSlot=2; fuseUi(); }; }   // 枠をタップ：合体1／合体2を選ぶ（選んだ合体2をもう一度押すと外れる）
   fuseUi();
   const prevId=wide?curMonId():hasLeader?defs[0].id:((defs.some(x=>x.id===lsGet(SEL_KEY)))?lsGet(SEL_KEY):(defs[0]&&defs[0].id));   // 前回選んだキャラ（なければ先頭）に印を付ける
   if(wide) renderCurPanel(null);
   defs.forEach(d=>{
-    const i=d.i, ch=makeMonChar(i,d.id), el=document.createElement('button'); el.className='mon-tile'+(d.alien?' alien':'')+(d.locked?' locked':'')+((!d.locked&&d.id===prevId)?' cur':'');
+    const i=d.i, ch=makeMonChar(i,d.id), el=document.createElement('button'); el.className='mon-tile'+(d.locked?' locked':'')+((!wide&&!d.locked&&d.id===prevId)?' cur':''); el.dataset.id=d.id;
     const haloOn=(ch.mon===HUMAN_MON&&!bodyBack());
     const spr=()=>monIconHtml(ch,d.id,i,wide?40:48);
     el.innerHTML=`<span class="mon-spr">${spr()}</span><b>${ch.name.replace('そこらへんの','そこらへんの<br>').replace('史上最強の','史上最強の<br>')}</b>${wide?'':`<small>${ch.sp.length?MON_SP_LABEL[ch.sp[0]]:'&nbsp;'}</small>`}`;
@@ -7534,7 +7541,8 @@ function buildCharList(){
     el.onclick=wide?(()=>{
       if(fuseSlot===2){ setFuse(d,true); return; }   // 合体2の枠を選んでいる時は、足にするモンスターを選ぶ   // 合体：足にするモンスターを選ぶ（同じものをもう一度押すと外れる）
       if(d.locked) return;
-      const dropDup=()=>{ if(fuse2===d.id){ fuse2=''; lsSet(SEL2_KEY,''); } };   // 合体2に入っているモンスターを合体1にしたら、合体2の選択は消える
+      if(fuseOk&&fuse2===d.id) return;   // 合体2に入っているモンスターは、合体1には選べない
+      const dropDup=()=>{};
       if(d.id===curMonId()){ dropDup(); if(picked){ picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); } fuseUi(); return; }   // 使用中のキャラを押した時：選択中なら選択を取り消すだけ。何も選んでいなければ何も起こさない（タイトルへは戻らない）
       const sel=()=>{ grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); picked={id:d.id,i,ch,haloOn}; dropDup(); fuseUi(); };
       if(isWeakId(d.id)) monConfirm('チュートリアル用です。',sel); else sel();
@@ -7542,20 +7550,21 @@ function buildCharList(){
     if(wide&&fuseOk&&!d.locked) attachFuseDrag(el,()=>setFuse(d,false),()=>el.onclick&&el.onclick());
     grid.appendChild(el);
   });
+  fuseUi();   // ①②の印を付ける
   { const ht=document.getElementById('charHint');   // 次に選ぶと良いモンスター（前回選んだ次に解放されたもの）を案内
     const pi=defs.findIndex(x=>x.id===prevId), nx=(!wide&&pi>=0)?defs[pi+1]:null;
     if(ht){ if(false&&nx&&!nx.locked){ ht.textContent=`次は「${makeMonChar(nx.i,nx.id).name}」を選ぼう`; ht.style.display=''; } else ht.style.display='none'; } }
   if(wide){
     const toTitle=()=>{ document.getElementById('charBackBtn').onclick(); };
     document.getElementById('charCancel').onclick=()=>{
-      if(!picked){ toTitle(); return; }
-      picked=null; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); renderCurPanel(null);
+      if(!picked&&fuse2===fuse2Init){ toTitle(); return; }
+      picked=null; fuse2=fuse2Init; lsSet(SEL2_KEY,fuse2); fuseSlot=1; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); fuseUi();   // リセット：前回の選択（合体1・合体2）に戻す
     };
     document.getElementById('charDecide').onclick=()=>{
       const id=picked?picked.id:curMonId(); let ch=picked?picked.ch:curMonChar(); if(fuseOk&&fuse2&&!isWeakId(ch.mon)) ch=fuseChar(ch,fuse2);   // 決定したら、そのキャラでそのままゲームを始める
       lsSet(SEL_KEY,id); lsSet('soloSiegeWeakOk',isWeakId(id)?'1':''); if(ch.mon===HUMAN_MON&&!bodyBack()) lsSet('soloSiegeBodyBack','1');
       const fused=fuseOk&&fuse2&&!!ch.mon2, fr=document.querySelector('#curPanel .fs-row'); if(fused&&fr) fr.classList.add('fusing');   // 合体アニメーションは「この身体で戦う」を押した時だけ
-      const tile=grid.querySelector('.mon-tile.sel')||grid.querySelector('.mon-tile.cur'); if(tile) tile.classList.add('possessed');   // 憑依の演出のあと、ゲーム開始
+      const tile=grid.querySelector('.mon-tile.f1')||grid.querySelector('.mon-tile.sel')||grid.querySelector('.mon-tile.cur'); if(tile) tile.classList.add('possessed');   // 憑依の演出のあと、ゲーム開始
       document.getElementById('charDecide').disabled=true; try{ playSfx('shuffle'); }catch(e){}
       setTimeout(()=>{ document.getElementById('charDecide').disabled=false; startAs(ch); },fused?1000:(tile?650:0));
     };
@@ -8806,7 +8815,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-14j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-14k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
