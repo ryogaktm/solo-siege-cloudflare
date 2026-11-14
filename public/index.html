@@ -6962,6 +6962,7 @@ let slotStash=null;
 function slotBack(){ if(!slotStash) return; spec.mon2=spec.mon; spec.mon=slotStash.n; CHARACTER.monSkill=slotStash.ms; slotStash=null; }
 function specUse(kind){
   if(gameEnded||busy||pending||waveAdvancing) return;
+  slotBack();   // 合体の2つ目の技を使いかけて（払えない等で）止まっていたら、先に元へ戻す（戻さないと1つ目の技が2つ目と同じになる）
   if(kind==='mon'&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='swallow'&&stomach.length){ monSkillUse(); return; }   // 吐き出すのは回数を使わない
   if(specRemain(kind)<=0) return;
   if(kind==='mon'){ monSkillUse(); return; }
@@ -8841,7 +8842,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
