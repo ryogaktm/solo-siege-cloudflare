@@ -1070,6 +1070,7 @@
   #condBar .cb-view{ position:relative; flex:1 1 auto; min-width:0; height:20px; overflow:hidden; }
   #condBar .cb-run{ position:absolute; left:0; top:50%; margin-top:-9px; height:18px; width:max-content; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; font-weight:800; color:var(--cream,#f4ead2); will-change:transform; }
   #condBar .cb-run .pn-tag{ align-self:center; margin-right:4px; }
+    .cp-cost{ margin-top:3px; font-size:12px; color:var(--gold); font-weight:700; }
   #condBar .cb-it{ flex:0 0 auto; display:inline-flex; align-items:center; margin-right:22px; }
   #condBar .cb-p{ color:var(--gold); font-size:12px; }
   .pn-box{ max-width:440px; }
@@ -7616,9 +7617,7 @@ const isWeakId=id=>id==='ミジンコ'||id==='ミジンコリーダー';
 function curMonId(){ let id=lsGet(SEL_KEY); if(isWeakId(id)){ if(!lsGet('soloSiegeWeakOk')) id='ミジンコキング'; } else if(!id||!unlockedMons().includes(id)||monIdxOf(id)<0) id='ミジンコキング'; return id; }
 function curMonChar(){ const id=curMonId(); return makeMonChar(monIdxOf(id),id); }
 function monIconHtml(ch,id,i,px){ const haloOn=(ch.mon===HUMAN_MON&&!bodyBack()); return (haloOn||ch.mon!==HUMAN_MON)?spriteSVG(monSprKey({id,tier:WAVES[i].tier}),px,''):spriteSVG('general',px,''); }
-function monStatHtml(ch){
-  return `<div><span>体力</span>${ch.hp}</div>`;
-}
+function monStatHtml(ch){ return ''; }   // 体力は全員100で同じなので、キャラ選択では書かない
 function monSkillText(ch,id){
   const m=ch&&ch.monSkill;
   if(m&&m.desc) return `${m.icon||''}${m.name}：${m.desc}`;
@@ -7626,7 +7625,16 @@ function monSkillText(ch,id){
   if(k&&SPEC_INFO[k]) return `${SPEC_INFO[k].title}：${SPEC_INFO[k].desc}`;
   return id==='ミジンコキング'?'ここからが本当のスタート！<br>身の程を知って堅実に生きよう！':'特殊技はありません。';
 }
-function monDesc(id,i){ return monSkillText(makeMonChar(i,id),id); }
+function monDesc(id,i){ const ch=makeMonChar(i,id), c=monCostHtml(ch); return monSkillText(ch,id)+(c?`<div class="cp-cost">コスト：${c}</div>`:''); }
+function monCostHtml(ch){   // キャラ選択に出す特殊技のコスト（戦闘中の表示と同じ決まり）
+  const m=ch&&ch.monSkill; if(!m||!m.desc) return '';
+  if(!m.kind) return '常時（使わなくても効く）';
+  const sc=MONSC[m.kind]; if(sc){ try{ return `${miniIcon(EMBLEM[sc[0]],CFILL[sc[0]])}×${sc[1]()}（スーパーコンボ）`; }catch(e){} }
+  if(m.cost&&!m.cost.count) return skCostHtml(m)||'なし（回数制限なし）';
+  const keep=CHARACTER; let n=null; try{ CHARACTER=ch; n=specMax('mon'); }catch(e){} finally{ CHARACTER=keep; }
+  const parts=[n&&n<99?`1戦に${n}回まで`:'', m.cost?skCostHtml(m):''].filter(Boolean);
+  return parts.length?parts.join('／'):'なし';
+}
 let charFuse2='', charFuseSlot=1, charFuseOn=false, charFuseAnim=false;   // キャラ選択で選んでいる合体の相手（足）／いま選ぶ枠（1か2）／合体の枠を出すか
 function fuseSlotsHtml(sel){
   const f1=sel?{id:sel.id,ch:sel.ch}:{id:curMonId(),ch:curMonChar()}, i2=charFuse2?monIdxOf(charFuse2):-1;
@@ -8837,7 +8845,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
