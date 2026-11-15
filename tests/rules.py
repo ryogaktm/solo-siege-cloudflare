@@ -560,5 +560,14 @@ with sync_playwright() as p:
       o.holy=holyFlagCands().some(x=>x.i===o.tr);
       o.noEater=!DIS_OFF.includes('arrow')&&DIS_OFF.includes('deatheater'); return o}""")
     check('矢印パネル：右上の旗の右上向きは左下の旗へ回りこんで置かれる／矢印は1回で消える／先に置けない時は残る／聖水で消せる／デスイーターは停止',r['dest']==r['want'] and r['at']==r['dest'] and not r['arrowLeft'] and not r['busy'] and r['stay']==str(r['tr']) and r['holy'] and r['noEater'],r)
+    r=ev("""()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; enemySched={}; panel=null;
+      const T=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); flags.forEach(f=>{f.cards=[];f.closed=false;f.arrow=null;}); haunt={};
+      applyEnemyEvent('ghost'); const hi=+Object.keys(haunt)[0]; o.one=Object.keys(haunt).length===1&&haunt[hi]===1;
+      for(let k=0;k<3;k++) advanceTurn&&0; o.stay=haunt[hi]===1;
+      const c=T('red',7); hand=[c]; const g0=graveyard.length; playOnFlag(0,hi,null,true); o.cardGone=!flags[hi].cards.length&&graveyard.some(x=>x.uid===c.uid)&&!haunt[hi];
+      haunt={}; haunt[1]=1; busy=false; const cu=makeCurse('wipe'); flags[1].cards=[T('blue',2)]; hand=[cu]; o.canDrop=targetsFor(cu).includes(1); playOnFlag(0,1,null,true);
+      o.curseGone=!hand.some(x=>x.uid===cu.uid)&&!haunt[1]&&flags[1].cards.length===1&&!graveyard.some(x=>x.uid===cu.uid);
+      o.on=!DIS_OFF.includes('ghost'); return o}""")
+    check('ワームホール：1枚置くまで居続ける／置いたカードは一緒に墓地へ／呪いカードも効果を出さずに一緒に消える',all(r.values()),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

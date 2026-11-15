@@ -606,6 +606,10 @@
   }
   .pcard.mini.purchased::after{ font-size:11px; }
   .arrow-panel{ position:absolute; left:50%; top:50%; width:44%; max-width:64px; aspect-ratio:1/1.3; margin:0; transform:translate(-50%,-50%); z-index:12; pointer-events:none; border-radius:8px; border:2px solid #ffb45e; background:linear-gradient(145deg, rgba(122,74,18,.93), rgba(58,34,6,.93)); box-shadow:0 0 12px rgba(255,170,60,.8); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  .hole-panel{ position:absolute; left:50%; top:50%; width:46%; max-width:70px; transform:translate(-50%,-50%); z-index:12; pointer-events:none; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .hole-panel i{ display:block; width:100%; aspect-ratio:1/1; border-radius:50%; background:radial-gradient(circle, #000 0 34%, #2a0a4a 52%, #6a2ad0 68%, rgba(120,60,220,0) 74%); box-shadow:0 0 14px rgba(140,80,255,.85); animation:holeSpin 2.4s linear infinite; }
+  .hole-panel span{ font-size:8.5px; font-weight:900; color:#e6d4ff; white-space:nowrap; text-shadow:0 1px 2px #000; }
+  @keyframes holeSpin{ 0%{ transform:scale(1) rotate(0); } 50%{ transform:scale(1.1) rotate(180deg); } 100%{ transform:scale(1) rotate(360deg); } }
   .arrow-panel svg{ width:66%; height:auto; }
   .arrow-panel svg path{ animation:arrowNudge 1s ease-in-out infinite; }
   .arrow-panel span{ font-size:9px; font-weight:900; color:#ffe9a8; white-space:nowrap; }
@@ -2580,8 +2584,8 @@ const DIS_TIERS=[
 const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','arrow'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','arrow','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','arrow','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','arrow','ghost']};
 ['assassinLv','midLv','earlyLv','lateLv','softLv','harshLv','harshFavLv','wipeLv'].forEach(k=>{ DIS_PARAM[k]=LV84(DIS_PARAM[k]); });
 DIS_TIERS.forEach(t=>{ t[0]=LV84(t[0]-(t[0]>80?10:0)); });   // 最後の段（LADDER_N-6）は、84体の時の78番目
-const DIS_OFF=['dark','deatheater','ghost'];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚消える)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',arrow:'矢印パネル(置いたカードが矢印の方向の旗へ滑る)',wipe:'全滅(旗を1つ空にするカード)'};
+const DIS_OFF=['dark','deatheater'];   // 停止したい行動の名前を入れると、その行動は出なくなる
+const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(次に置いたカード1枚が一緒に墓地へ)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',arrow:'矢印パネル(置いたカードが矢印の方向の旗へ滑る)',wipe:'全滅(旗を1つ空にするカード)'};
 const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',arrow:'矢印',wipe:'全滅'};
 const PRE_NOTE={comboreset:'スーパーコンボが全部0に！',bomb:'時限ボムを手札に押し付けられる！'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
@@ -2689,7 +2693,7 @@ const DIS_LEVEL={
   autonum:[1,3], arrow:[1,6], blind:[1,16],
   cfield:[2,9], pfield:[2,12], minus:[2,15], punch:[2,20],
   bomb:[3,20], assassin:[3,24], wipe:[3,27], deatheater:[3,28],
-  ghost:[4,31], minusrain:[4,34], half:[4,36], guard:[4,38], colhalf:[4,40],
+  ghost:[2,14], minusrain:[4,34], half:[4,36], guard:[4,38], colhalf:[4,40],
   colnull:[5,44], comboreset:[5,50], null:[5,57], bguard:[5,69], freeze:[5,90], dark:[5,88]
 };
 const disFrom=k=>DIS_LEVEL[k]?DIS_LEVEL[k][1]:0, disLevel=k=>DIS_LEVEL[k]?DIS_LEVEL[k][0]:0;
@@ -2729,7 +2733,7 @@ function pickDisSeq(dl,n,w){
 }
 let disFired=0, mushDmg=1, mushKill=false;   // mushDmg＝毒キノコの次のダメージ（敵ごとに1へリセット）
 let dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0};
-let haunt={};   // ワームホール：旗の番号→残り枚数（5枚使い切るまで消えない。敵が変わっても持ち越す）
+let haunt={};   // ワームホール：旗の番号→1（カードが1枚置かれるまで居続ける。置かれたカードと一緒に消える）
 const disGuardOn=()=>dis.guardN>0 && enemyTurn<dis.guardUntil;
 const disHalfOn=sym=>!!sym && dis.halfColor===sym && enemyTurn<dis.halfUntil;
 const disDarkOn=()=>turnCounter<dis.darkUntil;
@@ -3044,7 +3048,7 @@ function hauntBlock(i,what){   // ワームホールが開いた旗に置かれ�
   if(!(haunt[i]>0)) return false;
   haunt[i]--; const left=haunt[i]; if(left<=0) delete haunt[i];
   try{ dlog('haunt_void',{flag:i+1,card:what,残り:left}); }catch(e){}
-  hint(left>0?`🕳 ワームホールのせいで、旗${i+1}に置かれた${what}は無効になった…（ワームホールあと${left}枚）`:`🕳 旗${i+1}の${what}が無効になり、ワームホールが消えた！`,true); playSfx('warn');
+  hint(`🕳 旗${i+1}に置かれた${what}は、ワームホールと一緒に消えた。`,true);
   try{ render(); }catch(e){}
   return true;
 }
@@ -3302,9 +3306,9 @@ function applyEnemyEvent(type,target,viaCard){
     const gpl=takeAutoPlan('ghost'), gfi=autoTargetIdx(gpl);
     const cand=gfi<0?[]:[gfi];
     if(!cand.length){ hint('🕳 ワームホールが現れたが、開ける旗がなかった。',true); }
-    else { const i=cand[Math.floor(Math.random()*cand.length)]; haunt[i]=5;
+    else { const i=cand[Math.floor(Math.random()*cand.length)]; haunt[i]=1;
       try{ dlog('ghost',{flag:i+1}); }catch(e){}
-      hint(`🕳 ワームホールが旗${i+1}に開いた！ その旗に置いたカードは5枚まで消える。`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){} }
+      hint(`🕳 ワームホールが旗${i+1}に開いた！ 次にその旗に置いたカードは、ワームホールと一緒に墓地へ行く。（何か置くまで消えない）`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){} }
   } else if(type==='minusrain'){
     dis.poisonUntil=Math.max(dis.poisonUntil||0,turnCounter+DIS_PARAM.rainTurns);
     hint(`🌧 マイナスレイン！ ${DIS_PARAM.rainTurns}ターンの間、置く数字カードがすべて−1される！`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
@@ -3736,6 +3740,7 @@ function equipmentReachable(eq, f){
 function targetsFor(card){
   const out=[];
   flags.forEach((f,i)=>{
+    if(isCurse(card) && haunt[i]>0 && !f.closed){ out.push(i); return; }   // ワームホールの旗：呪いカードも置ける（一緒に消える）
     if(card.type==='promote'){ if(!f.capturedByEnemy&&f.cards.some(c=>promotable(c))) out.push(i); return; }
     if(isDropTactic(card)){   // 軍師カード：旗にドラッグして発動できる（装備のある旗・完成した旗でもOK）
       if(card.type==='guidance'){ if(guidanceTargets(0).includes(i)) out.push(i); return; }
@@ -4577,6 +4582,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     if(!noAsk) gameAlert(whyNotPlace(card,fi)||'この旗には置けません。');
     return false;
   }
+  if(isCurse(card) && haunt[fi]>0){ picked=null; doCurse(handIdx, fi); return true; }   // 呪いカードをワームホールへ：効果を出さずに一緒に消える
   if(card.type==='curse_bomb'){ picked=null; doCurse(handIdx, fi); return true; }
   if(card.type==='promote'){ picked=null; promoteFlag(card.uid, fi); return true; }   // 昇格を旗にドラッグ：その旗をそのまま昇格
   if(isDropTactic(card)){   // ほかの軍師カード：旗にドラッグしたら発動（撤収・聖水は落とした旗を選んだことにする）
@@ -5313,6 +5319,10 @@ function doCurse(handIdx, target){
   hand.splice(handIdx,1);          // 使った呪いは墓地に行かず消える
   advanceTurn(used);
   playSfx('place');
+  if(target!=null && haunt[target]>0 && flags[target] && !flags[target].closed){   // ワームホールの旗に置いた呪いカード：効果を出さず、ワームホールと一緒に消える
+    hauntBlock(target, '呪いカード「'+((CURSE_DEF[kind]||{}).name||'呪い')+'」');
+    const rf=autoRefill(1); render(); layoutHand(false, rf[0]&&rf[0].uid, rf[0]&&rf[0].fromRect); busy=false; endCheck(); render(); return;
+  }
   if(kind==='wipe'){
     if(hasAcc('reflect_mirror')){ hint('🪞 全滅を跳ね返した！ 効果は無効。',true); playSfx('warn'); }
     else if(nullOn()) hint('🚫 全滅は無効化された。',true);
@@ -5656,7 +5666,7 @@ const EVENT_DESC={
   assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）を前もって決め（旗の右上に表示）、その旗のカードからランダムに1枚を墓地へ送る。敵が置いたカードや装備も対象。',
   arrow:()=>'敵が「矢印パネル」（8方向のどれか）を、空きのある旗に置く（旗の右上に予告が出る）。その旗にカードを置くと、カードが矢印の方向の旗へ滑っていく。はしの旗では反対側へ回りこむ（右上の旗の右上向きなら、左下の旗へ）。滑った先に置けない時は、その旗に残る。1回で消える。聖水でも消せる。',
   deatheater:()=>'完成していない旗をランダムに1つ選んで（旗の右上に予告が出る）、3ターンの間、その旗の上に居座る。その間にその旗へカードを置くと、置いたカードが食べられて墓地へ行く。3ターン置かなかったら、その旗の1枚目のカードが食べられる（完成済みの旗と、封鎖中の旗は対象外）。',
-  ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで旗に残らず、効果も出ずに墓地へ消える（数字カードも装備も同じ。敵が置くカードも消える）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
+  ghost:()=>'ランダムな旗にワームホールが開く（旗の右上に予告が出る）。何かカードを置くまで、その旗に居続ける。次にその旗に置いたカード1枚は、旗に残らず、効果も出ずに、ワームホールと一緒に墓地へ行く（数字カードも装備も同じ）。呪いカードを置いても、効果を出さずに一緒に消える。敵が置くカードも同じ。聖水でも消せる。敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
   comboreset:()=>'ターンになると強制的に発動。積み上げたスーパーコンボがすべて0に戻る（持ち越しも、盤面で揃っている色のコンボも）。各旗の役の基本点は残る。',
   freeze:()=>'いてつくはどう。あなたが敵にかけていた効果（敵を止める時計🕐・敵への毒など）がすべて消し飛ぶ。かけていなければ何も起きない。'
@@ -6006,7 +6016,7 @@ function render(){
     if(bigResult){
       d.innerHTML=bigResult+eqTag;
     } else {
-      d.innerHTML=badge+(haunt[i]>0?`<div class="badge ghostbadge">🕳あと${haunt[i]}枚</div>`:'')+(f.bomb?`<div class="badge lockbadge${f.bomb<=2?' hot':''}"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
+      d.innerHTML=badge+(haunt[i]>0?`<div class="badge ghostbadge">🕳ワームホール</div>`:'')+(f.bomb?`<div class="badge lockbadge${f.bomb<=2?' hot':''}"${badge?' style="top:24px"':''}>💣あと${f.bomb}ターン</div>`:'')+eqTag;
       const st=document.createElement('div'); st.className='stack';
       const choosingHere = pending && pending.type==='guidance' && pending.step==='choose' && pending.from===i;
       if(choosingHere) st.classList.add('spread-choose');
@@ -6036,6 +6046,7 @@ function render(){
           d.appendChild(pd); }
       }catch(e){}
     }
+    if(haunt[i]>0&&!f.closed){ const hm=document.createElement('div'); hm.className='hole-panel'; hm.innerHTML='<i></i><span>置いたカードごと墓地へ</span>'; d.appendChild(hm); }
     if(arrowOn(f)){ const am=document.createElement('div'); am.className='arrow-panel'; am.style.setProperty('--ax',(f.arrow.dx*5)+'px'); am.style.setProperty('--ay',(f.arrow.dy*5)+'px'); am.innerHTML=`<svg viewBox="0 0 24 24" style="transform:rotate(${f.arrow.deg}deg)"><path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="#ffd75e" stroke="#5a3206" stroke-width="1.4" stroke-linejoin="round"/></svg><span>旗${arrowDest(i,f.arrow)+1}へ</span>`; d.appendChild(am); }
     if(eaterOn(f)){ const em=document.createElement('div'); em.style.cssText='position:absolute;left:50%;top:-2px;transform:translateX(-50%);z-index:13;pointer-events:none;padding:2px 8px;border-radius:10px;background:rgba(120,20,40,.92);border:1px solid #ff8a9a;color:#fff;font-size:11px;font-weight:800;white-space:nowrap'; em.textContent=`👹 デスイーター あと${f.eater-enemyTurn}ターン`; d.appendChild(em); }
     if(blindOn(f)&&!f.closed){ const sm=document.createElement('div'); sm.className='smoke'; sm.innerHTML=`<span>🌫 あと${f.blindUntil-enemyTurn}ターン</span>`; d.appendChild(sm); }
@@ -9085,7 +9096,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15v';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
