@@ -1732,7 +1732,13 @@ const MON_SKILL_NEW={
 Object.assign(MON_SKILL,MON_SKILL_NEW);
 const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
 let fireOn=false;   // 火炎放射：このwaveの間、赤の旗の攻撃力が2倍
-const fireBonus=()=>fireOn?flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.symbolColor==='red'&&f.result).reduce((a,f)=>a+Math.max(0,f.result.base||0),0)*(SKP.fireMul-1):0;
+const fireBonus=()=>{   // 赤の旗の攻撃力（スーパーコンボの倍率を含めた、旗に出ている数字）を2倍にする＝増える分だけ足す
+  if(!fireOn) return 0;
+  let m={}, hm={}; try{ m=superMults()||{}; hm=hostMults()||{}; }catch(e){}
+  let sum=0;
+  flags.forEach((f,i)=>{ if(f.closed&&!f.capturedByEnemy&&f.symbolColor==='red'&&f.result){ const b=Math.max(0,f.result.base||0); sum+=b*(m[i]||1)+b*((hm[i]||1)-1); } });
+  return Math.round(sum*(SKP.fireMul-1));
+};
 let pocket=null, gloveUsed=0, lanternUsed=false;   // 予備のポケットの中のカード／捨て上手の手袋の今のwaveの使用数／墓守のランタン（1戦に1回）
 let growN=0, immortalReady=false, shopRe=false, atkFx={rush:false,oath:false};   // growN＝倒した敵の数（体質）／atkFx＝次の攻撃にかかる倍率（突進・闇の誓い）
 let lastAct=null, mimicFree=null, mountOn=false;   // lastAct＝直前の行動（見よう見まね用）／mountOn＝山のように／buried＝埋めたカード
@@ -8968,7 +8974,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15p';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15q';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
