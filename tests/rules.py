@@ -547,6 +547,6 @@ with sync_playwright() as p:
       hand.push(mk('allshuffle')); const hl=hand.length; useAllShuffle(hand.length-1); o.shuf=hand.length<=currentHandMax();
       activeDeck.push(mk('orgrev')); hand.push(mk('allshuffle')); expireSpecial(); o.gone=![activeDeck,hand,graveyard].some(a=>a.some(c=>c.special));
       return o}""")
-    check('特別カード：組織革命で 軍師→数字・装備→軍師・数字→装備 に変わり、戦いが終わると戻る／使わない特別カードは消える',r['conv'] and r['back'] and r['shuf'] and r['gone'],r)
+    check('特別カード：新体制で 軍師→数字・装備→軍師・数字→装備 に変わり、戦いが終わると戻る／使わない特別カードは消える',r['conv'] and r['back'] and r['shuf'] and r['gone'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

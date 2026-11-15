@@ -1538,7 +1538,7 @@ const TACTICS = [
   {type:'promote',name:'昇格',short:'昇格',desc:`旗を1つ選んで、そこの数字カード（数字のある装備も）を全部+${PROMOTE_UP}する。完成した旗でもOK（役と点を計算し直し、役が上がれば役ボーナスも出る）`,count:NEWTAC_COUNT,isNew:true},
   {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ取り消す`,count:NEWTAC_COUNT,isNew:true},
   {type:'allshuffle',name:'シャッフル',short:'シャッフル',desc:'手札をすべて山札に入れて、山札を完全にシャッフルする。そのあと手札を引き直す。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
-  {type:'orgrev',name:'組織革命',short:'組織革命',desc:'山札と手札のカードの種類が入れ替わる。軍師カード→数字カード、装備カード→軍師カード、数字カード→装備カード。この戦いが終わると元に戻る。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
+  {type:'orgrev',name:'新体制',short:'新体制',desc:'山札と手札のカードの種類が入れ替わる。軍師カード→数字カード、装備カード→軍師カード、数字カード→装備カード。この戦いが終わると元に戻る。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
 ];
 const TACTIC_OFF=['plead','allshuffle','orgrev'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
 const TACTICS_ON=TACTICS.filter(t=>!TACTIC_OFF.includes(t.type));
@@ -4778,7 +4778,7 @@ function useAllShuffle(handIdx){   // 特別カード：手札を全部山札に
   playSfx('shuffle'); render(); drawn.forEach((c,i)=>setTimeout(()=>layoutHand(false,c.uid,from),i*60));
   setTimeout(()=>{ busy=false; hint('シャッフル：手札を山札に戻して、完全にシャッフルした！'); endCheck(); render(); }, drawn.length*60+380);
 }
-let orgMap=new Map();   // 組織革命で姿が変わったカード uid → 元のカード（この戦いが終わると戻す）
+let orgMap=new Map();   // 新体制で姿が変わったカード uid → 元のカード（この戦いが終わると戻す）
 const orgConvertible=c=>!!c&&!c.temp&&!c.purchased&&!c.enemyPlaced&&!c.special&&!isCurse(c)&&(c.kind==='troop'||c.kind==='tactics'||c.kind==='wild'||c.kind==='monster');
 function orgNew(c){
   const base={uid:c.uid,inDeck:c.inDeck}, pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -4790,18 +4790,18 @@ function useOrgRev(handIdx){   // 特別カード：山札と手札のカード�
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
   let n=0;
-  lgOp('組織革命',()=>{
+  lgOp('新体制',()=>{
     const conv=arr=>arr.map(c=>{ if(!orgConvertible(c)) return c; if(!orgMap.has(c.uid)) orgMap.set(c.uid,c); n++; return orgNew(c); });
     hand=conv(hand); activeDeck=conv(activeDeck);
   });
   advanceTurn(used);
   const refilled=autoRefill(1);
   playSfx('shuffle'); render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-  busy=false; hint(`組織革命：山札と手札の${n}枚が別の種類に変わった！（この戦いが終わると元に戻る）`); endCheck(); render();
+  busy=false; hint(`新体制：山札と手札の${n}枚が別の種類に変わった！（この戦いが終わると元に戻る）`); endCheck(); render();
 }
-function revertOrgRev(){   // 戦いが終わったら、組織革命で変わったカードを元に戻す
+function revertOrgRev(){   // 戦いが終わったら、新体制で変わったカードを元に戻す
   if(!orgMap.size) return;
-  lgOp('組織革命の終わり',()=>{
+  lgOp('新体制の終わり',()=>{
     const fix=arr=>arr.map(c=>{ const o=c&&orgMap.get(c.uid); if(!o) return c; o.inDeck=deckUids.has(o.uid); return o; });
     activeDeck=fix(activeDeck); hand=fix(hand); graveyard=fix(graveyard); grandDeck=fix(grandDeck); pendingRewardCards=fix(pendingRewardCards); stomach=fix(stomach);
   });
@@ -8665,7 +8665,7 @@ function renderShop_(){
       apply:()=>{ shopOnce.hand=true; handSlotBonus++; hint('手札の上限が1枚増えた！'); }});
     items.push({key:'slotplus',icon:'💍',name:'アクセサリー枠+1',desc:'アクセサリーを付けられる数が1つ増える（ずっと続く・1回だけ）',price:300,sold:!!shopOnce.slot,
       apply:()=>{ shopOnce.slot=true; accSlotBonus++; ACC_SLOTS++; hint('アクセサリーの装備枠が1つ増えた！'); }});
-    items.push({key:'cardshop',head:'使い捨てカード（使うと無くなる）',icon:'🃏',name:'使い捨てカードを買う',desc:'軍師カードを全種類の中から選んで、好きな枚数だけ買える。店だけの特別カード（✨シャッフル・✨組織革命）もある。次の戦いの山札に加わる。',btn:true,price:0});
+    items.push({key:'cardshop',head:'使い捨てカード（使うと無くなる）',icon:'🃏',name:'使い捨てカードを買う',desc:'軍師カードを全種類の中から選んで、好きな枚数だけ買える。店だけの特別カード（✨シャッフル・✨新体制）もある。次の戦いの山札に加わる。',btn:true,price:0});
   }
   const nDeck=items.length; let accEmpty=false;
   {
@@ -8964,7 +8964,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15n';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15o';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
