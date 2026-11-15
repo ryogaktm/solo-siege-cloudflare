@@ -531,5 +531,22 @@ with sync_playwright() as p:
       flags.forEach(f=>{ f.cards=[]; f.closed=false; }); const pl=planAt('pfield',0); pl.flag=1; flags[1].cards=[{kind:'monster',sub:'number',value:6,uid:uid()}];
       o.stay=autoTargetIdx(pl)===1; applyEnemyEvent('pfield'); o.pf=flagMonster(flags[1]).pf===true&&flags[1].cards.length===1; return o}""")
     check('パニックフィールドの予告：予告した旗に武器を置いても、予告は他の旗へ移らない（装備に逆転がかかる）',r['stay'] and r['pf'],r)
+    r=ev("""()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;
+      o.n=startDecks.length; o.labels=START_DECKS.map(x=>x[1]).join(); o.left0=startShufLeft;
+      const i0=startDeckIdx; for(let k=0;k<7;k++){ const b=document.getElementById('dbReshuffle'); if(!b.disabled) b.click(); } o.left=startShufLeft;
+      document.getElementById('dbExtreme').checked=true; document.getElementById('dbExtreme').onchange({target:document.getElementById('dbExtreme')}); o.ext=startDecks===startDecksX; o.leftAfterExt=startShufLeft;
+      return o}""")
+    check('最初の山札：バランス・数字・軍師・武器・防具／シャッフルは通して5回まで／極端編成の切り替えで回数は減らない',r['n']==5 and r['labels']=='バランス,数字,軍師,武器,防具' and r['left0']==5 and r['left']==0 and r['ext'] and r['leftAfterExt']==0,r)
+    r=ev("""()=>{ const o={}; CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;
+      const mk=ty=>({kind:'tactics',...TACTICS.find(t=>t.type===ty),uid:uid(),purchased:true,special:true});
+      const kinds=()=>{ const c={troop:0,tactics:0,monster:0}; [...hand,...activeDeck].forEach(x=>{ if(!x.special) c[x.kind]++; }); return c; };
+      const b=kinds(), ids=[...hand,...activeDeck].filter(c=>!c.special).map(c=>c.uid+':'+c.kind).sort().join();
+      hand.push(mk('orgrev')); useOrgRev(hand.length-1); const a=kinds();
+      o.conv=a.monster===b.troop && a.troop===b.tactics && a.tactics===b.monster;
+      revertOrgRev(); o.back=[...hand,...activeDeck].filter(c=>!c.special).map(c=>c.uid+':'+c.kind).sort().join()===ids;
+      hand.push(mk('allshuffle')); const hl=hand.length; useAllShuffle(hand.length-1); o.shuf=hand.length<=currentHandMax();
+      activeDeck.push(mk('orgrev')); hand.push(mk('allshuffle')); expireSpecial(); o.gone=![activeDeck,hand,graveyard].some(a=>a.some(c=>c.special));
+      return o}""")
+    check('特別カード：組織革命で 軍師→数字・装備→軍師・数字→装備 に変わり、戦いが終わると戻る／使わない特別カードは消える',r['conv'] and r['back'] and r['shuf'] and r['gone'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

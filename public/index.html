@@ -605,6 +605,12 @@
     filter:drop-shadow(0 0 4px rgba(224,90,74,.9));
   }
   .pcard.mini.purchased::after{ font-size:11px; }
+  .pcard.special{
+    background:linear-gradient(160deg, #3b1d6e 0%, #2a1250 55%, #170a30 100%) !important;
+    box-shadow:inset 0 0 0 2px rgba(255,215,94,.85), 0 0 12px rgba(255,215,94,.65);
+  }
+  .pcard.special .name, .pcard.special .ttitle{ color:#ffe9a8; }
+  .pcard.special::after{ content:"✨"; filter:drop-shadow(0 0 5px rgba(255,215,94,.95)); }
   .pcard.monster::before{ border-color:rgba(200,120,180,.35); }
   .pcard.monster .corner{ color:#f0c8e0; font-size:13px; }
   .pcard.monster.mini .corner{ font-size:10px; }
@@ -1429,11 +1435,13 @@
   <div class="modal db-modal">
     <button class="topback" id="dbBack" style="display:none">◀ タイトルへ</button>
     <h2 id="dbTitle" style="margin-top:34px">山札構築</h2>
+    <label id="dbExtremeRow" style="display:none;justify-content:center;align-items:center;gap:8px;font-weight:800;font-size:14px;margin:2px 0 6px;cursor:pointer"><input type="checkbox" id="dbExtreme" style="width:18px;height:18px"> 極端編成（割合をさらに高くする）</label>
     <div class="db-sec" id="dbSec">入れ替えるカードを選択 <b id="dbCountOut">0/0</b></div>
     <div class="cardgrid db-grid" id="dbDeck"></div>
     <div id="dbRemWrap" style="display:none"><div class="db-sec">外したカード</div><div class="cardgrid db-rem" id="dbRem"></div></div>
     <div class="db-slide-wrap" id="dbSlideWrap" style="display:none"><div class="db-slide" id="dbSlide"></div><button class="db-arrow l" id="dbPrev" aria-label="前の山札">◀</button><button class="db-arrow r" id="dbNext" aria-label="次の山札">▶</button></div>
     <div class="db-dots" id="dbDots" style="display:none"></div>
+    <button class="btn" id="dbReshuffle" style="display:none;margin:0 0 6px">🔀 この山札をシャッフル</button>
     <button class="btn" id="dbOk">このまま進む</button>
   </div>
 </div>
@@ -1529,11 +1537,13 @@ const TACTICS = [
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える（めくった他のカードは山札の下へ）',count:NEWTAC_COUNT,isNew:true},
   {type:'promote',name:'昇格',short:'昇格',desc:`旗を1つ選んで、そこの数字カード（数字のある装備も）を全部+${PROMOTE_UP}する。完成した旗でもOK（役と点を計算し直し、役が上がれば役ボーナスも出る）`,count:NEWTAC_COUNT,isNew:true},
   {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ取り消す`,count:NEWTAC_COUNT,isNew:true},
+  {type:'allshuffle',name:'シャッフル',short:'シャッフル',desc:'手札をすべて山札に入れて、山札を完全にシャッフルする。そのあと手札を引き直す。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
+  {type:'orgrev',name:'組織革命',short:'組織革命',desc:'山札と手札のカードの種類が入れ替わる。軍師カード→数字カード、装備カード→軍師カード、数字カード→装備カード。この戦いが終わると元に戻る。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
 ];
-const TACTIC_OFF=['plead'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
+const TACTIC_OFF=['plead','allshuffle','orgrev'];   // 一旦、山札・報酬・店に出さないカード（命乞い）。持っている分は使える
 const TACTICS_ON=TACTICS.filter(t=>!TACTIC_OFF.includes(t.type));
 const REMOVED_TACTICS=['swap','ration'];   // 廃止した軍師カード
-const GLOBAL_TACTIC_TYPES=['reinforce','promote','bribe','scout','shuffle','inspire','rehire','conscript','revolution','plead','defend'];
+const GLOBAL_TACTIC_TYPES=['reinforce','promote','bribe','scout','shuffle','inspire','rehire','conscript','revolution','plead','defend','allshuffle','orgrev'];
 const PLEAD_TURNS=3;   // 命乞いカード：敵の大技を遅らせるターン数
 const HAND_MAX_BASE = 6, WAVE_DRAW = 40;
 let FLAG_COUNT = 6;
@@ -3287,13 +3297,16 @@ function freshFlags(){
   const arr=[]; for(let i=0;i<FLAG_COUNT;i++) arr.push({cards:[],closed:false,result:null,lockedUntil:0});
   return arr;
 }
-const START_DECKS=[['n','数字が多め'],['t','軍師が多め'],['e','装備が多め'],['','普通'],['','普通']];   // 最初に選べる山札（横にスライドして見比べる）。順番と数はここで調整
-const START_DECK_BIAS=1.5;   // 「多め」の山札で、その種類の割合を何倍にするか
-let startDecks=[], startDeckIdx=0;
-function buildStartDecks(){   // 5つの山札を先に全部作っておく（見比べても中身は変わらない。手札も山札ごとに固定）
-  startDecks=START_DECKS.map(([b,label])=>{ const ok=randomizeStartDeck(b); return {label:ok?label:'普通', active:activeDeck.slice(), grand:grandDeck.slice(), hand:hand.slice()}; });
-  { const k=x=>x.kind==='troop'?'n':x.kind==='monster'?'e':'t', cnt=(d,b)=>[...d.active,...d.hand].filter(x=>k(x)===b).length, nm=startDecks[START_DECKS.findIndex(x=>!x[0])];
-    if(nm) startDecks.forEach((d,i)=>{ const b=START_DECKS[i][0]; if(b&&cnt(d,b)<=cnt(nm,b)) d.label='普通'; }); }   // 多めにできなかった山札（その種類のカードが足りないキャラ）は「普通」と表示する
+const START_DECKS=[['','バランス'],['n','数字'],['t','軍師'],['w','武器'],['a','防具']];   // 最初に選べる山札（横にスライドして見比べる）。n数字／t軍師／w武器／a防具
+const START_BIAS={n:[1.5,2.5],t:[2,4],w:[2,6],a:[2,6]};   // 選んだ種類の割合を何倍にするか［ふつう, 極端編成］
+const START_SHUFFLES=5;   // 最初の山札のシャッフルは、どの山札で使っても通して5回まで
+let startDecks=[], startDecksN=[], startDecksX=[], startDeckIdx=0, startShufLeft=START_SHUFFLES, startExtreme=false;
+function makeStartDeck(i,ex){ const [b,label]=START_DECKS[i], ok=randomizeStartDeck(b,ex); return {label:ok?label:label+'（なし）', active:activeDeck.slice(), grand:grandDeck.slice(), hand:hand.slice()}; }
+function buildStartDecks(){   // 山札を先に全部作っておく（見比べても中身は変わらない。手札も山札ごとに固定）。ふつう用と極端編成用の2組
+  startShufLeft=START_SHUFFLES; startExtreme=false;
+  startDecksN=START_DECKS.map((_,i)=>makeStartDeck(i,false));
+  startDecksX=START_DECKS.map((_,i)=>makeStartDeck(i,true));
+  startDecks=startDecksN;
   applyStartDeck(0);
 }
 function applyStartDeck(i){
@@ -3302,16 +3315,16 @@ function applyStartDeck(i){
   [...activeDeck,...grandDeck,...hand].forEach(c=>{ c.inDeck=false; }); deckUids=new Set();
   [...activeDeck,...hand].forEach(c=>{ c.inDeck=true; deckUids.add(c.uid); });
 }
-function randomizeStartDeck(bias){ // 初期山札はランダム（大山札から40枚）。bias＝多めにする種類（n数字／t軍師／e装備）。その種類が無いキャラは普通の山札になり、falseを返す
+function randomizeStartDeck(bias,extreme){ // 初期山札はランダム（大山札から40枚）。bias＝多めにする種類（n数字／t軍師／e装備）。その種類が無いキャラは普通の山札になり、falseを返す
   let biasOk=true;
   const all=[...grandDeck,...activeDeck,...hand].filter(c=>!isCurse(c));
   all.forEach(c=>{ c.inDeck=false; });
   deckUids=new Set();
   shuffle(all);
   { // 数字・装備・軍師の割合は、新しいカードを足しても変わらないように、元のカード構成の割合に固定する（新カードは軍師の枠の中で入れ替わる）
-    const cat=c=>c.kind==='troop'?'n':c.kind==='monster'?'e':'t';
-    const base={n:GAME_COLORS.length*10,e:0,t:0};
-    if(CHARACTER.equipment) MONSTERS.filter(m=>!(m.sub==='mark'&&!GAME_COLORS.includes(m.color))).forEach(m=>{ base.e+=m.count; });
+    const cat=c=>c.kind==='troop'?'n':c.kind==='monster'?(c.sub==='number'?'w':'a'):'t';
+    const base={n:GAME_COLORS.length*10,w:0,a:0,t:0};
+    if(CHARACTER.equipment) MONSTERS.filter(m=>!(m.sub==='mark'&&!GAME_COLORS.includes(m.color))).forEach(m=>{ base[m.sub==='number'?'w':'a']+=m.count; });
     TACTICS_ON.forEach(t=>{
       if(t.isNew) return;
       if(t.type==='alexander'&&!CHARACTER.blueInf) return;
@@ -3320,15 +3333,16 @@ function randomizeStartDeck(bias){ // 初期山札はランダム（大山札か
       else if(t.type!=='alexander'&&t.type!=='darius'&&!CHARACTER.tactics) return;
       base.t+=t.count;
     });
-    const pool={n:[],e:[],t:[]}; all.forEach(c=>pool[cat(c)].push(c));
-    if(bias){ if(base[bias]>0&&pool[bias].length>0) base[bias]*=START_DECK_BIAS; else biasOk=false; }
-    const total=Math.min(WAVE_DRAW,all.length), bs=base.n+base.e+base.t;
+    const KEYS=['n','w','a','t'];
+    const pool={n:[],w:[],a:[],t:[]}; all.forEach(c=>pool[cat(c)].push(c));
+    if(bias){ if(base[bias]>0&&pool[bias].length>0) base[bias]*=START_BIAS[bias][extreme?1:0]; else biasOk=false; }
+    const total=Math.min(WAVE_DRAW,all.length), bs=KEYS.reduce((t,k)=>t+base[k],0);
     if(bs>0 && all.length>=WAVE_DRAW){
       const q={}, rem=[]; let used=0;
-      ['n','e','t'].forEach(k=>{ const x=total*base[k]/bs; q[k]=Math.min(Math.floor(x),pool[k].length); used+=q[k]; rem.push([k,x-Math.floor(x)]); });
+      KEYS.forEach(k=>{ const x=total*base[k]/bs; q[k]=Math.min(Math.floor(x),pool[k].length); used+=q[k]; rem.push([k,x-Math.floor(x)]); });
       rem.sort((a,b)=>b[1]-a[1]);
-      for(let i=0;used<total&&i<12;i++){ const k=rem[i%3][0]; if(q[k]<pool[k].length&&base[k]>0){ q[k]++; used++; } }
-      const pick=[]; ['n','e','t'].forEach(k=>{ pick.push(...pool[k].slice(0,q[k])); });
+      for(let i=0;used<total&&i<16;i++){ const k=rem[i%KEYS.length][0]; if(q[k]<pool[k].length&&base[k]>0){ q[k]++; used++; } }
+      const pick=[]; KEYS.forEach(k=>{ pick.push(...pool[k].slice(0,q[k])); });
       if(pick.length<total){ const have=new Set(pick.map(c=>c.uid)); for(const c of all){ if(pick.length>=total) break; if(!have.has(c.uid)) pick.push(c); } }
       shuffle(pick);
       const ps=new Set(pick.map(c=>c.uid));
@@ -3347,7 +3361,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  fireOn=false; waveSerial=0; boneUsedAt=null; growN=0; pocket=null; gloveUsed=0; lanternUsed=false; lastAct=null; mountOn=false; atkFx={rush:false,oath:false}; defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
+  orgMap=new Map(); fireOn=false; waveSerial=0; boneUsedAt=null; growN=0; pocket=null; gloveUsed=0; lanternUsed=false; lastAct=null; mountOn=false; atkFx={rush:false,oath:false}; defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -3436,15 +3450,23 @@ function renderDeckResult(){
   { const bk=document.getElementById('dbBack'); if(bk) bk.style.display=(dbFinalLabel==='ゲーム開始')?'':'none'; }
   renderStartSlide(dbFinalLabel==='ゲーム開始'&&startDecks.length>0);
 }
-function startDeckCount(d){ const c={n:0,t:0,e:0}; [...d.active,...d.hand].forEach(x=>{ c[x.kind==='troop'?'n':x.kind==='monster'?'e':'t']++; }); return c; }
+function startDeckCount(d){ const c={n:0,t:0,w:0,a:0}; [...d.active,...d.hand].forEach(x=>{ c[x.kind==='troop'?'n':x.kind==='monster'?(x.sub==='number'?'w':'a'):'t']++; }); return c; }
 function startSlideLabel(){
   const d=startDecks[startDeckIdx]; if(!d) return; const c=startDeckCount(d);
-  document.getElementById('dbSec').innerHTML=`<span class="sd-hint">◀ ▶ 横にスライド、または矢印で選ぶ</span><span class="sd-name"><small>${startDeckIdx+1}/${startDecks.length}</small>${d.label}</span><span class="sd-chips"><span>数字<b>${c.n}</b></span><span>軍師<b>${c.t}</b></span><span>装備<b>${c.e}</b></span></span>`;
+  document.getElementById('dbSec').innerHTML=`<span class="sd-hint">◀ ▶ 横にスライド、または矢印で選ぶ</span><span class="sd-name"><small>${startDeckIdx+1}/${startDecks.length}</small>${d.label}</span><span class="sd-chips"><span>数字<b>${c.n}</b></span><span>軍師<b>${c.t}</b></span><span>武器<b>${c.w}</b></span><span>防具<b>${c.a}</b></span></span>`;
+  { const rb=document.getElementById('dbReshuffle'); if(rb){ rb.textContent=`🔀 この山札をシャッフル（残り${startShufLeft}/${START_SHUFFLES}回）`; rb.disabled=startShufLeft<=0; } }
   document.querySelectorAll('#dbDots i').forEach((el,i)=>el.classList.toggle('on',i===startDeckIdx));
 }
+document.getElementById('dbExtreme').onchange=e=>{ startExtreme=e.target.checked; startDecks=startExtreme?startDecksX:startDecksN; applyStartDeck(startDeckIdx); render(); layoutHand(true); try{ playSfx('place'); }catch(_){} renderStartSlide(true); };
+document.getElementById('dbReshuffle').onclick=()=>{   // 選んでいる山札を作り直す（どの山札でも通して5回まで）
+  if(startShufLeft<=0) return; startShufLeft--;
+  startDecks[startDeckIdx]=makeStartDeck(startDeckIdx,startExtreme);
+  applyStartDeck(startDeckIdx); render(); layoutHand(true); try{ playSfx('shuffle'); }catch(_){}
+  renderStartSlide(true);
+};
 function renderStartSlide(on){   // 最初の山札：5つの山札を横に並べて、スライドで見比べる（止まった山札が選ばれる）。端はつながっていて、1つ目の左は最後の山札（ぐるっと回る）
   const sl=document.getElementById('dbSlide'), dots=document.getElementById('dbDots'), g=document.getElementById('dbDeck');
-  const wr=document.getElementById('dbSlideWrap'); wr.style.display=on?'flex':'none'; dots.style.display=on?'flex':'none'; g.style.display=on?'none':'';
+  const wr=document.getElementById('dbSlideWrap'); wr.style.display=on?'flex':'none'; document.getElementById('dbExtremeRow').style.display=on?'flex':'none'; document.getElementById('dbReshuffle').style.display=on?'':'none'; document.getElementById('dbExtreme').checked=startExtreme; dots.style.display=on?'flex':'none'; g.style.display=on?'none':'';
   if(!on) return;
   sl.innerHTML=''; dots.innerHTML='';
   const N=startDecks.length, order=N>1?[N-1,...startDecks.map((_,i)=>i),0]:[0];   // 両端に、反対側の山札の写しを置く
@@ -4746,6 +4768,50 @@ function useRevolution(handIdx){
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
   busy=false; hint('大革命：手札の数字がすべて反転した！（1↔10、2↔9、3↔8、4↔7、5↔6）'); endCheck(); render();
 }
+function useAllShuffle(handIdx){   // 特別カード：手札を全部山札に入れて、完全にシャッフルして引き直す
+  busy=true;
+  const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
+  activeDeck.push(...hand.splice(0)); shuffle(activeDeck);
+  advanceTurn(used);
+  const drawn=[]; for(let i=0;i<currentHandMax();i++){ const c=drawFromPools(); if(!c) break; hand.push(c); drawn.push(c); }
+  const from=document.getElementById('deckPileBtn').getBoundingClientRect();
+  playSfx('shuffle'); render(); drawn.forEach((c,i)=>setTimeout(()=>layoutHand(false,c.uid,from),i*60));
+  setTimeout(()=>{ busy=false; hint('シャッフル：手札を山札に戻して、完全にシャッフルした！'); endCheck(); render(); }, drawn.length*60+380);
+}
+let orgMap=new Map();   // 組織革命で姿が変わったカード uid → 元のカード（この戦いが終わると戻す）
+const orgConvertible=c=>!!c&&!c.temp&&!c.purchased&&!c.enemyPlaced&&!c.special&&!isCurse(c)&&(c.kind==='troop'||c.kind==='tactics'||c.kind==='wild'||c.kind==='monster');
+function orgNew(c){
+  const base={uid:c.uid,inDeck:c.inDeck}, pick=a=>a[Math.floor(Math.random()*a.length)];
+  if(c.kind==='troop') return {kind:'monster',...pick(MONSTERS.filter(m=>!(m.sub==='mark'&&!GAME_COLORS.includes(m.color)))),...base};   // 数字→装備
+  if(c.kind==='monster') return {kind:'tactics',...pick(TACTICS_ON.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true)),...base};   // 装備→軍師
+  return {kind:'troop',color:pick(GAME_COLORS),value:1+Math.floor(Math.random()*10),...base};   // 軍師→数字
+}
+function useOrgRev(handIdx){   // 特別カード：山札と手札のカードの種類をぐるっと入れ替える（この戦いの間だけ）
+  busy=true;
+  const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
+  let n=0;
+  lgOp('組織革命',()=>{
+    const conv=arr=>arr.map(c=>{ if(!orgConvertible(c)) return c; if(!orgMap.has(c.uid)) orgMap.set(c.uid,c); n++; return orgNew(c); });
+    hand=conv(hand); activeDeck=conv(activeDeck);
+  });
+  advanceTurn(used);
+  const refilled=autoRefill(1);
+  playSfx('shuffle'); render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+  busy=false; hint(`組織革命：山札と手札の${n}枚が別の種類に変わった！（この戦いが終わると元に戻る）`); endCheck(); render();
+}
+function revertOrgRev(){   // 戦いが終わったら、組織革命で変わったカードを元に戻す
+  if(!orgMap.size) return;
+  lgOp('組織革命の終わり',()=>{
+    const fix=arr=>arr.map(c=>{ const o=c&&orgMap.get(c.uid); if(!o) return c; o.inDeck=deckUids.has(o.uid); return o; });
+    activeDeck=fix(activeDeck); hand=fix(hand); graveyard=fix(graveyard); grandDeck=fix(grandDeck); pendingRewardCards=fix(pendingRewardCards); stomach=fix(stomach);
+  });
+  orgMap=new Map();
+}
+function expireSpecial(){   // 使わなかった特別カードは、戦いが終わると消える
+  const sp=c=>c&&c.special;
+  if(![activeDeck,hand,graveyard,stomach].some(a=>a.some(sp))) return;
+  lgOp('特別カードの期限切れ',()=>{ activeDeck=activeDeck.filter(c=>!sp(c)); hand=hand.filter(c=>!sp(c)); graveyard=graveyard.filter(c=>!sp(c)); stomach=stomach.filter(c=>!sp(c)); });
+}
 function useSplit(handIdx){
   if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop')) return hint('分裂できる部隊カードが手札にありません。',true);
   busy=false;
@@ -5326,6 +5392,7 @@ function paintCard(d, c, mini){
   if(c.flying) d.style.visibility='hidden';   // 敵のカードが飛んでくる間は、着くまで見せない
   if(c.voided) d.classList.add('voided');
   if(c.purchased) d.classList.add('purchased');
+  if(c.special) d.classList.add('special');
 }
 function cardEl(c, mini){
   const d=document.createElement('div');
@@ -6143,6 +6210,7 @@ function cardInfoContent(c){
   else if(isAlexanderCard(c)) extra=TACTIC_EXTRA.alexander;
   else extra=TACTIC_EXTRA[c.type]||c.desc||'万能カード。強さ8として扱い、配置制限を無視する。';
   if(c.purchased) extra += '<br><b style="color:var(--danger)">景品なので、使ったら無くなります。</b>';
+  if(c.special) extra += '<br><b style="color:#ffd75e">✨店だけの特別カード。この戦いの間しか使えません（使わないまま戦いが終わると消えます）。</b>';
   return `<p><b>${c.name||c.short||cardDisplayName(c)}</b></p><p>${extra}</p>`;
 }
 function showCardInfo(idx){
@@ -6622,6 +6690,7 @@ function advanceToNextStage(){
   flags=freshFlags();
   purgeDeleted();
   activeDeck=cleanMods(activeDeck); graveyard=cleanMods(graveyard); hand=cleanMods(hand);
+  revertOrgRev(); expireSpecial();
   removeAllCurses();
   const handPersistent = hand.filter(c=>c.purchased);
   const handToRecycle = hand.filter(c=>!c.purchased);
@@ -6937,6 +7006,8 @@ function useTacticByIdx(idx,c){   // 手札のカードを発動する（軍師�
   else if(c.type==='plead'){ usePlead(idx); }
   else if(c.type==='defend'){ useDefend(idx); }
   else if(c.type==='revolution'){ useRevolution(idx); }
+  else if(c.type==='allshuffle'){ useAllShuffle(idx); }
+  else if(c.type==='orgrev'){ useOrgRev(idx); }
   else if(c.type==='split'){ useSplit(idx); }
   else if(c.type==='conscript'){ useConscript(idx); }
   else if(c.type==='reinforce'){ useReinforce(idx); }
@@ -8594,12 +8665,7 @@ function renderShop_(){
       apply:()=>{ shopOnce.hand=true; handSlotBonus++; hint('手札の上限が1枚増えた！'); }});
     items.push({key:'slotplus',icon:'💍',name:'アクセサリー枠+1',desc:'アクセサリーを付けられる数が1つ増える（ずっと続く・1回だけ）',price:300,sold:!!shopOnce.slot,
       apply:()=>{ shopOnce.slot=true; accSlotBonus++; ACC_SLOTS++; hint('アクセサリーの装備枠が1つ増えた！'); }});
-    if(!deckOffer.cards) deckOffer.cards=rollDeckCards();
-    deckOffer.cards.forEach((cc,ci)=>{
-      const t=TACTICS.find(x=>x.type===cc.type); if(!t) return;
-      items.push({key:'card'+ci,head:ci===0?'使い捨てカード（使うと無くなる）':null,icon:'🃏',name:t.name,desc:t.desc,price:cardPrice(t),sold:cc.sold,
-        apply:()=>{ cc.sold=true; pendingRewardCards.push({kind:'tactics',...t,uid:uid(),purchased:true}); hint(`${t.name}を買った（次の戦いの山札に加わる）`); }});
-    });
+    items.push({key:'cardshop',head:'使い捨てカード（使うと無くなる）',icon:'🃏',name:'使い捨てカードを買う',desc:'軍師カードを全種類の中から選んで、好きな枚数だけ買える。店だけの特別カード（✨シャッフル・✨組織革命）もある。次の戦いの山札に加わる。',btn:true,price:0});
   }
   const nDeck=items.length; let accEmpty=false;
   {
@@ -8627,13 +8693,45 @@ function renderShop_(){
   }
   if(kind==='acc'&&accEmpty){ head('売っているアクセサリー'); const e=document.createElement('div'); e.className='reward-sub'; e.textContent='品切れ'; body.appendChild(e); }
   items.filter(x=>x.tab===kind).forEach(x=>{ if(x.head) head(x.head); const q=buyQty[x.key]||0;
+    if(x.btn){ const bt=document.createElement('button'); bt.className='reward-option acc-opt'; bt.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">選ぶ</span></div><div class="acc-desc">${x.desc}</div></div>`; bt.onclick=openCardShop; body.appendChild(bt); return; }
     const el=document.createElement('div'); el.className='reward-option acc-opt'; if(x.sold) el.style.opacity='.55';
     el.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">${x.sold?'売り切れ':x.reserved?`取り置き中・残り${x.price}G`:`${x.price}G`}</span>${(!x.sold&&!x.reserved&&x.key.startsWith('acc_')&&x.price>gold)?`<span class="acc-tag" style="margin-left:4px;background:#1e6ee6;color:#fff">手付金${Math.ceil(x.price/2)}G</span>`:''}</div><div class="acc-desc">${x.desc}</div></div>`+
       (x.sold?'':`<div class="qty-box"><button class="qty-btn" data-d="-1" ${q<=0?'disabled':''}>−</button><span class="qty-num ${q>0?'on':''}">${q}</span><button class="qty-btn" data-d="1" ${q>=x.max?'disabled':''}>＋</button></div>`);
     el.querySelectorAll('.qty-btn').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); const d=+b.dataset.d; buyQty[x.key]=Math.max(0,Math.min(x.max,(buyQty[x.key]||0)+d)); renderShop(); }; });
     body.appendChild(el); });
 }
-let buySel=[], buyQty={}, swapLeft=0;
+let buySel=[], buyQty={}, swapLeft=0, cardQty={};
+function shopCardPrice(t){ let p=cardPrice(t); if(hasAcc('haggle')) p=Math.max(1,Math.round(p*Math.max(0,1-ACC_NEW.haggle*accX()))); return p; }
+function openCardShop(){   // 使い捨てカード屋：全部の軍師カード＋店だけの特別カードから、好きな枚数を選んで買う
+  const old=document.getElementById('cardShopBg'); if(old) old.remove();
+  cardQty={};
+  const norm=TACTICS_ON.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true), spec=TACTICS.filter(t=>t.special);
+  const bg=document.createElement('div'); bg.id='cardShopBg'; bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+  bg.innerHTML=`<div class="reward-box" style="max-height:88vh;display:flex;flex-direction:column;width:min(94vw,520px)"><div class="reward-title">🃏 使い捨てカードを買う</div><div class="reward-sub" id="csGold" style="margin:2px 0 6px"></div><div id="csList" style="overflow-y:auto;flex:1;min-height:0;text-align:left"></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="csNo" style="flex:1">閉じる</button><button class="btn" id="csYes" style="flex:2">買う</button></div></div>`;
+  document.body.appendChild(bg);
+  const list=bg.querySelector('#csList'), ups=[], prices={};
+  const sec=t=>{ const h=document.createElement('div'); h.className='reward-sub'; h.style.cssText='font-weight:bold;margin:8px 0 2px'; h.textContent=t; list.appendChild(h); };
+  const add=(t,sp)=>{
+    const price=shopCardPrice(t), el=document.createElement('div'); el.className='reward-option acc-opt';
+    el.innerHTML=`<div class="acc-ico">${sp?'✨':'🃏'}</div><div class="acc-txt"><div class="reward-name">${t.name}<span class="acc-tag">${price}G</span></div><div class="acc-desc">${t.desc}</div></div><div class="qty-box"><button class="qty-btn" data-d="-1">−</button><span class="qty-num">0</span><button class="qty-btn" data-d="1">＋</button></div>`;
+    el.querySelectorAll('.qty-btn').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); cardQty[t.type]=Math.max(0,Math.min(99,(cardQty[t.type]||0)+(+b.dataset.d))); upd(); }; });
+    list.appendChild(el); ups.push(()=>{ const q=cardQty[t.type]||0, n=el.querySelector('.qty-num'); n.textContent=q; n.classList.toggle('on',q>0); el.querySelector('[data-d="-1"]').disabled=q<=0; });
+    prices[t.type]=price;
+  };
+  sec('店だけの特別カード（この戦いだけ使える）'); spec.forEach(t=>add(t,true));
+  sec('軍師カード（全種類）'); norm.forEach(t=>add(t,false));
+  const yes=bg.querySelector('#csYes');
+  const total=()=>[...spec,...norm].reduce((a,t)=>a+(cardQty[t.type]||0)*prices[t.type],0), count=()=>[...spec,...norm].reduce((a,t)=>a+(cardQty[t.type]||0),0);
+  function upd(){ ups.forEach(f=>f()); const tot=total(), n=count(); bg.querySelector('#csGold').innerHTML=`所持金 <b>${gold}G</b>`; yes.disabled=!n||tot>gold; yes.textContent=!n?'買う（＋で枚数を選ぶ）':tot>gold?`お金が足りません（${tot}G）`:`買う（${n}枚 / −${tot}G）`; }
+  upd();
+  bg.querySelector('#csNo').onclick=()=>bg.remove();
+  yes.onclick=()=>{
+    const tot=total(), n=count(); if(!n||tot>gold) return;
+    gold-=tot; const names=[];
+    [...spec,...norm].forEach(t=>{ const q=cardQty[t.type]||0; if(!q) return; names.push(t.name+(q>1?'×'+q:'')); for(let k=0;k<q;k++) pendingRewardCards.push({kind:'tactics',...t,uid:uid(),purchased:true}); });
+    bg.remove(); cardQty={}; hint(`${names.join('・')}を買った（次の戦いの山札に加わる）`); renderShop(); refreshPrep();
+  };
+}
 function confirmDeposit(x,dep){   // 所持金が足りない時、半額を手付金として払って取り置きできる
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
   bg.innerHTML=`<div class="reward-box"><div class="reward-title">お金が足りない！</div><div class="reward-sub" style="text-align:left;margin-top:8px">${x.name}：本来 <b>${x.price}G</b>（所持金 ${gold}G）<br>半額の <b>手付金 ${dep}G</b> を払いますか？<br>払うと取り置きできます。残り ${x.price-dep}G を払えば、いつでも買えます。<br>（所持金 ${gold}G → ${gold-dep}G）</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn ghost" id="cdNo" style="flex:1">やめる</button><button class="btn" id="cdYes" style="flex:1">手付金を払う</button></div></div>`;
@@ -8685,7 +8783,7 @@ function offerEquip(list,done){   // done＝全部聞き終わったあとにや
 }
 const DECK_PRICE_MULT=2.5;  // デッキ屋の値段倍率
 const SWAP_PRICE=Math.round(30*DECK_PRICE_MULT), UP_PRICE=Math.round(50*DECK_PRICE_MULT), CH_PRICE=Math.round(50*DECK_PRICE_MULT);
-const CARD_PRICE={scout:40,shuffle:40,holy:60,rehire:60,plead:60,defend:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
+const CARD_PRICE={allshuffle:60,orgrev:100,scout:40,shuffle:40,holy:60,rehire:60,plead:60,defend:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
 const cardPrice=t=>Math.round((CARD_PRICE[t.type]||60)*DECK_PRICE_MULT);
 function swapPool(){   // 入れ替えで来るカードの元：ゲーム開始時の大山札と同じ構成（完全ランダム。同じカードが来ることもある）
   const a=[];
@@ -8866,7 +8964,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15m';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15n';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
