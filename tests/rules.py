@@ -302,6 +302,16 @@ with sync_playwright() as p:
       useGuidance(hand.findIndex(x=>x.uid===g.uid)); tapFlag(0); busy=false; const ok1=guidanceTargets(1).includes(1); tapFlag(1); const st=pending&&pending.step; busy=false; guidSwap(1,0);
       return new Promise(res=>setTimeout(()=>res({wasClosed,ok1,st,d0:flags[1].cards[0]===A,s0:flags[0].cards[0]===B,closed:flags[1].closed,pend:pending}),900))}""")
     check('誘導：完成した旗のカードと交換できる（旗は役を計算し直して、また完成する）',r['wasClosed'] and r['ok1'] and r['st']==2 and r['d0'] and r['s0'] and r['closed'] and r['pend'] is None,r)
+    r=ev("""async()=>{ const wid=()=>WAVES.map(w=>w.baseId); try{ localStorage.setItem('soloSiegeMons',JSON.stringify(wid())); }catch(e){} lsSet(FUSE_KEY,'1'); lsSet(SEL2_KEY,''); lsSet(FUSE_SLOTS_KEY,'');
+      document.getElementById('titleScreen').style.display='none'; document.getElementById('charScreen').style.display='flex'; buildCharList();
+      const o={}; const box=()=>document.getElementById('fuseSlots'); o.has=!!box()&&box().querySelectorAll('[data-sl]').length===5;
+      const tiles=[...document.querySelectorAll('#monGrid .mon-tile')].filter(t=>!t.classList.contains('locked')); o.nt=tiles.length;
+      const pane=document.getElementById('curPanel'); pane.querySelector('[data-fs="2"]').click(); tiles[3].click(); tiles[5].click();   // 合体2枠を選び→足を2体ぶん切替
+      box().querySelector('[data-sl="0"]').click(); o.s1=fuseSlotsGet(); box().querySelector('[data-sl="0"]').click(); o.same=1;
+      pane.querySelector('[data-fs="2"]').click(); tiles[4].click(); box().querySelector('[data-sl="1"]').click(); o.s2=fuseSlotsGet();
+      box().querySelector('[data-sl="0"]').click(); o.back=lsGet(SEL2_KEY); o.id0=fuseSlotsGet()[0];
+      box().querySelector('[data-sd="1"]').click(); o.del=fuseSlotsGet()[1]; o.cnt=fuseSlotsGet().length; return o}""")
+    check('合体スロット：5つまで／保存→呼び出し→削除ができる',r['has'] and r['s1'][0] and r['s2'][1] and r['back']==r['id0'][1] and r['del'] is None and r['cnt']==5,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const o={}; busy=false; pending=null; gameEnded=false;
       // 毒：5ターン、毎ターン2ダメージ
       playerHp=100; playerHpMax=100; applyEnemyEvent('poison'); const ci=hand.findIndex(c=>c.type==='curse_poison'); o.gotCard=ci>=0; if(ci>=0){ doCurse(ci,0); busy=false; } const hp0=playerHp; advanceTurn(null); advanceTurn(null); o.venom=hp0-playerHp; o.venomOn=turnCounter<=dis.venomUntil;
