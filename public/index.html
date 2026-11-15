@@ -1646,7 +1646,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、1ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
-  'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'誘導カードを手札に加えます。（旗のカードを1枚、別の旗に移せます）'},
+  'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'選んだ旗の呪い（敵の装備・ボム・封鎖・ワームホール・ブラインドなど）を溶かして消します。'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{name:'エサになる',icon:'🪱',get desc(){ return `特異体質：戦いが始まると体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増え、特殊技のコスト（体力・スーパーコンボ・お金）が半分になります。（技ではなく、常に働きます）`; }},
@@ -5081,13 +5081,56 @@ function guidanceTargets(step){
   const card=src.cards[pending.cardIdx];
   if(!card) return [];
   if(src.closed) return [];   // 封鎖済みの旗のカードは移動不可。山札・墓地アイコンで除去だけ
-  return flags.map((f,i)=>i).filter(i=>{
-    if(i===from || flags[i].closed || isLocked(flags[i])) return false;
-    const dm=flagMonster(flags[i]);
-    if(card.kind==='monster') return !dm && flags[i].cards.length<3;   // 装備は、装備のない旗にだけ動かせる
-    if(dm) return satisfiesMonster(card,flags[i]);
-    return flags[i].cards.length<3 && fitsFormation(card, flags[i]);
+  if(pending.step===2) return pending.dest>=0?[pending.dest]:[];
+  return flags.map((f,i)=>i).filter(i=>i!==from && guidAddOK(card,i) || (i!==from && guidSwapList(i).length>0));
+}
+function guidAddOK(card,i){   // 空きに追加できるか（完成した旗には追加できない）
+  const f=flags[i]; if(f.closed || isLocked(f) || f.capturedByEnemy) return false;
+  const dm=flagMonster(f);
+  if(card.kind==='monster') return !dm && f.cards.length<3;   // 装備は、装備のない旗にだけ動かせる
+  if(dm) return satisfiesMonster(card,f);
+  return f.cards.length<3 && fitsFormation(card, f);
+}
+function guidFlagOK(f,cards,moved){   // cards という並びにした時、その旗として成り立つか
+  const old=f.cards; f.cards=cards; let ok=true;
+  try{
+    const mons=cards.filter(c=>c&&c.kind==='monster'); if(mons.length>1) ok=false;
+    if(ok&&mons.length===1) ok=cards.every(c=>c.kind==='monster'||satisfiesMonster(c,f));
+    if(ok&&moved.kind!=='monster'){ f.cards=cards.filter(c=>c!==moved); ok=fitsFormation(moved,f); }
+  }catch(e){ ok=false; }
+  f.cards=old; return ok;
+}
+function guidSwapList(i){   // 移すカードと入れ替えられる、i番目の旗のカード（番号）
+  const from=pending.from, src=flags[from], d=flags[i]; if(!src||!d||i===from) return [];
+  if(d.capturedByEnemy||isLocked(d)||src.closed) return [];
+  const A=src.cards[pending.cardIdx]; if(!A) return [];
+  const out=[];
+  d.cards.forEach((B,j)=>{
+    if(!B) return;
+    const dc=d.cards.map((c,k)=>k===j?A:c), sc=src.cards.map((c,k)=>k===pending.cardIdx?B:c);
+    const pfD=flagMonster(d)&&(flagMonster(d).sub==='pfield'||flagMonster(d).pf), pfS=flagMonster(src)&&(flagMonster(src).sub==='pfield'||flagMonster(src).pf);
+    if((pfD&&A.kind==='troop')||(pfS&&B.kind==='troop')) return;   // パニックフィールドの旗との交換は、数字が逆転するので対象外
+    if(guidFlagOK(d,dc,A)&&guidFlagOK(src,sc,B)) out.push(j);
   });
+  return out;
+}
+function guidReopen(f){ if(f.closed){ if(f.result) score-=f.result.base; f.closed=false; f.result=null; f.capturedByEnemy=false; f.baseCombo=false; f.symbolColor=null; f.sheetSum=0; } }
+function guidSwap(fi,j){
+  if(!pending||pending.type!=='guidance') return;
+  if(!guidSwapList(fi).includes(j)) return hint('そのカードとは交換できません。',true);
+  if(!guidExists()){ pending=null; busy=false; render(); hint('誘導カードが見つかりませんでした。',true); return; }
+  busy=true;
+  const from=pending.from, src=flags[from], d=flags[fi], A=src.cards[pending.cardIdx], B=d.cards[j];
+  const fromRect=rectOfUid(A.uid), wasClosed=!!d.closed;
+  guidReopen(d);
+  d.cards[j]=A; src.cards[pending.cardIdx]=B;
+  const sk=!!pending.skillCard, used=guidTake(); graveyard.push(used);
+  pending=null;
+  if(!sk) advanceTurn(A);
+  closeCheck(fi,false); closeCheck(from,false);
+  render(); layoutHand(false);
+  flyToUid(A.uid, fromRect, ()=>{ try{ busy=false; endCheck(); render(); }catch(e){ busy=false; render(); } });
+  hint(`${cardDisplayName(A)}と${cardDisplayName(B)}を入れ替えた。`+(wasClosed?'（完成していた旗は、役を計算し直した）':''));
 }
 function chooseGuidanceCard(cardIdx){
   if(!pending || pending.type!=='guidance' || pending.step!=='choose') return;
@@ -5118,7 +5161,17 @@ function resolveGuidance(fi){
     else { pending.step='choose'; render(); hint('移したいカードをタップ（旗の中のカードを直接タップ）'); }
     return;
   }
-  if(!guidanceTargets(1).includes(fi)) return gameAlert('そこには移動できません。\n（完成した旗・封鎖中の旗・3枚埋まった旗、またはそのカードが条件を満たさない旗には動かせません）');
+  if(pending.step===2) return;
+  if(!guidanceTargets(1).includes(fi)) return gameAlert('そこには移動できません。\n（封鎖中の旗、条件を満たさない旗、交換できるカードがない旗には動かせません）');
+  { const card0=flags[pending.from].cards[pending.cardIdx], addOK=card0&&guidAddOK(card0,fi), sw=guidSwapList(fi);
+    const askSwap=()=>{ if(!pending) return; if(sw.length===1){ guidSwap(fi,sw[0]); return; } pending.step=2; pending.dest=fi; render(); hint('入れ替えたいカードを、旗の中からタップ'); };
+    if(sw.length>0 && addOK){ showConfirm('空きがあります。そのまま追加しますか？\n（「いいえ」を選ぶと、入れ替えるカードを選べます）',()=>{ if(pending) resolveGuidanceAdd(fi); },askSwap); return; }
+    if(sw.length>0 && !addOK){ askSwap(); return; } }
+  resolveGuidanceAdd(fi);
+ } catch(err){ console.error('resolveGuidance error:', err); busy=false; pending=null; render(); hint('誘導でエラーが発生したため中断しました。',true); }
+}
+function resolveGuidanceAdd(fi){
+ try{
   if(!guidExists()){
     console.error('guidance: hand card not found for uid', pending.handUid);
     pending=null; busy=false; render();
@@ -5964,7 +6017,7 @@ function render(){
   else if(pending&&pending.type==='pfpick') targets=pfCands();
   else if(pending&&pending.type==='blindpick') targets=evCands('blind').map(c=>c.i);
   else if(pending&&pending.type==='sealpick') targets=(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).map(c=>c.i);
-  else if(pending&&pending.type==='holy') targets=holyFlagCands().map(c=>c.i);
+  else if(pending&&(pending.type==='holy'||pending.type==='melt')) targets=holyFlagCands().map(c=>c.i);
   else if(picked!==null && !pending) targets=targetsFor(hand[picked]);
   const highlighting=targets.length>0;
 
@@ -6009,7 +6062,7 @@ function render(){
     let badge='';
     const mon=flagMonster(f);
     let bigResult=null;
-    const guidOpen=!!(pending&&pending.type==='guidance'&&(pending.step==='choose'||pending.step===1)&&pending.from===i&&f.closed);   // 誘導で封鎖済みの旗のカードを選ぶ間は中身を見せる
+    const guidOpen=!!(pending&&pending.type==='guidance'&&((pending.step==='choose'||pending.step===1)&&pending.from===i||pending.step===2&&pending.dest===i)&&f.closed);   // 誘導で封鎖済みの旗のカードを選ぶ間は中身を見せる
     if(f.result && !guidOpen){
       if(f.result.timedOut){
         badge=`<div class="badge timeoutbadge">🚩 敵に奪われた（${f.result.base}）</div>`;
@@ -6041,12 +6094,14 @@ function render(){
       const st=document.createElement('div'); st.className='stack';
       const choosingHere = pending && pending.type==='guidance' && pending.step==='choose' && pending.from===i;
       if(choosingHere) st.classList.add('spread-choose');
+      const swapList=(pending&&pending.type==='guidance'&&pending.step===2&&pending.dest===i)?guidSwapList(i):null;
       for(let s=0;s<3;s++){
         if(choosingHere && !f.cards[s]) continue;
         const sl=document.createElement('div'); sl.className='slot'+(!f.closed&&s===f.cards.length?' next':'');
         if(f.cards[s]){
           { const ce=cardEl(f.cards[s],true); if(!f.closed && d.classList.contains('link-2') && f.cards[s].kind==='troop') ce.classList.add('card-linked'); sl.appendChild(ce); }
           const alreadyChosen = pending && pending.type==='guidance' && pending.step===1 && pending.from===i && pending.cardIdx===s;
+          if(swapList){ if(swapList.includes(s)){ sl.classList.add('choosable'); const jj=s; sl.onclick=()=>guidSwap(i,jj); } else sl.style.opacity='.45'; }
           if(choosingHere || alreadyChosen){
             sl.classList.add('choosable');
             attachGuidanceCardDrag(sl, s, i);
@@ -6239,7 +6294,8 @@ function pickHowTip(){
 function nowText(){
   if(gameEnded) return '戦役は終結。結果を確認しよう。';
   if(pending&&pending.type==='discard') return `手札から捨てる2枚をタップしよう（${pending.chosen.length}/2）。選び終えたら確定。`;
-  if(pending&&pending.type==='guidance') return pending.step===0 ? 'カードを移したい旗をタップしよう。' : pending.step==='choose' ? '移したいカードをタップしよう。' : '移す先の旗をタップしよう。';
+  if(pending&&pending.type==='melt') return '呪いを溶かしたい旗をタップしよう。';
+  if(pending&&pending.type==='guidance') return pending.step===0 ? 'カードを移したい旗をタップしよう。' : pending.step==='choose' ? '移したいカードをタップしよう。' : pending.step===2 ? '入れ替えたいカードを、旗の中からタップしよう。' : '移す先の旗をタップしよう。';
   if(pending&&pending.type==='eat') return '食べるカードをタップしよう。';
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
@@ -6911,11 +6967,16 @@ function advanceToNextStage(){
 function tapFlag(i){
   if(busy||gameEnded) return;
   if(pending&&pending.type==='guidance'){
-    if(pending.step==='choose') return;
+    if(pending.step==='choose'||pending.step===2) return;
     resolveGuidance(i);
     return;
   }
   if(pending&&pending.type==='holy'){ resolveHolyFlag(i); return; }
+  if(pending&&pending.type==='melt'){
+    const f=flags[i]; if(!holyFlagCands().some(x=>x.i===i)) return hint('その旗には溶かせる呪いがありません。',true);
+    f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; f.arrow=null; delete haunt[i];
+    pending=null; spec.mon++; playSfx('shuffle'); render(); hint(`🫠 溶かす：F${i+1}の呪い（敵の装備・ボム・封鎖・ワームホール・ブラインド）を溶かした！`,true); return;
+  }
   if(pending&&pending.type==='sealpick'){
     if(!(pending.wipe?wipeCands():pending.bomb?bombCands():pending.minus?minusCands():sealCands()).some(c=>c.i===i)){ gameAlert(pending.wipe?'完成済みの旗には使えません。':pending.bomb?'その旗にはボムを置けません。\n（完成した旗・封鎖中の旗・すでにボムがある旗には置けません）':pending.minus?'その旗にはマイナスを付けられません。\n（完成した旗・封鎖中の旗・すでにマイナスの旗には付けられません）':'その旗は封鎖できません。\n（完成した旗・すでに封鎖されている旗は封鎖できません）'); return; }
     const hi=hand.findIndex(c=>c.uid===pending.uid); pending=null;
@@ -7180,14 +7241,14 @@ function useTacticByIdx(idx,c){   // 手札のカードを発動する（軍師�
     picked=idx; render(); layoutHand(false);
   }
 }
-function showConfirm(message, onYes){
+function showConfirm(message, onYes, onNo){
   document.getElementById('confirmMsg').textContent=message;
   document.getElementById('confirmModal').style.display='flex';
   const yesBtn=document.getElementById('confirmYes');
   const noBtn=document.getElementById('confirmNo');
   const cleanup=()=>{ document.getElementById('confirmModal').style.display='none'; yesBtn.onclick=null; noBtn.onclick=null; };
   yesBtn.onclick=()=>{ cleanup(); onYes(); };
-  noBtn.onclick=cleanup;
+  noBtn.onclick=()=>{ cleanup(); if(onNo) onNo(); };
 }
 document.getElementById('giveupBtn').onclick=()=>{
   if(gameEnded) return;
@@ -7365,7 +7426,7 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
   if(SKFN[m.kind]){ skUse(m); return; }
-  if(m.kind==='melt'){ if(guidanceTargets(0).length===0) return hint('動かせるカードが盤面にありません。',true); const sc={kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}; busy=false; pending={type:'guidance',step:0,handUid:sc.uid,skillCard:sc}; playSfx('combo'); render(); hint('🫠 溶かす！ カードを移したい旗をタップ'); }
+  if(m.kind==='melt'){ if(holyFlagCands().length===0) return hint('溶かせる呪いが、どの旗にもありません。',true); busy=false; pending={type:'melt'}; playSfx('combo'); render(); hint('🫠 溶かす！ 呪いを溶かしたい旗をタップ'); }
   else if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
   else if(m.kind==='bash'){
     const hit=Math.random()<bashRateNow; spec.mon++;
@@ -9129,7 +9190,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
