@@ -1535,7 +1535,7 @@ const TACTICS = [
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ捨て、同じ枚数を山札から引き直す',count:3},
   {type:'holy',name:'聖水',short:'聖水',desc:'今かかっている状態異常をすべて一度に消す（マイナスレイン・色封じ・毒などの効果／旗の呪い：敵の装備・ボム・封鎖・ワームホール・煙・デスイーター／手札の呪いのカード）。これから来る妨害は防げない。暗殺のように、もう消えたカードは戻らない',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地のカードを1枚選んで、手札に戻す',count:2},
-  {type:'guidance',name:'撤収',short:'撤収',desc:'旗のカードを1枚選んで、手札に戻す（敵が置いた数字カードも取れる）。完成した旗から取ると、その旗は未完成に戻り役の点も消える',count:2},
+  {type:'guidance',name:'誘導',short:'誘導',desc:'旗（シート）にあるカードを1枚選んで、別の旗に移す（敵が置いたカードや、呪いの装備も移せる）。完成した旗のカードは動かせない',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面のまま、すぐに一斉攻撃する（完成した旗の役とスーパーコンボは有効）',count:2},
   {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字カードを全部+3する',count:3},
   {type:'plead',name:'命乞い',short:'命乞い',desc:'これから来る敵の技（攻撃力×2・妨害、すべて）を3ターン遅らせる（ターンと敵の攻撃力の上昇は普通に進む）',count:2,isNew:true},
@@ -1646,7 +1646,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
   'ハエ':{kind:'buzz',name:'ブーン',icon:'🪰',desc:'体が分身して光り、1ターンの間、HPにダメージを受けると50％の確率で無傷になります。残りの50％はHPが0になります。（ダメージが1でも1万でも同じです）'},
   'カエル':{kind:'swallow',name:'丸のみ',icon:'🐸',desc:'手札のカードを1枚飲み込みます。飲み込んだカードは、もう一度押すと手札に吐き出せますが、吐き出したあと手札から1枚捨てます。（吐き出したカードも捨てられます／処理不能のカードも飲み込めます）'},
   '蚊':{kind:'sting',name:'一刺し',icon:'🦟',desc:'赤の1のカードを、手札を通さず、好きな旗に直接置きます。'},
-  'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'撤収カードを手札に加えます。（旗のカードを1枚、手札に戻せます）'},
+  'スライム':{kind:'melt',name:'溶かす',icon:'🫠',desc:'誘導カードを手札に加えます。（旗のカードを1枚、別の旗に移せます）'},
   'ガンマン':{kind:'bullet',name:'バレットタイム',icon:'⏱',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   'コボルト':{kind:'punch',dmg:100,slow:10,name:'殴る',icon:'👊',desc:'敵にすぐ100ダメージを与え、さらに10ターンの間、敵の攻撃力の上昇率を半分に抑えます。敵のHPが0になればそのままステージクリアです。'},
   'ミミズ':{name:'エサになる',icon:'🪱',get desc(){ return `特異体質：戦いが始まると体力が半分になる代わりに、特殊技の回数の上限が${MONSK.wormSpec}増え、特殊技のコスト（体力・スーパーコンボ・お金）が半分になります。（技ではなく、常に働きます）`; }},
@@ -2428,7 +2428,7 @@ const TACTIC_EXTRA = {
   holy:'取り除きたい呪いをタップして消す。旗をタップすると、その旗の敵の妨害が消える。ペナルティなし。',
   wipe:'指定した旗のカードをすべて墓地へ送る。',
   rehire:'墓地から1枚選んで手札に戻す。',
-  guidance:'旗を選んで、置いたカードを手札に戻す。',
+  guidance:'旗のカードを1枚選んで、別の旗に移す。',
   blank:'効果なし。墓地へ捨てて引き直そう。',
   curse_poison:'使うと5ターンの間、毎ターン2ダメージ。普通には捨てられない。',
   curse_seal:'使うと旗を1つ封鎖できる。普通には捨てられない。',
@@ -4823,7 +4823,7 @@ function useGuidance(handIdx){
   busy=false;
   pending={type:'guidance', step:0, handUid:hand[handIdx].uid};
   render();
-  hint('カードを手札に戻したい旗をタップ');
+  hint('カードを移したい旗をタップ');
 }
 function useDuplicate(handIdx){
   if(hand.length<2) return hint('複製できる他のカードがありません。',true);
@@ -5049,7 +5049,7 @@ function discardGuidanceCard(target){
   if(!guidExists()){
     console.error('guidance: hand card not found for uid', pending.handUid);
     pending=null; busy=false; render();
-    hint('撤収カードが見つかりませんでした。',true);
+    hint('誘導カードが見つかりませんでした。',true);
     return true;
   }
   busy=true;
@@ -5074,7 +5074,7 @@ function discardGuidanceCard(target){
   return true;
 }
 function guidanceTargets(step){
-  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0 && !(flags[i].result&&flags[i].result.timedOut));   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
+  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0 && !flags[i].closed && !(flags[i].result&&flags[i].result.timedOut));   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
   const from=pending.from;
   const src=flags[from];
   if(!src) return [];
@@ -5091,10 +5091,10 @@ function guidanceTargets(step){
 }
 function chooseGuidanceCard(cardIdx){
   if(!pending || pending.type!=='guidance' || pending.step!=='choose') return;
-  pending.cardIdx=cardIdx; guidanceReturn(cardIdx);
+  pending.cardIdx=cardIdx; pending.step=1; render(); hint('移す先の旗をタップ');
 }
 function guidanceReturn(cardIdx){   // 撤収：選んだ旗のカードを手札に戻す（完成していた旗は未封鎖に戻る）
-  if(!guidExists()){ pending=null; busy=false; render(); hint('撤収カードが見つかりませんでした。',true); return; }
+  if(!guidExists()){ pending=null; busy=false; render(); hint('誘導カードが見つかりませんでした。',true); return; }
   const src=flags[pending.from], card=src&&src.cards.splice(cardIdx,1)[0];
   if(!card){ pending=null; busy=false; render(); hint('カードの選択が無効になっていました。もう一度お試しください。',true); return; }
   const reopened=!!src.closed;
@@ -5114,15 +5114,15 @@ function resolveGuidance(fi){
   if(pending.step===0){
     if(!guidanceTargets(0).includes(fi)) return hint('その旗にはカードがありません。',true);
     pending.from=fi;
-    if(flags[fi].cards.length===1 && !flags[fi].closed){ guidanceReturn(0); }
-    else { pending.step='choose'; render(); hint(flags[fi].closed?'手札に戻すカードをタップ（旗は未封鎖に戻る）':'手札に戻すカードをタップ（旗の中のカードを直接タップ）'); }
+    if(flags[fi].cards.length===1){ pending.cardIdx=0; pending.step=1; render(); hint('移す先の旗をタップ'); }
+    else { pending.step='choose'; render(); hint('移したいカードをタップ（旗の中のカードを直接タップ）'); }
     return;
   }
   if(!guidanceTargets(1).includes(fi)) return gameAlert('そこには移動できません。\n（完成した旗・封鎖中の旗・3枚埋まった旗、またはそのカードが条件を満たさない旗には動かせません）');
   if(!guidExists()){
     console.error('guidance: hand card not found for uid', pending.handUid);
     pending=null; busy=false; render();
-    hint('撤収カードが見つかりませんでした。',true);
+    hint('誘導カードが見つかりませんでした。',true);
     return;
   }
   busy=true;
@@ -5188,7 +5188,7 @@ function resolveGuidance(fi){
  } catch(err){
    console.error('resolveGuidance error:', err);
    busy=false; pending=null; render();
-   hint('撤収でエラーが発生したため中断しました。',true);
+   hint('誘導でエラーが発生したため中断しました。',true);
  }
 }
 
@@ -6239,7 +6239,7 @@ function pickHowTip(){
 function nowText(){
   if(gameEnded) return '戦役は終結。結果を確認しよう。';
   if(pending&&pending.type==='discard') return `手札から捨てる2枚をタップしよう（${pending.chosen.length}/2）。選び終えたら確定。`;
-  if(pending&&pending.type==='guidance') return pending.step===0 ? 'カードを手札に戻したい旗をタップしよう。' : '手札に戻すカードをタップしよう。';
+  if(pending&&pending.type==='guidance') return pending.step===0 ? 'カードを移したい旗をタップしよう。' : pending.step==='choose' ? '移したいカードをタップしよう。' : '移す先の旗をタップしよう。';
   if(pending&&pending.type==='eat') return '食べるカードをタップしよう。';
   if(pending&&pending.type==='swallow') return '飲み込むカードをタップしよう。';
   if(pending&&pending.type==='spitdiscard') return '手札から捨てるカードを1枚タップしよう。';
@@ -7007,7 +7007,7 @@ function attachGuidanceCardDrag(el, cardIdx, flagIdx){
     const dx=e.clientX-sx, dy=e.clientY-sy;
     if(!dragging){
       if(Math.hypot(dx,dy)<8) return;
-      if(pending&&pending.type==='guidance') return;   // 撤収はタップで選ぶ（ドラッグしない）
+      if(pending&&pending.type==='guidance') return;   // 誘導はタップで選ぶ（ドラッグしない）
       dragging=true;
       if(pending && pending.type==='guidance'){ pending.cardIdx=cardIdx; pending.from=flagIdx; pending.step=1; }
       startRect=cardVisualRect(el.querySelector('.pcard')||el);
@@ -7365,7 +7365,7 @@ function monSkill2(m){   // 21〜28の特殊技。使えた時だけ true（回�
 function monSkillUse(){
   const m=CHARACTER.monSkill; if(!m) return;
   if(SKFN[m.kind]){ skUse(m); return; }
-  if(m.kind==='melt'){ if(guidanceTargets(0).length===0) return hint('動かせるカードが盤面にありません。',true); const sc={kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}; busy=false; pending={type:'guidance',step:0,handUid:sc.uid,skillCard:sc}; playSfx('combo'); render(); hint('🫠 溶かす！ カードを手札に戻したい旗をタップ'); }
+  if(m.kind==='melt'){ if(guidanceTargets(0).length===0) return hint('動かせるカードが盤面にありません。',true); const sc={kind:'tactics',...TACTICS.find(t=>t.type==='guidance'),uid:uid(),temp:true}; busy=false; pending={type:'guidance',step:0,handUid:sc.uid,skillCard:sc}; playSfx('combo'); render(); hint('🫠 溶かす！ カードを移したい旗をタップ'); }
   else if(m.kind==='cell'){ playerHp=Math.max(1,Math.ceil(playerHp/2)); plAtkMult*=0.5; hpStock++; spec.mon++; hint(`🧫 細胞分裂！体力と攻撃力が半分になり、体力ストックが1増えた！（ストック${hpStock}）`,true); playSfx('combo'); dlog('action',{name:'cell_split',stock:hpStock}); try{ saveGame(); }catch(_){} }
   else if(m.kind==='bash'){
     const hit=Math.random()<bashRateNow; spec.mon++;
@@ -9129,7 +9129,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

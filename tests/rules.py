@@ -148,8 +148,8 @@ with sync_playwright() as p:
       Math.random=()=>0.9; specUse('mon'); await sleep(100); document.getElementById('confirmYes').click(); await sleep(1500); o.lose=gameEnded&&playerHp===0; Math.random=rnd; return o}""")
     check('ジャックランタン：トリックオアトリートは1戦1回・1/2で敵が死に1/2で自分が死ぬ',r['max']==1 and r['win'] and r['again']==0 and r['lose'],r)
     r=ev("""async()=>{ const i=WAVES.findIndex(w=>w.baseId==='何匹かのスライム'); CHARACTER=makeMonChar(i,'何匹かのスライム'); init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false;pending=null;gameEnded=false;
-      const o={kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind, name:CHARACTER.monSkill&&CHARACTER.monSkill.name}; flags.forEach(f=>{f.cards=[];f.closed=false}); const tc={kind:'troop',color:'red',value:5,uid:uid()}; flags[0].cards.push(tc); hand=[]; const t0=turnCounter; specUse('mon'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); await new Promise(r=>setTimeout(r,300));
-      o.back=hand.some(c=>c.uid===tc.uid); o.turn=turnCounter-t0; o.grave=graveyard.some(c=>c.type==='guidance'&&c.temp); o.uses=spec.mon; return o}""")
+      const o={kind:CHARACTER.monSkill&&CHARACTER.monSkill.kind, name:CHARACTER.monSkill&&CHARACTER.monSkill.name}; flags.forEach(f=>{f.cards=[];f.closed=false}); const tc={kind:'troop',color:'red',value:5,uid:uid()}; flags[0].cards.push(tc); hand=[]; const t0=turnCounter; specUse('mon'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); busy=false; resolveGuidance(1); await new Promise(r=>setTimeout(r,900));
+      o.back=flags[1].cards.some(c=>c.uid===tc.uid); o.turn=turnCounter-t0; o.grave=graveyard.some(c=>c.type==='guidance'&&c.temp); o.uses=spec.mon; return o}""")
     check('スライム：溶かす（ボタンで撤収が発動・ターン消費なし・墓地へ）',r['kind']=='melt' and r['name']=='溶かす' and r['pend'] and r['back'] and r['turn']==0 and r['grave'] and r['uses']==1,r)
     r=ev("""async()=>{ const a=WAVES.findIndex(w=>dispName(w.baseId)==='蚊'); CHARACTER=makeMonChar(a,WAVES[a].baseId); init(); document.getElementById('titleScreen').style.display='none'; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null;
       flags.forEach(x=>{x.cards=[];x.closed=false}); flags[0].cards.push(makePanicField()); const o={}; specUse('mon'); o.pend=pending&&pending.type; tapFlag(0); await new Promise(r=>setTimeout(r,200));
@@ -170,8 +170,8 @@ with sync_playwright() as p:
     r=ev("""async()=>{ const a=WAVES.findIndex(w=>dispName(w.baseId)==='トロル'), b=WAVES.findIndex(w=>w.baseId==='何匹かのスライム'); const f=fuseChar(makeMonChar(a,WAVES[a].baseId),'何匹かのスライム'); CHARACTER=f; lsSet(FUSE_KEY,'1'); init(); lsSet(FUSE_KEY,''); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null;
       const o={sp:f.sp.join(','),a:f.monSkill&&f.monSkill.name,b:f.monSkillB&&f.monSkillB.name,slots:ACC_SLOTS,spr:!!SPR[fuseSprKey(monSprKey(WAVES[a]),monSprKey(WAVES[b]))],btn2:document.getElementById('specMon2').style.display};
       flags.forEach(x=>{x.cards=[];x.closed=false}); const tc={kind:'troop',color:'red',value:5,uid:uid()}; flags[0].cards.push(tc); hand=[];
-      specUse('mon2'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); await new Promise(r=>setTimeout(r,300)); render();
-      o.back=hand.some(c=>c.uid===tc.uid); o.u2=spec.mon2; o.u1=spec.mon; o.skillBack=CHARACTER.monSkill.name; return o}""")
+      specUse('mon2'); o.pend=!!(pending&&pending.skillCard); resolveGuidance(0); busy=false; resolveGuidance(1); await new Promise(r=>setTimeout(r,900)); render();
+      o.back=flags[1].cards.some(c=>c.uid===tc.uid); o.u2=spec.mon2; o.u1=spec.mon; o.skillBack=CHARACTER.monSkill.name; return o}""")
     check('合体：トロル＋スライム（特殊技2体分・枠は3つのまま・2つ目の技が使える・1つ目の枠は消費しない）',r['sp']=='mon,mon2' and r['a']=='大巨漢' and r['b']=='溶かす' and r['slots']==3 and r['spr'] and r['btn2']!='none' and r['pend'] and r['back'] and r['u2']==1 and r['u1']==0 and r['skillBack']=='大巨漢',r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); enemySched={5:'rage'}; slowWins=[]; const a=enemyAtkAt(5), a4=enemyAtkAt(4); slowWins=[[0,10]]; const b=enemyAtkAt(5), b4=enemyAtkAt(4); const base=a4/enemyAtkAt(4); return {rageFull:a/a4, rageSlow:(b/ (b4+ (enemyAtkAt(5)-enemyAtkAt(5))))} }""")
     check('殴る：効果中は攻撃力×2も×1.5に抑える',abs(r['rageFull']-2)<0.5 and r['rageSlow']<r['rageFull'],r)
@@ -291,10 +291,10 @@ with sync_playwright() as p:
     check('ブラインド：敵の予告→旗が煙に覆われ、煙の間は他の妨害の対象外／コウモリの特殊技で好きな旗を覆える',
           r['on'][r['fi']] and r['on'].count(True)==1 and r['smoke']==1 and not r['cand'] and not r['candMinus'] and not r['after'] and r['skill']=='blind' and r['pend']=='blindpick' and r['skillOn']==[False,True,False,False][:len(r['skillOn'])] and r['batDis'][0]=='blind',r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false}); busy=false; pending=null;
-      const c={kind:'troop',color:'red',value:7,uid:uid()}; flags[0].cards.push(c); const g={kind:'tactic',type:'guidance',name:'撤収',uid:uid()}; hand.push(g);
-      const n0=hand.length; useGuidance(hand.findIndex(x=>x.uid===g.uid)); const p1=pending&&pending.type; tapFlag(0);
-      return {p1,inHand:hand.some(x=>x.uid===c.uid),flagLeft:flags[0].cards.length,usedGone:!hand.some(x=>x.uid===g.uid),pend:pending}}""")
-    check('撤収：旗のカードが手札に戻り、撤収カードは使われる',r['p1']=='guidance' and r['inHand'] and r['flagLeft']==0 and r['usedGone'] and r['pend'] is None,r)
+      const c={kind:'troop',color:'red',value:7,uid:uid()}; flags[0].cards.push(c); const g={kind:'tactic',type:'guidance',name:'誘導',uid:uid()}; hand.push(g);
+      const n0=hand.length; useGuidance(hand.findIndex(x=>x.uid===g.uid)); const p1=pending&&pending.type; tapFlag(0); const st=pending&&pending.step; busy=false; tapFlag(1);
+      return new Promise(res=>setTimeout(()=>{ res({p1,st,inHand:hand.some(x=>x.uid===c.uid),src:flags[0].cards.length,dst:flags[1].cards.some(x=>x.uid===c.uid),usedGone:!hand.some(x=>x.uid===g.uid),pend:pending}); },900))}""")
+    check('誘導：旗のカードが別の旗へ移り（手札には戻らない）、誘導カードは使われる',r['p1']=='guidance' and r['st']==1 and not r['inHand'] and r['src']==0 and r['dst'] and r['usedGone'] and r['pend'] is None,r)
     r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); const o={}; busy=false; pending=null; gameEnded=false;
       // 毒：5ターン、毎ターン2ダメージ
       playerHp=100; playerHpMax=100; applyEnemyEvent('poison'); const ci=hand.findIndex(c=>c.type==='curse_poison'); o.gotCard=ci>=0; if(ci>=0){ doCurse(ci,0); busy=false; } const hp0=playerHp; advanceTurn(null); advanceTurn(null); o.venom=hp0-playerHp; o.venomOn=turnCounter<=dis.venomUntil;
@@ -417,7 +417,7 @@ with sync_playwright() as p:
       flags[0].cards=[mk('red',3)]; flags[1].cards=[mk('red',10),mk('blue',10),{kind:'monster',sub:'number',value:5,uid:uid(),pf:true}];
       hand=[{kind:'tactics',type:'guidance',uid:uid()}]; pending={type:'guidance',step:'dest',from:0,cardIdx:0,handUid:hand[0].uid}; resolveGuidance(1);
       return new Promise(res=>setTimeout(()=>{ const f=flags[1]; res({closed:f.closed, vals:f.cards.map(x=>x.value).join(','), pf:f.cards.some(x=>x.pf)}); },900))}""")
-    check('撤収：パニックフィールドの旗へ動かすと、普通に置く時と同じく数字が逆転する（3→8）',r['closed'] and r['vals']=='10,10,8' and not r['pf'],r)
+    check('誘導：パニックフィールドの旗へ動かすと、普通に置く時と同じく数字が逆転する（3→8）',r['closed'] and r['vals']=='10,10,8' and not r['pf'],r)
     r=ev("""()=>{ CHARACTER=makeMonChar(WAVES.findIndex(x=>x.baseId==='野盗の一団')); init(); busy=false; pending=null; bossHp=1e9; displayedBossHp=1e9; hand=[0,1,2,3].map(()=>({kind:'troop',color:'red',value:3,uid:uid()})); render(); const o={}; o.name=CHARACTER.monSkill.name; o.l0=document.getElementById('specMonL').textContent;
       const rnd=Math.random; Math.random=()=>0.1; monSkillUse(); Math.random=rnd; o.msg=(document.getElementById('hint')||{}).textContent||''; o.next=bashDmg; o.info=specInfoFor('mon').desc; busy=false; render(); o.l1=document.getElementById('specMonL').textContent; return o}""")
     check('斧で攻撃：ボタンに今のダメージが出る／当たると「攻撃力が〇〇に上がった」と出る',r['name']=='斧で攻撃' and '斧' in r['l0'] and '200' in r['l0'] and '240' in r['l1'] and '攻撃力が240に上がった' in r['msg'] and '240' in r['info'],r)
