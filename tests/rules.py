@@ -569,5 +569,15 @@ with sync_playwright() as p:
       o.curseGone=!hand.some(x=>x.uid===cu.uid)&&!haunt[1]&&flags[1].cards.length===1&&!graveyard.some(x=>x.uid===cu.uid);
       o.on=!DIS_OFF.includes('ghost'); return o}""")
     check('ワームホール：1枚置くまで居続ける／置いたカードは一緒に墓地へ／呪いカードも効果を出さずに一緒に消える',all(r.values()),r)
+    ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; enemySched={};
+      panel=makePanel(1); panel.cells[0].ok=true; accCond.picks=1; window._pk={no:panel.no,sp:accCond.special||0}; showPanel(); document.getElementById('pnSkip').click(); }""")
+    pg.wait_for_timeout(150)
+    r=ev("""()=>{ const o={}; const cm=document.getElementById('confirmModal'); o.ask=cm.style.display==='flex'&&/次のシート/.test(document.getElementById('confirmMsg').textContent); document.getElementById('confirmYes').click();
+      o.next=panel.no===_pk.no+1; o.noPrize=(accCond.special||0)===_pk.sp; o.keep=accCond.picks===1; o.fresh=panel.cells.every(c=>!c.ok); document.getElementById('panelModal')?.remove();
+      const T=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); const rd={kind:'tactics',...TACTICS.find(t=>t.type==='redye'),uid:uid()}; hand=[T('red',7),rd]; useTacticByIdx(1,rd); o.pend=pending&&pending.type==='redye'; tapHand(0);
+      const b=[...document.querySelectorAll('.modal-bg [data-i]')]; o.cols=b.length===GAME_COLORS.length-1; b[0].click(); o.dyed=hand.some(c=>c.kind==='troop'&&c.value===7&&c.color!=='red'&&c.origColor==='red')&&!hand.some(c=>c.type==='redye');
+      o.cost=skCostText(MON_SKILL['魔王の親衛兵'])+'|'+skCostText(MON_SKILL['古龍']); o.need=[bladeNeed('blue'),bladeNeed('green'),bladeNeed('purple')].join();
+      return o}""")
+    check('パネルのスキップ：確認→次のパネルへ（賞品なし・クリア済みの分は残る）／染め直し：手札の数字カードの色を変える／色の武器は30コンボから',r['ask'] and r['next'] and r['noPrize'] and r['keep'] and r['fresh'] and r['pend'] and r['cols'] and r['dyed'] and r['need']=='30,30,30',r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

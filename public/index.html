@@ -1546,6 +1546,7 @@ const TACTICS = [
   {type:'fusion',name:'融合',short:'融合',desc:'手札の数字カードを2枚選んで、数字を1枚にまとめる（最大10。10を超えた分はもう1枚に残る。まとまったカードのマークは数字が高い方）',count:2},
   {type:'reinforce',name:'援軍',short:'援軍',desc:'色を1つ選ぶ。山札をめくって、その色の最初の数字カードを手札に加える（めくった他のカードは山札の下へ）',count:NEWTAC_COUNT,isNew:true},
   {type:'promote',name:'昇格',short:'昇格',desc:`旗を1つ選んで、そこの数字カード（数字のある装備も）を全部+${PROMOTE_UP}する。完成した旗でもOK（役と点を計算し直し、役が上がれば役ボーナスも出る）`,count:NEWTAC_COUNT,isNew:true},
+  {type:'redye',name:'染め直し',short:'染め直し',desc:'手札の数字カードを1枚選んで、好きな色に変える（この戦いの間）',count:NEWTAC_COUNT,isNew:true},
   {type:'bribe',name:'買収',short:'買収',desc:`${BRIBE_COST}Gを払って、次に来る敵の妨害を1つ取り消す`,count:NEWTAC_COUNT,isNew:true},
   {type:'allshuffle',name:'シャッフル',short:'シャッフル',desc:'手札をすべて山札に入れて、山札を完全にシャッフルする。そのあと手札を引き直す。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
   {type:'orgrev',name:'新体制',short:'新体制',desc:'山札と手札のカードの種類が入れ替わる。軍師カード→数字カード、装備カード→軍師カード、数字カード→装備カード。この戦いが終わると元に戻る。（店だけの特別カード・この戦いだけ使える）',count:0,special:true},
@@ -1709,13 +1710,13 @@ const MON_SKILL_NEW={
   '暗黒騎士':{kind:'oath',name:'闇の誓い',icon:'🌑',cost:{hp:100},desc:'旗をすべて更地にする（旗のカードは墓地へ、敵のカードや効果もなくなる。貯めたスーパーコンボは消えない）。次の一斉攻撃の攻撃力を3倍にする。（体力100を払う。払ったあとに体力が1以上残る時だけ使える）'},
   '小竜':{name:'成長期',icon:'🐉',desc:`体質：敵を倒すたびに、最大体力が${SKP.growHp}増える（ゲームを通して）。`},
   '火を吹くワイバーン':{kind:'flame',name:'火炎放射',icon:'🔥',cost:{combo:['red',1]},desc:'シートが炎に包まれる。このwaveの間、赤の旗の攻撃力が2倍になる。'},
-  '古龍':{kind:'wisdom',name:'古の知恵',icon:'📜',cost:{combo:['purple',1]},desc:'手札とシートの異常を全て消す。'},
+  '古龍':{kind:'wisdom',name:'古の知恵',icon:'📜',cost:{combo:['purple',2]},desc:'手札とシートの異常を全て消す。'},
   '氷の古竜':{kind:'ice',name:'氷漬け',icon:'🧊',cost:{combo:['blue',1]},desc:'閉じた旗を1つ凍らせる。その旗は一斉攻撃のあとも消えず、次のwaveも閉じたまま残る。（今のwaveもその旗で攻撃して、次のwaveでもそのまま使える。その次は消える）'},
   '雷を操る竜':{kind:'bolt',name:'いなずま',icon:'⚡',cost:{combo:['yellow',1]},desc:'閉じた旗を一つ切り離して、敵のHPにダメージを与える。(waveは消費しない)'},
   '山を砕く巨竜':{kind:'mountain',name:'山のように',icon:'⛰',cost:{combo:['green',1]},desc:'このwaveの間、敵の妨害でスーパーコンボが減らなくなる。（自分で使った場合は減る）'},
   '悪魔の将軍':{kind:'order',name:'号令',icon:'📣',cost:{combo:['purple',2]},desc:'手札の数字カードを全部、同じ数字にそろえる。（手札で一番多い数字。同じ枚数なら大きい方）'},
   '全ての邪悪を背負った魔王':{kind:'sacrifice',name:'生贄',icon:'🩸',cost:{hp:100},desc:`体力100を払って、好きな1色のスーパーコンボを${SKP.sacrifice}増やす。`},
-  '魔王の親衛兵':{kind:'wall',name:'鉄壁',icon:'🧱',cost:{count:2},desc:'このwaveの間、受けるダメージが半分になる。'},
+  '魔王の親衛兵':{kind:'wall',name:'鉄壁',icon:'🧱',cost:{combo:['blue',1],hp:10,gold:20},desc:'このwaveの間、受けるダメージが半分になる。'},
   '四天王もどき':{kind:'mimic',name:'見よう見まね',icon:'🎭',cost:{gold:10,hp:10,comboBest:1,count:3},desc:'直前の自分の行動と、同じ行動をもう1回する。数字カードや装備を置いた直後なら、同じカードの写しをもう1枚、好きな旗に置く。軍師カードの直後なら、同じ効果をもう1回。特殊技の直後なら、その技をもう1回（その技のコストは払わない）。見よう見まね自身は真似できない。使うたびにお金10G・体力10・スーパーコンボ1（一番多い色から）を払う。1戦に3回まで。どれか1つでも足りないと使えない。'},
   '最弱の四天王':{name:'奴は最弱',icon:'😴',desc:'体質：敵が油断する。戦いの最初の妨害が5ターン遅れる。'},
   '普通の四天王':{name:'普通が一番',icon:'🙂',desc:'体質：5と6の数字カードは、どの色としても使える。'},
@@ -3796,14 +3797,14 @@ function isDropTactic(c){ return !!c&&c.kind==='tactics'&&!isCurse(c)&&!isAlexan
 function tacticUsable(c){   // 軍師カードを今使えるか（旗へのドラッグの可否に使う）
   if(isGlobalEffect(c)) return true;
   if(c.type==='duplicate') return hand.length>=2;
-  if(c.type==='split') return hand.some(x=>x.kind==='troop');
+  if(c.type==='split'||c.type==='redye') return hand.some(x=>x.kind==='troop');
   if(c.type==='fusion') return hand.filter(x=>x.kind==='troop').length>=2;
   if(c.type==='holy') return holyAny(c.uid);
   if(c.type==='guidance') return guidanceTargets(0).length>0;
   return true;
 }
 function canPlayAnything(){
-  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||c.type==='holy'||(c.type==='split'&&hand.some(x=>x.kind==='troop'))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
+  return hand.some(c=>targetsFor(c).length>0||isGlobalEffect(c)||(c.type==='guidance'&&guidanceTargets(0).length>0)||(c.type==='duplicate'&&hand.length>=2)||c.type==='holy'||((c.type==='split'||c.type==='redye')&&hand.some(x=>x.kind==='troop'))||(c.type==='fusion'&&hand.filter(x=>x.kind==='troop').length>=2)||isCurse(c));
 }
 
 /* ================= AUTO REFILL ================= */
@@ -3910,7 +3911,7 @@ function closeCheck(fi, closedByEnemy){
       addScore(-rawSum);
     } else {
       f.baseCombo = f.result.mult>1;
-      if(f.baseCombo && f.symbolColor && f.symbolColor!=='red' && hasAcc('blade_'+f.symbolColor) && CHARACTER.combo) bladeFire(f.symbolColor);   // 色の武器（雷鳴刀・氷結の槍・大樹の杖・冥府の鎌）
+      if(f.baseCombo && f.symbolColor && f.symbolColor!=='red' && hasAcc('blade_'+f.symbolColor) && CHARACTER.combo){ bladeFire(f.symbolColor,f); f.baseCombo=f.result.mult>1; f.symbolColor=flagSymbolColor(f); }   // 色の武器（雷鳴刀・氷結の槍・大樹の杖・冥府の鎌）
       f.rawBase=f.result.base; f.sig=flagSig(f);   // 役の計算し直し用：バッジ前の点と、いまの中身を覚えておく
       if(accEq.length&&f.result.base>0){   // 一番槍・しんがりのバッジ：そのwaveで最初／最後に閉じた旗の攻撃力が2倍
         const k=accX(), others=flags.filter(g=>g!==f), notes=[];
@@ -4958,6 +4959,26 @@ function resolveSplit(idx){
   render(); layoutHand(false, clone.uid, fromRect);
   busy=false; endCheck(); render();
   hint(total<2?'分裂！1が1と1の2枚になった。':`分裂！${total}が${a}と${b}に分かれた。`);
+}
+function useRedye(handIdx){   // 染め直し：手札の数字カード1枚を、好きな色に変える（この戦いの間）
+  if(!hand.some((c,i)=>i!==handIdx&&c.kind==='troop')) return hint('色を変えられる数字カードが手札にありません。',true);
+  busy=false; pending={type:'redye', handIdx}; render();
+  hint('色を変える数字カードをタップしてください。');
+}
+function resolveRedye(idx){
+  const src=hand[idx]; if(idx===pending.handIdx||!src||src.kind!=='troop') return;
+  const usedUid=hand[pending.handIdx].uid, srcUid=src.uid, cols=GAME_COLORS.filter(c=>c!==src.color||src.mixed);
+  pickDialog('🎨 染め直し：何色に変える？', cols.map(c=>({label:CNAME[c],html:`${miniIcon(EMBLEM[c],CFILL[c])} ${CNAME[c]}`})), a=>{
+    const ui=hand.findIndex(c=>c.uid===usedUid), s2=hand.find(c=>c.uid===srcUid); if(ui<0||!s2||!pending||pending.type!=='redye') return;
+    busy=true; const col=cols[a], from=CNAME[s2.color];
+    if(s2.origColor===undefined){ s2.origColor=s2.color; s2.origAlt=s2.altColor; s2.origMixed=s2.mixed; }
+    s2.color=col; s2.altColor=undefined; s2.mixed=false;
+    const used=hand.splice(ui,1)[0]; graveyard.push(used); pending=null;
+    advanceTurn(used);
+    const refilled=autoRefill(1);
+    render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+    busy=false; hint(`染め直し：${from}の${s2.value}が${CNAME[col]}に変わった！`); endCheck(); render();
+  });
 }
 function useFusion(handIdx){
   const troopCount=hand.filter(c=>c.kind==='troop').length;
@@ -6226,6 +6247,7 @@ function nowText(){
   if(pending&&pending.type==='holy') return '取り除く呪いを、手札のカードか旗からタップしよう。';
   if(pending&&pending.type==='duplicate') return '複製したいカードをタップしよう。';
   if(pending&&pending.type==='split') return '分裂させる部隊カードをタップしよう。';
+  if(pending&&pending.type==='redye') return '色を変える数字カードをタップしよう。';
   if(pending&&pending.type==='skillplace') return '置く旗をタップしよう。';
   if(pending&&pending.type==='blindpick') return '煙で覆う旗をタップしよう。';
   if(pending&&pending.type==='pfpick') return 'パニックフィールドを置く旗をタップしよう。';
@@ -6295,7 +6317,7 @@ function updateTelops(){
   { const tp=document.querySelector('.telops'); if(tp) tp.style.display=(tutorialOn()&&!gameEnded)?'flex':'none'; }   // ミジンコの間だけ、HOWの案内を常時出す
   { // カードを選ぶ操作の間は、案内を消さずに出し続ける
     const he=document.getElementById('hint');
-    if(pending && ['discard','replace_select','guidance','duplicate','fusion','split','sealpick','holy'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
+    if(pending && ['discard','replace_select','guidance','duplicate','fusion','split','redye','sealpick','holy'].includes(pending.type)){ pendHintTxt=nowText(); he.classList.remove('warn'); he.textContent=pendHintTxt; }
     else if(pendHintTxt){ if(he.textContent===pendHintTxt) he.textContent=''; pendHintTxt=''; }
   }
   document.getElementById('cancelPendingBtn').style.display = (pending && ((pending.type!=='discard' && pending.type!=='rehire' && pending.type!=='spitdiscard') || pending.scout)) ? '' : 'none';
@@ -6357,7 +6379,7 @@ function showCardInfo(idx){
   else if(c.sub==='necro'){ primary.style.display=''; primary.textContent='発動する'; }
   else if(c.type==='guidance'){ primary.style.display=''; primary.textContent='発動する'; }
   else if(c.type==='duplicate'||c.type==='holy'){ primary.style.display=''; primary.textContent='発動する'; }
-  else if(c.type==='fusion'||c.type==='split'){ primary.style.display=''; primary.textContent='発動する'; }
+  else if(c.type==='fusion'||c.type==='split'||c.type==='redye'){ primary.style.display=''; primary.textContent='発動する'; }
   else { primary.style.display='none'; }
   document.getElementById('cardInfoBg').style.display='flex';
 }
@@ -6940,6 +6962,7 @@ function tapHand(idx){
   if(pending&&pending.type==='holy'){ resolveHolyHand(idx); return; }
   if(pending&&pending.type==='duplicate'){ resolveDuplicate(idx); return; }
   if(pending&&pending.type==='split'){ resolveSplit(idx); return; }
+  if(pending&&pending.type==='redye'){ resolveRedye(idx); return; }
   if(pending&&pending.type==='fusion'){ fusionTap(idx); return; }
   if(pending&&pending.type==='replace_select'){ replaceTap(idx); return; }
   if(pending) return;
@@ -7048,7 +7071,7 @@ let dbgGrab='';
 function attachDrag(el){
   let sx,sy,dragging=false,ghost=null,startRect=null,hoverFlag=null,hoverGrave=null,idx=-1;
   el.addEventListener('pointerdown',e=>{
-    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='holy'&&pending.type!=='split'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard'&&pending.type!=='addcard')) return;
+    if(busy||gameEnded||(pending&&pending.type!=='discard'&&pending.type!=='duplicate'&&pending.type!=='holy'&&pending.type!=='split'&&pending.type!=='redye'&&pending.type!=='replace_select'&&pending.type!=='fusion'&&pending.type!=='eat'&&pending.type!=='swallow'&&pending.type!=='spitdiscard'&&pending.type!=='addcard')) return;
     idx=hand.findIndex(c=>c.uid===el.dataset.uid); if(idx<0) return;
     try{ dbgGrab=((el.querySelector('.corner')||{}).textContent||'?')+'→'+dbgCardStr(hand[idx])+'(#'+idx+')'; }catch(_){}
     document.querySelectorAll('.dragcard').forEach(g=>g.remove());
@@ -7141,6 +7164,7 @@ function useTacticByIdx(idx,c){   // 手札のカードを発動する（軍師�
   else if(c.type==='allshuffle'){ useAllShuffle(idx); }
   else if(c.type==='orgrev'){ useOrgRev(idx); }
   else if(c.type==='split'){ useSplit(idx); }
+  else if(c.type==='redye'){ useRedye(idx); }
   else if(c.type==='conscript'){ useConscript(idx); }
   else if(c.type==='reinforce'){ useReinforce(idx); }
   else if(c.type==='promote'){ usePromote(idx); }
@@ -8022,15 +8046,21 @@ function lanternRefill(){   // 墓守のランタン：山札が尽きた時、�
   if(activeDeck.length>0||!hasAcc('lantern')||lanternUsed||!graveyard.length) return false;
   lanternUsed=true; const n=graveyard.length; activeDeck=shuffle(graveyard.splice(0)); hint(`🏮 墓守のランタン！ 墓地の${n}枚を切り直して山札にした。`,true); playSfx('combo'); return true;
 }
-function bladeFire(col){   // 色の武器：その色のスーパーコンボが10以上（雷鳴刀は設定の数）の時、出すたびの効果
+const BLADE_ATK_DOWN=0.1;   // 氷結の槍：1回ごとに敵の攻撃力を減らす割合
+function bladeFire(col,f){   // 色の武器：その色のスーパーコンボが10以上（雷鳴刀は設定の数）の時、出すたびの効果
   const cr=carryMap[col], cnt=flags.filter(g=>g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor===col).length;
   if(!(cr||cnt>=2)) return;
   let raw=(cr||1)+cnt; if(comboRestricted()) raw=Math.min(raw,COMBO_CAP);
   if(raw<bladeNeed(col)) return;
   const k=accX(); let msg='';
   if(col==='yellow'){ enemyFreeze+=1*k; msg=`⚡ 雷鳴刀！ 敵の動きが${k}ターン止まる。`; }
-  else if(col==='blue'){ const b=enemyTurn; enemyTurn=Math.max(0,enemyTurn-ACC_NEW.bladeBack*k); msg=`🔱 氷結の槍！ 敵の攻撃力の上昇が${b-enemyTurn}ターン分戻った。`; }
-  else if(col==='green'){ const h=Math.round(playerHpMax*ACC_NEW.bladeHeal*k); healPlayer(h); msg=`🌳 大樹の杖！ 体力が${h}回復した。`; }
+  else if(col==='blue'){ const b=currentEnemyAtk(); monAtkMult*=Math.max(0,1-BLADE_ATK_DOWN*k); msg=`🔱 氷結の槍！ 敵の攻撃力が${Math.round(BLADE_ATK_DOWN*k*100)}％下がった。（${fmtCompact(b)}→${fmtCompact(currentEnemyAtk())}）`; }
+  else if(col==='green'){   // そのシートの数字カードが+1（役がくずれる時は上げない）
+    const ts=f?f.cards.filter(c=>c&&c.kind==='troop'&&c.value<10):[];
+    if(f&&ts.length){ const old=ts.map(c=>c.value), was=f.result; ts.forEach(c=>{ if(c.origValue===undefined) c.origValue=c.value; c.value=Math.min(10,c.value+k); }); const nr=evaluate(f);
+      if(nr&&was&&nr.mult>=was.mult){ f.result=nr; msg=`🌳 大樹の杖！ 旗のカードが+${k}になった。`; }
+      else { ts.forEach((c,i)=>{ c.value=old[i]; if(c.origValue===c.value) delete c.origValue; }); msg='🌳 大樹の杖！（役がくずれるので、数字は上げなかった）'; } }
+    else msg='🌳 大樹の杖！（上げられるカードがなかった）'; }
   else if(col==='purple'){ const jt=nextDisTurn(); if(jt!=null){ const jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); msg=`🌙 冥府の鎌！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた！`; } else msg='🌙 冥府の鎌！（消せる妨害はなかった）'; }
   if(msg) setTimeout(()=>{ hint(msg,true); try{ playSfx('combo'); }catch(e){} },300);
   dlog('action',{name:'blade_'+col,raw});
@@ -8039,9 +8069,9 @@ function bladeFire(col){   // 色の武器：その色のスーパーコンボ�
 const COMBO_BLADES={
   yellow:{name:'雷鳴刀',icon:'⚡',need:10,goal:8,price:350,desc:'黄のコンボが10以上のとき、黄のスーパーコンボを出すたびに敵の動きが1ターン止まる'},
   red:{name:'烈火の剣',icon:'🔥',need:30,goal:12,price:450,desc:'赤のコンボが30以上のとき、赤のスーパーコンボの攻撃力が3倍になる'},
-  blue:{name:'氷結の槍',icon:'🔱',need:10,goal:8,price:350,desc:'青のコンボが10以上のとき、青のスーパーコンボを出すたびに、敵の攻撃力の上昇が1ターン分戻る'},
-  green:{name:'大樹の杖',icon:'🌳',need:10,goal:8,price:350,desc:'緑のコンボが10以上のとき、緑のスーパーコンボを出すたびに、体力が2割回復する'},
-  purple:{name:'冥府の鎌',icon:'🪦',need:10,goal:8,price:350,desc:'紫のコンボが10以上のとき、紫のスーパーコンボを出すたびに、次の敵の妨害を1つ消す'}
+  blue:{name:'氷結の槍',icon:'🔱',need:30,goal:8,price:350,desc:'青のコンボが30以上のとき、青のスーパーコンボを出すたびに、敵の攻撃力を10％減らす'},
+  green:{name:'大樹の杖',icon:'🌳',need:30,goal:8,price:350,desc:'緑のコンボが30以上のとき、緑のスーパーコンボを出すたびに、そのシートのカードが+1になる（役がくずれる時は上がらない）'},
+  purple:{name:'冥府の鎌',icon:'🪦',need:30,goal:8,price:350,desc:'紫のコンボが30以上のとき、紫のスーパーコンボを出すたびに、次の敵の妨害を1つ消す'}
 };
 const bladeNeed=(c)=>{ const b=COMBO_BLADES[c]; return b?b.need:0; };
 function buildAccDefs(){
@@ -8351,8 +8381,11 @@ function panelCellHtml(c){ const g=condDef(c.key); if(!g) return ''; const tag=g
 function showPanel(){   // パネル（3×3）を大きく見せる
   if(!panel) return; document.getElementById('panelModal')?.remove();
   const k=panel.cells.filter(c=>c.ok).length, bg=document.createElement('div'); bg.className='modal-bg'; bg.id='panelModal'; bg.style.cssText='display:flex;z-index:10000';
-  bg.innerHTML=`<div class="reward-box pn-box"><div class="reward-title">🎯 アクセサリー獲得パネル ${panel.no}枚目</div><div class="reward-sub">クリア ${k} / ${panel.cells.length}　／　1マスごとにアクセサリーを1つ選べる<br>🏆 全部クリアで特別なアクセサリー → 次のパネルへ</div><div class="pn-grid">${panel.cells.map(panelCellHtml).join('')}</div><button class="btn" id="pnClose" style="margin-top:10px;width:100%">閉じる</button></div>`;
+  bg.innerHTML=`<div class="reward-box pn-box"><div class="reward-title">🎯 アクセサリー獲得パネル ${panel.no}枚目</div><div class="reward-sub">クリア ${k} / ${panel.cells.length}　／　1マスごとにアクセサリーを1つ選べる<br>🏆 全部クリアで特別なアクセサリー → 次のパネルへ</div><div class="pn-grid">${panel.cells.map(panelCellHtml).join('')}</div><button class="btn" id="pnClose" style="margin-top:10px;width:100%">閉じる</button>${panel.clear?'':'<button class="btn" id="pnSkip" style="margin-top:8px;width:100%;background:linear-gradient(180deg,#5a5a66,#34343c);color:#fff;font-size:13px">⏭ このパネルをスキップする</button>'}</div>`;
   document.body.appendChild(bg); bg.querySelector('#pnClose').onclick=()=>bg.remove(); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); });
+  { const sk=bg.querySelector('#pnSkip'); if(sk) sk.onclick=()=>{ document.getElementById('confirmModal').style.zIndex=10050; showConfirm(`次のシート（パネル${panel.no+1}枚目）に移行しますか？\n\n・条件は、今よりもっと難しくなります\n・このパネルを全部クリアした時の賞品（特別なアクセサリー）は、手に入りません\n・クリア済みのマスで選べるアクセサリーは、そのままもらえます`,()=>{
+      const from=panel.no; panel=makePanel(from+1); panel.skipped=(panel.skipped||0)+1; panelNew=false; try{ dlog('panel_skip',{from,to:panel.no}); }catch(e){}
+      hint(`⏭ パネル${from}枚目をスキップして、${panel.no}枚目に進んだ。`,true); try{ renderCondBar(); }catch(e){} try{ if(inPrep) refreshPrep(); }catch(e){} showPanel(); }); }; }
 }
 let condBarSig='', cbKeys='', cbAnim=null;
 const CB_SPEED=55;   // 獲得条件の文字が流れる速さ（px/秒）
@@ -8915,7 +8948,7 @@ function offerEquip(list,done){   // done＝全部聞き終わったあとにや
 }
 const DECK_PRICE_MULT=2.5;  // デッキ屋の値段倍率
 const SWAP_PRICE=Math.round(30*DECK_PRICE_MULT), UP_PRICE=Math.round(50*DECK_PRICE_MULT), CH_PRICE=Math.round(50*DECK_PRICE_MULT);
-const CARD_PRICE={allshuffle:60,orgrev:100,scout:40,shuffle:40,holy:60,rehire:60,plead:60,defend:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
+const CARD_PRICE={redye:50,allshuffle:60,orgrev:100,scout:40,shuffle:40,holy:60,rehire:60,plead:60,defend:60,guidance:50,conscript:80,inspire:60,revolution:70,split:70,duplicate:70,fusion:70,alexander:90,darius:90};
 const cardPrice=t=>Math.round((CARD_PRICE[t.type]||60)*DECK_PRICE_MULT);
 function swapPool(){   // 入れ替えで来るカードの元：ゲーム開始時の大山札と同じ構成（完全ランダム。同じカードが来ることもある）
   const a=[];
@@ -9096,7 +9129,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
