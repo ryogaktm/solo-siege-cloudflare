@@ -1732,6 +1732,9 @@ const MON_SKILL_NEW={
 Object.assign(MON_SKILL,MON_SKILL_NEW);
 const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
 let fireOn=false;   // 火炎放射：このwaveの間、赤の旗の攻撃力が2倍
+const flagMul=f=>{ const i=flags.indexOf(f); let m={}, hm={}; try{ m=superMults()||{}; hm=hostMults()||{}; }catch(e){} return (m[i]||1)+((hm[i]||1)-1); };   // その旗にかかっているスーパーコンボ（ホスト）の倍率
+const flagShown=f=>(f&&f.result)?(f.result.base||0)*flagMul(f):0;   // 旗に出ている攻撃力（スーパーコンボの倍率こみ）。「旗の攻撃力」に効く技は、必ずこの数字を基準にする
+function openFlagAtk(){ let v=0; flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } }); return v; }   // 完成していない旗に置いてあるカードの攻撃力
 const fireBonus=()=>{   // 赤の旗の攻撃力（スーパーコンボの倍率を含めた、旗に出ている数字）を2倍にする＝増える分だけ足す
   if(!fireOn) return 0;
   let m={}, hm={}; try{ m=superMults()||{}; hm=hostMults()||{}; }catch(e){}
@@ -1853,9 +1856,9 @@ SKFN.oath=m=>{
 };
 SKFN.lead=m=>{
   const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base!=null); if(cl.length<2) return hint('閉じた旗が2つ以上ないと使えません。',true);
-  const mx=cl.reduce((a,f)=>a.result.base>=f.result.base?a:f), mn=cl.reduce((a,f)=>a.result.base<=f.result.base?a:f);
-  if(mx.result.base<=mn.result.base) return hint('すでに旗の攻撃力が同じです。',true);
-  if(!skPay(m)) return; const d=mx.result.base-mn.result.base; mn.result.base=mx.result.base; score+=d;
+  const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f), mn=cl.reduce((a,f)=>flagShown(a)<=flagShown(f)?a:f);   // 強い・弱いは、旗に出ている攻撃力（スーパーコンボこみ）で比べる
+  if(flagShown(mx)<=flagShown(mn)) return hint('すでに旗の攻撃力が同じです。',true);
+  if(!skPay(m)) return; const before=flagShown(mn), nb=Math.round(flagShown(mx)/flagMul(mn)), db=nb-mn.result.base; mn.result.base=nb; score+=db; const d=flagShown(mn)-before;
   skDone(`🧭 導く！ いちばん弱い旗の攻撃力が、いちばん強い旗と同じになった。（+${fmtCompact(d)}）`);
 };
 SKFN.dye=m=>{
@@ -1930,15 +1933,15 @@ SKFN.wisdom=m=>{
 SKFN.ice=m=>{
   const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result&&!x.f.frz);
   if(!cl.length) return hint('凍らせられる閉じた旗がありません。',true);
-  pickDialog('🧊 氷漬け：どの旗を凍らせる？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(x.f.result.base)}）`})), a=>{
+  pickDialog('🧊 氷漬け：どの旗を凍らせる？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(flagShown(x.f))}）`})), a=>{
     const x=cl[a]; if(!x.f.closed||!skPay(m)) return; x.f.frz=2; skDone(`🧊 氷漬け！ 旗${x.i+1}が凍った。次のwaveもこの旗が残る。`); });
 };
 SKFN.bolt=m=>{
   const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result&&x.f.result.base>0);
   if(!cl.length) return hint('切り離せる閉じた旗がありません。',true);
-  pickDialog('⚡ いなずま：どの旗を切り離して撃つ？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(x.f.result.base)}）`})), a=>{
-    const x=cl[a], f=x.f; if(!f.closed||!bossHp||!skPay(m)) return; const D=f.result.base;
-    score-=D; graveyard.push(...f.cards.filter(c=>c&&!c.temp&&!isEnemyEq(c)&&c.kind!=='monster'||c&&c.kind==='monster'&&!c.enemyCard)); 
+  pickDialog('⚡ いなずま：どの旗を切り離して撃つ？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(flagShown(x.f))}）`})), a=>{
+    const x=cl[a], f=x.f; if(!f.closed||!bossHp||!skPay(m)) return; const D=Math.round(flagShown(f));   // 旗に出ている攻撃力（スーパーコンボこみ）で撃つ
+    score-=f.result.base; graveyard.push(...f.cards.filter(c=>c&&!c.temp&&!isEnemyEq(c)&&c.kind!=='monster'||c&&c.kind==='monster'&&!c.enemyCard)); 
     flags[x.i]=freshFlags()[x.i]; render();
     strikeBoss(Math.min(D,bossHp),`⚡ いなずま！ 旗${x.i+1}を切り離して、敵に${fmtCompact(D)}ダメージ。`,'bolt',D); });
 };
@@ -1971,7 +1974,7 @@ const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メ�
   phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
   cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':null; }, ()=>{ const got=[]; for(let i=0;i<2;i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
-  stampede:[()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>a.result.base>=f.result.base?a:f); const d=mx.result.base; mx.result.base*=2; score+=d; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
+  stampede:[()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f); const d=flagShown(mx); score+=mx.result.base; mx.result.base*=2; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
   dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が1.5倍になる。'; }],
 };
 Object.keys(NEWMON_FX).forEach(k=>{ SKFN[k]=m=>{ const bad=NEWMON_FX[k][0](); if(bad) return hint(bad,true); if(!skPay(m)) return; skDone(NEWMON_FX[k][1]()); }; });
@@ -2041,7 +2044,7 @@ SKFN.limitbreak=m=>{
 SKFN.shadow=m=>{
   const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result), em=flags.filter(f=>!f.closed&&f.cards.length===0&&!isLocked(f));
   if(!cl.length) return hint('写せる閉じた旗がありません。',true); if(!em.length) return hint('空の旗がありません。',true);
-  pickDialog('🪞 影うつし：どの旗を写す？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(x.f.result.base)}）`})), a=>{
+  pickDialog('🪞 影うつし：どの旗を写す？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(flagShown(x.f))}）`})), a=>{
     const src=cl[a].f, dst=flags.find(f=>!f.closed&&f.cards.length===0&&!isLocked(f)); if(!src.closed||!dst||!skPay(m)) return;
     dst.cards=src.cards.map(c=>({...c,uid:uid(),temp:true})); dst.closed=true; dst.closeSeq=++closeSeqCounter; dst.result={...src.result}; dst.capturedByEnemy=false; dst.baseCombo=src.baseCombo; dst.symbolColor=src.symbolColor; dst.comboMult=src.comboMult; dst.sheetSum=src.sheetSum; dst.eqBonus=src.eqBonus;
     addScore(dst.result.base||0); skDone(`🪞 影うつし！ 旗${cl[a].i+1}の写しを、空の旗に置いて閉じた。`); try{ endCheck(); }catch(e){} render(); });
@@ -2839,7 +2842,7 @@ function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
 function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} v+=fireBonus(); }
-  flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } });
+  if(!waveAdvancing) v+=openFlagAtk();
   return Math.max(0, v-poisonPenalty)*quickMult(waveTurns(),hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?1.5:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(waveTurns());
 }
 /* ================= DEBUG LOG ================= */
@@ -4126,15 +4129,16 @@ function endCheck(){
 }
 
 function checkWaveOutcome(){
-  waveSerial++;   // このwaveの一斉攻撃が終わった（骨の盾の「続けて使えない」判定に使う）
   if(gameEnded) return;
   if(waveAdvancing){   // 攻撃の最中でもないのに「進行中」のまま残っていたら、古い印として解除する
     if(!busy && performance.now()-(window._atkAt||0)>1500){ try{ dlog('error',{fn:'stale-waveAdvancing',msg:'waveAdvancing was left on'}); }catch(_){} waveAdvancing=false; }
     else return;
   }
+  waveSerial++;   // このwaveの一斉攻撃が終わった（骨の盾の「続けて使えない」判定に使う）
   const dbgP0=playerHp, dbgB0=bossHp, dbgScore0=score, dbgFlags0=flags.map(dbgFlagStr);
   let dbgSyn=null;
   let synergyBonus=0, synFx=null;
+  { const ob=openFlagAtk(); if(ob>0) addScore(ob); }   // 突撃など、完成していない旗があるまま攻撃する時：置いてあるカードの分も攻撃力に入れる（画面の攻撃力と同じにする）
   { const fb=fireBonus(); if(fb>0){ addScore(fb); setTimeout(()=>hint(`🔥 火炎放射！ 赤の旗の攻撃力が${SKP.fireMul}倍（+${fmtCompact(fb)}）`,true),200); } }
   try{
     const synergy=computeMarkSynergyBonus();
@@ -5241,7 +5245,12 @@ function doCurse(handIdx, target){
   render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
   busy=false; endCheck(); render();
 }
-function useConscript(handIdx){
+function useConscript(handIdx, sure){
+  if(!sure){   // 取り返しがつかないので、必ず確認する（うっかり旗に落としても、すぐには攻撃しない）
+    const u=hand[handIdx]&&hand[handIdx].uid, openN=flags.filter(f=>!f.closed&&!isLocked(f)).length;
+    showConfirm(`突撃：今の盤面のまま、すぐに一斉攻撃します。\n自分の攻撃力 ${fmtCompact(Math.round(liveAtk()))} ／ 敵の攻撃力 ${fmtCompact(Math.round(currentEnemyAtk()))}${openN?`\n⚠ 完成していない旗が${openN}つあります（役やスーパーコンボは付きません）`:''}\n本当に攻撃しますか？`,()=>{ const i=hand.findIndex(c=>c.uid===u); if(i>=0&&!busy&&!pending) useConscript(i,true); });
+    return;
+  }
   busy=true;
   const used=hand.splice(handIdx,1)[0]; graveyard.push(used);
   advanceTurn(used);
@@ -8974,7 +8983,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15q';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15r';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
