@@ -665,6 +665,10 @@
     border-radius:6px; padding:5px 8px; font-size:12.5px; font-weight:700;
     color:var(--cream-2); opacity:.8; font-family:'Noto Sans JP',sans-serif; white-space:nowrap;
   }
+  #bigCount{ position:fixed; left:0; right:0; top:28%; z-index:9500; display:none; flex-direction:column; align-items:center; pointer-events:none; text-shadow:0 0 18px rgba(255,60,40,.9),0 3px 0 #300; color:#ffe6a8; font-weight:900; }
+  #bigCount .bc-ic{ font-size:44px; } #bigCount .bc-n{ font-size:120px; line-height:1; color:#ff6a4a; -webkit-text-stroke:2px #5a0d0d; } #bigCount .bc-t{ font-size:20px; background:rgba(60,8,8,.82); padding:4px 14px; border-radius:20px; border:2px solid #ff7a68; }
+  #bigCount.n2 .bc-n{ color:#ff4a3a; } #bigCount.n1 .bc-n{ color:#ff1f1f; font-size:150px; }
+  @keyframes bigCountIn{ 0%{ transform:scale(2.4); opacity:0; } 18%{ transform:scale(1); opacity:1; } 70%{ transform:scale(1); opacity:1; } 100%{ transform:scale(.8); opacity:0; } }
   .nextbar{ display:flex; align-items:center; gap:8px; padding:0 12px 6px; pointer-events:auto; }
   .next-main{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:6px; }
   .nextbar .upcoming-chip{ padding:3px 6px; font-size:12px; }
@@ -1699,7 +1703,7 @@ const MON_SKILL_NEW={
   '暗黒騎士の師匠':{kind:'lead',name:'導く',icon:'🧭',cost:{combo:['purple',1]},desc:'閉じた旗のうち一番弱い旗の攻撃力を、一番強い旗と同じにする（そのwaveだけ）。'},
   'マジシャン':{kind:'dye',name:'色替えの魔法',icon:'🪄',cost:{combo:['green',2]},desc:'手札の数字カードを全部、青色に変える（その戦いの間）。'},
   '二股竜':{kind:'twohead',name:'3つの頭',icon:'🐲',cost:{combo:['red',1]},desc:'次の行動はターンを使わない。（1ターンに3回動ける）'},
-  '先導者':{kind:'ahead',name:'先回り',icon:'🧭',cost:{hp:15},desc:'次に来る敵の妨害が狙う旗を、自分で選ぶ。'},
+  '先導者':{kind:'ahead',name:'先回り',icon:'🧭',cost:{hp:15},desc:'予測に出ている「旗を狙う妨害」を、自分で選んだ旗にまとめる。'},
   '探究者':{kind:'explore',name:'探索',icon:'🔎',cost:{hp:30},desc:'手札をすべて山札に加えてシャッフルした後、山札から好きなカードを選んで手札に加える（3秒カウントダウンのあと、制限時間5秒）。選びきれなかった分は、ランダムで手札に加わる。'},
   '革命者':{kind:'tac_revolution',name:'革命',icon:'🔁',cost:{hp:30},desc:'大革命のカード効果を発動させる。'},
   '追従者':{kind:'tac_duplicate',name:'複製',icon:'📑',cost:{hp:30},desc:'複製のカード効果を発動させる。'},
@@ -1958,14 +1962,24 @@ SKFN.bolt=m=>{
 };
 SKFN.twohead=m=>{ if(bulletLeft>0) return hint('すでに次の行動はターンを使いません。',true); if(!skPay(m)) return; bulletLeft+=2; skDone('🐲 3つの頭！ 次の2回の行動はターンを使わない。（1ターンに3回動ける）'); };
 SKFN.mountain=m=>{ if(mountOn) return hint('すでに山のように構えています。',true); if(!skPay(m)) return; mountOn=true; skDone('⛰ 山のように！ このwaveの間、敵の妨害でスーパーコンボが減らない。'); };
+function forecastPlans(){   // 予測レーンに出ている、旗を狙う妨害の予定（autoForecastと同じ数え方）
+  const out=[]; try{
+    const pend0=!!prevSnap&&flags.length>0&&flags.every(f=>f.closed), baseT=pend0?prevSnap.t:enemyTurn, nClk=Math.min(8,Math.max(0,enemyFreeze));
+    for(let k=1;k<=8-nClk;k++){
+      const t=baseT+enemyOffs(k,pend0,baseT);
+      const stepped=!hasAcc('glass')||(k===1?(pend0||t>enemyTurn):enemyOffs(k,pend0,baseT)>enemyOffs(k-1,pend0,baseT));
+      const et=enemySched[t]; if(!stepped||!FLAG_EVS.includes(et)) continue;
+      out.push({k:k+nClk,type:et,pl:planAt(et,evOrd(t,et,baseT))});
+    }
+  }catch(e){} return out;
+}
 SKFN.ahead=m=>{
-  const pend0=!!prevSnap&&flags.length>0&&flags.every(f=>f.closed), base=pend0?prevSnap.t:enemyTurn;
-  const jt=nextDisTurn(); if(jt==null) return hint('この先に妨害の予定がありません。',true);
-  const jty=enemySched[jt]; if(!FLAG_EVS.includes(jty)) return hint(`次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）は、旗を狙うものではありません。`,true);
-  const ord=Object.keys(enemySched).map(Number).filter(t=>t>base&&t<jt&&enemySched[t]===jty).length, pl=planAt(jty,ord);
-  const cand=evCands(jty); if(!cand.length) return hint('その妨害が狙える旗がありません。',true);
-  pickDialog(`🧭 先回り：次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が狙う旗を選ぶ`, cand.map(c=>({label:`旗${c.i+1}`})), a=>{
-    if(!skPay(m)) return; pl.flag=cand[a].i; skDone(`🧭 先回り！ 次の妨害は旗${pl.flag+1}を狙う。`); });
+  const plans=forecastPlans(); if(!plans.length) return hint('予測に、旗を狙う妨害がありません。',true);
+  const opts=flags.map((f,i)=>({i,n:plans.filter(x=>evCands(x.type).some(c=>c.i===i)).length})).filter(o=>o.n>0);
+  if(!opts.length) return hint('妨害が狙える旗がありません。',true);
+  pickDialog(`🧭 先回り：予測にある旗への妨害（${plans.length}つ）を、1つの旗にまとめる`, opts.map(o=>({label:`旗${o.i+1}（${o.n}つ集まる）`})), a=>{
+    if(!skPay(m)) return; const fi=opts[a].i; let n=0; plans.forEach(x=>{ if(evCands(x.type).some(c=>c.i===fi)){ x.pl.flag=fi; n++; } });
+    skDone(`🧭 先回り！ 予測の妨害${n}つを、旗${fi+1}に集めた。`); });
 };
 SKFN.order=m=>{
   const T=hand.filter(c=>c.kind==='troop'); if(!T.length) return hint('手札に数字カードがありません。',true);
@@ -2590,7 +2604,26 @@ DIS_TIERS.forEach(t=>{ t[0]=LV84(t[0]-(t[0]>80?10:0)); });   // 最後の段（L
 const DIS_OFF=['dark','deatheater'];   // 停止したい行動の名前を入れると、その行動は出なくなる
 const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(次に置いたカード1枚が一緒に墓地へ)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',arrow:'矢印パネル(置いたカードが矢印の方向の旗へ滑る)',wipe:'全滅(旗を1つ空にするカード)'};
 const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',arrow:'矢印',wipe:'全滅'};
-const PRE_NOTE={comboreset:'スーパーコンボが全部0に！',bomb:'時限ボムを手札に押し付けられる！'};
+const BIG_EVS=['colhalf','colnull','comboreset','bguard','half','freeze','minusrain','punch'];   // 急に来ると困る「大技」：数ターン前からカウントダウンで知らせる
+const BIG_LEAD=3;
+let bigWarned={};
+function bigCountdown(){   // 大技が来る3・2・1ターン前に、画面の真ん中に大きなカウントダウンを出す
+  for(let n=BIG_LEAD;n>=1;n--){
+    const t=enemyTurn+n, ev=enemySched[t]; if(!ev||!BIG_EVS.includes(ev)) continue;
+    const key=t+':'+n; if(bigWarned[key]) continue; bigWarned[key]=1;
+    const inf=EVENT_INFO[ev]||{}, pn=PRE_NOTE[ev]?PRE_NOTE[ev]:'';
+    hint(`⚠ あと${n}ターンで大技：${inf.icon||''}${inf.label||ev}${pn?'　'+pn:''}`,true);
+    const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ あと${n}ターン ${inf.icon||''}${inf.label||''}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); }
+    let ov=document.getElementById('bigCount'); if(!ov){ ov=document.createElement('div'); ov.id='bigCount'; document.body.appendChild(ov); }
+    ov.className='n'+n; ov.innerHTML=`<div class="bc-ic">${inf.icon||'⚠'}</div><div class="bc-n">${n}</div><div class="bc-t">${inf.label||ev}</div>`;
+    ov.style.display='flex'; ov.style.animation='none'; void ov.offsetWidth; ov.style.animation='bigCountIn 1.5s ease-out forwards';
+    setTimeout(()=>{ if(ov.className==='n'+n) ov.style.display='none'; },1550);
+    try{ playSfx('warn'); }catch(e){}
+    if(n===1){ try{ document.body.animate([{boxShadow:'inset 0 0 0 rgba(255,40,40,0)'},{boxShadow:'inset 0 0 90px rgba(255,40,40,.75)'},{boxShadow:'inset 0 0 0 rgba(255,40,40,0)'}],{duration:900,iterations:2}); }catch(e){} }
+    break;   // 同じターンに2つ重ねない（近い方だけ）
+  }
+}
+const PRE_NOTE={colhalf:'選ばれた色のコンボが半分に！',colnull:'選ばれた色のコンボが使えなくなる！',freeze:'敵が時間を止める！',comboreset:'スーパーコンボが全部0に！',bomb:'時限ボムを手札に押し付けられる！'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
 const isEnemyEq=c=>!!c&&c.enemyCard===true;   // 敵に押し付けられたマイナスの装備（捨てられない・墓地や山札には入らない）
@@ -3031,7 +3064,7 @@ function resetBattleRound(){
   frozenMults={}; frozenHost={}; bashRateNow=DIS_PARAM.bashRate; bashRateHist=[bashRateNow];   // 斧の命中率は、攻撃して次のwaveになったら元に戻る
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
   try{ flags.forEach(f=>{ f.blindUntil=0; f.eater=0; f.arrow=null; }); }catch(e){}
-  enemyTurn=0; warnedDisTurn=-1; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
+  enemyTurn=0; warnedDisTurn=-1; bigWarned={}; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
   try{
@@ -3859,7 +3892,8 @@ function advanceTurn(usedCard){
       if(e1){ applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; }
     }
   }
-  if(stepped&&!gameEnded){ const lead=hasAcc('foresight')?ACC_NEW.foresight:1, nt=enemyTurn+lead, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; const pn=PRE_NOTE[ne]?'　'+PRE_NOTE[ne]:''; hint(`⚠ ${lead>1?lead+'ターン後':'次のターン'}、妨害が来る：${inf.icon||''}${inf.label||ne}${pn}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ ${lead>1?lead+'ターン後':'次のターン'} ${inf.icon||''}${inf.label||''}${pn}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
+  if(stepped&&!gameEnded){ try{ bigCountdown(); }catch(e){} }
+  if(stepped&&!gameEnded){ const lead=hasAcc('foresight')?ACC_NEW.foresight:1, nt=enemyTurn+lead, ne=enemySched[nt]; if(ne&&isDisEv(ne)&&!BIG_EVS.includes(ne)&&warnedDisTurn!==nt){ warnedDisTurn=nt; try{ const inf=EVENT_INFO[ne]||{}; const pn=PRE_NOTE[ne]?'　'+PRE_NOTE[ne]:''; hint(`⚠ ${lead>1?lead+'ターン後':'次のターン'}、妨害が来る：${inf.icon||''}${inf.label||ne}${pn}`,true); const bn=document.getElementById('evBanner'); if(bn){ bn.classList.add('dis'); bn.textContent=`⚠ ${lead>1?lead+'ターン後':'次のターン'} ${inf.icon||''}${inf.label||''}${pn}`; bn.classList.remove('show'); void bn.offsetWidth; bn.classList.add('show'); } playSfx('warn'); }catch(e){} } }   // 妨害が来る1ターン前に、予測を見ていなくても気づけるよう知らせる
   dlog('turn',{used:dbgCardStr(usedCard)+(usedCard&&usedCard.kind?'':''), onFlag:lastFi, event:ev||null, enemyAtkNow:currentEnemyAtk()});
   lastFi=-1;
 }
@@ -9219,7 +9253,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16f';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -302,6 +302,12 @@ with sync_playwright() as p:
       useGuidance(hand.findIndex(x=>x.uid===g.uid)); tapFlag(0); busy=false; const ok1=guidanceTargets(1).includes(1); tapFlag(1); const st=pending&&pending.step; busy=false; guidSwap(1,0);
       return new Promise(res=>setTimeout(()=>res({wasClosed,ok1,st,d0:flags[1].cards[0]===A,s0:flags[0].cards[0]===B,closed:flags[1].closed,pend:pending}),900))}""")
     check('誘導：完成した旗のカードと交換できる（旗は役を計算し直して、また完成する）',r['wasClosed'] and r['ok1'] and r['st']==2 and r['d0'] and r['s0'] and r['closed'] and r['pend'] is None,r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; bigWarned={}; const o={};
+      enemySched={}; enemySched[enemyTurn+3]='colhalf'; bigCountdown(); const ov=document.getElementById('bigCount'); o.d3=!!ov&&ov.style.display==='flex'&&ov.textContent.includes('3');
+      enemySched={}; enemySched[enemyTurn+1]='colhalf'; bigCountdown(); o.d1=document.getElementById('bigCount').textContent.includes('1');
+      const ne=enemyTurn; enemySched={}; enemySched[ne+1]='arrow'; enemySched[ne+2]='ghost'; autoQ={}; flags.forEach(f=>{f.cards=[];f.closed=false}); const plans=forecastPlans(); o.np=plans.length;
+      plans.forEach(x=>{ if(evCands(x.type).some(c=>c.i===2)) x.pl.flag=2; }); o.flags=plans.map(x=>x.pl.flag).join(','); return o}""")
+    check('大技のカウントダウン（3・2・1ターン前）と、先回り（予測の妨害を1つの旗にまとめる）',r['d3'] and r['d1'] and r['np']==2 and r['flags']=='2,2',r)
     r=ev("""async()=>{ const wid=()=>WAVES.map(w=>w.baseId); try{ localStorage.setItem('soloSiegeMons',JSON.stringify(wid())); }catch(e){} lsSet(FUSE_KEY,'1'); lsSet(SEL2_KEY,''); lsSet(FUSE_SLOTS_KEY,'');
       document.getElementById('titleScreen').style.display='none'; document.getElementById('charScreen').style.display='flex'; buildCharList();
       const o={}; const box=()=>document.getElementById('fuseSlots'); o.has=!!box()&&box().querySelectorAll('[data-sl]').length===5;
