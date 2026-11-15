@@ -2669,10 +2669,12 @@ function disList(w){
   else if(w.boss) r=DIS_BOSS[w.name]||[];
   else if(w.lv>=DIS_START_LV) DIS_TIERS.forEach(t=>{ if(w.lv>=t[0]) r=t[1]; });
   if((w.boss||w.lv>=DIS_PARAM.wipeLv) && r.length && !r.includes('wipe')) r=[...r,'wipe'];   // 全滅カード：どの敵も出す
-  if((w.boss||w.lv>=DIS_PARAM.assassinLv) && r.length && !r.includes('assassin')) r=[...r,'assassin'];   // 暗殺：どの敵も出す（旗のカードが1枚墓地へ）
+  if((w.boss||w.lv>=DIS_PARAM.assassinLv) && r.length && !r.includes('assassin')) r=[...r,'assassin'];
+  if(!w.boss && r.length && !r.includes('arrow')) r=[...r,'arrow'];   // 矢印パネル：レベル1の基本の妨害。出始め以降の敵はみんな使う   // 暗殺：どの敵も出す（旗のカードが1枚墓地へ）
   if(!w.boss && w.lv>=DIS_PARAM.harshLv && w.lv%2===0 && r.includes('colnull') && !r.includes('colhalf')) r=[...r.slice(0,r.indexOf('colnull')+1),'colhalf',...r.slice(r.indexOf('colnull')+1)];   // 色コンボ半減：色封じを持つ敵のうち偶数レベルの敵に割り当てる（誰も使っていなかった妨害の再分配。個別に変えるときはENEMY_CFGのdisに書く）
   if(r.length&&w.events){ ['poison','seal'].forEach(k=>{ if(w.events[k]>0&&!r.includes(k)) r=[...r,k]; }); }   // 毒・封鎖の呪いカードは、最初から山札に入れず、妨害レーンの技として手札に押し付ける
   r=r.filter(k=>!DIS_OFF.includes(k));
+  if(!w.boss){ const fav=(ENEMY_CFG[w.name]||{}).fav||[]; r=r.filter(k=>w.lv>=disFrom(k)||fav.includes(k)); }   // （その敵の得意技だけは例外）   // 妨害技のレベル表：その技の「出始め」より弱い敵は使わない
   { const ia=r.indexOf('autonum'); if(ia>1){ r=r.slice(); r.splice(ia,1); r.splice(1,0,'autonum'); } }   // 数字カードは2番目に前倒し（戦闘の前半から出す）
   if(!w.boss && w.lv<DIS_PARAM.harshLv){   // 序盤は、プレイでどうにかできる「旗（シート）の妨害」だけ。防御・コンボ系は出さない
     r=r.filter(k=>!HARSH_DIS.includes(k));
@@ -2681,7 +2683,17 @@ function disList(w){
   return r;
 }
 const HARSH_DIS=['half','guard','bguard','comboreset','colnull','colhalf','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
-const SHEET_DIS=[['autonum',3],['cfield',8],['pfield',10],['minus',12],['bomb',20],['assassin',22],['arrow',24],['ghost',26],['minusrain',28]].map(([t,l])=>[t,LV84(l)]);   // [技, 出始めのlv]：旗やカードに関わる妨害
+// ── 妨害技のレベル表 ──  [難しさ(1やさしい〜5きつい), 出始めの敵(何番目の敵から使うか。1〜94)]
+//  1＝置き方で避けられる／2＝旗1つが不自由になる／3＝カードや旗を失う／4＝数ターン全体に効く・攻撃が弱まる／5＝スーパーコンボを直接こわす
+const DIS_LEVEL={
+  autonum:[1,3], arrow:[1,6], blind:[1,16],
+  cfield:[2,9], pfield:[2,12], minus:[2,15], punch:[2,20],
+  bomb:[3,20], assassin:[3,24], wipe:[3,27], deatheater:[3,28],
+  ghost:[4,31], minusrain:[4,34], half:[4,36], guard:[4,38], colhalf:[4,40],
+  colnull:[5,44], comboreset:[5,50], null:[5,57], bguard:[5,69], freeze:[5,90], dark:[5,88]
+};
+const disFrom=k=>DIS_LEVEL[k]?DIS_LEVEL[k][1]:0, disLevel=k=>DIS_LEVEL[k]?DIS_LEVEL[k][0]:0;
+const SHEET_DIS=['autonum','arrow','cfield','pfield','minus','bomb','assassin','ghost','minusrain'].map(t=>[t,disFrom(t)]);   // 序盤の敵に自動で足す「旗やカードに関わる妨害」（出始めはレベル表のとおり）
 const SOFT_DIS=['arrow','autonum','cfield','pfield','minus','null','dark','bomb','wipe','assassin'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
 function disWeights(w,dl){
@@ -9073,7 +9085,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15t';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15u';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
