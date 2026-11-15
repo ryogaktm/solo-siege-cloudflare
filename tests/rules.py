@@ -548,5 +548,17 @@ with sync_playwright() as p:
       activeDeck.push(mk('orgrev')); hand.push(mk('allshuffle')); expireSpecial(); o.gone=![activeDeck,hand,graveyard].some(a=>a.some(c=>c.special));
       return o}""")
     check('特別カード：新体制で 軍師→数字・装備→軍師・数字→装備 に変わり、戦いが終わると戻る／使わない特別カードは消える',r['conv'] and r['back'] and r['shuf'] and r['gone'],r)
+    ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display=''; document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none'); busy=false; pending=null; enemySched={}; panel=null;
+      const T=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); flags.forEach(f=>{f.cards=[];f.closed=false;f.arrow=null;});
+      window._ar={}; const cols=FLAG_GRID_COLS[FLAG_COUNT], tr=cols-1; _ar.tr=tr; _ar.dest=arrowDest(tr,{dx:1,dy:-1});
+      const rows=Math.ceil(FLAG_COUNT/cols); _ar.want=(rows>1?(rows-1)*cols:0);
+      flags[tr].arrow=makeArrow(tr,1); hand=[T('red',7),T('blue',3)]; _ar.u=hand[0].uid; render(); layoutHand(true); playOnFlag(0,tr,null); }""")
+    pg.wait_for_timeout(200); pg.click('#arYes'); pg.wait_for_timeout(2600)
+    r=ev("""()=>{ const o=Object.assign({},_ar); o.at=flags.findIndex(f=>f.cards.some(c=>c.uid===_ar.u)); o.arrowLeft=flags.some(f=>f.arrow); o.busy=busy;
+      const T=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); flags.forEach(f=>{f.cards=[];f.closed=false;f.arrow=null;});
+      flags[o.dest].cards=[T('red',1),T('red',2),T('red',3)]; closeCheck(o.dest); flags[o.tr].arrow=makeArrow(o.tr,1); o.stay=arrowPath(T('blue',5),o.tr).join();
+      o.holy=holyFlagCands().some(x=>x.i===o.tr);
+      o.noEater=!DIS_OFF.includes('arrow')&&DIS_OFF.includes('deatheater'); return o}""")
+    check('矢印パネル：右上の旗の右上向きは左下の旗へ回りこんで置かれる／矢印は1回で消える／先に置けない時は残る／聖水で消せる／デスイーターは停止',r['dest']==r['want'] and r['at']==r['dest'] and not r['arrowLeft'] and not r['busy'] and r['stay']==str(r['tr']) and r['holy'] and r['noEater'],r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

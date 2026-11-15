@@ -605,6 +605,12 @@
     filter:drop-shadow(0 0 4px rgba(224,90,74,.9));
   }
   .pcard.mini.purchased::after{ font-size:11px; }
+  .arrow-panel{ position:absolute; left:50%; top:50%; width:44%; max-width:64px; aspect-ratio:1/1.3; margin:0; transform:translate(-50%,-50%); z-index:12; pointer-events:none; border-radius:8px; border:2px solid #ffb45e; background:linear-gradient(145deg, rgba(122,74,18,.93), rgba(58,34,6,.93)); box-shadow:0 0 12px rgba(255,170,60,.8); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  .arrow-panel svg{ width:66%; height:auto; }
+  .arrow-panel svg path{ animation:arrowNudge 1s ease-in-out infinite; }
+  .arrow-panel span{ font-size:9px; font-weight:900; color:#ffe9a8; white-space:nowrap; }
+  .arrow-panel.go{ box-shadow:0 0 22px 6px rgba(255,215,94,1); border-color:#fff3c4; }
+  @keyframes arrowNudge{ 0%,100%{ transform:translateY(1.5px); } 50%{ transform:translateY(-2px); } }
   .pcard.special{
     background:linear-gradient(160deg, #3b1d6e 0%, #2a1250 55%, #170a30 100%) !important;
     box-shadow:inset 0 0 0 2px rgba(255,215,94,.85), 0 0 12px rgba(255,215,94,.65);
@@ -1922,12 +1928,12 @@ SKFN.eye=m=>{
 
 SKFN.wisdom=m=>{
   const isE=c=>c&&(c.autoPlaced||isEnemyEq(c)||(c.kind==='monster'&&(c.enemyCard||c.sub==='cfield'||c.sub==='pfield')));
-  const hc=hand.filter(isEnemyCard).length; let n=hc; flags.forEach(f=>{ n+=f.cards.filter(isE).length+(f.bomb?1:0)+(f.lockedUntil>turnCounter?1:0)+(f.blindUntil?1:0)+(f.eater?1:0); }); n+=Object.keys(haunt).length;
+  const hc=hand.filter(isEnemyCard).length; let n=hc; flags.forEach(f=>{ n+=f.cards.filter(isE).length+(f.bomb?1:0)+(f.lockedUntil>turnCounter?1:0)+(f.blindUntil?1:0)+(f.eater?1:0)+(f.arrow?1:0); }); n+=Object.keys(haunt).length;
   if(!n) return hint('消せる異常がありません。',true);
   if(!skPay(m)) return;
   const before=hand.length; hand=hand.filter(c=>!isEnemyCard(c)); const gone=before-hand.length; autoRefill(gone);
   Object.keys(haunt).forEach(k=>delete haunt[k]);
-  flags.forEach(f=>{ if(!f.closed) f.cards=f.cards.filter(c=>!isE(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; });
+  flags.forEach(f=>{ if(!f.closed) f.cards=f.cards.filter(c=>!isE(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; f.arrow=null; });
   skDone(`📜 古の知恵！ 手札と旗の異常を${n}個消した。`);
 };
 SKFN.ice=m=>{
@@ -2534,6 +2540,7 @@ const EVENT_INFO={
   freeze:{icon:'❄',label:'いてつくはどう',cls:'ev-dis'},
   dark:{icon:'🌑',label:'暗闇',cls:'ev-dis'},
   deatheater:{icon:'👹',label:'デスイーター',cls:'ev-dis'},
+  arrow:{icon:'↗',label:'矢印パネル',cls:'ev-dis'},
   ghost:{icon:'🕳',label:'ワームホール',cls:'ev-dis'},
   minusrain:{icon:'🌧',label:'マイナスレイン',cls:'ev-dis'},
   wipe:{icon:'💥',label:'全滅（旗のカードが消える）',cls:'ev-dis'},
@@ -2565,17 +2572,17 @@ const DIS_TIERS=[
   [16,['half','autonum','colnull','guard','autonum','comboreset']],
   [18,['half','autonum','colnull','guard','autonum','comboreset']],
   [28,['half','colnull','autonum','autonum','minusrain']],
-  [38,['half','colnull','cfield','autonum','autonum','minusrain','deatheater']],
-  [48,['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','guard','minusrain','deatheater']],
-  [58,['half','bomb','comboreset','cfield','autonum','pfield','colnull','autonum','minus','null','bguard','minusrain','deatheater','ghost']],
-  [LADDER_N-6,['half','bomb','comboreset','autonum','cfield','pfield','autonum','colnull','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']]
+  [38,['half','colnull','cfield','autonum','autonum','minusrain','arrow']],
+  [48,['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','guard','minusrain','arrow']],
+  [58,['half','bomb','comboreset','cfield','autonum','pfield','colnull','autonum','minus','null','bguard','minusrain','arrow','ghost']],
+  [LADDER_N-6,['half','bomb','comboreset','autonum','cfield','pfield','autonum','colnull','minus','null','dark','freeze','bguard','guard','minusrain','arrow','ghost']]
 ];
-const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','deatheater'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','deatheater','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','deatheater','ghost']};
+const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','bguard','minusrain','arrow'],'金星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','bguard','minusrain','arrow','ghost'],'土星人':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','arrow','ghost'],'太陽神':['half','comboreset','cfield','bomb','autonum','colnull','pfield','autonum','minus','null','dark','freeze','bguard','guard','minusrain','arrow','ghost']};
 ['assassinLv','midLv','earlyLv','lateLv','softLv','harshLv','harshFavLv','wipeLv'].forEach(k=>{ DIS_PARAM[k]=LV84(DIS_PARAM[k]); });
 DIS_TIERS.forEach(t=>{ t[0]=LV84(t[0]-(t[0]>80?10:0)); });   // 最後の段（LADDER_N-6）は、84体の時の78番目
 const DIS_OFF=['dark','deatheater'];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚消える)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',wipe:'全滅(旗を1つ空にするカード)'};
-const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',wipe:'全滅'};
+const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(旗につき5枚消える)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',arrow:'矢印パネル(置いたカードが矢印の方向の旗へ滑る)',wipe:'全滅(旗を1つ空にするカード)'};
+const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',arrow:'矢印',wipe:'全滅'};
 const PRE_NOTE={comboreset:'スーパーコンボが全部0に！',bomb:'時限ボムを手札に押し付けられる！'};
 const isDisEv=ev=>ev!=='rage';   // 攻撃力×2だけ上のレーン。それ以外（毒・封鎖・妨害）は下のレーン
 const poisonOn=()=>turnCounter<(dis.poisonUntil||0);
@@ -2612,43 +2619,43 @@ const ENEMY_CFG={
   '猛牛の戦車':{dis:['half','colnull','autonum','guard','comboreset','autonum','minusrain'],nums:[['blue',1],['yellow',3],['purple',1]]},   // lv37
   '暗黒の傭兵':{dis:['colnull','cfield','autonum','autonum','minusrain'],nums:[['orange',1],['red',5],['orange',6]]},   // lv38
   '元の身体':{dis:['colnull','autonum','cfield','autonum','minusrain'],nums:[['red',3],['orange',1],['red',2]]},   // lv39
-  '暗黒騎士':{dis:['autonum','cfield','colnull','autonum','minusrain','deatheater'],nums:[['yellow',5],['red',2],['blue',4]]},   // lv40
-  '暗黒騎士の師匠':{dis:['colnull','half','autonum','cfield','autonum','minusrain','deatheater'],nums:[['green',6],['purple',5],['green',4]]},   // lv41
-  'マジシャン':{dis:['half','autonum','colnull','cfield','autonum','minusrain','deatheater'],nums:[['orange',2],['green',1],['orange',2]]},   // lv42
-  '小竜':{dis:['cfield','colnull','autonum','autonum','minusrain','deatheater'],nums:[['blue',6],['purple',1],['blue',6]]},   // lv43
-  '火を吹くワイバーン':{dis:['colnull','half','autonum','cfield','autonum','minusrain','deatheater'],nums:[['yellow',2],['green',1],['blue',3]]},   // lv44
-  '竜騎士':{dis:['colnull','cfield','autonum','autonum','minusrain','deatheater','ghost'],nums:[['green',1],['purple',5],['purple',1]]},   // lv45
-  '古龍':{dis:['cfield','autonum','colnull','autonum','minusrain','deatheater','ghost'],nums:[['yellow',2],['green',1],['orange',1]]},   // lv46
-  '氷の古竜':{dis:['cfield','autonum','colnull','autonum','minusrain','deatheater','ghost'],nums:[['yellow',6],['purple',5],['red',6]]},   // lv47
-  '雷を操る竜':{dis:['null','autonum','minus','autonum','minusrain','deatheater','ghost'],nums:[['yellow',1],['purple',2],['red',3]]},   // lv48
-  '二股竜':{dis:['minus','guard','pfield','autonum','autonum','minusrain','deatheater','ghost'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
-  '山を砕く巨竜':{dis:['cfield','null','autonum','guard','autonum','minusrain','deatheater','ghost'],nums:[['red',1],['purple',3],['orange',2]]},   // lv50
-  '先導者':{dis:['pfield','minus','autonum','autonum','minusrain','deatheater','ghost'],nums:[['green',1],['red',6],['orange',5]]},   // lv51
-  '探究者':{dis:['colnull','null','autonum','autonum','minusrain','deatheater','ghost'],nums:[['blue',4],['red',5],['blue',4]]},   // lv52
-  '革命者':{dis:['cfield','minus','bomb','autonum','autonum','minusrain','deatheater','ghost'],nums:[['purple',5],['red',4],['red',6]]},   // lv53
-  '追従者':{dis:['colnull','guard','autonum','pfield','autonum','minusrain','deatheater','ghost'],nums:[['orange',4],['green',1],['purple',2]]},   // lv54
-  '聖職者':{dis:['null','pfield','autonum','autonum','minusrain','deatheater','ghost'],nums:[['blue',5],['orange',4],['yellow',3]]},   // lv55
-  '敗者':{dis:['autonum','null','colnull','autonum','bomb','minusrain','deatheater','ghost'],nums:[['blue',3],['orange',3],['yellow',1]]},   // lv56
-  '悪魔の将軍':{dis:['null','guard','minus','autonum','autonum','minusrain','deatheater','ghost'],nums:[['purple',3],['blue',6],['red',1]]},   // lv57
-  '全ての邪悪を背負った魔王':{dis:['cfield','pfield','autonum','bomb','autonum','half','minusrain','deatheater','ghost']},   // lv58
-  '躍動者':{dis:['colnull','minus','null','autonum','autonum','minusrain','deatheater','ghost'],nums:[['red',9],['blue',9],['green',5]]},   // lv59
-  '魔王の親衛兵':{dis:['autonum','cfield','pfield','autonum','bguard','half','comboreset','minusrain','deatheater','ghost'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
-  '最弱の四天王':{dis:['bomb','cfield','minus','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
-  '魔王の影':{dis:['pfield','bguard','colnull','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['green',4],['green',10],['red',4]]},   // lv62
-  '魔王の化身':{dis:['cfield','bguard','autonum','bomb','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
-  '不死身の魔王':{dis:['null','bguard','colnull','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
-  '深淵の魔王':{dis:['null','cfield','autonum','pfield','autonum','minus','half','comboreset','minusrain','deatheater','ghost']},   // lv65
-  '終焉の魔王':{dis:['dark','colnull','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
-  '滅びの化身':{dis:['cfield','bomb','autonum','guard','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
-  '星を喰らうもの':{dis:['freeze','guard','dark','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
-  '次元を砕く者':{dis:['freeze','bomb','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
-  '時の支配者':{dis:['minus','bomb','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
-  '世界の終わり':{dis:['guard','minus','colnull','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
-  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum','comboreset','autonum','minusrain','deatheater','ghost'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
+  '暗黒騎士':{dis:['autonum','cfield','colnull','autonum','minusrain','arrow'],nums:[['yellow',5],['red',2],['blue',4]]},   // lv40
+  '暗黒騎士の師匠':{dis:['colnull','half','autonum','cfield','autonum','minusrain','arrow'],nums:[['green',6],['purple',5],['green',4]]},   // lv41
+  'マジシャン':{dis:['half','autonum','colnull','cfield','autonum','minusrain','arrow'],nums:[['orange',2],['green',1],['orange',2]]},   // lv42
+  '小竜':{dis:['cfield','colnull','autonum','autonum','minusrain','arrow'],nums:[['blue',6],['purple',1],['blue',6]]},   // lv43
+  '火を吹くワイバーン':{dis:['colnull','half','autonum','cfield','autonum','minusrain','arrow'],nums:[['yellow',2],['green',1],['blue',3]]},   // lv44
+  '竜騎士':{dis:['colnull','cfield','autonum','autonum','minusrain','arrow','ghost'],nums:[['green',1],['purple',5],['purple',1]]},   // lv45
+  '古龍':{dis:['cfield','autonum','colnull','autonum','minusrain','arrow','ghost'],nums:[['yellow',2],['green',1],['orange',1]]},   // lv46
+  '氷の古竜':{dis:['cfield','autonum','colnull','autonum','minusrain','arrow','ghost'],nums:[['yellow',6],['purple',5],['red',6]]},   // lv47
+  '雷を操る竜':{dis:['null','autonum','minus','autonum','minusrain','arrow','ghost'],nums:[['yellow',1],['purple',2],['red',3]]},   // lv48
+  '二股竜':{dis:['minus','guard','pfield','autonum','autonum','minusrain','arrow','ghost'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
+  '山を砕く巨竜':{dis:['cfield','null','autonum','guard','autonum','minusrain','arrow','ghost'],nums:[['red',1],['purple',3],['orange',2]]},   // lv50
+  '先導者':{dis:['pfield','minus','autonum','autonum','minusrain','arrow','ghost'],nums:[['green',1],['red',6],['orange',5]]},   // lv51
+  '探究者':{dis:['colnull','null','autonum','autonum','minusrain','arrow','ghost'],nums:[['blue',4],['red',5],['blue',4]]},   // lv52
+  '革命者':{dis:['cfield','minus','bomb','autonum','autonum','minusrain','arrow','ghost'],nums:[['purple',5],['red',4],['red',6]]},   // lv53
+  '追従者':{dis:['colnull','guard','autonum','pfield','autonum','minusrain','arrow','ghost'],nums:[['orange',4],['green',1],['purple',2]]},   // lv54
+  '聖職者':{dis:['null','pfield','autonum','autonum','minusrain','arrow','ghost'],nums:[['blue',5],['orange',4],['yellow',3]]},   // lv55
+  '敗者':{dis:['autonum','null','colnull','autonum','bomb','minusrain','arrow','ghost'],nums:[['blue',3],['orange',3],['yellow',1]]},   // lv56
+  '悪魔の将軍':{dis:['null','guard','minus','autonum','autonum','minusrain','arrow','ghost'],nums:[['purple',3],['blue',6],['red',1]]},   // lv57
+  '全ての邪悪を背負った魔王':{dis:['cfield','pfield','autonum','bomb','autonum','half','minusrain','arrow','ghost']},   // lv58
+  '躍動者':{dis:['colnull','minus','null','autonum','autonum','minusrain','arrow','ghost'],nums:[['red',9],['blue',9],['green',5]]},   // lv59
+  '魔王の親衛兵':{dis:['autonum','cfield','pfield','autonum','bguard','half','comboreset','minusrain','arrow','ghost'],nums:[['purple',7],['red',10],['blue',8]]},   // lv60
+  '最弱の四天王':{dis:['bomb','cfield','minus','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['yellow',4],['red',7],['red',6]]},   // lv61
+  '魔王の影':{dis:['pfield','bguard','colnull','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['green',4],['green',10],['red',4]]},   // lv62
+  '魔王の化身':{dis:['cfield','bguard','autonum','bomb','comboreset','autonum','minusrain','arrow','ghost'],nums:[['orange',4],['red',4],['green',8]]},   // lv63
+  '不死身の魔王':{dis:['null','bguard','colnull','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['yellow',6],['green',7],['green',6]]},   // lv64
+  '深淵の魔王':{dis:['null','cfield','autonum','pfield','autonum','minus','half','comboreset','minusrain','arrow','ghost']},   // lv65
+  '終焉の魔王':{dis:['dark','colnull','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['blue',9],['orange',3],['yellow',9]]},   // lv66
+  '滅びの化身':{dis:['cfield','bomb','autonum','guard','comboreset','autonum','minusrain','arrow','ghost'],nums:[['yellow',10],['red',8],['red',4]]},   // lv67
+  '星を喰らうもの':{dis:['freeze','guard','dark','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['yellow',9],['orange',6],['purple',3]]},   // lv68
+  '次元を砕く者':{dis:['freeze','bomb','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['blue',4],['orange',4],['yellow',8]]},   // lv69
+  '時の支配者':{dis:['minus','bomb','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['purple',5],['red',7],['blue',3]]},   // lv70
+  '世界の終わり':{dis:['guard','minus','colnull','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['orange',3],['blue',6],['green',9]]},   // lv71
+  '全てを無に帰すもの':{dis:['cfield','freeze','half','autonum','comboreset','autonum','minusrain','arrow','ghost'],nums:[['purple',3],['red',9],['orange',3]]},   // lv72
   '水星人':{dis:['colnull','cfield','autonum','bguard'],nums:[['green',6],['purple',7],['yellow',4]]},   // lv★
   '金星人':{dis:['bomb','autonum','minus','bguard'],nums:[['purple',3],['orange',3],['green',9]]},   // lv★
-  '土星人':{dis:['ghost','freeze','bomb','comboreset','colnull','minus','minusrain','deatheater']},   // lv★
-  '太陽神':{dis:['ghost','colnull','comboreset','cfield','autonum','minusrain','deatheater'],nums:[['blue',10],['blue',9],['orange',8]]},   // lv★
+  '土星人':{dis:['ghost','freeze','bomb','comboreset','colnull','minus','minusrain','arrow']},   // lv★
+  '太陽神':{dis:['ghost','colnull','comboreset','cfield','autonum','minusrain','arrow'],nums:[['blue',10],['blue',9],['orange',8]]},   // lv★
 };
 function disEveryAt(w){   // 妨害の間隔の倍率：lateLv(40)を過ぎたら、最後の敵(lateEvery)に向けてだんだん短く（＝妨害が増える）
   if(w.boss||w.lv<=DIS_PARAM.lateLv) return DIS_PARAM.every;
@@ -2674,8 +2681,8 @@ function disList(w){
   return r;
 }
 const HARSH_DIS=['half','guard','bguard','comboreset','colnull','colhalf','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
-const SHEET_DIS=[['autonum',3],['cfield',8],['pfield',10],['minus',12],['bomb',20],['assassin',22],['deatheater',24],['ghost',26],['minusrain',28]].map(([t,l])=>[t,LV84(l)]);   // [技, 出始めのlv]：旗やカードに関わる妨害
-const SOFT_DIS=['autonum','cfield','pfield','minus','null','dark','bomb','wipe','assassin'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
+const SHEET_DIS=[['autonum',3],['cfield',8],['pfield',10],['minus',12],['bomb',20],['assassin',22],['arrow',24],['ghost',26],['minusrain',28]].map(([t,l])=>[t,LV84(l)]);   // [技, 出始めのlv]：旗やカードに関わる妨害
+const SOFT_DIS=['arrow','autonum','cfield','pfield','minus','null','dark','bomb','wipe','assassin'];   // カードを押し付ける／場を荒らす妨害（頻度を少し上げる）。大きい不可逆な技（防御・コンボ減・色封じ・凍結・ワーム・デスイーター・マイナスレイン）は据え置き
 let disCount={}, disLast=null;   // 敵ごとの妨害の発動回数（回数が少ない技から優先して出す＝どの技も満遍なく出る）
 function disWeights(w,dl){
   const wt=disWeights0(w,dl), ec=ENEMY_CFG[w.name]||{};
@@ -3004,7 +3011,7 @@ function resetBattleRound(){
   gloveUsed=0; copyN=0; armedOn=false; mountOn=false;   // 模造品の倍化・完全武装は、1つのwaveの間だけ
   frozenMults={}; frozenHost={}; bashRateNow=DIS_PARAM.bashRate; bashRateHist=[bashRateNow];   // 斧の命中率は、攻撃して次のwaveになったら元に戻る
   dlog('info',{msg:'敵ラウンドリセット（攻撃後/次ステージ）',superCarryKept:carryTxt()});
-  try{ flags.forEach(f=>{ f.blindUntil=0; f.eater=0; }); }catch(e){}
+  try{ flags.forEach(f=>{ f.blindUntil=0; f.eater=0; f.arrow=null; }); }catch(e){}
   enemyTurn=0; warnedDisTurn=-1; slowWins=[]; poisonPenalty=0; poisonPer=0; enemyFreeze=0; bulletLeft=0; enemyPoisonPer=0; dis={guardN:0,guardUntil:0,halfColor:null,halfUntil:0,darkUntil:0,nullUntil:0}; prevSnap=null; enemySched=genSchedule(); lastFi=-1;
 }
 function enemyEventFX(type){
@@ -3041,8 +3048,78 @@ function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾
 }
 /* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
 let autoQ={}, autoSeq=0;   // autoQ[種類]=[予定,...]：その種類の「これから来る予定」を順番に持つ。敵の攻撃でラウンドがリセットされても、発動するまで同じ予定（カード・旗）が残る
-const FLAG_EVS=['autonum','minus','ghost','deatheater','assassin','pfield','cfield','blind'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
-const EVFC_LABEL={minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'居座る'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'},cfield:{icon:'💀',txt:pl=>'カラフル'+((CNAME[pl&&pl.col]||'').replace('旗',''))},blind:{icon:'🌫',txt:()=>'ブラインド'}};
+const FLAG_EVS=['arrow','autonum','minus','ghost','deatheater','assassin','pfield','cfield','blind'];   // 旗を狙う妨害：どの旗に何が起きるかを前もって決めて、旗の右上に出す
+const EVFC_LABEL={arrow:{icon:'↗',txt:()=>'矢印'},minus:{icon:'➖',txt:pl=>'武器'+pl.v},ghost:{icon:'🕳',txt:()=>'ワーム'},deatheater:{icon:'👹',txt:()=>'居座る'},assassin:{icon:'🗡',txt:()=>'暗殺'},pfield:{icon:'🌀',txt:()=>'パニック'},cfield:{icon:'💀',txt:pl=>'カラフル'+((CNAME[pl&&pl.col]||'').replace('旗',''))},blind:{icon:'🌫',txt:()=>'ブラインド'}};
+// ── 矢印パネル：8方向の矢印。その旗に置いたカードは、矢印の方向の旗へ滑る（はしの旗は反対側へ回りこむ）。1回で消える ──
+const ARROW_DIRS=[[0,-1,'⬆','上',0],[1,-1,'↗','右上',45],[1,0,'➡','右',90],[1,1,'↘','右下',135],[0,1,'⬇','下',180],[-1,1,'↙','左下',225],[-1,0,'⬅','左',270],[-1,-1,'↖','左上',315]];
+function arrowDest(fi,a){ const cols=FLAG_GRID_COLS[FLAG_COUNT]||3, rows=Math.ceil(FLAG_COUNT/cols)||1, x=fi%cols, y=Math.floor(fi/cols); const di=(((y+a.dy)%rows+rows)%rows)*cols+(((x+a.dx)%cols+cols)%cols); return di<FLAG_COUNT?di:fi; }
+function makeArrow(fi,dirIdx){ const ok=ARROW_DIRS.filter(d=>arrowDest(fi,{dx:d[0],dy:d[1]})!==fi), d=(dirIdx!=null?ARROW_DIRS[dirIdx]:null)||ok[Math.floor(Math.random()*ok.length)]||ARROW_DIRS[2]; return {dx:d[0],dy:d[1],icon:d[2],name:d[3],deg:d[4]}; }
+const arrowOn=f=>!!(f&&f.arrow&&!f.closed);
+function arrowPath(card,fi){   // 置いたカードが通る旗（矢印が続けば、続けて滑る）
+  const path=[fi]; let cur=fi; const ts=targetsFor(card);
+  while(arrowOn(flags[cur])&&path.length<=FLAG_COUNT){
+    const n=arrowDest(cur,flags[cur].arrow), nf=flags[n], nm=nf&&flagMonster(nf);
+    if(n===cur||path.includes(n)||!ts.includes(n)) break;
+    if(card.kind==='troop'&&nm&&(nm.sub==='cfield'||nm.sub==='combined')&&!satisfiesMonster(card,nf)) break;   // 色や数字の条件が合わない旗へは滑らない
+    path.push(n); cur=n;
+  }
+  return path;
+}
+function arrowWarn(card,di){   // 移動先で起きることを、置く前に知らせる（鉄則：効果で役なしになる時は必ず知らせる）
+  const f=flags[di], out=[], pm=flagMonster(f);
+  if(haunt[di]>0) out.push('🕳 移動先はワームホール：カードは消えます');
+  let v=card.value;
+  if(card.kind==='troop'){ try{ v=placeValueFx(card).v; }catch(e){} if(pm&&(pm.sub==='pfield'||pm.pf)){ v=11-v; out.push(`🌀 移動先はパニックフィールド：数字が${v}になります`); } }
+  if((card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card))&&!pm&&f.cards.length===2&&f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
+    try{ const ev=evaluate({cards:f.cards.concat(card.kind==='troop'?[Object.assign({},card,{value:v})]:[{kind:'wild',color:'wild',label:card.short,uid:card.uid}])}); if(ev&&ev.mult===1) out.push(`⚠ 矢印パネルで滑った先の旗${di+1}は、<b>役なし（ホスト）</b>になります`); }catch(e){}
+  }
+  return out;
+}
+function arrowSlide(u,fi,fromRect){   // 矢印パネルのある旗にカードを置いた：確認 → 滑るアニメーション → 移動先に置く
+  const card=hand.find(c=>c.uid===u); if(!card) return;
+  const path=arrowPath(card,fi), di=path[path.length-1], a=flags[fi].arrow, moved=path.length>1;
+  const blocked=!moved?arrowDest(fi,a):-1, warns=arrowWarn(card,di);
+  const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">${a.icon} 矢印パネル</div><div class="reward-sub" style="margin-top:8px">${moved?`このカードは矢印の方向へ滑って、<b style="color:var(--gold)">${path.map(i=>'旗'+(i+1)).join(' → ')}</b> に置かれます。`:`矢印の先の旗${blocked+1}には置けないので、カードは<b>この旗に残ります</b>。`}<br>（矢印パネルは消えます）${warns.length?'<br><br>'+warns.join('<br>'):''}</div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn" id="arNo" style="flex:1">やめる</button><button class="btn" id="arYes" style="flex:1">置く</button></div></div>`;
+  document.body.appendChild(bg); busy=true;
+  bg.querySelector('#arNo').onclick=()=>{ bg.remove(); busy=false; picked=null; render(); layoutHand(false); };
+  bg.querySelector('#arYes').onclick=()=>{
+    bg.remove();
+    try{ dlog('arrow_slide',{card:dbgCardStr(card),path:path.map(i=>i+1)}); }catch(e){}
+    arrowAnim(u,path,fromRect,endRect=>{
+      path.forEach(i=>{ if(flags[i]) flags[i].arrow=null; });   // 通った矢印パネルは消える
+      busy=false; const i=hand.findIndex(c=>c.uid===u);
+      if(moved) hint(`${a.icon} 矢印パネル！ カードが旗${di+1}へ滑った。`,true);
+      if(i<0||!playOnFlag(i,di,endRect||fromRect,true)){ picked=null; render(); layoutHand(false); }
+    });
+  };
+}
+function arrowAnim(u,path,fromRect,done){   // 手札 → 矢印の旗 → 矢印の方向の旗へ、カードが滑っていく
+  let fin=false; const end=r=>{ if(fin) return; fin=true; try{ g&&g.remove(); }catch(e){} done(r); };
+  let g=null;
+  try{
+    const src=document.querySelector(`.hand .pcard[data-uid="${u}"]`), r0=fromRect||(src&&src.getBoundingClientRect());
+    const fr=i=>{ const el=document.querySelector('.flag[data-index="'+i+'"]'); return el?el.getBoundingClientRect():null; };
+    if(!src||!r0||path.some(i=>!fr(i))) return end(null);
+    const w=Math.min(64,Math.max(40,(src.getBoundingClientRect().width||52))), h=w*1.42;
+    g=src.cloneNode(true); g.removeAttribute('data-uid'); g.className=g.className.replace(/\b(picked|drag|sel)\b/g,'');
+    g.style.cssText=`position:fixed;left:0;top:0;width:${w}px;height:${h}px;margin:0;z-index:9500;pointer-events:none;transition:none;box-shadow:0 6px 18px rgba(0,0,0,.55);transform:translate(${r0.left+r0.width/2-w/2}px,${r0.top+r0.height/2-h/2}px)`;
+    document.body.appendChild(g); src.style.visibility='hidden';
+    const pos=i=>{ const r=fr(i); return [r.left+r.width/2-w/2, r.top+r.height/2-h/2]; };
+    const pts=[[r0.left+r0.width/2-w/2, r0.top+r0.height/2-h/2], ...path.map(pos)];
+    let k=0;
+    const step=()=>{
+      if(k>=pts.length-1){ const [x,y]=pts[pts.length-1]; return end({left:x,top:y,width:w,height:h,right:x+w,bottom:y+h}); }
+      const [x0,y0]=pts[k],[x1,y1]=pts[k+1], first=k===0;
+      if(!first){ const pn=document.querySelector('.flag[data-index="'+path[k-1]+'"] .arrow-panel'); if(pn) pn.classList.add('go'); try{ playSfx('shuffle'); }catch(e){} }
+      const an=g.animate([{transform:`translate(${x0}px,${y0}px) scale(1)`},{transform:`translate(${(x0+x1)/2}px,${(y0+y1)/2}px) scale(${first?1.08:1.18})`,offset:.5},{transform:`translate(${x1}px,${y1}px) scale(1)`}],{duration:first?ARROW_MS.drop:ARROW_MS.slide,easing:first?'ease-out':'cubic-bezier(.5,0,.2,1)',fill:'forwards'});
+      k++; let nx=false; const go=()=>{ if(nx) return; nx=true; if(first){ try{ playSfx('place'); }catch(e){} } setTimeout(step, k<pts.length-1?ARROW_MS.pause:60); };
+      an.onfinish=go; setTimeout(go,(first?ARROW_MS.drop:ARROW_MS.slide)+250);
+    };
+    step();
+  }catch(e){ end(null); }
+}
+const ARROW_MS={drop:260,slide:520,pause:240};   // 矢印パネルのアニメーションの長さ（置く／滑る／矢印の上で止まる間）
 const EATER_TURNS=3;   // デスイーターが旗に居座るターン数
 const eaterOn=f=>(f.eater||0)>enemyTurn&&!f.closed;
 function eaterEatPlaced(f,placed,mon,midx){   // デスイーターのいる旗にカードを置いた：置いたカードが食べられる
@@ -3068,6 +3145,7 @@ function evCands(type){
     if(type==='pfield'){ const m=flagMonster(f); return m?(!m.enemyCard&&!m.pf&&(m.sub==='number'||m.sub==='combined')&&m.value>0):f.cards.length<3; }   // パニックフィールド：空きのある旗、または自分の力の装備が乗った旗（装備に逆転がかかる。予告した旗に武器を置いても、旗は変わらない）
     if(type==='cfield') return !flagMonster(f)&&f.cards.length<3;
     if(type==='minus'){ const m=flagMonster(f); return f.cards.length<3&&(!m||m.sub==='number'||m.sub==='combined'); }
+    if(type==='arrow') return !f.arrow&&f.cards.length<3;   // 矢印パネル：空きのある旗（すでに矢印のある旗は除く）
     if(type==='deatheater') return true;   // デスイーター：完成していない旗ならどこでも（カードがなくても予告を出す。居座った旗に置いたカードを食べる）
     return f.cards.length>0;   // 暗殺：カードのある旗
   });
@@ -3173,6 +3251,14 @@ function applyEnemyEvent(type,target,viaCard){
     giveHandCard(makeCurse('wipe')); hint('💥 全滅のカードを手札に押し付けられた！ 使うと旗1つ分のカードが消える。聖水で消せる。',true); playSfx('warn');
   } else if(type==='dark'){
     giveHandCard(makeCurse('dark')); hint('🌑 暗闇のカードを手札に押し付けられた！',true); playSfx('warn');
+  } else if(type==='arrow'){
+    const apl=takeAutoPlan('arrow'), afi=autoTargetIdx(apl);
+    if(afi<0){ hint('敵が矢印パネルを置こうとしたが、置ける旗がなかった。',true); }
+    else if(!hauntBlock(afi,'敵の矢印パネル')){
+      const a=makeArrow(afi); flags[afi].arrow=a; enemyCardFly(afi,{});
+      try{ dlog('arrow_fire',{flag:afi+1,dir:a.name,to:arrowDest(afi,a)+1}); }catch(e){}
+      hint(`${a.icon} 敵が旗${afi+1}に矢印パネルを置いた！ その旗に置いたカードは、${a.name}の旗${arrowDest(afi,a)+1}へ滑っていく。（1回で消える）`,true); playSfx('warn'); try{ render(); }catch(e){}
+    }
   } else if(type==='deatheater'){
     const dpl=takeAutoPlan('deatheater'), dfi=autoTargetIdx(dpl);
     const cand=dfi<0?[]:[flags[dfi]];   // 封鎖中の旗は狙われない（封鎖で防げる）
@@ -4487,6 +4573,8 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     if(card.type==='holy'){ useHoly(handIdx); return true; }   // 聖水：どこに落としても、状態異常を全部消す
     useTacticByIdx(handIdx, card); return true;
   }
+  if(arrowOn(f) && !noAsk){ picked=null; arrowSlide(card.uid, fi, fromRect); return true; }   // 矢印パネルの旗：置いたカードが矢印の方向へ滑る
+  if(arrowOn(f)) f.arrow=null;
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
     if(!noAsk && card.kind==='troop' && cm && (cm.sub==='cfield'||cm.sub==='combined') && !satisfiesMonster(card,f)){
       const uidK=card.uid, bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
@@ -4726,7 +4814,7 @@ function useDuplicate(handIdx){
   hint('複製したい手札のカードをタップしてください。');
 }
 const holyHandOK=c=>isCurse(c)||isEnemyEq(c);
-const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.capturedByEnemy&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)||(f.eater&&f.eater>enemyTurn)));
+const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.capturedByEnemy&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)||(f.eater&&f.eater>enemyTurn)||arrowOn(f)));
 const holyGlobals=()=>{ const L=[];   // 聖水で消せる「今かかっている敵の効果」（旗ではなく全体にかかるもの）
   if(poisonOn()) L.push({k:'rain',label:'🌧 マイナスレインを止める',clear:()=>{ dis.poisonUntil=0; }});
   if(dis.halfColor&&enemyTurn<dis.halfUntil) L.push({k:'col',label:`🎨 ${CNAME[dis.halfColor]}の${dis.halfMul===0?'色封じ':'色半減'}を解く`,clear:()=>{ dis.halfColor=null; dis.halfUntil=0; }});
@@ -4738,7 +4826,7 @@ const holyGlobals=()=>{ const L=[];   // 聖水で消せる「今かかってい
 function holyAll(skipUid){   // 聖水：今かかっている状態異常を全部まとめて消す（予定の妨害や、もう消えたカードは対象外）。消したものの名前を返す
   const done=[];
   holyGlobals().forEach(g=>{ g.clear(); done.push(g.label.replace(/^\S+ /,'').replace(/(を止める|を解く|を消す|を晴らす)$/,'')); });
-  let fn=0; holyFlagCands().forEach(({f,i})=>{ f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; delete haunt[i]; fn++; });
+  let fn=0; holyFlagCands().forEach(({f,i})=>{ f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; f.arrow=null; delete haunt[i]; fn++; });
   if(fn) done.push(`旗${fn}本の呪い`);
   const hc=hand.filter(c=>c.uid!==skipUid&&holyHandOK(c)); if(hc.length){ hand=hand.filter(c=>!hc.includes(c)); done.push(`手札の呪い${hc.length}枚`); }
   return done;
@@ -4764,7 +4852,7 @@ function resolveHolyHand(idx){
 }
 function resolveHolyFlag(i){
   const f=flags[i]; if(!holyFlagCands().some(x=>x.i===i)) return hint('その旗には取り除ける呪いがありません。',true);
-  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; delete haunt[i];
+  f.cards=f.cards.filter(c=>!isEnemyEq(c)); f.bomb=0; f.lockedUntil=0; f.blindUntil=0; f.eater=0; f.arrow=null; delete haunt[i];
   finishHoly(`💧 聖水：F${i+1}の呪い（敵の装備・ボム・封鎖・ワームホール・ブラインド）を取り除いた！`,0);
 }
 function useRevolution(handIdx){
@@ -5554,6 +5642,7 @@ const EVENT_DESC={
   punch:()=>`ターンになると強制的に発動。${Math.round(DIS_PARAM.punchRate*100)}%の確率で、あなたに${DIS_PARAM.punchDmg}ダメージ（外れることもある）。`,
   blind:()=>`ターンになると強制的に発動。ランダムな旗（完成済み・封鎖中・すでに煙に覆われた旗は対象外）を前もって決め（旗の右上に予告が出る）、${DIS_PARAM.blindTurns}ターンの間、黒い煙で覆う。カードは置けるが、中身が見えなくなる。煙の間、その旗は敵の他の妨害の対象からも外れる。`,
   assassin:()=>'ターンになると強制的に発動。カードが置いてある旗（完成済み・封鎖中は対象外）を前もって決め（旗の右上に表示）、その旗のカードからランダムに1枚を墓地へ送る。敵が置いたカードや装備も対象。',
+  arrow:()=>'敵が「矢印パネル」（8方向のどれか）を、空きのある旗に置く（旗の右上に予告が出る）。その旗にカードを置くと、カードが矢印の方向の旗へ滑っていく。はしの旗では反対側へ回りこむ（右上の旗の右上向きなら、左下の旗へ）。滑った先に置けない時は、その旗に残る。1回で消える。聖水でも消せる。',
   deatheater:()=>'完成していない旗をランダムに1つ選んで（旗の右上に予告が出る）、3ターンの間、その旗の上に居座る。その間にその旗へカードを置くと、置いたカードが食べられて墓地へ行く。3ターン置かなかったら、その旗の1枚目のカードが食べられる（完成済みの旗と、封鎖中の旗は対象外）。',
   ghost:()=>'ターンになると強制的に発動。ランダムな旗にワームホールが開く。その旗に置かれたカードは、5枚まで旗に残らず、効果も出ずに墓地へ消える（数字カードも装備も同じ。敵が置くカードも消える）。5枚使い切るまで消えない。ただし薬を使うか、敵が変わると消える。',
   minusrain:()=>`ターンになると強制的に発動。${DIS_PARAM.rainTurns}ターンの間、フィールドに置く数字カードがすべて−1される（1は1のまま）。`,
@@ -5935,6 +6024,7 @@ function render(){
           d.appendChild(pd); }
       }catch(e){}
     }
+    if(arrowOn(f)){ const am=document.createElement('div'); am.className='arrow-panel'; am.style.setProperty('--ax',(f.arrow.dx*5)+'px'); am.style.setProperty('--ay',(f.arrow.dy*5)+'px'); am.innerHTML=`<svg viewBox="0 0 24 24" style="transform:rotate(${f.arrow.deg}deg)"><path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="#ffd75e" stroke="#5a3206" stroke-width="1.4" stroke-linejoin="round"/></svg><span>旗${arrowDest(i,f.arrow)+1}へ</span>`; d.appendChild(am); }
     if(eaterOn(f)){ const em=document.createElement('div'); em.style.cssText='position:absolute;left:50%;top:-2px;transform:translateX(-50%);z-index:13;pointer-events:none;padding:2px 8px;border-radius:10px;background:rgba(120,20,40,.92);border:1px solid #ff8a9a;color:#fff;font-size:11px;font-weight:800;white-space:nowrap'; em.textContent=`👹 デスイーター あと${f.eater-enemyTurn}ターン`; d.appendChild(em); }
     if(blindOn(f)&&!f.closed){ const sm=document.createElement('div'); sm.className='smoke'; sm.innerHTML=`<span>🌫 あと${f.blindUntil-enemyTurn}ターン</span>`; d.appendChild(sm); }
     d.onclick=()=>tapFlag(i);
@@ -8983,7 +9073,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15s';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15t';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
