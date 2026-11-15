@@ -1661,7 +1661,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
 const SKP={oath:3, fireMul:2, exploreSec:5, exploreCount:3, weak:5, diceHeal:100, diceHp:0.1, shadowMiss:0.5, usurpRate:0.1, stareat:0.03, rewind:5, growAtk:3000, growHp:50, fireUp:1, sacrifice:3, spy:3};   // 体質「成長」「成長期」の増える量
 const MON_SKILL_NEW={
   'ナメクジ':{kind:'slimy',name:'ぬめり',icon:'🐌',cost:{hp:10},desc:'次の一斉攻撃で、敵の攻撃力が半分になる。'},
-  'スケルトン':{kind:'boneshield',name:'骨の盾',icon:'🦴',cost:{hp:20},desc:'次に受ける敵の攻撃を1回だけ無効にする。'},
+  'スケルトン':{kind:'boneshield',name:'骨の盾',icon:'🦴',cost:{hp:20},desc:'次に受ける敵の攻撃を1回無効にする。何度でも重ねて使え、重ねた回数ぶん無効にする。'},
   '幽霊':{kind:'phase',name:'すり抜け',icon:'👻',cost:{hp:20},desc:'次に来る敵の妨害を1つ消す。'},
   'ゴーレム':{kind:'stonebody',name:'石の体',icon:'🗿',cost:{combo:['green',1]},desc:'このwaveは受けるダメージが半分。そのかわり次の一斉攻撃の攻撃力も半分になる。'},
   '忍者':{kind:'bunshin',name:'分身',icon:'🥷',cost:{hp:25},desc:'手札の数字カードを1枚選んで、同じカードを1枚増やす（その戦いの間だけ）。'},
@@ -1951,7 +1951,7 @@ SKFN.sacrifice=m=>{
 /* ----- 100体目までの10体の特殊技 ----- */
 const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メッセージを返す）]
   slimy:[()=>atkFx.slime?'すでにぬめりの準備ができています。':null, ()=>{ atkFx.slime=true; return '🐌 ぬめり！ 次の一斉攻撃で、敵の攻撃力が半分になる。'; }],
-  boneshield:[()=>wallOn?'すでに次の攻撃を防ぐ準備ができています。':null, ()=>{ wallOn=true; return '🦴 骨の盾！ 次に受ける敵の攻撃を1回だけ無効にする。'; }],
+  boneshield:[()=>null, ()=>{ wallOn=(+wallOn||0)+1; return `🦴 骨の盾！ 次に受ける敵の攻撃を無効にする。（いま${wallOn}回ぶん）`; }],   // 何度でも重ねて使える（重ねた回数ぶん、敵の攻撃を無効）
   phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
   cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':null; }, ()=>{ const got=[]; for(let i=0;i<2;i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
@@ -4155,7 +4155,7 @@ function checkWaveOutcome(){
   const sealedCount=flags.filter(f=>isLocked(f)).length;
   let sealPenalty = sealedCount>0 ? buzzGate(Math.max(1,Math.round(eAtk*BALANCE.sealPenaltyRate*(guardOn?0.5:1)))) : 0;
   if(wallOn&&sealPenalty>0){ sealPenalty=0; wallHit=true; }
-  if(wallHit){ wallOn=false; try{ stageDmgPop('monster','🧱仲間の壁！ 攻撃を無効','',true); }catch(e){} }
+  if(wallHit){ wallOn=Math.max(0,(+wallOn||0)-1); try{ stageDmgPop('monster','🧱仲間の壁！ 攻撃を無効','',true); }catch(e){} }
   if(guardOn && (taken>0||sealPenalty>0)) guardOn=false;
   if(sealPenalty>0) sealPenalty=shieldAbsorb(sealPenalty);
   if(sealPenalty>0){ playerHp=Math.max(0, playerHp-sealPenalty); }
@@ -8864,7 +8864,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15l';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15m';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
