@@ -3317,7 +3317,7 @@ function applyStartDeck(i){
 }
 function randomizeStartDeck(bias,extreme){ // 初期山札はランダム（大山札から40枚）。bias＝多めにする種類（n数字／t軍師／e装備）。その種類が無いキャラは普通の山札になり、falseを返す
   let biasOk=true;
-  const all=[...grandDeck,...activeDeck,...hand].filter(c=>!isCurse(c));
+  const all=[...grandDeck,...activeDeck,...hand].filter(c=>!isCurse(c)&&!c.startDup);   // 前の山札で足した「同じカードの増し分」は、作り直すとき捨てる
   all.forEach(c=>{ c.inDeck=false; });
   deckUids=new Set();
   shuffle(all);
@@ -3337,6 +3337,10 @@ function randomizeStartDeck(bias,extreme){ // 初期山札はランダム（大�
     const pool={n:[],w:[],a:[],t:[]}; all.forEach(c=>pool[cat(c)].push(c));
     if(bias){ if(base[bias]>0&&pool[bias].length>0) base[bias]*=START_BIAS[bias][extreme?1:0]; else biasOk=false; }
     const total=Math.min(WAVE_DRAW,all.length), bs=KEYS.reduce((t,k)=>t+base[k],0);
+    if((bias==='w'||bias==='a')&&biasOk&&bs>0){   // 武器・防具を増やす山札は、カードの種類が足りなくても、同じカードをもう1枚足して増やす
+      const want=Math.round(total*base[bias]/bs), src=pool[bias].slice();
+      for(let i=0;pool[bias].length<want&&src.length&&i<99;i++){ const o=src[i%src.length]; pool[bias].push({...o,uid:uid(),inDeck:false,startDup:true}); }
+    }
     if(bs>0 && all.length>=WAVE_DRAW){
       const q={}, rem=[]; let used=0;
       KEYS.forEach(k=>{ const x=total*base[k]/bs; q[k]=Math.min(Math.floor(x),pool[k].length); used+=q[k]; rem.push([k,x-Math.floor(x)]); });
@@ -8964,7 +8968,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-15o';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-15p';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
