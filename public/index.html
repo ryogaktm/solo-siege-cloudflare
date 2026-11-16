@@ -726,7 +726,6 @@
   .flag.closed{ cursor:default; }
   .flag.closed::after{ content:""; position:absolute; inset:0; border-radius:9px; pointer-events:none;
     box-shadow:inset 0 0 0 1px rgba(226,192,106,.35); }
-  .flag.closed.enemy-captured::after{ box-shadow:inset 0 0 0 2px rgba(224,90,74,.7); background:rgba(160,40,30,.1); }
   .flag.closed.player-captured::after{ box-shadow:inset 0 0 0 2px rgba(180,180,180,.25); }
   .flag.closed.player-captured.role-done::after{ box-shadow:inset 0 0 0 2px rgba(226,192,106,.7); }
   @keyframes glow{ 0%,100%{ box-shadow:0 0 0 1px var(--glow) inset, 0 0 10px rgba(143,240,196,.4);} 50%{ box-shadow:0 0 0 1px var(--glow) inset, 0 0 18px rgba(143,240,196,.85);} }
@@ -1060,7 +1059,6 @@
   
   @keyframes combo-boost-pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
   .flag .badge.monbadge{ background:#e06aa8; color:#2a0a1c; white-space:normal; width:max-content; max-width:calc(100% - 6px); text-align:center; line-height:1.15; }   /* 長い名前は、旗の幅に収まるよう2行に折り返す */
-  .flag .badge.timeoutbadge{ background:#5a5a5a; color:#ddd; }
   .flag.locked-turns{ opacity:.55; }
   .flag.locked-turns::after{
     content:""; position:absolute; inset:0; border-radius:9px; pointer-events:none;
@@ -1746,7 +1744,7 @@ const MON_SKILL_NEW={
   '竜騎士':{kind:'eye',name:'上空からの目',icon:'🦅',cost:{hp:20},desc:'山札の上5枚を見て、好きな1枚を引く。（残りの4枚は山札の上に残る）'},
 };
 Object.assign(MON_SKILL,MON_SKILL_NEW);
-const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
+const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
 let fireOn=false;   // 火炎放射：このwaveの間、赤の旗の攻撃力が2倍
 const flagMul=f=>{ const i=flags.indexOf(f); let m={}, hm={}; try{ m=superMults()||{}; hm=hostMults()||{}; }catch(e){} return (m[i]||1)+((hm[i]||1)-1); };   // その旗にかかっているスーパーコンボ（ホスト）の倍率
 const flagShown=f=>(f&&f.result)?(f.result.base||0)*flagMul(f):0;   // 旗に出ている攻撃力（スーパーコンボの倍率こみ）。「旗の攻撃力」に効く技は、必ずこの数字を基準にする
@@ -1755,7 +1753,7 @@ const fireBonus=()=>{   // 赤の旗の攻撃力（スーパーコンボの倍�
   if(!fireOn) return 0;
   let m={}, hm={}; try{ m=superMults()||{}; hm=hostMults()||{}; }catch(e){}
   let sum=0;
-  flags.forEach((f,i)=>{ if(f.closed&&!f.capturedByEnemy&&f.symbolColor==='red'&&f.result){ const b=Math.max(0,f.result.base||0); sum+=b*(m[i]||1)+b*((hm[i]||1)-1); } });
+  flags.forEach((f,i)=>{ if(f.closed&&f.symbolColor==='red'&&f.result){ const b=Math.max(0,f.result.base||0); sum+=b*(m[i]||1)+b*((hm[i]||1)-1); } });
   return Math.round(sum*(SKP.fireMul-1));
 };
 let pocket=null, gloveUsed=0, lanternUsed=false;   // 予備のポケットの中のカード／捨て上手の手袋の今のwaveの使用数／墓守のランタン（1戦に1回）
@@ -1871,7 +1869,7 @@ SKFN.oath=m=>{
   atkFx.oath=true; skDone(`🌑 闇の誓い！ 旗をすべて更地にした（${had}枚）。次の一斉攻撃の攻撃力が${SKP.oath}倍になる。`);
 };
 SKFN.lead=m=>{
-  const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base!=null); if(cl.length<2) return hint('閉じた旗が2つ以上ないと使えません。',true);
+  const cl=flags.filter(f=>f.closed&&f.result&&f.result.base!=null); if(cl.length<2) return hint('閉じた旗が2つ以上ないと使えません。',true);
   const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f), mn=cl.reduce((a,f)=>flagShown(a)<=flagShown(f)?a:f);   // 強い・弱いは、旗に出ている攻撃力（スーパーコンボこみ）で比べる
   if(flagShown(mx)<=flagShown(mn)) return hint('すでに旗の攻撃力が同じです。',true);
   if(!skPay(m)) return; const before=flagShown(mn), nb=Math.round(flagShown(mx)/flagMul(mn)), db=nb-mn.result.base; mn.result.base=nb; score+=db; const d=flagShown(mn)-before;
@@ -1947,13 +1945,13 @@ SKFN.wisdom=m=>{
   skDone(`📜 古の知恵！ 手札と旗の異常を${n}個消した。`);
 };
 SKFN.ice=m=>{
-  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result&&!x.f.frz);
+  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&x.f.result&&!x.f.frz);
   if(!cl.length) return hint('凍らせられる閉じた旗がありません。',true);
   pickDialog('🧊 氷漬け：どの旗を凍らせる？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(flagShown(x.f))}）`})), a=>{
     const x=cl[a]; if(!x.f.closed||!skPay(m)) return; x.f.frz=2; skDone(`🧊 氷漬け！ 旗${x.i+1}が凍った。次のwaveもこの旗が残る。`); });
 };
 SKFN.bolt=m=>{
-  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result&&x.f.result.base>0);
+  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&x.f.result&&x.f.result.base>0);
   if(!cl.length) return hint('切り離せる閉じた旗がありません。',true);
   pickDialog('⚡ いなずま：どの旗を切り離して撃つ？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(flagShown(x.f))}）`})), a=>{
     const x=cl[a], f=x.f; if(!f.closed||!bossHp||!skPay(m)) return; const D=Math.round(flagShown(f));   // 旗に出ている攻撃力（スーパーコンボこみ）で撃つ
@@ -2000,7 +1998,7 @@ const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メ�
   phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
   cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':null; }, ()=>{ const got=[]; for(let i=0;i<2;i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
-  stampede:[()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f); const d=flagShown(mx); score+=mx.result.base; mx.result.base*=2; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
+  stampede:[()=>flags.some(f=>f.closed&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f); const d=flagShown(mx); score+=mx.result.base; mx.result.base*=2; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
   dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が1.5倍になる。'; }],
 };
 Object.keys(NEWMON_FX).forEach(k=>{ SKFN[k]=m=>{ const bad=NEWMON_FX[k][0](); if(bad) return hint(bad,true); if(!skPay(m)) return; skDone(NEWMON_FX[k][1]()); }; });
@@ -2069,11 +2067,11 @@ SKFN.limitbreak=m=>{
   skDone(`💥 限界突破！ 使い切った特殊技${list.length}個が1回ずつ回復した。`);
 };
 SKFN.shadow=m=>{
-  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&!x.f.capturedByEnemy&&x.f.result), em=flags.filter(f=>!f.closed&&f.cards.length===0&&!isLocked(f));
+  const cl=flags.map((f,i)=>({f,i})).filter(x=>x.f.closed&&x.f.result), em=flags.filter(f=>!f.closed&&f.cards.length===0&&!isLocked(f));
   if(!cl.length) return hint('写せる閉じた旗がありません。',true); if(!em.length) return hint('空の旗がありません。',true);
   pickDialog('🪞 影うつし：どの旗を写す？', cl.map(x=>({label:`旗${x.i+1}：${x.f.result.name||'役なし'}（攻撃力${fmtCompact(flagShown(x.f))}）`})), a=>{
     const src=cl[a].f, dst=flags.find(f=>!f.closed&&f.cards.length===0&&!isLocked(f)); if(!src.closed||!dst||!skPay(m)) return;
-    dst.cards=src.cards.map(c=>({...c,uid:uid(),temp:true})); dst.closed=true; dst.closeSeq=++closeSeqCounter; dst.result={...src.result}; dst.capturedByEnemy=false; dst.baseCombo=src.baseCombo; dst.symbolColor=src.symbolColor; dst.comboMult=src.comboMult; dst.sheetSum=src.sheetSum; dst.eqBonus=src.eqBonus;
+    dst.cards=src.cards.map(c=>({...c,uid:uid(),temp:true})); dst.closed=true; dst.closeSeq=++closeSeqCounter; dst.result={...src.result}; dst.baseCombo=src.baseCombo; dst.symbolColor=src.symbolColor; dst.comboMult=src.comboMult; dst.sheetSum=src.sheetSum; dst.eqBonus=src.eqBonus;
     addScore(dst.result.base||0); skDone(`🪞 影うつし！ 旗${cl[a].i+1}の写しを、空の旗に置いて閉じた。`); try{ endCheck(); }catch(e){} render(); });
 };
 SKFN.usurp=m=>{ const e=currentEnemyAtk(), d=Math.floor(e*SKP.usurpRate); if(d<=0) return hint('奪える攻撃力がありません。',true); if(!skPay(m)) return; addScore(d); skDone(`👿 乗っ取り！ 敵の攻撃力の1割（${fmtCompact(d)}）を自分の攻撃力に足した。`); };
@@ -2896,8 +2894,8 @@ function quickMult(t,noRole){   // 12ターン以内：全部役あり×5／役�
   const m=t<=ACC_PARAM.quickTurns?(noRole?ACC_PARAM.quickMulNoRole:ACC_PARAM.quickMul):t<=ACC_PARAM.quickTurns2?(noRole?ACC_PARAM.quickMulNoRole2:ACC_PARAM.quickMul2):1;
   return 1+(m-1)*accX();
 }
-const hasNoRoleFlag=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&!f.baseCombo);
-function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
+const hasNoRoleFlag=()=>flags.some(f=>f.closed&&!f.baseCombo);
+function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
 function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
 const MB_COL={red:'#ff6a5a',orange:'#ffa94d',yellow:'#ffd84a',green:'#6fdc7a',blue:'#6aa8ff',purple:'#c58bff'};
@@ -2915,7 +2913,7 @@ function updateMultBar(){   // 戦闘中、倍率がどのくらい乗ってい�
   if(!MULT_BAR_ON||gameEnded||!CHARACTER){ bar.style.display='none'; return; }
   const x=n=>'×'+(Math.round(n*100)/100), chips=[];
   const cn=carryNext(); Object.keys(cn).forEach(c=>{
-    const tops=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.symbolColor===c&&f.baseCombo).map(f=>flagMul(f)); const top=tops.length?Math.max(...tops):1;
+    const tops=flags.filter(f=>f.closed&&f.symbolColor===c&&f.baseCombo).map(f=>flagMul(f)); const top=tops.length?Math.max(...tops):1;
     chips.push(`<span style="color:${MB_COL[c]||'#fff'}">●${(CNAME[c]||c).replace('旗','')} ${cn[c]}コンボ${top>1?'（旗'+x(top)+'）':''}</span>`); });
   const ms=atkMultList(), all=ms.reduce((a,[,v])=>a*v,1);
   ms.forEach(([n,v])=>chips.push(`<span style="color:${v<1?'#ff9a8a':'#9fe6a0'}">${n.replace(/（.*?）/,'')}${x(v)}</span>`));
@@ -2937,7 +2935,7 @@ function showAtkBreakdown(){   // 今の攻撃力が、どんな倍率ででき�
   const cn=carryNext(), cols=Object.keys(cn);
   if(!cols.length) row('なし','×1');
   cols.forEach(c=>row(`${CNAME[c]||c}の色`,`${cn[c]}コンボ`));
-  const cl=flags.map((fl,i)=>({fl,i})).filter(o=>o.fl.closed&&!o.fl.capturedByEnemy&&o.fl.result);
+  const cl=flags.map((fl,i)=>({fl,i})).filter(o=>o.fl.closed&&o.fl.result);
   cl.forEach(o=>{ const m=flagMul(o.fl); row(`旗${o.i+1}：${o.fl.result.name||'役なし'}　${f(o.fl.result.base||0)}`,`${x(m)} ＝ ${f(flagShown(o.fl))}`); });
   if(hasAcc('color_bond')) row('🎀 色違いの絆','2色以上で ×1.2（旗の倍率に含む）');
   sec('③ 全体にかかる倍率（かけ算）');
@@ -2970,7 +2968,6 @@ function dbgFlagStr(f){
   if(f.closed){
     t+=' ='+(f.result?f.result.base:0)+(f.result&&f.result.name?'['+f.result.name+']':'');
     if(f.baseCombo) t+=' 役';
-    if(f.capturedByEnemy) t+=' 奪われ';
     if(f.symbolColor) t+=' 象徴:'+f.symbolColor[0];
   }
   if(isLocked(f)) t+=' 🔒'+(f.lockedUntil-turnCounter);
@@ -3066,7 +3063,7 @@ let closeSeqCounter=0;
 function superMults(){
   if(waveAdvancing && frozenMults && Object.keys(frozenMults).length) return frozenMults;
   const groups={};
-  flags.forEach((f,i)=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) (groups[f.symbolColor]=groups[f.symbolColor]||[]).push(i); });
+  flags.forEach((f,i)=>{ if(f.closed&&f.baseCombo&&f.symbolColor) (groups[f.symbolColor]=groups[f.symbolColor]||[]).push(i); });
   // つながり（同じマークのグループ）ごとに、閉じた順に ×(持ち越し+2), ×(持ち越し+3)…
   const m={};
   Object.values(groups).forEach(a=>{
@@ -3082,8 +3079,8 @@ let hostCarry=0, frozenHost={};   // ホストの指輪：役のない旗の連�
 const hostMultFor=raw=>Math.pow(1+0.2*accX(), raw-1);
 function hostIdxs(){
   if(!hasAcc('host_ring')||!CHARACTER.combo) return [];
-  if(flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo)) return [];   // 役のある旗が1つでもあれば無効
-  const a=[]; flags.forEach((f,i)=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name==='ホスト') a.push(i); });
+  if(flags.some(f=>f.closed&&f.baseCombo)) return [];   // 役のある旗が1つでもあれば無効
+  const a=[]; flags.forEach((f,i)=>{ if(f.closed&&f.result&&f.result.name==='ホスト') a.push(i); });
   return a.sort((x,y)=>(flags[x].closeSeq||0)-(flags[y].closeSeq||0)||x-y);
 }
 function hostMults(){
@@ -3096,7 +3093,7 @@ function hostMults(){
 function hostNext(){ const h=hostIdxs().length; if(!h) return 0; return (!hostCarry&&h<2)?1:(hostCarry||1)+h; }
 // 次のwaveへ持ち越される色ごとの連続数（checkWaveOutcome と同じ計算）
 function carryNext(){
-  const cnt={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
+  const cnt={}; flags.forEach(f=>{ if(f.closed&&f.baseCombo&&f.symbolColor) cnt[f.symbolColor]=(cnt[f.symbolColor]||0)+1; });
   const nm={}; Object.keys(cnt).forEach(c=>{ const cr=carryMap[c]; nm[c]=(!cr&&cnt[c]<2)?(hasAcc('first_ring')?2:1):(cr||1)+cnt[c]; });
     if(SUPER_PARAM.keepSkipped) Object.keys(carryMap).forEach(c=>{ if(!(c in nm)) nm[c]=carryMap[c]; });
   Object.keys(scSpent).forEach(c=>{ if(c in nm){ nm[c]-=scSpent[c]; if(nm[c]<1) delete nm[c]; } });   // 盤面の役のコンボから払った分
@@ -3161,7 +3158,7 @@ function arrowPath(card,fi){   // 置いたカードが通る旗（矢印が続�
   const path=[fi]; let cur=fi; const ts=targetsBase(card);
   while(arrowOn(flags[cur])&&!(haunt[cur]>0)&&path.length<=FLAG_COUNT){
     const n=arrowDest(cur,flags[cur].arrow), nf=flags[n], nm=nf&&flagMonster(nf);
-    const voidN=haunt[n]>0&&!nf.closed&&!isLocked(nf)&&!nf.capturedByEnemy;   // ワームホールの旗へは、制限なしで滑れる（消える）
+    const voidN=haunt[n]>0&&!nf.closed&&!isLocked(nf);   // ワームホールの旗へは、制限なしで滑れる（消える）
     if(n===cur||path.includes(n)||!(ts.includes(n)||voidN)) break;
     if(!voidN&&card.kind==='troop'&&nm&&(nm.sub==='cfield'||nm.sub==='combined')&&!satisfiesMonster(card,nf)) break;   // 色や数字の条件が合わない旗へは滑らない
     path.push(n); cur=n;
@@ -3400,9 +3397,9 @@ function applyEnemyEvent(type,target,viaCard){
     dis.poisonUntil=Math.max(dis.poisonUntil||0,turnCounter+DIS_PARAM.rainTurns);
     hint(`🌧 マイナスレイン！ ${DIS_PARAM.rainTurns}ターンの間、置く数字カードがすべて−1される！`,true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
   } else if(type==='comboreset'){
-    const had=Object.keys(carryMap).length>0 || flags.some(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor);
+    const had=Object.keys(carryMap).length>0 || flags.some(f=>f.closed&&f.baseCombo&&f.symbolColor);
     if(hasAcc('combo_ins')&&Object.keys(carryMap).length){ Object.keys(carryMap).forEach(c=>{ carryMap[c]=Math.max(1,Math.ceil(carryMap[c]/2)); }); hint('🛟 コンボ保険！ コンボリセットで減る量が半分になった。',true); try{ render(); }catch(e){} return; }
-    carryMap={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo) f.symbolColor=null; });
+    carryMap={}; flags.forEach(f=>{ if(f.closed&&f.baseCombo) f.symbolColor=null; });
     if(had) bigFx('💥','コンボリセット！','スーパーコンボがすべて0に戻された',true);
     hint(had?'💥 コンボリセット！ スーパーコンボがすべて0に戻された…':'💥 コンボリセット！（今は積み上げたコンボがなかった）',true); playSfx('warn'); try{ screenShake(); render(); }catch(e){}
   } else if(type==='freeze'){
@@ -3833,7 +3830,7 @@ function targetsFor(card){
   if(isCurse(card)||!placeableKind(card)) return base;
   const out=new Set(base);
   flags.forEach((f,i)=>{
-    if(f.closed||isLocked(f)||f.capturedByEnemy) return;
+    if(f.closed||isLocked(f)) return;
     if(haunt[i]>0){ out.add(i); return; }   // 消えるので、制限なし
     if(arrowOn(f)){ const p=arrowPath(card,i); if(p.length>1) out.add(i); }   // 滑って別の旗に置かれる：置き先で判断済み
   });
@@ -3843,7 +3840,7 @@ function targetsBase(card){   // 置かれた旗そのものの制限だけで�
   const out=[];
   flags.forEach((f,i)=>{
     if(isCurse(card) && haunt[i]>0 && !f.closed){ out.push(i); return; }   // ワームホールの旗：呪いカードも置ける（一緒に消える）
-    if(card.type==='promote'){ if(!f.capturedByEnemy&&f.cards.some(c=>promotable(c))) out.push(i); return; }
+    if(card.type==='promote'){ if(f.cards.some(c=>promotable(c))) out.push(i); return; }
     if(isDropTactic(card)){   // 軍師カード：旗にドラッグして発動できる（装備のある旗・完成した旗でもOK）
       if(card.type==='guidance'){ if(guidanceTargets(0).includes(i)) out.push(i); return; }
       if(tacticUsable(card)) out.push(i); return;
@@ -3854,7 +3851,7 @@ function targetsBase(card){   // 置かれた旗そのものの制限だけで�
     }
     if(card.type==='curse_bomb'){ if(!f.closed&&!isLocked(f)&&!f.bomb) out.push(i); return; }
     if(card.kind==='monster' && card.sub==='mark'){   // 色の装備：役が固まった旗の上にも置ける（最後に置いたカードのマークが変わり、役が変わる）
-      if(isLocked(f)||f.capturedByEnemy) return;
+      if(isLocked(f)) return;
       const mon0=flagMonster(f);
       if(mon0&&mon0.sub==='cfield'&&!f.closed){ out.push(i); return; }   // カラフルフィールドの旗には、色の装備でそのフィールドの色を変えられる
       if(f.cards.some(c=>c.kind==='troop') && (!mon0 || mon0.sub==='number' || mon0.sub==='pfield' || mon0.color===card.color)) out.push(i);   // パニックフィールドの旗でも、奥のカードのマークを変えられる
@@ -3984,7 +3981,7 @@ let refreshingFlags=false;
 function refreshClosedFlags(){   // どのカード効果でも、完成した旗の中身が変わったら、役と点を計算し直す（役が上がれば役ボーナスのゴールドも出る）
   if(refreshingFlags) return; refreshingFlags=true;
   try{ flags.forEach((f,fi)=>{
-    if(!f.closed||f.capturedByEnemy||!f.result) return;
+    if(!f.closed||!f.result) return;
     const sig=flagSig(f);
     if(f.sig===undefined){ f.sig=sig; f.rawBase=evaluate(f).base; return; }   // 古いセーブ：いまの中身を基準にする
     if(sig===f.sig) return;
@@ -3998,26 +3995,19 @@ function refreshClosedFlags(){   // どのカード効果でも、完成した�
     dlog('flag_reeval',{flag:fi+1,from:old.name,to:nr.name,diff,gold:more});
   }); }catch(e){} finally{ refreshingFlags=false; }
 }
-function closeCheck(fi, closedByEnemy){
+function closeCheck(fi){
   const f=flags[fi];
-  if(!f.closed&&f.cards.length>=3&&(closedByEnemy||!flagMonster(f))){   // 装備(武器など)が乗っている間は、数字カード2枚+装備でも閉じない（装備を数字カードで換装して3枚そろった時に閉じる）
+  if(!f.closed&&f.cards.length>=3&&!flagMonster(f)){   // 装備(武器など)が乗っている間は、数字カード2枚+装備でも閉じない（装備を数字カードで換装して3枚そろった時に閉じる）
     f.closed=true; f.closeSeq=++closeSeqCounter; f.result=evaluate(f);
-    if(f.negated&&!closedByEnemy){ f.result.base=-Math.abs(f.result.base||f.result.sum||0); f.result.mult=1; }   // マイナスの武器：得点がマイナス・役なし
-    f.capturedByEnemy=!!closedByEnemy;
+    if(f.negated){ f.result.base=-Math.abs(f.result.base||f.result.sum||0); f.result.mult=1; }   // マイナスの武器：得点がマイナス・役なし
     f.symbolColor = flagSymbolColor(f);
-    if(closedByEnemy){
-      const rawSum=f.cards.reduce((s,c)=>s+val(c),0);
-      f.result.timedOut=true;
-      f.result.base=-rawSum;
-      f.sheetSum=rawSum;
-      addScore(-rawSum);
-    } else {
+    {
       f.baseCombo = f.result.mult>1;
       if(f.baseCombo && f.symbolColor && f.symbolColor!=='red' && hasAcc('blade_'+f.symbolColor) && CHARACTER.combo){ bladeFire(f.symbolColor,f); f.baseCombo=f.result.mult>1; f.symbolColor=flagSymbolColor(f); }   // 色の武器（雷鳴刀・氷結の槍・大樹の杖・冥府の鎌）
       f.rawBase=f.result.base; f.sig=flagSig(f);   // 役の計算し直し用：バッジ前の点と、いまの中身を覚えておく
       if(accEq.length&&f.result.base>0){   // 一番槍・しんがりのバッジ：そのwaveで最初／最後に閉じた旗の攻撃力が2倍
         const k=accX(), others=flags.filter(g=>g!==f), notes=[];
-        if(hasAcc('first_badge') && !others.some(g=>g.closed&&!g.capturedByEnemy)){ f.result.base=Math.round(f.result.base*(1+ACC_NEW.badgeInc*k)); notes.push('🥇一番槍のバッジ'); }
+        if(hasAcc('first_badge') && !others.some(g=>g.closed)){ f.result.base=Math.round(f.result.base*(1+ACC_NEW.badgeInc*k)); notes.push('🥇一番槍のバッジ'); }
         if(hasAcc('last_badge') && others.every(g=>g.closed||isLocked(g))){ f.result.base=Math.round(f.result.base*(1+ACC_NEW.badgeInc*k)); notes.push('🏁しんがりのバッジ'); }
         (f.result.accNote||[]).forEach(n=>notes.push(n));
         if(notes.length) setTimeout(()=>hint(`✨ ${notes.join('・')}！ この旗の攻撃力が上がった（${f.result.base}）`,true),200);
@@ -4027,10 +4017,10 @@ function closeCheck(fi, closedByEnemy){
       f.sheetSum = f.result.sum;
       { const yn=f.result.name, yg=yakuGold(yn); f.yakuPaid=yg; if(yg>0){ gold+=yg; setTimeout(()=>hint(`${yn}！ +${yg}G`), 250); } }
     }
-    if(f.bomb){ const okB=!closedByEnemy&&f.baseCombo; if(okB){ f.bomb=0; hint('💣 ボム解除！ 役が揃って爆発を防いだ。',true); } else bombBoom(fi); }
+    if(f.bomb){ const okB=f.baseCombo; if(okB){ f.bomb=0; hint('💣 ボム解除！ 役が揃って爆発を防いだ。',true); } else bombBoom(fi); }
     justClosed.push({fi, result:f.result, played:false});
-    dlog('flag_closed',{flag:fi+1, cards:f.cards.map(dbgCardStr), 役名:f.result.name, 役倍率mult:f.result.mult, 合計sum:f.result.sum, 役前得点:f.result.preCombo!==undefined?f.result.preCombo:f.result.base, 得点base:f.result.base, 基本コンボ:!!f.baseCombo, 敵に奪われ:!!closedByEnemy, 象徴色:f.symbolColor, scoreAfter:score});
-    if(!closedByEnemy){
+    dlog('flag_closed',{flag:fi+1, cards:f.cards.map(dbgCardStr), 役名:f.result.name, 役倍率mult:f.result.mult, 合計sum:f.result.sum, 役前得点:f.result.preCombo!==undefined?f.result.preCombo:f.result.base, 得点base:f.result.base, 基本コンボ:!!f.baseCombo, 象徴色:f.symbolColor, scoreAfter:score});
+    {
       const tierSfx={host:'host',skirmish:'skirmish',battalion:'battalion',phalanx:'phalanx',wedge:'wedge'}[tierClass(f.result.tier)];
       if(tierSfx) playSfx(tierSfx);
     }
@@ -4254,7 +4244,7 @@ function triggerSynergyFX(synergy){
 }
 function triggerComboVisualFX(synergy){
   synergy.details.forEach(d=>{
-    const matchingIdx = flags.map((f,i)=>({f,i})).filter(({f})=>f.closed && !f.capturedByEnemy && f.baseCombo && f.symbolColor===d.color).map(({i})=>i);
+    const matchingIdx = flags.map((f,i)=>({f,i})).filter(({f})=>f.closed && f.baseCombo && f.symbolColor===d.color).map(({i})=>i);
     if(matchingIdx.length<2) return;
     const els = matchingIdx.map(i=>document.querySelector(`.flag[data-index="${i}"]`)).filter(Boolean);
     els.forEach(el=>el.classList.add('combo-glow'));
@@ -4287,7 +4277,7 @@ function updateComboLiveLines(){
   if(!CHARACTER.combo) return;
   const liveGroups={};
   flags.forEach((f,i)=>{
-    if(f.closed && !f.capturedByEnemy && f.symbolColor && f.baseCombo){
+    if(f.closed && f.symbolColor && f.baseCombo){
       (liveGroups[f.symbolColor]=liveGroups[f.symbolColor]||[]).push(i);
     }
   });
@@ -4364,9 +4354,9 @@ function checkWaveOutcome(){
     carryMap=carryNext(); scSpent={};
   } else { carryMap={}; scSpent={}; }
   hostCarry=hostNx;
-  flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name) accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; });
-  try{ if(flags.length&&flags.every(f=>f.closed&&!f.capturedByEnemy&&f.symbolColor&&f.symbolColor===flags[0].symbolColor)) { accStat.allSame=1; accStat.sameRun=(accStat.sameRun||0)+1; accStat.maxSameRun=Math.max(accStat.maxSameRun||0,accStat.sameRun); } else accStat.sameRun=0; }catch(e){}   // 取得条件：全部の旗が同じ色
-  try{ const nm={}; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
+  flags.forEach(f=>{ if(f.closed&&f.result&&f.result.name) accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; });
+  try{ if(flags.length&&flags.every(f=>f.closed&&f.symbolColor&&f.symbolColor===flags[0].symbolColor)) { accStat.allSame=1; accStat.sameRun=(accStat.sameRun||0)+1; accStat.maxSameRun=Math.max(accStat.maxSameRun||0,accStat.sameRun); } else accStat.sameRun=0; }catch(e){}   // 取得条件：全部の旗が同じ色
+  try{ const nm={}; flags.forEach(f=>{ if(f.closed&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
   const atkTurn=prevSnap?prevSnap.t:enemyTurn, atkPoison=prevSnap?prevSnap.pp:poisonPenalty;
   const qTurn=prevSnap&&prevSnap.wt!=null?prevSnap.wt:waveTurns(), noRoleQ=hasNoRoleFlag(), qm=quickMult(qTurn,noRoleQ), rawAtk=Math.max(0, score-atkPoison)*qm, halved=!!dis.halfNext;
@@ -4646,7 +4636,6 @@ function whyNotPlace(card,fi){   // 置けない理由（できるだけ具体�
   const nm=card.short||card.name||'このカード';
   if(card.type==='curse_bomb'){ if(f.closed) return '完成した旗には、ボムを置けません。'; if(isLocked(f)) return '封鎖されている旗には、ボムを置けません。'; if(f.bomb) return 'この旗には、すでにボムが置かれています。'; return 'この旗にはボムを置けません。'; }
   if(card.type==='wipe'){ return '空で、封鎖もされていない旗には使えません。'; }
-  if(f.capturedByEnemy&&card.kind==='monster'&&card.sub==='mark') return 'この旗は敵に奪われているので、色の装備は使えません。';
   if(f.closed) return 'この旗はもう完成しているので、カードを置けません。';
   if(isLocked(f)) return `この旗は敵に封鎖されています（あと${Math.max(1,f.lockedUntil-turnCounter)}ターン）。封鎖が解けるまで置けません。`;
   const m=flagMonster(f);
@@ -4801,7 +4790,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     render(); layoutHand(false);
     flyToUid(card.uid, fromRect, ()=>{
       if(refilled[0]) layoutHand(false, refilled[0].uid, refilled[0].fromRect);
-      busy=false; let after=''; try{ if(f.closed&&!f.capturedByEnemy) after=reEvalClosedFlag(fi); }catch(e){ console.error(e); }
+      busy=false; let after=''; try{ if(f.closed) after=reEvalClosedFlag(fi); }catch(e){ console.error(e); }
       hint(`${idxOf}枚目のカードが${CNAME[card.color]}マークに変わった！${after}`); endCheck(); render();
     });
     return true;
@@ -4865,7 +4854,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const wasSealed=isLocked(f); f.lockedUntil=0; f.bomb=0;
     const cleared=f.cards.splice(0, f.cards.length).filter(c=>!isEnemyEq(c));
     graveyard.push(...cleared);
-    f.closed=false; f.result=null; f.capturedByEnemy=false; f.baseCombo=false; f.symbolColor=null; f.sheetSum=0;
+    f.closed=false; f.result=null; f.baseCombo=false; f.symbolColor=null; f.sheetSum=0;
     hand.splice(handIdx,1);
     graveyard.push(card);
     advanceTurn(card);
@@ -4935,7 +4924,7 @@ function useDuplicate(handIdx){
   hint('複製したい手札のカードをタップしてください。');
 }
 const holyHandOK=c=>isCurse(c)||isEnemyEq(c);
-const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>!f.capturedByEnemy&&(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)||(f.eater&&f.eater>enemyTurn)||arrowOn(f)));
+const holyFlagCands=()=>flags.map((f,i)=>({f,i})).filter(({f,i})=>(f.cards.some(isEnemyEq)||f.bomb>0||isLocked(f)||haunt[i]>0||blindOn(f)||(f.eater&&f.eater>enemyTurn)||arrowOn(f)));
 const holyGlobals=()=>{ const L=[];   // 聖水で消せる「今かかっている敵の効果」（旗ではなく全体にかかるもの）
   if(poisonOn()) L.push({k:'rain',label:'🌧 マイナスレインを止める',clear:()=>{ dis.poisonUntil=0; }});
   if(dis.halfColor&&enemyTurn<dis.halfUntil) L.push({k:'col',label:`🎨 ${CNAME[dis.halfColor]}の${dis.halfMul===0?'色封じ':'色半減'}を解く`,clear:()=>{ dis.halfColor=null; dis.halfUntil=0; }});
@@ -5163,7 +5152,7 @@ function discardGuidanceCard(target){
     return true;
   }
   const reopened=!!src.closed;
-  if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.capturedByEnemy=false; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
+  if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
   const sk=!!pending.skillCard;
   const usedGuidance=guidTake();
   graveyard.push(usedGuidance);
@@ -5176,7 +5165,7 @@ function discardGuidanceCard(target){
   return true;
 }
 function guidanceTargets(step){
-  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0 && !(flags[i].result&&flags[i].result.timedOut));   // 役が決まった（完成した）旗も選べる：動かすと、その旗は未完成に戻る   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
+  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0);   // 役が決まった（完成した）旗も選べる：動かすと、その旗は未完成に戻る   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
   const from=pending.from;
   const src=flags[from];
   if(!src) return [];
@@ -5186,7 +5175,7 @@ function guidanceTargets(step){
   return flags.map((f,i)=>i).filter(i=>i!==from && guidAddOK(card,i) || (i!==from && guidSwapList(i).length>0));
 }
 function guidAddOK(card,i){   // 空きに追加できるか（完成した旗には追加できない）
-  const f=flags[i]; if(f.closed || isLocked(f) || f.capturedByEnemy) return false;
+  const f=flags[i]; if(f.closed || isLocked(f)) return false;
   const dm=flagMonster(f);
   if(card.kind==='monster') return !dm && f.cards.length<3;   // 装備は、装備のない旗にだけ動かせる
   if(dm) return satisfiesMonster(card,f);
@@ -5203,7 +5192,7 @@ function guidFlagOK(f,cards,moved){   // cards という並びにした時、そ
 }
 function guidSwapList(i){   // 移すカードと入れ替えられる、i番目の旗のカード（番号）
   const from=pending.from, src=flags[from], d=flags[i]; if(!src||!d||i===from) return [];
-  if(d.capturedByEnemy||isLocked(d)) return [];
+  if(isLocked(d)) return [];
   const A=src.cards[pending.cardIdx]; if(!A) return [];
   const out=[];
   d.cards.forEach((B,j)=>{
@@ -5215,7 +5204,7 @@ function guidSwapList(i){   // 移すカードと入れ替えられる、i番目
   });
   return out;
 }
-function guidReopen(f){ if(f.closed){ if(f.result) score-=f.result.base; f.closed=false; f.result=null; f.capturedByEnemy=false; f.baseCombo=false; f.symbolColor=null; f.sheetSum=0; } }
+function guidReopen(f){ if(f.closed){ if(f.result) score-=f.result.base; f.closed=false; f.result=null; f.baseCombo=false; f.symbolColor=null; f.sheetSum=0; } }
 function guidSwap(fi,j){
   if(!pending||pending.type!=='guidance') return;
   if(!guidSwapList(fi).includes(j)) return hint('そのカードとは交換できません。',true);
@@ -5242,7 +5231,7 @@ function guidanceReturn(cardIdx){   // 撤収：選んだ旗のカードを手�
   const src=flags[pending.from], card=src&&src.cards.splice(cardIdx,1)[0];
   if(!card){ pending=null; busy=false; render(); hint('カードの選択が無効になっていました。もう一度お試しください。',true); return; }
   const reopened=!!src.closed;
-  if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.capturedByEnemy=false; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
+  if(reopened){ if(src.result) score-=src.result.base; src.closed=false; src.result=null; src.baseCombo=false; src.symbolColor=null; src.sheetSum=0; }
   const sk=!!pending.skillCard;
   const used=guidTake(); graveyard.push(used);
   delete card.autoPlaced; delete card.autoFresh;   // 敵が置いたカードも、戻せば普通のカードとして使える
@@ -5606,14 +5595,14 @@ function useReinforce(handIdx){
 }
 const promotable=c=>!!c&&!c.enemyCard&&c.value<10&&(c.kind==='troop'||(c.kind==='monster'&&(c.sub==='number'||c.sub==='combined')&&c.value>0));   // 昇格の対象：数字カードと、数字のある装備
 function usePromote(handIdx){
-  const fl=[]; flags.forEach((f,fi)=>{ if(f.capturedByEnemy) return; const cs=f.cards.filter(c=>promotable(c)); if(cs.length) fl.push({fi,cs}); });
+  const fl=[]; flags.forEach((f,fi)=>{ const cs=f.cards.filter(c=>promotable(c)); if(cs.length) fl.push({fi,cs}); });
   if(!fl.length) return hint('数字を上げられるカードがある旗がありません。',true);
   const huid=hand[handIdx].uid;
   pickDialog(`⬆ 昇格：どの旗のカードを全部+${PROMOTE_UP}する？（旗にドラッグしてもOK）`, fl.map(x=>({label:`旗${x.fi+1}${flags[x.fi].closed?'（完成済み）':''}：${x.cs.map(c=>`${cardDisplayName(c)}→${Math.min(10,c.value+PROMOTE_UP)}`).join('、')}`})), a=>promoteFlag(huid, fl[a].fi));
 }
 function promoteFlag(huid, fi){   // 昇格の本体：旗fiの数字カード（数字のある装備も）を全部+PROMOTE_UP
   const f=flags[fi], hi=hand.findIndex(x=>x.uid===huid);
-  if(hi<0||!f||f.capturedByEnemy) return hint('盤面が変わったので、もう一度やり直してください。',true);
+  if(hi<0||!f) return hint('盤面が変わったので、もう一度やり直してください。',true);
   const cs=f.cards.filter(c=>promotable(c)); if(!cs.length) return hint('この旗には上げられるカードがありません。',true);
   const ch=cs.map(c=>{ if(c.origValue===undefined) c.origValue=c.value; const was=c.value; c.value=Math.min(10,c.value+PROMOTE_UP); return `${was}→${c.value}`; });
   refreshClosedFlags();   // 完成した旗なら、役と点を計算し直す
@@ -5913,7 +5902,7 @@ let barrierLv=0;
 function updateBarrier(){
   const el=document.getElementById('barrier'); if(!el) return;
   const total=flags.length||1;
-  const n=flags.filter(f=>f.closed && !f.capturedByEnemy && f.baseCombo).length;
+  const n=flags.filter(f=>f.closed && f.baseCombo).length;
   const lv = n===0?0 : (n>=total?3 : (n/total>=0.5?2:1));
   if(lv!==barrierLv){
     barrierLv=lv;
@@ -5937,7 +5926,7 @@ function synergyOf(list){
 // この旗1つだけが完成した場合に増える攻撃力の範囲（スーパーコンボ・装備ボーナス込み）
 function flagGainRange(f){
   const pr=predictFlag(f); if(!pr||pr.none||!pr.opts||!pr.opts.length) return null;
-  const exist=[]; flags.forEach(g=>{ if(g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor) exist.push({sym:g.symbolColor,base:g.result.base||0,seq:g.closeSeq||0}); });
+  const exist=[]; flags.forEach(g=>{ if(g.closed&&g.baseCombo&&g.symbolColor) exist.push({sym:g.symbolColor,base:g.result.base||0,seq:g.closeSeq||0}); });
   const old=synergyOf(exist.map(x=>({...x})));
   const maxSeq=exist.reduce((m,x)=>Math.max(m,x.seq),0);
   const raw=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:ptv(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0);
@@ -5950,7 +5939,7 @@ function flagGainRange(f){
 }
 // 途中の旗がすべて「最良の役」で完成した場合の攻撃力の範囲（スーパーコンボ・装備ボーナス込み）
 function predictAttackRange(pA){
-  const exist=[]; flags.forEach(f=>{ if(f.closed&&!f.capturedByEnemy&&f.baseCombo&&f.symbolColor) exist.push({sym:f.symbolColor,base:f.result.base||0,seq:f.closeSeq||0}); });
+  const exist=[]; flags.forEach(f=>{ if(f.closed&&f.baseCombo&&f.symbolColor) exist.push({sym:f.symbolColor,base:f.result.base||0,seq:f.closeSeq||0}); });
   const old=synergyOf(exist.map(x=>({...x})));
   const preds=[], worsts=[]; let rawSum=0;
   flags.forEach(f=>{ try{ const pr=predictFlag(f); if(pr&&!pr.none&&pr.opts&&pr.opts.length){ preds.push(pr.opts); worsts.push(pr.worst||pr.opts[0]); rawSum+=f.cards.reduce((a,c)=>a+(c.kind==='monster'?0:ptv(c)),0)+(f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))?(f.eqBonus||0):0); } }catch(e){} });
@@ -6127,7 +6116,7 @@ function render(){
   const board=document.getElementById('board'); board.innerHTML='';
   const liveGroups={};
   flags.forEach(f=>{
-    if(f.closed && !f.capturedByEnemy && f.symbolColor && f.baseCombo){
+    if(f.closed && f.symbolColor && f.baseCombo){
       (liveGroups[f.symbolColor]=liveGroups[f.symbolColor]||[]).push(f);
     }
   });
@@ -6138,10 +6127,10 @@ function render(){
   flags.forEach((f,i)=>{
     const d=document.createElement('div');
     const locked=isLocked(f);
-    const captureClass=f.closed ? (f.capturedByEnemy?' enemy-captured':' player-captured') : '';
+    const captureClass=f.closed ? ' player-captured' : '';
     d.className='flag'+(f.closed?' closed':'')+(locked?' locked-turns':'')+captureClass;
     d.dataset.index=i;
-    if(f.closed && !f.capturedByEnemy && f.baseCombo) d.classList.add('role-done');
+    if(f.closed && f.baseCombo) d.classList.add('role-done');
     if(!f.closed){
       const rc=f.cards.filter(c=>c&&c.kind==='troop');
       if(rc.length===2){
@@ -6149,35 +6138,31 @@ function render(){
         if(colorsMatch(a,b)||a.value===b.value||Math.abs(a.value-b.value)===1) d.classList.add('link-2');
       }
     }
-    if(CHARACTER.combo && f.closed && !f.capturedByEnemy && f.baseCombo && f.symbolColor && liveGroups[f.symbolColor] && smap[i]){
+    if(CHARACTER.combo && f.closed && f.baseCombo && f.symbolColor && liveGroups[f.symbolColor] && smap[i]){
       d.classList.add('combo-live');
     }
     if(highlighting) d.classList.add(targets.includes(i)?'drop-ok':'drop-no');
     const jc=justClosed.find(j=>j.fi===i);
     if(jc && !jc.played){
       jc.played=true;
-      if(!jc.result.timedOut){
-        d.classList.add('just-closed');
-        d.style.setProperty('--pulse-color', tierColorByTier(resultTier(jc.result)));
-        toTrigger.push({el:d, jc, cards:f.cards});
-      }
+      d.classList.add('just-closed');
+      d.style.setProperty('--pulse-color', tierColorByTier(resultTier(jc.result)));
+      toTrigger.push({el:d, jc, cards:f.cards});
     }
     let badge='';
     const mon=flagMonster(f);
     let bigResult=null;
     const guidOpen=!!(pending&&pending.type==='guidance'&&((pending.step==='choose'||pending.step===1)&&pending.from===i||pending.step===2&&pending.dest===i)&&f.closed);   // 誘導で封鎖済みの旗のカードを選ぶ間は中身を見せる
     if(f.result && !guidOpen){
-      if(f.result.timedOut){
-        badge=`<div class="badge timeoutbadge">🚩 敵に奪われた（${f.result.base}）</div>`;
-      } else {
+      {
         const markIcon = (f.symbolColor && f.result.mult>1) ? miniIcon(EMBLEM[f.symbolColor], CFILL[f.symbolColor]) : '';
-        const inCombo = CHARACTER.combo && !f.capturedByEnemy && f.baseCombo && !!smap[i];
+        const inCombo = CHARACTER.combo && f.baseCombo && !!smap[i];
         const comboCount = inCombo ? liveGroups[f.symbolColor].length : 0;
         const sm = inCombo ? smap[i] : 1;
         const hv = (!inCombo && hmap[i]) ? hmap[i] : 0;
         const displayVal = Math.round(inCombo ? f.result.base*sm : (hv ? f.result.base*hv : f.result.base));   // 小数は切る
         const dvLen=String(displayVal).length, dvFs=dvLen<=4?32:dvLen===5?27:dvLen===6?23:dvLen===7?20:17;
-        const comboTag = inCombo ? `<span class="frb-combo-tag">SUPER ×${Math.round(sm*100)/100}</span>` : (hv ? `<span class="frb-combo-tag">×${Math.round(hv*100)/100}</span>` : ((CHARACTER.combo && !f.capturedByEnemy && f.baseCombo && f.symbolColor) ? `<span class="frb-combo-tag">SUPER ×1</span>` : ''));   // 役が一個だけ揃った時も、コンボ×1として表示する（倍率は変わらない）
+        const comboTag = inCombo ? `<span class="frb-combo-tag">SUPER ×${Math.round(sm*100)/100}</span>` : (hv ? `<span class="frb-combo-tag">×${Math.round(hv*100)/100}</span>` : ((CHARACTER.combo && f.baseCombo && f.symbolColor) ? `<span class="frb-combo-tag">SUPER ×1</span>` : ''));   // 役が一個だけ揃った時も、コンボ×1として表示する（倍率は変わらない）
         bigResult=`<div class="flag-result-big${(inCombo||hv)?' combo-boosted':''}">
           <div class="frb-total" style="font-size:${dvFs}px">${markIcon}${displayVal}${comboTag}</div>
           <div class="frb-name">${f.result.isMonster?f.result.name:markNums(f.cards)}</div>
@@ -6419,7 +6404,7 @@ function nowText(){
 let tutStep=0, tutT=0;   // ミジンコの案内の段階：0 置く／1 役の説明（シートが1つ完成したあと）／2 スーパーコンボ（役が揃ったあと）／3 墓地へ捨てる／4 敵の攻撃レーン／5 カード予測レーン（1・2・4・5は3ターンずつ。5のあとは0に戻ってくり返す）
 const TUT_STEP_TURNS=3;
 function tutStepNow(){
-  const combos=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.baseCombo).length, closed=flags.filter(f=>f.closed&&!f.capturedByEnemy).length;
+  const combos=flags.filter(f=>f.closed&&f.baseCombo).length, closed=flags.filter(f=>f.closed).length;
   if(turnCounter<tutT) tutT=turnCounter;
   const dt=turnCounter-tutT;
   if(tutStep<4&&tutDiscarded){ tutStep=4; tutT=turnCounter; }   // 捨てて交換できたら、敵の攻撃レーンへ
@@ -6791,19 +6776,17 @@ function populateResultModal(){
   document.getElementById('bestTotalStat').textContent=rk(bestTotal);
   const comboGroups={};
   flags.forEach(f=>{
-    if(f.closed && !f.capturedByEnemy && f.symbolColor && f.baseCombo && CHARACTER.combo){
+    if(f.closed && f.symbolColor && f.baseCombo && CHARACTER.combo){
       (comboGroups[f.symbolColor]=comboGroups[f.symbolColor]||[]).push(f.result.base||0);
     }
   });
   const flagRows=flags.map((f,i)=>{
-    const isCombo = f.symbolColor && !f.capturedByEnemy && f.baseCombo && comboGroups[f.symbolColor] && comboGroups[f.symbolColor].length>=2;
+    const isCombo = f.symbolColor && f.baseCombo && comboGroups[f.symbolColor] && comboGroups[f.symbolColor].length>=2;
     const g=f.result?flagGrade(f.result.base):'-';
-    const label=f.result&&f.result.timedOut ? '🚩 敵に奪われた' : (f.result?f.result.name+(f.baseCombo?' ×'+f.result.mult:''):'—');
+    const label=f.result?f.result.name+(f.baseCombo?' ×'+f.result.mult:''):'—';
     const scoreTxt=f.result?`${f.result.base>=0?'+':''}${f.result.base}`:'+0';
     let symbolTxt='';
-    if(f.capturedByEnemy && f.sheetSum){
-      symbolTxt=`<span class="ft-symbol" style="color:var(--danger);">=${miniIcon(EMBLEM[f.symbolColor]||EMBLEM.tactic,'#e05a4a')}-${f.sheetSum}</span>`;
-    } else if(f.symbolColor && f.baseCombo){
+    if(f.symbolColor && f.baseCombo){
       symbolTxt=`<span class="ft-symbol${isCombo?' combo':''}">=${miniIcon(EMBLEM[f.symbolColor],CFILL[f.symbolColor])}${f.sheetSum}</span>`;
     }
     const displayCards = (f.result && (f.result.name==='ウェッジ'||f.result.name==='スカーミッシュ') && f.cards.every(c=>c.kind==='troop'))
@@ -6942,7 +6925,7 @@ function applyColorChange3(from,to){
 function advanceWaveAttempt(){
   clearKO(); clearPf();
   waveAttempt++;
-  const frozenKeep=flags.map((f,i)=>(f.frz>=2&&f.closed&&!f.capturedByEnemy&&f.result)?[i,f]:null).filter(Boolean);   // 氷漬け：凍った旗は次のwaveも残る
+  const frozenKeep=flags.map((f,i)=>(f.frz>=2&&f.closed&&f.result)?[i,f]:null).filter(Boolean);   // 氷漬け：凍った旗は次のwaveも残る
   score=0; displayedScore=0; resetBattleRound(); try{ accStat.turn0=turnCounter; }catch(e){}   // 20ターンボーナスは1回の攻撃（wave）の中で仕留めた時だけ：攻撃が終わるたびに数え直す
   flags.forEach(f=>{ if(frozenKeep.some(x=>x[1]===f)) return; graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
@@ -8218,7 +8201,7 @@ const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
 const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalTurn:20, sandalInc:0.5, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:0.2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
 function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリーの倍率（発動している分だけ [名前, 倍率]）
   const P=[]; if(!accEq.length) return P; const k=accX();
-  const cl=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.result);
+  const cl=flags.filter(f=>f.closed&&f.result);
   if(hasAcc('tiara')){ const set=new Set(cl.map(f=>f.result.name).filter(n=>n&&n!=='ホスト')); if(set.size>=ACC_NEW.tiaraKinds) P.push(['👑役集めのティアラ',1+ACC_NEW.tiaraInc*k]); }
   if(hasAcc('medal') && flags.length>=2 && cl.length===flags.length && cl[0].result.name!=='ホスト' && cl.every(f=>f.result.name===cl[0].result.name)) P.push(['🎖おそろいの勲章',1+ACC_NEW.medalInc*k]);
   if(hasAcc('sandal') && atkTurn>=ACC_NEW.sandalTurn) P.push(['🩴じっくりのサンダル',1+ACC_NEW.sandalInc*k]);
@@ -8241,7 +8224,7 @@ function lanternRefill(){   // 墓守のランタン：山札が尽きた時、�
 }
 const BLADE_ATK_DOWN=0.1;   // 氷結の槍：1回ごとに敵の攻撃力を減らす割合
 function bladeFire(col,f){   // 色の武器：その色のスーパーコンボが10以上（雷鳴刀は設定の数）の時、出すたびの効果
-  const cr=carryMap[col], cnt=flags.filter(g=>g.closed&&!g.capturedByEnemy&&g.baseCombo&&g.symbolColor===col).length;
+  const cr=carryMap[col], cnt=flags.filter(g=>g.closed&&g.baseCombo&&g.symbolColor===col).length;
   if(!(cr||cnt>=2)) return;
   let raw=(cr||1)+cnt; if(comboRestricted()) raw=Math.min(raw,COMBO_CAP);
   if(raw<bladeNeed(col)) return;
@@ -9322,7 +9305,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-17b';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-17c';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
