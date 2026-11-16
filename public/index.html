@@ -1204,6 +1204,7 @@
     <div class="fighter mo" id="fighterMo"><span id="waveSpr"></span></div>
     <div id="evBanner" class="ev-banner"></div>
   </div>
+  <div id="multBar" style="display:none;margin:3px 10px 0;padding:3px 6px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.18);font-size:11px;font-weight:800;cursor:pointer;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center"></div>
   <div id="condBar" style="display:none"></div>
   <div class="wavebar">
     <div class="wave-main">
@@ -2899,6 +2900,28 @@ const hasNoRoleFlag=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&!f.baseCombo
 function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
 function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
+const MB_COL={red:'#ff6a5a',orange:'#ffa94d',yellow:'#ffd84a',green:'#6fdc7a',blue:'#6aa8ff',purple:'#c58bff'};
+function atkMultList(){   // 全体にかかる倍率（内訳と、常時表示で共通）
+  const ms=[]; const add=(n,v)=>{ if(v!==1&&v!=null&&!isNaN(v)) ms.push([n,v]); };
+  let qm=1; try{ qm=quickMult(waveTurns(),hasNoRoleFlag()); }catch(e){}
+  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃半減）',dis.halfNext?0.5:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
+  add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?1.5:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
+  let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
+  return ms;
+}
+function updateMultBar(){   // 戦闘中、倍率がどのくらい乗っているかを常に出す
+  const bar=document.getElementById('multBar'); if(!bar) return;
+  if(gameEnded||!CHARACTER){ bar.style.display='none'; return; }
+  const x=n=>'×'+(Math.round(n*100)/100), chips=[];
+  const cn=carryNext(); Object.keys(cn).forEach(c=>{
+    const tops=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.symbolColor===c&&f.baseCombo).map(f=>flagMul(f)); const top=tops.length?Math.max(...tops):1;
+    chips.push(`<span style="color:${MB_COL[c]||'#fff'}">●${(CNAME[c]||c).replace('旗','')} ${cn[c]}コンボ${top>1?'（旗'+x(top)+'）':''}</span>`); });
+  const ms=atkMultList(), all=ms.reduce((a,[,v])=>a*v,1);
+  ms.forEach(([n,v])=>chips.push(`<span style="color:${v<1?'#ff9a8a':'#9fe6a0'}">${n.replace(/（.*?）/,'')}${x(v)}</span>`));
+  if(ms.length>1) chips.push(`<span style="color:${all<1?'#ff9a8a':'#ffe08a'}">＝全体${x(all)}</span>`);
+  if(!chips.length) chips.push('<span style="opacity:.7">倍率：なし（×1）</span>');
+  bar.innerHTML='📊 '+chips.join(' ／ '); bar.style.display='flex';
+}
 function showAtkBreakdown(){   // 今の攻撃力が、どんな倍率でできているかの内訳
   const old=document.getElementById('atkBreak'); if(old) old.remove();
   const f=n=>fmtCompact(Math.round(n)), x=n=>'×'+(Math.round(n*100)/100);
@@ -2917,11 +2940,7 @@ function showAtkBreakdown(){   // 今の攻撃力が、どんな倍率ででき�
   cl.forEach(o=>{ const m=flagMul(o.fl); row(`旗${o.i+1}：${o.fl.result.name||'役なし'}　${f(o.fl.result.base||0)}`,`${x(m)} ＝ ${f(flagShown(o.fl))}`); });
   if(hasAcc('color_bond')) row('🎀 色違いの絆','2色以上で ×1.2（旗の倍率に含む）');
   sec('③ 全体にかかる倍率（かけ算）');
-  const ms=[]; const add=(n,v)=>{ if(v!==1&&v!=null&&!isNaN(v)) ms.push([n,v]); };
-  let qm=1; try{ qm=quickMult(waveTurns(),hasNoRoleFlag()); }catch(e){}
-  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃半減）',dis.halfNext?0.5:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
-  add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?1.5:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
-  let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
+  const ms=atkMultList();
   if(!ms.length) row('なし','×1'); ms.forEach(([n,v])=>row(n,x(v),v<1?'color:#ff9a8a':'color:#9fe6a0'));
   const total=liveAtk(); sec('結果'); row('いまの攻撃力（画面の数字）',f(total),'font-size:17px');
   const bg=document.createElement('div'); bg.id='atkBreak'; bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10002';
@@ -5970,6 +5989,7 @@ function renderBattle(){
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
     if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×'+SKP.oath); if(fireOn) a.push('🔥火炎放射:このwaveは赤の旗の攻撃力×'+SKP.fireMul); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の'+bulletLeft+'回の行動はターンを使わない'); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); try{ accAtkParts(enemyTurn).forEach(p=>a.push(p[0]+':総攻撃力×'+(Math.round(p[1]*100)/100))); if(hasAcc('discard_glove')) a.push(`🧤手袋あと${Math.max(0,ACC_NEW.glove*accX()-gloveUsed)}回`); if(hasAcc('lantern')) a.push(lanternUsed?'🏮ランタン使用済み':'🏮ランタン待機中'); if(hasAcc('rod')) a.push('⚡避雷針:妨害は一番カードが少ない旗へ'); }catch(e){} db.textContent=a.join('  '); }
     try{ document.body.classList.toggle('rain-on', !!poisonOn()&&!gameEnded&&document.getElementById('titleScreen').style.display!=='flex'); }catch(e){} }
+  try{ updateMultBar(); }catch(e){}
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
   const pA = pend ? liveAtk() + (poisonPenalty - prevSnap.pp) : liveAtk();
   document.getElementById('enemyAtkNum').textContent=eA;
@@ -7598,6 +7618,7 @@ function bindSpecTap(id,kind){ const el=document.getElementById(id); if(!el) ret
   let sx=0,sy=0; el.addEventListener('touchstart',e=>{ const q=e.touches[0]; if(q){ sx=q.clientX; sy=q.clientY; } },{passive:true});
   el.addEventListener('touchend',e=>{ if(el.disabled) return; e.preventDefault(); const q=e.changedTouches[0]; if(q){ const r=el.getBoundingClientRect(); if(Math.abs(q.clientX-sx)>12||Math.abs(q.clientY-sy)>12||q.clientX<r.left||q.clientX>r.right||q.clientY<r.top||q.clientY>r.bottom) return; } go(); },{passive:false}); }   // ボタンの外で指を離した時（境目など）は押したことにしない
 { const ag=document.getElementById('atkGrp'); if(ag) ag.addEventListener('click',()=>{ try{ if(!gameEnded&&CHARACTER) showAtkBreakdown(); }catch(e){ console.error(e); } }); }
+{ const mb=document.getElementById('multBar'); if(mb) mb.addEventListener('click',()=>{ try{ if(!gameEnded&&CHARACTER) showAtkBreakdown(); }catch(e){} }); }
 bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet'); bindSpecTap('specMon','mon'); bindSpecTap('specMon2','mon2');
 function doShuffle(){
   if(gameEnded||busy||pending) return;
@@ -9284,7 +9305,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16h';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16i';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -319,6 +319,10 @@ with sync_playwright() as p:
       carryMap={red:4}; plAtkMult=2; dis.halfNext=true; const o={}; document.getElementById('atkGrp').click(); const b=document.getElementById('atkBreak'); o.has=!!b; const t=b?b.textContent:''; o.t=t.slice(0,400);
       o.sec=['①','②','③'].every(k=>t.includes(k)); o.pl=t.includes('攻撃倍率')&&t.includes('×2'); o.half=t.includes('×0.5'); const tot=Math.round(liveAtk()); o.tot=t.includes(fmtCompact(tot)); if(b) b.remove(); return o}""")
     check('攻撃力の内訳：📊をタップすると倍率の内訳が出る（合計が画面の数字と同じ）',r['has'] and r['sec'] and r['pl'] and r['half'] and r['tot'],r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; document.getElementById('titleScreen').style.display='none'; document.getElementById('appRoot').style.display='';
+      carryMap={red:4}; plAtkMult=2; dis.halfNext=true; render(); const b=document.getElementById('multBar'); const t=b.textContent; const o={disp:getComputedStyle(b).display,t};
+      o.ok=o.disp==='flex'&&t.includes('4コンボ')&&t.includes('×2')&&t.includes('×0.5')&&t.includes('＝全体×1'); plAtkMult=1; dis.halfNext=false; carryMap={}; render(); o.none=document.getElementById('multBar').textContent.includes('なし'); return o}""")
+    check('倍率バー：戦闘中、コンボ・全体倍率が常に表示される',r['ok'] and r['none'],r)
     r=ev("""async()=>{ const wid=()=>WAVES.map(w=>w.baseId); try{ localStorage.setItem('soloSiegeMons',JSON.stringify(wid())); }catch(e){} lsSet(FUSE_KEY,'1'); lsSet(SEL2_KEY,''); lsSet(FUSE_SLOTS_KEY,'');
       document.getElementById('titleScreen').style.display='none'; document.getElementById('charScreen').style.display='flex'; buildCharList();
       const o={}; const box=()=>document.getElementById('fuseSlots'); o.has=!!box()&&box().querySelectorAll('[data-sl]').length===5;
