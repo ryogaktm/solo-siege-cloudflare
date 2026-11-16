@@ -679,7 +679,7 @@
   .rail{ flex:0 0 48px; width:48px; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:6px 0; }
   .rail-l{ align-items:flex-start; padding-left:2px; }
   .rail-r{ align-items:flex-end; padding-right:2px; }
-  .board{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:auto; gap:10px; width:100%; }
+  .board{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:auto; gap:10px; width:100%; padding-top:20px; box-sizing:border-box; }   /* 旗の上に出る予定のバッジ（-17px）が、コンボ表示や攻撃力と重ならないよう、上に余白を取る */
   .flag{
     position:relative; border-radius:9px; padding:9px 6px 7px; min-height:0; display:flex; flex-direction:column; justify-content:center;
     background:linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.42));
@@ -9322,7 +9322,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16k';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-17a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
