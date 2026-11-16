@@ -308,6 +308,8 @@ with sync_playwright() as p:
       const ne=enemyTurn; enemySched={}; enemySched[ne+1]='arrow'; enemySched[ne+2]='ghost'; autoQ={}; flags.forEach(f=>{f.cards=[];f.closed=false}); const plans=forecastPlans(); o.np=plans.length;
       plans.forEach(x=>{ if(evCands(x.type).some(c=>c.i===2)) x.pl.flag=2; }); o.flags=plans.map(x=>x.pl.flag).join(','); return o}""")
     check('大技のカウントダウン（3・2・1ターン前）と、先回り（予測の妨害を1つの旗にまとめる）',r['d3'] and r['d1'] and r['np']==2 and r['flags']=='2,2',r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; playerHp=100; hand=[]; const m=MON_SKILL_NEW['忍者']; SKFN.bunshin(m); return {dup:hand.filter(c=>c.type==='duplicate'&&c.temp).length,hp:playerHp}}""")
+    check('忍者の分身：複製のカードが手札に加わる',r['dup']==1 and r['hp']<100,r)
     r=ev("""async()=>{ const wid=()=>WAVES.map(w=>w.baseId); try{ localStorage.setItem('soloSiegeMons',JSON.stringify(wid())); }catch(e){} lsSet(FUSE_KEY,'1'); lsSet(SEL2_KEY,''); lsSet(FUSE_SLOTS_KEY,'');
       document.getElementById('titleScreen').style.display='none'; document.getElementById('charScreen').style.display='flex'; buildCharList();
       const o={}; const box=()=>document.getElementById('fuseSlots'); o.has=!!box()&&box().querySelectorAll('[data-sl]').length===5;

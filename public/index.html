@@ -1689,7 +1689,7 @@ const MON_SKILL_NEW={
   'スケルトン':{kind:'boneshield',name:'骨の盾',icon:'🦴',cost:{hp:20},desc:'次に受ける敵の攻撃を1回無効にする。何度でも使えるが、続けて2つのwaveでは使えない（使ったwaveの次のwaveは休み）。'},
   '幽霊':{kind:'phase',name:'すり抜け',icon:'👻',cost:{hp:20},desc:'次に来る敵の妨害を1つ消す。'},
   'ゴーレム':{kind:'stonebody',name:'石の体',icon:'🗿',cost:{combo:['green',1]},desc:'このwaveは受けるダメージが半分。そのかわり次の一斉攻撃の攻撃力も半分になる。'},
-  '忍者':{kind:'bunshin',name:'分身',icon:'🥷',cost:{hp:25},desc:'手札の数字カードを1枚選んで、同じカードを1枚増やす（その戦いの間だけ）。'},
+  '忍者':{kind:'bunshin',name:'分身',icon:'🥷',cost:{hp:25},desc:'複製のカードを手札に加える（その戦いの間だけ）。'},
   '魔女':{kind:'cauldron',name:'呪いの鍋',icon:'🧙',cost:{hp:25},desc:'墓地からランダムに2枚、手札に戻す。'},
   'ミノタウロス':{kind:'stampede',name:'猛進',icon:'🐃',cost:{combo:['red',1]},desc:'閉じた旗のうち一番強い旗の攻撃力を2倍にする（そのwaveだけ）。'},
   'クラーケン':{kind:'tentacle',name:'8本の足',icon:'🐙',cost:{hp:30},desc:'未完成の旗の数字カードを1枚手札に戻して、山札から1枚引く。'},
@@ -2008,8 +2008,9 @@ SKFN.chimera=m=>{   // キメラ：今使えるものからランダムに1つ
   if(!skPay(m)) return; const k=ok[Math.floor(Math.random()*ok.length)]; skDone('🦁 3つの顔！ '+NEWMON_FX[k][1]());
 };
 SKFN.bunshin=m=>{
-  const T=hand.filter(c=>c.kind==='troop'); if(!T.length) return hint('手札に数字カードがありません。',true);
-  pickDialog('🥷 分身：どのカードを増やす？', T.map(c=>({label:cardDisplayName(c)})), a=>{ const src=T[a]; if(!hand.includes(src)||!skPay(m)) return; const c={...src,uid:uid(),temp:true}; delete c.autoPlaced; delete c.autoFresh; hand.push(c); skDone(`🥷 分身！ ${cardDisplayName(src)}が1枚増えた。（この戦いの間だけ）`); });
+  if(!skPay(m)) return;
+  giveHandCard({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true});
+  skDone('🥷 分身！ 複製のカードが手札に来た。（この戦いの間だけ）');
 };
 SKFN.tentacle=m=>{
   const fl=ownFlagTroops(); if(!fl.length) return hint('未完成の旗に、戻せる数字カードがありません。',true);
@@ -9253,7 +9254,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16f';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16g';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
