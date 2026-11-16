@@ -1540,7 +1540,7 @@ const TACTICS = [
   {type:'shuffle',name:'差し替え',short:'差し替え',desc:'手札から好きな枚数を選んで墓地へ捨て、同じ枚数を山札から引き直す',count:3},
   {type:'holy',name:'聖水',short:'聖水',desc:'今かかっている状態異常をすべて一度に消す（マイナスレイン・色封じ・毒などの効果／旗の呪い：敵の装備・ボム・封鎖・ワームホール・煙・デスイーター／手札の呪いのカード）。これから来る妨害は防げない。暗殺のように、もう消えたカードは戻らない',count:2},
   {type:'rehire',name:'再雇用',short:'再雇用',desc:'墓地のカードを1枚選んで、手札に戻す',count:2},
-  {type:'guidance',name:'誘導',short:'誘導',desc:'旗（シート）にあるカードを1枚選んで、別の旗に移す（敵が置いたカードや、呪いの装備も移せる）。完成した旗のカードは動かせない',count:2},
+  {type:'guidance',name:'誘導',short:'誘導',desc:'旗（シート）にあるカードを1枚選んで、別の旗に移す（敵が置いたカードや、呪いの装備も移せる）。役が決まった（完成した）旗のカードも動かせる（その旗は未完成に戻る）',count:2},
   {type:'conscript',name:'突撃',short:'突撃',desc:'今の盤面のまま、すぐに一斉攻撃する（完成した旗の役とスーパーコンボは有効）',count:2},
   {type:'inspire',name:'鼓舞',short:'鼓舞',desc:'手札の数字カードを全部+3する',count:3},
   {type:'plead',name:'命乞い',short:'命乞い',desc:'これから来る敵の技（攻撃力×2・妨害、すべて）を3ターン遅らせる（ターンと敵の攻撃力の上昇は普通に進む）',count:2,isNew:true},
@@ -5176,13 +5176,12 @@ function discardGuidanceCard(target){
   return true;
 }
 function guidanceTargets(step){
-  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0 && !flags[i].closed && !(flags[i].result&&flags[i].result.timedOut));   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
+  if(step===0) return flags.map((f,i)=>i).filter(i=>flags[i].cards.length>0 && !(flags[i].result&&flags[i].result.timedOut));   // 役が決まった（完成した）旗も選べる：動かすと、その旗は未完成に戻る   // 封鎖済み(完成)の旗も選べる（その場合は除去のみ）   // 封鎖中の旗も選べる（その場合は除去のみ）
   const from=pending.from;
   const src=flags[from];
   if(!src) return [];
   const card=src.cards[pending.cardIdx];
   if(!card) return [];
-  if(src.closed) return [];   // 封鎖済みの旗のカードは移動不可。山札・墓地アイコンで除去だけ
   if(pending.step===2) return pending.dest>=0?[pending.dest]:[];
   return flags.map((f,i)=>i).filter(i=>i!==from && guidAddOK(card,i) || (i!==from && guidSwapList(i).length>0));
 }
@@ -5204,7 +5203,7 @@ function guidFlagOK(f,cards,moved){   // cards という並びにした時、そ
 }
 function guidSwapList(i){   // 移すカードと入れ替えられる、i番目の旗のカード（番号）
   const from=pending.from, src=flags[from], d=flags[i]; if(!src||!d||i===from) return [];
-  if(d.capturedByEnemy||isLocked(d)||src.closed) return [];
+  if(d.capturedByEnemy||isLocked(d)) return [];
   const A=src.cards[pending.cardIdx]; if(!A) return [];
   const out=[];
   d.cards.forEach((B,j)=>{
@@ -5224,7 +5223,7 @@ function guidSwap(fi,j){
   busy=true;
   const from=pending.from, src=flags[from], d=flags[fi], A=src.cards[pending.cardIdx], B=d.cards[j];
   const fromRect=rectOfUid(A.uid), wasClosed=!!d.closed;
-  guidReopen(d);
+  guidReopen(d); guidReopen(src);
   d.cards[j]=A; src.cards[pending.cardIdx]=B;
   const sk=!!pending.skillCard, used=guidTake(); graveyard.push(used);
   pending=null;
@@ -5314,6 +5313,7 @@ function resolveGuidanceAdd(fi){
     if(destMonster.sub==='pfield'){ const ix=destFlag.cards.indexOf(destMonster); if(ix>=0) destFlag.cards.splice(ix,1); } else delete destMonster.pf;
     destMonster=flagMonster(destFlag);
   }
+  guidReopen(src);   // 完成していた旗からカードを動かしたら、その旗は未完成に戻る（役の点も消える）
   if(destMonster){ const midx=destFlag.cards.indexOf(destMonster); destFlag.cards[midx]=card; }
   else { destFlag.cards.push(card); }
   const sk=!!pending.skillCard;
@@ -9322,7 +9322,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-17a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-17b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

@@ -302,6 +302,12 @@ with sync_playwright() as p:
       useGuidance(hand.findIndex(x=>x.uid===g.uid)); tapFlag(0); busy=false; const ok1=guidanceTargets(1).includes(1); tapFlag(1); const st=pending&&pending.step; busy=false; guidSwap(1,0);
       return new Promise(res=>setTimeout(()=>res({wasClosed,ok1,st,d0:flags[1].cards[0]===A,s0:flags[0].cards[0]===B,closed:flags[1].closed,pend:pending}),900))}""")
     check('誘導：完成した旗のカードと交換できる（旗は役を計算し直して、また完成する）',r['wasClosed'] and r['ok1'] and r['st']==2 and r['d0'] and r['s0'] and r['closed'] and r['pend'] is None,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false;f.result=null;f.arrow=null}); busy=false; pending=null; haunt={};
+      const mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); flags[1].cards=[mk('blue',2),mk('blue',3),mk('blue',4)]; closeCheck(1,false); const wasClosed=flags[1].closed; const sc0=score; const C=flags[1].cards[2];
+      const g={kind:'tactics',type:'guidance',name:'誘導',uid:uid()}; hand.push(g); const ok0=guidanceTargets(0).includes(1);
+      useGuidance(hand.findIndex(x=>x.uid===g.uid)); tapFlag(1); busy=false; pending.step===undefined; chooseGuidanceCard(2); busy=false; tapFlag(0);
+      return new Promise(res=>setTimeout(()=>res({wasClosed,ok0,reopened:!flags[1].closed,two:flags[1].cards.length===2,moved:flags[0].cards.includes(C),scoreDown:score<sc0,pend:pending}),900))}""")
+    check('誘導：役が決まった（完成した）旗のカードも別の旗に移せる（元の旗は未完成に戻る）',r['wasClosed'] and r['ok0'] and r['reopened'] and r['two'] and r['moved'] and r['scoreDown'] and r['pend'] is None,r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; bigWarned={}; const o={};
       enemySched={}; enemySched[enemyTurn+3]='colhalf'; bigCountdown(); const ov=document.getElementById('bigCount'); o.d3=!!ov&&ov.style.display==='flex'&&ov.textContent.includes('3');
       enemySched={}; enemySched[enemyTurn+1]='colhalf'; bigCountdown(); o.d1=document.getElementById('bigCount').textContent.includes('1');
