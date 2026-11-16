@@ -1197,7 +1197,7 @@
       <div class="st-side en"><span class="hp-icon foe">💀</span><div class="boss-hp-bar"><div class="boss-hp-fill" id="bossHpFill"></div><div class="pred-seg boss" id="bossPred" style="display:none"></div></div><div class="boss-hp-num"><b id="bossHpNum">200</b>/<span id="bossHpMax">200</span></div></div>
     </div>
     <div class="st-row st-atk">
-      <div class="st-side pl"><div class="atk-grp"><span class="atk-sw" id="plAtkSw">⚔</span><span class="power-num" id="scoreNum">0</span></div></div>
+      <div class="st-side pl"><div class="atk-grp" id="atkGrp" style="cursor:pointer"><span class="atk-sw" id="plAtkSw">⚔</span><span class="power-num" id="scoreNum">0</span><span style="font-size:10px;opacity:.75;margin-left:2px">📊</span></div></div>
       <div class="st-side en"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num enemy-num" id="enemyAtkNum">0</span><span id="evCountdown" class="ev-cd" style="display:none"></span></div></div>
     </div>
     <div class="fighter pl" id="fighterPl"><span id="topCharSpr"></span></div>
@@ -2899,6 +2899,35 @@ const hasNoRoleFlag=()=>flags.some(f=>f.closed&&!f.capturedByEnemy&&!f.baseCombo
 function allRolesDone(){ return flags.length>0 && flags.every(f=>f.closed && !f.capturedByEnemy && f.baseCombo); }
 function damageMult(){ return 1; }  // 役が揃っていなくてもHPの減りは増えない
 function currentEnemyAtk(){ return enemyAtkAt(enemyTurn); }
+function showAtkBreakdown(){   // 今の攻撃力が、どんな倍率でできているかの内訳
+  const old=document.getElementById('atkBreak'); if(old) old.remove();
+  const f=n=>fmtCompact(Math.round(n)), x=n=>'×'+(Math.round(n*100)/100);
+  const rows=[], sec=t=>rows.push(`<div style="margin:10px 0 3px;font-weight:900;color:var(--gold,#e8c050)">${t}</div>`), row=(a,b,cls)=>rows.push(`<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08)${cls?';'+cls:''}"><span>${a}</span><b>${b}</b></div>`);
+  const pen=poisonPenalty;
+  let mark=0, fire=0, open=0; try{ if(!waveAdvancing){ mark=computeMarkSynergyBonus().bonus||0; fire=fireBonus()||0; open=openFlagAtk(); } }catch(e){}
+  sec('① 旗の攻撃力（足し算）');
+  row('完成した旗（スーパーコンボこみ）',f(score));
+  if(mark) row('マークのそろい加点','+'+f(mark)); if(fire) row('🔥火炎放射','+'+f(fire)); if(open) row('未完成の旗のカード','+'+f(open)); if(pen) row('☠ 毒','−'+f(pen));
+  const base=Math.max(0,score+mark+fire+open-pen); row('合計（基礎）',f(base),'font-size:15px');
+  sec('② スーパーコンボ（いま続いている倍率）');
+  const cn=carryNext(), cols=Object.keys(cn);
+  if(!cols.length) row('なし','×1');
+  cols.forEach(c=>row(`${CNAME[c]||c}の色`,`${cn[c]}コンボ`));
+  const cl=flags.map((fl,i)=>({fl,i})).filter(o=>o.fl.closed&&!o.fl.capturedByEnemy&&o.fl.result);
+  cl.forEach(o=>{ const m=flagMul(o.fl); row(`旗${o.i+1}：${o.fl.result.name||'役なし'}　${f(o.fl.result.base||0)}`,`${x(m)} ＝ ${f(flagShown(o.fl))}`); });
+  if(hasAcc('color_bond')) row('🎀 色違いの絆','2色以上で ×1.2（旗の倍率に含む）');
+  sec('③ 全体にかかる倍率（かけ算）');
+  const ms=[]; const add=(n,v)=>{ if(v!==1&&v!=null&&!isNaN(v)) ms.push([n,v]); };
+  let qm=1; try{ qm=quickMult(waveTurns(),hasNoRoleFlag()); }catch(e){}
+  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃半減）',dis.halfNext?0.5:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
+  add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?1.5:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
+  let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
+  if(!ms.length) row('なし','×1'); ms.forEach(([n,v])=>row(n,x(v),v<1?'color:#ff9a8a':'color:#9fe6a0'));
+  const total=liveAtk(); sec('結果'); row('いまの攻撃力（画面の数字）',f(total),'font-size:17px');
+  const bg=document.createElement('div'); bg.id='atkBreak'; bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10002';
+  bg.innerHTML=`<div class="reward-box" style="max-height:82vh;overflow:auto;text-align:left;font-size:13px"><div class="reward-title">📊 攻撃力の内訳</div>${rows.join('')}<button class="btn" id="abOk" style="width:100%;margin-top:12px">とじる</button></div>`;
+  document.body.appendChild(bg); bg.querySelector('#abOk').onclick=()=>bg.remove(); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); });
+}
 function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} v+=fireBonus(); }
@@ -7568,6 +7597,7 @@ function bindSpecTap(id,kind){ const el=document.getElementById(id); if(!el) ret
   el.addEventListener('click',go);
   let sx=0,sy=0; el.addEventListener('touchstart',e=>{ const q=e.touches[0]; if(q){ sx=q.clientX; sy=q.clientY; } },{passive:true});
   el.addEventListener('touchend',e=>{ if(el.disabled) return; e.preventDefault(); const q=e.changedTouches[0]; if(q){ const r=el.getBoundingClientRect(); if(Math.abs(q.clientX-sx)>12||Math.abs(q.clientY-sy)>12||q.clientX<r.left||q.clientX>r.right||q.clientY<r.top||q.clientY>r.bottom) return; } go(); },{passive:false}); }   // ボタンの外で指を離した時（境目など）は押したことにしない
+{ const ag=document.getElementById('atkGrp'); if(ag) ag.addEventListener('click',()=>{ try{ if(!gameEnded&&CHARACTER) showAtkBreakdown(); }catch(e){ console.error(e); } }); }
 bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet'); bindSpecTap('specMon','mon'); bindSpecTap('specMon2','mon2');
 function doShuffle(){
   if(gameEnded||busy||pending) return;
@@ -9254,7 +9284,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16g';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16h';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
