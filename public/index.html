@@ -3157,11 +3157,12 @@ function arrowDest(fi,a){ const cols=FLAG_GRID_COLS[FLAG_COUNT]||3, rows=Math.ce
 function makeArrow(fi,dirIdx){ const ok=ARROW_DIRS.filter(d=>arrowDest(fi,{dx:d[0],dy:d[1]})!==fi), d=(dirIdx!=null?ARROW_DIRS[dirIdx]:null)||ok[Math.floor(Math.random()*ok.length)]||ARROW_DIRS[2]; return {dx:d[0],dy:d[1],icon:d[2],name:d[3],deg:d[4]}; }
 const arrowOn=f=>!!(f&&f.arrow&&!f.closed);
 function arrowPath(card,fi){   // 置いたカードが通る旗（矢印が続けば、続けて滑る）
-  const path=[fi]; let cur=fi; const ts=targetsFor(card);
-  while(arrowOn(flags[cur])&&path.length<=FLAG_COUNT){
+  const path=[fi]; let cur=fi; const ts=targetsBase(card);
+  while(arrowOn(flags[cur])&&!(haunt[cur]>0)&&path.length<=FLAG_COUNT){
     const n=arrowDest(cur,flags[cur].arrow), nf=flags[n], nm=nf&&flagMonster(nf);
-    if(n===cur||path.includes(n)||!ts.includes(n)) break;
-    if(card.kind==='troop'&&nm&&(nm.sub==='cfield'||nm.sub==='combined')&&!satisfiesMonster(card,nf)) break;   // 色や数字の条件が合わない旗へは滑らない
+    const voidN=haunt[n]>0&&!nf.closed&&!isLocked(nf)&&!nf.capturedByEnemy;   // ワームホールの旗へは、制限なしで滑れる（消える）
+    if(n===cur||path.includes(n)||!(ts.includes(n)||voidN)) break;
+    if(!voidN&&card.kind==='troop'&&nm&&(nm.sub==='cfield'||nm.sub==='combined')&&!satisfiesMonster(card,nf)) break;   // 色や数字の条件が合わない旗へは滑らない
     path.push(n); cur=n;
   }
   return path;
@@ -3822,7 +3823,22 @@ function equipmentReachable(eq, f){
   }
   return false;
 }
+// ★ゲームの鉄則：カードの置ける・置けないは、「最終的にどの旗に、どんな数字・マークで置かれるか」で決める。
+//   ・ワームホールの旗：置いたカードは消える（旗に残らない）ので、役のみの指輪・装備・カラフル・パニックなど、中身の制限は全部なし
+//   ・矢印パネルの旗：置いたカードは滑って別の旗に置かれるので、その旗の制限だけで判断する（矢印の旗自身の制限は見ない）
+function placeableKind(card){ return card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)||(card.kind==='monster'&&card.sub!=='necro'); }
 function targetsFor(card){
+  const base=targetsBase(card);
+  if(isCurse(card)||!placeableKind(card)) return base;
+  const out=new Set(base);
+  flags.forEach((f,i)=>{
+    if(f.closed||isLocked(f)||f.capturedByEnemy) return;
+    if(haunt[i]>0){ out.add(i); return; }   // 消えるので、制限なし
+    if(arrowOn(f)){ const p=arrowPath(card,i); if(p.length>1) out.add(i); }   // 滑って別の旗に置かれる：置き先で判断済み
+  });
+  return [...out].sort((a,b)=>a-b);
+}
+function targetsBase(card){   // 置かれた旗そのものの制限だけで判断（ワームホール・矢印の特例は targetsFor が見る）
   const out=[];
   flags.forEach((f,i)=>{
     if(isCurse(card) && haunt[i]>0 && !f.closed){ out.push(i); return; }   // ワームホールの旗：呪いカードも置ける（一緒に消える）
@@ -4677,6 +4693,16 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     if(card.type==='holy'){ useHoly(handIdx); return true; }   // 聖水：どこに落としても、状態異常を全部消す
     useTacticByIdx(handIdx, card); return true;
   }
+  if(haunt[fi]>0 && (card.kind==='monster'||card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card))){   // ワームホールの旗：置いたカード（数字・装備・軍師）は、旗に残らず効果なしで墓地へ消える（敵のカードは消えるだけ）
+    busy=true; picked=null; lastFi=fi;
+    hand.splice(handIdx,1); if(!isEnemyEq(card)) graveyard.push(card);
+    hauntBlock(fi,card.kind==='monster'?(monsterName(card)||'装備'):'カード');
+    advanceTurn(card);
+    const refilled=autoRefill(1);
+    render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
+    busy=false; endCheck(); render();
+    return true;
+  }
   if(arrowOn(f) && !noAsk){ picked=null; arrowSlide(card.uid, fi, fromRect); return true; }   // 矢印パネルの旗：置いたカードが矢印の方向へ滑る
   if(arrowOn(f)) f.arrow=null;
   { const cm=flagMonster(f);   // カラフルフィールドの旗に、違う色を無理に置く時の確認
@@ -4718,16 +4744,6 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       bg.querySelector('#hcYes').onclick=()=>{ bg.remove(); busy=false; const i=hand.findIndex(c=>c.uid===uidK); if(i<0||!playOnFlag(i,fi,fromRect,true)){ picked=null; render(); layoutHand(false); } };
       return true;
     }
-  }
-  if(haunt[fi]>0 && (card.kind==='monster'||card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card))){   // ワームホールの旗：置いたカード（数字・装備・軍師）は、旗に残らず効果なしで墓地へ消える（敵のカードは消えるだけ）
-    busy=true; picked=null; lastFi=fi;
-    hand.splice(handIdx,1); if(!isEnemyEq(card)) graveyard.push(card);
-    hauntBlock(fi,card.kind==='monster'?(monsterName(card)||'装備'):'カード');
-    advanceTurn(card);
-    const refilled=autoRefill(1);
-    render(); layoutHand(false, refilled[0]&&refilled[0].uid, refilled[0]&&refilled[0].fromRect);
-    busy=false; endCheck(); render();
-    return true;
   }
   busy=true; picked=null; lastFi=fi;
   { const m0=flagMonster(f), msgs=[];
@@ -9305,7 +9321,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16i';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16j';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

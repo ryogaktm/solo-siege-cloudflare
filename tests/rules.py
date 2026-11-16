@@ -323,6 +323,19 @@ with sync_playwright() as p:
       carryMap={red:4}; plAtkMult=2; dis.halfNext=true; render(); const b=document.getElementById('multBar'); const t=b.textContent; const o={disp:getComputedStyle(b).display,t};
       o.ok=o.disp==='flex'&&t.includes('4コンボ')&&t.includes('×2')&&t.includes('×0.5')&&t.includes('＝全体×1'); plAtkMult=1; dis.halfNext=false; carryMap={}; render(); o.none=document.getElementById('multBar').textContent.includes('なし'); return o}""")
     check('倍率バー：戦闘中、コンボ・全体倍率が常に表示される',r['ok'] and r['none'],r)
+    r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; accOwned=[{aid:1,id:'yaku_only'}]; accEq=[1]; haunt={};
+      flags.forEach(f=>{f.cards=[];f.closed=false;f.result=null;f.arrow=null;f.lockedUntil=0}); const T=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
+      const o={}; const bad=T('green',9);
+      flags[0].cards=[T('red',3),T('red',4)]; flags[1].cards=[T('red',3),T('red',4)]; flags[2].cards=[T('red',3),T('red',4)];
+      o.plain=targetsFor(bad).includes(0);                       // 役のみの指輪：普通の旗には置けない
+      haunt[0]=1; o.worm=targetsFor(bad).includes(0);            // ワームホールの旗：制限なしで置ける
+      const eq={kind:'monster',sub:'cfield',color:'red',uid:uid()}; o.wormEq=targetsFor({kind:'monster',sub:'number',value:2,uid:uid()}).includes(0);
+      haunt={}; const ar={dx:1,dy:0,icon:'➡',name:'右',deg:90}; flags[1].arrow=ar; const d=arrowDest(1,ar); o.d=d;
+      flags[d].cards=[]; o.arrowOk=d!==1&&targetsFor(bad).includes(1);   // 矢印の先（空の旗）に置けるので、矢印の旗にも置ける
+      flags[d].cards=[T('red',3),T('red',4)]; o.arrowBlocked=targetsFor(bad).includes(1);   // 先の旗の制限に引っかかる時は置けない
+      haunt[d]=1; o.arrowToWorm=targetsFor(bad).includes(1);   // 先がワームホールなら制限なし
+      return o}""")
+    check('役のみの指輪：ワームホール・矢印で別の旗に行く／消える時は、その旗の制限を見ない（最終的に置かれる旗で判断）',r['plain']==False and r['worm'] and r['wormEq'] and r['arrowOk'] and r['arrowBlocked']==False and r['arrowToWorm'],r)
     r=ev("""async()=>{ const wid=()=>WAVES.map(w=>w.baseId); try{ localStorage.setItem('soloSiegeMons',JSON.stringify(wid())); }catch(e){} lsSet(FUSE_KEY,'1'); lsSet(SEL2_KEY,''); lsSet(FUSE_SLOTS_KEY,'');
       document.getElementById('titleScreen').style.display='none'; document.getElementById('charScreen').style.display='flex'; buildCharList();
       const o={}; const box=()=>document.getElementById('fuseSlots'); o.has=!!box()&&box().querySelectorAll('[data-sl]').length===5;
