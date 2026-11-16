@@ -308,8 +308,13 @@ with sync_playwright() as p:
       const ne=enemyTurn; enemySched={}; enemySched[ne+1]='arrow'; enemySched[ne+2]='ghost'; autoQ={}; flags.forEach(f=>{f.cards=[];f.closed=false}); const plans=forecastPlans(); o.np=plans.length;
       plans.forEach(x=>{ if(evCands(x.type).some(c=>c.i===2)) x.pl.flag=2; }); o.flags=plans.map(x=>x.pl.flag).join(','); return o}""")
     check('大技のカウントダウン（3・2・1ターン前）と、先回り（予測の妨害を1つの旗にまとめる）',r['d3'] and r['d1'] and r['np']==2 and r['flags']=='2,2',r)
-    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; playerHp=100; hand=[]; const m=MON_SKILL_NEW['忍者']; SKFN.bunshin(m); return {dup:hand.filter(c=>c.type==='duplicate'&&c.temp).length,hp:playerHp}}""")
-    check('忍者の分身：複製のカードが手札に加わる',r['dup']==1 and r['hp']<100,r)
+    r=ev("""async()=>{ const i=WAVES.findIndex(w=>w.baseId==='忍者'); startAs(makeMonChar(i,WAVES[i].baseId)); await new Promise(r=>setTimeout(r,1500));
+      const o={sk:CHARACTER.monSkill.kind}; const d0=hand.filter(c=>c.type==='duplicate').length, hp0=playerHp;
+      document.getElementById('specMon').click(); await new Promise(r=>setTimeout(r,600)); document.getElementById('specModalGo').click(); await new Promise(r=>setTimeout(r,700));   // 実際のボタン→確認→発動
+      o.dup=hand.filter(c=>c.type==='duplicate').length-d0; o.hp=hp0-playerHp;
+      const di=hand.findIndex(c=>c.type==='duplicate'); useDuplicate(di); o.pend=pending&&pending.type; const T=hand.filter(c=>c.kind==='troop'); const t=hand.findIndex(c=>c.kind==='troop'), src=hand[t], n=T.filter(c=>c.color===src.color&&c.value===src.value).length; resolveDuplicate(t); await new Promise(r=>setTimeout(r,600));
+      o.copies=hand.filter(c=>c.kind==='troop'&&c.color===src.color&&c.value===src.value).length-n; return o}""")
+    check('忍者の分身：ボタンから発動→複製カードが来る→使うと数字カードが増える',r['sk']=='bunshin' and r['dup']==1 and r['hp']==25 and r['pend']=='duplicate' and r['copies']==1,r)
     r=ev("""async()=>{ const wid=()=>WAVES.map(w=>w.baseId); try{ localStorage.setItem('soloSiegeMons',JSON.stringify(wid())); }catch(e){} lsSet(FUSE_KEY,'1'); lsSet(SEL2_KEY,''); lsSet(FUSE_SLOTS_KEY,'');
       document.getElementById('titleScreen').style.display='none'; document.getElementById('charScreen').style.display='flex'; buildCharList();
       const o={}; const box=()=>document.getElementById('fuseSlots'); o.has=!!box()&&box().querySelectorAll('[data-sl]').length===5;
