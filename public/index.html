@@ -2909,9 +2909,10 @@ function atkMultList(){   // 全体にかかる倍率（内訳と、常時表示
   let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
   return ms;
 }
+let MULT_BAR_ON=false;   // 倍率バーの常時表示（いったん非表示。出す時は true）
 function updateMultBar(){   // 戦闘中、倍率がどのくらい乗っているかを常に出す
   const bar=document.getElementById('multBar'); if(!bar) return;
-  if(gameEnded||!CHARACTER){ bar.style.display='none'; return; }
+  if(!MULT_BAR_ON||gameEnded||!CHARACTER){ bar.style.display='none'; return; }
   const x=n=>'×'+(Math.round(n*100)/100), chips=[];
   const cn=carryNext(); Object.keys(cn).forEach(c=>{
     const tops=flags.filter(f=>f.closed&&!f.capturedByEnemy&&f.symbolColor===c&&f.baseCombo).map(f=>flagMul(f)); const top=tops.length?Math.max(...tops):1;
@@ -9321,7 +9322,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-16j';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-16k';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
