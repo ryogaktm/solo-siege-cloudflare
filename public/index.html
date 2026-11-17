@@ -1692,7 +1692,7 @@ const MON_SKILL_NEW={
   '魔女':{kind:'cauldron',name:'呪いの鍋',icon:'🧙',cost:{hp:25},desc:'墓地からランダムに2枚、手札に戻す。'},
   'ミノタウロス':{kind:'stampede',name:'猛進',icon:'🐃',cost:{combo:['red',1]},desc:'閉じた旗のうち一番強い旗の攻撃力を2倍にする（そのwaveだけ）。'},
   'クラーケン':{kind:'tentacle',name:'8本の足',icon:'🐙',cost:{hp:30},desc:'未完成の旗の数字カードを1枚手札に戻して、山札から1枚引く。'},
-  'グリフォン':{kind:'dive',name:'急降下',icon:'🦅',cost:{combo:['yellow',1]},desc:'次の一斉攻撃の攻撃力を1.5倍にする。'},
+  'グリフォン':{kind:'dive',name:'急降下',icon:'🦅',cost:{combo:['yellow',2],hp:50},desc:'次の一斉攻撃の攻撃力を3倍にする。'},
   'キメラ':{kind:'chimera',name:'3つの顔',icon:'🦁',cost:{hp:40},desc:'ぬめり・骨の盾・すり抜け・呪いの鍋・猛進・急降下のうち、今使えるものからランダムに1つ発動する。'},
   '山賊王':{kind:'plunder',name:'強奪',icon:'🏴‍☠️',cost:{hp:25},desc:'山札から好きな数字カードを1枚探して、手札に加える。山札は切り直す。'},
   '海賊王':{kind:'tmap',name:'宝の地図',icon:'🗺',cost:{hp:25},desc:'敵が出そうとしているカードを手札のカードと交換出来る。(敵の攻撃予測に出てるカードのみ)'},
@@ -1999,7 +1999,7 @@ const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メ�
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
   cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':null; }, ()=>{ const got=[]; for(let i=0;i<2;i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
   stampede:[()=>flags.some(f=>f.closed&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f); const d=flagShown(mx); score+=mx.result.base; mx.result.base*=2; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
-  dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が1.5倍になる。'; }],
+  dive:[()=>atkFx.dive?'すでに急降下の準備ができています。':null, ()=>{ atkFx.dive=true; return '🦅 急降下！ 次の一斉攻撃の攻撃力が3倍になる。'; }],
 };
 Object.keys(NEWMON_FX).forEach(k=>{ SKFN[k]=m=>{ const bad=NEWMON_FX[k][0](); if(bad) return hint(bad,true); if(!skPay(m)) return; skDone(NEWMON_FX[k][1]()); }; });
 SKFN.chimera=m=>{   // キメラ：今使えるものからランダムに1つ
@@ -2903,7 +2903,7 @@ function atkMultList(){   // 全体にかかる倍率（内訳と、常時表示
   const ms=[]; const add=(n,v)=>{ if(v!==1&&v!=null&&!isNaN(v)) ms.push([n,v]); };
   let qm=1; try{ qm=quickMult(waveTurns(),hasNoRoleFlag()); }catch(e){}
   add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃半減）',dis.halfNext?0.5:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
-  add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?1.5:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
+  add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?3:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
   let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
   return ms;
 }
@@ -2950,7 +2950,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} v+=fireBonus(); }
   if(!waveAdvancing) v+=openFlagAtk();
-  return Math.max(0, v-poisonPenalty)*quickMult(waveTurns(),hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?1.5:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(waveTurns());
+  return Math.max(0, v-poisonPenalty)*quickMult(waveTurns(),hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?3:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(waveTurns());
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -4369,9 +4369,9 @@ function checkWaveOutcome(){
   if(qTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
   if(qm>1){ try{ hint(`👢 早撃ち！ ${qTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
   const accParts=accAtkParts(qTurn), coinHead=hasAcc('gambler')?Math.random()<0.5:null, coinM=coinHead===null?1:coinHead?1+ACC_NEW.coinWin*accX():ACC_NEW.coinLose, accM2=accParts.reduce((a,p)=>a*p[1],1)*coinM;
-  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?1.5:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accM2, pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1)*(atkFx.slime?0.5:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
+  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?3:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accM2, pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1)*(atkFx.slime?0.5:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
   if(atkFx.rush||atkFx.oath){ try{ stageDmgPop('player',(atkFx.oath?'🌑闇の誓い ×'+SKP.oath+' ':'')+(atkFx.rush?'🐂突進 ×2':''),'',true); }catch(e){} atkFx.rush=false; atkFx.oath=false; }
-  if(atkFx.dive||atkFx.golem||atkFx.slime){ try{ stageDmgPop('player',[atkFx.dive?'🦅急降下 ×1.5':'',atkFx.golem?'🗿石の体 ×0.5':'',atkFx.slime?'🐌ぬめり 敵×0.5':''].filter(Boolean).join(' '),'',true); }catch(e){} atkFx.dive=false; atkFx.golem=false; atkFx.slime=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
+  if(atkFx.dive||atkFx.golem||atkFx.slime){ try{ stageDmgPop('player',[atkFx.dive?'🦅急降下 ×3':'',atkFx.golem?'🗿石の体 ×0.5':'',atkFx.slime?'🐌ぬめり 敵×0.5':''].filter(Boolean).join(' '),'',true); }catch(e){} atkFx.dive=false; atkFx.golem=false; atkFx.slime=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
   if(accParts.length||coinHead!==null){ try{ const tx=accParts.map(p=>p[0]+' ×'+(Math.round(p[1]*100)/100)).concat(coinHead===null?[]:[coinHead?'🪙表！ ×'+coinM:'🪙裏… ×'+coinM]).join('  '); stageDmgPop('player',tx,'',true); hint(tx,true); }catch(e){} }
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   let diff=pAtk-eAtk;
@@ -9312,7 +9312,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-17d';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-17e';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
