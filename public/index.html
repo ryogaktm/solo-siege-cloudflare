@@ -3780,6 +3780,12 @@ function wildColor(c){
   const isDarius = isDariusCard(c);
   return isDarius ? '#e05a4a' : '#5aa8e0';
 }
+function monOK(card,f){   // 普通に置く時と同じ判断：カラフルフィールドは違う色でも置ける（スーパーコンボが減るだけ）。数字の条件つきの旗は、数字だけ満たせば置ける
+  const m=flagMonster(f); if(!m) return true;
+  if(card.kind==='troop'&&m.sub==='cfield') return true;
+  if(card.kind==='troop'&&m.sub==='combined'&&((m.pf?11-val(card):val(card))>=m.value)) return true;
+  return satisfiesMonster(card,f);
+}
 function satisfiesMonster(card, f){
   const m=flagMonster(f); if(!m) return true;
   if(isWildCard(card)) return true;
@@ -5178,14 +5184,14 @@ function guidAddOK(card,i){   // 空きに追加できるか（完成した旗�
   const f=flags[i]; if(f.closed || isLocked(f)) return false;
   const dm=flagMonster(f);
   if(card.kind==='monster') return !dm && f.cards.length<3;   // 装備は、装備のない旗にだけ動かせる
-  if(dm) return satisfiesMonster(card,f);
+  if(dm) return monOK(card,f) && fitsFormation(card,f);
   return f.cards.length<3 && fitsFormation(card, f);
 }
 function guidFlagOK(f,cards,moved){   // cards という並びにした時、その旗として成り立つか
   const old=f.cards; f.cards=cards; let ok=true;
   try{
     const mons=cards.filter(c=>c&&c.kind==='monster'); if(mons.length>1) ok=false;
-    if(ok&&mons.length===1) ok=cards.every(c=>c.kind==='monster'||satisfiesMonster(c,f));
+    if(ok&&mons.length===1) ok=cards.every(c=>c.kind==='monster'||monOK(c,f));
     if(ok&&moved.kind!=='monster'){ f.cards=cards.filter(c=>c!==moved); ok=fitsFormation(moved,f); }
   }catch(e){ ok=false; }
   f.cards=old; return ok;
@@ -5197,6 +5203,7 @@ function guidSwapList(i){   // 移すカードと入れ替えられる、i番目
   const out=[];
   d.cards.forEach((B,j)=>{
     if(!B) return;
+    if(B===flagMonster(d)) return;   // 旗のフィールド（カラフル等）自体は、カードと交換できない
     const dc=d.cards.map((c,k)=>k===j?A:c), sc=src.cards.map((c,k)=>k===pending.cardIdx?B:c);
     const pfD=flagMonster(d)&&(flagMonster(d).sub==='pfield'||flagMonster(d).pf), pfS=flagMonster(src)&&(flagMonster(src).sub==='pfield'||flagMonster(src).pf);
     if((pfD&&A.kind==='troop')||(pfS&&B.kind==='troop')) return;   // パニックフィールドの旗との交換は、数字が逆転するので対象外
@@ -5285,7 +5292,7 @@ function resolveGuidanceAdd(fi){
     gameAlert('装備のある旗には、装備カードは移動できません。');
     return;
   }
-  if(destMonster && !satisfiesMonster(card,destFlag)){
+  if(destMonster && !monOK(card,destFlag)){
     src.cards.splice(pending.cardIdx,0,card);
     busy=false; pending=null; render();
     hint('その旗の装備の条件を満たせません。',true);
@@ -9305,7 +9312,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-17c';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-17d';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;

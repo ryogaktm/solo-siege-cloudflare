@@ -308,6 +308,12 @@ with sync_playwright() as p:
       useGuidance(hand.findIndex(x=>x.uid===g.uid)); tapFlag(1); busy=false; pending.step===undefined; chooseGuidanceCard(2); busy=false; tapFlag(0);
       return new Promise(res=>setTimeout(()=>res({wasClosed,ok0,reopened:!flags[1].closed,two:flags[1].cards.length===2,moved:flags[0].cards.includes(C),scoreDown:score<sc0,pend:pending}),900))}""")
     check('誘導：役が決まった（完成した）旗のカードも別の旗に移せる（元の旗は未完成に戻る）',r['wasClosed'] and r['ok0'] and r['reopened'] and r['two'] and r['moved'] and r['scoreDown'] and r['pend'] is None,r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); flags.forEach(f=>{f.cards=[];f.closed=false;f.result=null;f.arrow=null}); busy=false; pending=null; haunt={};
+      const mk=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()}); const A=mk('blue',10); flags[0].cards=[A,mk('blue',3)]; flags[1].cards=[makeColorField('yellow')];
+      const g={kind:'tactics',type:'guidance',name:'誘導',uid:uid()}; hand.push(g);
+      useGuidance(hand.findIndex(x=>x.uid===g.uid)); tapFlag(0); busy=false; chooseGuidanceCard(0); busy=false; const ok=guidanceTargets(1).includes(1); busy=false; tapFlag(1);
+      return new Promise(res=>setTimeout(()=>res({ok,moved:flags[1].cards.includes(A),pend:pending}),900))}""")
+    check('誘導：カラフルフィールドの旗へ、違う色のカードも動かせる（置く時と同じ。スーパーコンボが減るだけ）',r['ok'] and r['moved'] and r['pend'] is None,r)
     r=ev("""async()=>{ CHARACTER=CHARACTERS[2]; init(); busy=false; pending=null; bigWarned={}; const o={};
       enemySched={}; enemySched[enemyTurn+3]='colhalf'; bigCountdown(); const ov=document.getElementById('bigCount'); o.d3=!!ov&&ov.style.display==='flex'&&ov.textContent.includes('3');
       enemySched={}; enemySched[enemyTurn+1]='colhalf'; bigCountdown(); o.d1=document.getElementById('bigCount').textContent.includes('1');
