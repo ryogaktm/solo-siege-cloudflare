@@ -3487,6 +3487,7 @@ function fitBoardCalc(){
   return sRaw;
 }
 window.addEventListener('resize', ()=>{ try{ fitBoardSize(); }catch(e){} });
+try{ if(window.ResizeObserver){ let _rp=0; new ResizeObserver(()=>{ cancelAnimationFrame(_rp); _rp=requestAnimationFrame(()=>{ try{ fitBoardSize(); }catch(e){} }); }).observe(document.getElementById('predBox')); } }catch(e){}   // 予測欄（攻撃力・倍率バッジ）の高さが変わったら、盤面を合わせ直して上が見切れないようにする
 try{ const bw=document.getElementById('board').parentElement; if(window.ResizeObserver){ let _ro=0; new ResizeObserver(()=>{ try{ fitBoardSize(); }catch(e){} }).observe(document.getElementById('appRoot')); new ResizeObserver(()=>{ cancelAnimationFrame(_ro); _ro=requestAnimationFrame(()=>{ try{ fitBoardSize(); }catch(e){} }); }).observe(bw); } }catch(e){}
 function freshFlags(){
   const arr=[]; for(let i=0;i<FLAG_COUNT;i++) arr.push({cards:[],closed:false,result:null,lockedUntil:0});
@@ -9312,7 +9313,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-17e';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-18a';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
