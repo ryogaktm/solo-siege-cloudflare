@@ -934,6 +934,12 @@
   .reward-box{ width:100%; max-width:420px; max-height:96vh; overflow-y:auto; text-align:center; background:var(--panel); border:1px solid rgba(226,192,106,.3); border-radius:16px; padding:20px 16px; }
   .prep-deckview{ position:absolute; top:8px; right:8px; z-index:2; padding:4px 10px; font-size:11.5px; line-height:1.3; border-radius:999px; border:1px solid var(--gold-3); background:rgba(0,0,0,.4); color:var(--gold); cursor:pointer; }
   #prepModal .prep-head{ padding-top:16px; }
+  /* 準備画面は野営地：前の戦闘の盤面が透けないよう、不透明な背景で覆う */
+  #prepModal{
+    background:
+      radial-gradient(ellipse at 50% 85%, rgba(255,150,60,.22) 0%, rgba(255,150,60,0) 45%),
+      radial-gradient(ellipse at 50% 30%, var(--felt-1) 0%, var(--felt-2) 55%, var(--felt-3) 100%);
+  }
   .topback{ position:fixed; top:calc(10px + var(--st)); left:calc(10px + env(safe-area-inset-left,0px)); z-index:400; display:block; width:fit-content; margin:0; padding:6px 14px; font-size:13px; font-weight:800; line-height:1.3; text-align:left; border-radius:999px; border:1px solid var(--gold-3); background:rgba(10,18,14,.92); color:var(--gold); font-family:inherit; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .topback:active{ transform:translateY(1px); }
   .modal-bg:has(.topback){ padding-top:calc(54px + var(--st)); }
