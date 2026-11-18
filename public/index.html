@@ -8222,13 +8222,13 @@ const SP_NAME={shuffle:'シャッフル',beg:'命乞い',punch:'殴る',guard:'�
 const SP_ACC={shuffle:'ブレスレット',beg:'首輪',punch:'指輪',guard:'バングル',cure:'鼻輪'};
 const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
 /* ★新しいアクセサリー（40個の追加分）の数字はここ。倍の腕輪（accX）は「増え分」にかかる */
-const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalTurn:20, sandalInc:0.5, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:0.2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
+const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:0.2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
 function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリーの倍率（発動している分だけ [名前, 倍率]）
   const P=[]; if(!accEq.length) return P; const k=accX();
   const cl=flags.filter(f=>f.closed&&f.result);
   if(hasAcc('tiara')){ const set=new Set(cl.map(f=>f.result.name).filter(n=>n&&n!=='ホスト')); if(set.size>=ACC_NEW.tiaraKinds) P.push(['👑役集めのティアラ',1+ACC_NEW.tiaraInc*k]); }
   if(hasAcc('medal') && flags.length>=2 && cl.length===flags.length && cl[0].result.name!=='ホスト' && cl.every(f=>f.result.name===cl[0].result.name)) P.push(['🎖おそろいの勲章',1+ACC_NEW.medalInc*k]);
-  if(hasAcc('sandal') && atkTurn>=ACC_NEW.sandalTurn) P.push(['🩴じっくりのサンダル',1+ACC_NEW.sandalInc*k]);
+  if(hasAcc('sandal') && waveAttempt>=ACC_NEW.sandalWave) P.push(['🩴じっくりのサンダル',1+ACC_NEW.sandalInc*k]);
   if(hasAcc('last_stand') && playerHpMax>0 && playerHp<=playerHpMax*ACC_NEW.lastHp) P.push(['🏰最後の砦',1+ACC_NEW.lastInc*k]);
   if(hasAcc('full_pride') && playerHpMax>0 && playerHp>=playerHpMax) P.push(['🦁満タンの誇り',1+ACC_NEW.fullInc*k]);
   if(hasAcc('sp_crown')) P.push(['👑王者の冠',1+0.5*accCount('sp_crown')]);
@@ -8312,7 +8312,7 @@ function buildAccDefs(){
    ['rainbow_brooch','虹のブローチ','🌈','3枚とも色が違う旗は、攻撃力が1.3倍になる'],
    ['tiara','役集めのティアラ','👑','1つのwaveで違う役を3種類以上作ると、総攻撃力が1.5倍になる（役なしは数えない）'],
    ['medal','おそろいの勲章','🎖','全部の旗が同じ役（役なし以外）なら、総攻撃力が2倍になる'],
-   ['sandal','じっくりのサンダル','🩴','20ターン以上かけてから攻撃すると、総攻撃力が1.5倍になる'],
+   ['sandal','じっくりのサンダル','🩴','同じ敵との戦いが5wave目以降になってから攻撃すると、総攻撃力が4倍になる'],
    ['first_badge','一番槍のバッジ','🥇','そのwaveで最初に閉じた旗の攻撃力が2倍になる'],
    ['last_badge','しんがりのバッジ','🏁','そのwaveで最後に閉じた旗の攻撃力が2倍になる'],
    ['abacus','商人のそろばん','🧮','役でもらえるお金が2倍になる'],
