@@ -1871,7 +1871,7 @@ SKFN.oath=m=>{
   const had=flags.reduce((n,f)=>n+f.cards.length,0);
   flags.forEach(f=>{ graveyard.push(...f.cards.filter(c=>c&&!c.temp&&!isEnemyCard(c)&&!isEnemyEq(c))); });   // 旗のカードは墓地へ（敵のカード・効果は消える）
   if(CHARACTER.combo) carryMap=carryNext(); scSpent={}; hostCarry=hostNext();   // 盤面で揃っていたスーパーコンボも、持ち越しに移してから更地にする（倍率は失わない）
-  flags=freshFlags(); haunt={}; score=0; displayedScore=0; frozenMults={}; frozenHost={}; justClosed=[]; try{ clearPf(); }catch(e){}
+  flags=freshFlags(); haunt={}; score=monIs('元の身体')?SKP.growAtk*growN:0; displayedScore=score; frozenMults={}; frozenHost={}; justClosed=[]; try{ clearPf(); }catch(e){}
   atkFx.oath=true; skDone(`🌑 闇の誓い！ 旗をすべて更地にした（${had}枚）。次の一斉攻撃の攻撃力が${SKP.oath}倍になる。`);
 };
 SKFN.lead=m=>{
@@ -6950,7 +6950,7 @@ function advanceWaveAttempt(){
   clearKO(); clearPf();
   waveAttempt++;
   const frozenKeep=flags.map((f,i)=>(f.frz>=2&&f.closed&&f.result)?[i,f]:null).filter(Boolean);   // 氷漬け：凍った旗は次のwaveも残る
-  score=0; displayedScore=0; resetBattleRound(); try{ accStat.turn0=turnCounter; }catch(e){}   // 20ターンボーナスは1回の攻撃（wave）の中で仕留めた時だけ：攻撃が終わるたびに数え直す
+  score=monIs('元の身体')?SKP.growAtk*growN:0; displayedScore=score; resetBattleRound(); try{ accStat.turn0=turnCounter; }catch(e){}   // 体質「成長」の元の攻撃力は、次のwaveでも残る   // 20ターンボーナスは1回の攻撃（wave）の中で仕留めた時だけ：攻撃が終わるたびに数え直す
   flags.forEach(f=>{ if(frozenKeep.some(x=>x[1]===f)) return; graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
   frozenKeep.forEach(([i,f])=>{ f.frz=1; flags[i]=f; score+=f.result.base||0; });
