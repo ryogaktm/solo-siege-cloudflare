@@ -334,7 +334,7 @@
   .pm-diff{ font-size:12px; font-weight:800; margin-left:6px; white-space:nowrap; }
   .pm-pos{ color:#8ff0c4; } .pm-neg{ color:#ff9a8a; } .pm-zero{ color:var(--cream-2); }
   .range-line{ grid-column:2; text-align:center; font-size:16px; font-weight:900; color:#ffe9a8; line-height:1.15; white-space:nowrap; text-shadow:0 1px 3px #000; }
-  .pred-box{ flex:0 0 auto; min-height:50px; align-self:stretch; display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; column-gap:8px; padding:2px 4px 8px; }
+  .pred-box{ flex:0 0 auto; min-height:40px; align-self:stretch; display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; column-gap:8px; padding:2px 4px 8px; }
   .st-row{ position:absolute; left:0; right:0; z-index:3; display:flex; gap:10px; padding:0 12px; pointer-events:none; }
   .st-hp{ top:10px; }
   .st-atk{ top:44px; }
@@ -675,7 +675,7 @@
   .nextbar .upcoming-chip:first-child{ opacity:1; border-color:rgba(255,220,120,.55); }
   .upcoming-chip .mini-mark{ width:13px; height:13px; }
   .board-wrap{ position:relative; flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; gap:10px; overflow:hidden; margin-bottom:12px; padding:0 2px; }
-  .board-mid{ flex:1 1 0; min-width:0; overflow:hidden; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .board-mid{ flex:1 1 0; min-width:0; overflow:hidden; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }   /* 中央寄せだと、高さが足りない時に上の攻撃力表示が見切れる。上から並べて、足りない分は下側に逃がす */
   .rail{ flex:0 0 48px; width:48px; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:6px 0; }
   .rail-l{ align-items:flex-start; padding-left:2px; }
   .rail-r{ align-items:flex-end; padding-right:2px; }
