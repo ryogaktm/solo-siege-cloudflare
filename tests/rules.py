@@ -642,5 +642,15 @@ with sync_playwright() as p:
       o.cost=skCostText(MON_SKILL['魔王の親衛兵'])+'|'+skCostText(MON_SKILL['古龍']); o.need=[bladeNeed('blue'),bladeNeed('green'),bladeNeed('purple')].join();
       return o}""")
     check('パネルのスキップ：確認→次のパネルへ（賞品なし・クリア済みの分は残る）／染め直し：手札の数字カードの色を変える／色の武器は30コンボから',r['ask'] and r['next'] and r['noPrize'] and r['keep'] and r['fresh'] and r['pend'] and r['cols'] and r['dyed'] and r['need']=='30,30,30',r)
+    r=ev("""()=>{ CHARACTER=CHARACTERS[2]; init(); introOn=false; inPrep=true; const o={}; const T=(c,v)=>({kind:'troop',color:c,value:v,uid:uid()});
+      const reds=[T('red',1),T('red',2),T('red',3)], oth=T('blue',5); activeDeck=[reds[0],oth]; grandDeck=[reds[1]]; graveyard=[reds[2]]; hand=[]; flags.forEach(f=>f.cards=[]);
+      const A={aid:777,id:'red_out'}; accOwned.push(A);
+      accEq.push(777); applyAcc(A); syncSeal();
+      o.changed=reds.every(c=>c.color!=='red')&&oth.color==='blue'; o.cnt=[activeDeck,grandDeck,graveyard].reduce((n,a)=>n+a.length,0)===4; o.noRed=!GAME_COLORS.includes('red');
+      const x=reds[1]; x.color='green'; sealMap[x.uid]&&(sealMap[x.uid].to!=='green'); // 別の効果で色が変わった
+      activeDeck=activeDeck.filter(c=>c!==reds[0]); const gone=reds[0];   // 山札交換で入れ替わった
+      accEq=accEq.filter(a=>a!==777); unapplyAcc(A); syncSeal();
+      o.back=reds[2].color==='red'; o.exchangedStay=gone.color!=='red'; o.otherKeep=x.color==='green'||x.color==='red'; o.redOn=GAME_COLORS.includes('red'); o.mapClean=!sealMap[gone.uid]; return o}""")
+    check('封じの指輪：その色のカードがほかの色に変わり、外すと戻る（交換されたカード・別の効果で色が変わったカードは戻らない）',all(r.values()),r)
     b.close()
 print('FAILED' if fails else 'ALL OK',len(fails)); sys.exit(1 if fails else 0)

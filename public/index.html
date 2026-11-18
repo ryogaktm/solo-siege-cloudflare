@@ -8287,8 +8287,8 @@ function buildAccDefs(){
   [['tac','軍師','軍師のイヤリング','📜'],['weapon','武器','武器のブローチ','⚔️'],['armor','防具','防具のカフス','🛡️'],['num','数字','数字のチョーカー','🔢']].forEach(([k,jp,nm,ic])=>L.push({id:'add3_'+k,addKind:k,name:nm,icon:ic,desc:`好きな${jp}カード${k==='tac'?1:k==='num'?2:3}枚を山札に加える（装備中のみ。外すと消える）`}));
   // 軍師のイヤリングは1枚しか加えられない代わりに、同じものが3つ出る（取得条件はそれぞれ別）
   ['2','3'].forEach(n=>{ const b=L.find(x=>x.id==='add3_tac'); L.push(Object.assign({},b,{id:'add3_tac'+n})); });
-  L.push({id:'purple_out',sealColor:'purple',name:'紫封じのリング',icon:'🔮',desc:'装備中、カードの色を1色減らす（紫のカードが全部使えなくなる。外すと戻る）'});
-  [['red','赤'],['yellow','黄'],['green','緑'],['blue','青']].forEach(([c,n])=>L.push({id:c+'_out',sealColor:c,name:`${n}封じのリング`,icon:'🔮',desc:`装備中、カードの色を1色減らす（${n}のカードが全部使えなくなる。外すと戻る）`}));
+  L.push({id:'purple_out',sealColor:'purple',name:'紫封じのリング',icon:'🔮',desc:'装備中、紫のカードが全部、ほかの色（ランダム）に変わる。外すと元の色に戻る（山札の交換などで変わったカードは戻らない）'});
+  [['red','赤'],['yellow','黄'],['green','緑'],['blue','青']].forEach(([c,n])=>L.push({id:c+'_out',sealColor:c,name:`${n}封じのリング`,icon:'🔮',desc:`装備中、${n}のカードが全部、ほかの色（ランダム）に変わる。外すと元の色に戻る（山札の交換などで変わったカードは戻らない）`}));
   [
    ['almost_ring','あと一歩の指輪','💍','役のない旗でも、2枚が同じ色か同じ数字なら、攻撃力が1.2倍になる'],
    ['big_bracelet','大きい数字の腕輪','💪','3枚の合計が24以上の旗は、攻撃力が1.5倍になる'],
@@ -8357,7 +8357,7 @@ var ACC_SLOTS=3+accSlotBonus;   // ミジンコ・ミジンコリーダーの体
 function resetAccessories(){
   sunUsed=false; _streakDone=false; accSlotBonus=0; shopOnce={}; gameFuse=fuseOpen();
   ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3);   // 買った装備枠を持ち越さない
-  accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; hpGlassSave=null; hpBonus=0; specBonusK={}; specProg={}; specPlusBought=0; accStat=blankBattleStat(); panel=null; panelNew=false; gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
+  accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; sealMap={}; hpGlassSave=null; hpBonus=0; specBonusK={}; specProg={}; specPlusBought=0; accStat=blankBattleStat(); panel=null; panelNew=false; gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
   GAME_COLORS.length=0; ALL_GAME_COLORS.forEach(c=>GAME_COLORS.push(c));
 }
 function accEquippedDefs(){ return accEq.map(aid=>accOwned.find(o=>o.aid===aid)).filter(Boolean).map(o=>accDef(o.id)); }
@@ -8710,16 +8710,28 @@ function unapplyAcc(o){
   }
   if(dRem.length) showAccDelta('山札から外れたカード', dRem, nm);
 }
+let sealMap={};   // 封じの指輪で色が変わったカード：uid → {from:元の色, to:変わった先の色}
 function syncSeal(){
   const want=activeColorList(), arrs=()=>[activeDeck,grandDeck,hand,graveyard,pendingRewardCards];
   const same=want.length===GAME_COLORS.length && want.every((c,i)=>GAME_COLORS[i]===c);
   if(!same){ GAME_COLORS.length=0; want.forEach(c=>GAME_COLORS.push(c)); }
-  const isOut=c=>c && (c.kind==='troop'||c.kind==='monster') && !c.mixed && c.color && ALL_GAME_COLORS.includes(c.color) && !want.includes(c.color);
-  arrs().forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(isOut(arr[i])) sealedCards.push(arr.splice(i,1)[0]); });   // 封印中に別のアクセサリー（削除の解除など）で戻ったカードも、ここで封印し直す
-  const back=sealedCards.filter(c=>want.includes(c.color));
-  if(back.length){ sealedCards=sealedCards.filter(c=>!want.includes(c.color)); back.forEach(c=>{ if(deckUids.has(c.uid)) activeDeck.push(c); else grandDeck.push(c); }); shuffle(activeDeck); }
+  if(sealedCards.length){ sealedCards.forEach(c=>grandDeck.push(c)); sealedCards=[]; }   // 以前の仕組み（カードを取り除く）で保管されていたカードは、山札に戻す
+  const cand=c=>c && (c.kind==='troop'||c.kind==='monster') && !c.mixed && c.color && ALL_GAME_COLORS.includes(c.color);
+  const live=new Set();
+  arrs().forEach(arr=>{ arr.forEach(c=>{ if(!cand(c)) return; live.add(c.uid);
+    const e=sealMap[c.uid];
+    if(e){
+      if(c.color!==e.to){ delete sealMap[c.uid]; }   // 途中で別の効果で色が変わったカードは、そこで指輪の効果は終わり（外しても元の色には戻らない）
+      else if(want.includes(e.from)){ c.color=e.from; delete sealMap[c.uid]; return; }   // 指輪を外した：元の色に戻る
+      else if(want.includes(e.to)) return;   // まだ封じられたまま、変わった先の色のまま
+    }
+    if(!want.includes(c.color) && want.length){ const from=(sealMap[c.uid]&&sealMap[c.uid].from)||c.color, to=want[Math.floor(Math.random()*want.length)]; c.color=to; sealMap[c.uid]={from,to}; }   // 封じられた色のカードは、ほかの色（ランダム）に変わる
+  }); });
+  [typeof stomach!=='undefined'?stomach:[],pocket?[pocket]:[]].forEach(arr=>(arr||[]).forEach(c=>{ if(c) live.add(c.uid); }));
+  Object.keys(sealMap).forEach(u=>{ if(!live.has(+u) && !live.has(u) && !flags.some(f=>f.cards.some(c=>c&&String(c.uid)===String(u)))) delete sealMap[u]; });   // 山札交換などでなくなったカードは、もう対象ではない
 }
 function purgeDeleted(){
+  try{ syncSeal(); }catch(e){}   // 封じの指輪をつけたまま新しく増えたカードも、ここで色を変える
   const bad=c=>!c || deletedUids.has(c.uid) || (c.color && (c.kind==='troop'||c.kind==='monster') && !c.mixed && !GAME_COLORS.includes(c.color));
   activeDeck=activeDeck.filter(c=>!bad(c)); grandDeck=grandDeck.filter(c=>!bad(c));
   hand=hand.filter(c=>!bad(c)); graveyard=graveyard.filter(c=>!bad(c)); pendingRewardCards=pendingRewardCards.filter(c=>!bad(c));
@@ -9313,7 +9325,7 @@ document.getElementById('accClose').onclick=()=>{ document.getElementById('accMo
 
 /* ===== 途中セーブ／つづきから ===== */
 const SAVE_KEY='soloSiegeSave1';
-const BUILD_ID='2026-11-18a';   // 遊んだ記録（デバッグログ）に残す版番号
+const BUILD_ID='2026-11-18b';   // 遊んだ記録（デバッグログ）に残す版番号
 /* ===== フリーズ見張り：戦闘中の「操作不能」状態が長く続いたら、記録を残して復旧する ===== */
 (function(){
   let sig='', since=Date.now(), lastFix=0;
