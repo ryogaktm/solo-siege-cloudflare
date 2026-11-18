@@ -3934,6 +3934,15 @@ function autoRefill(n){
 
 /* ================= ACTIONS ================= */
 let prevSnap=null;
+let parryNow=false;   // パリイ：このターンに置いたカードで役が揃った。同じタイミングで来た敵の妨害わざをはじき返す
+function willYaku(f){ try{ if(!f||f.closed||f.negated||f.cards.length<3||flagMonster(f)) return false; const r=evaluate(f); return !!(r&&r.mult>1); }catch(e){ return false; } }
+function parryFire(type){   // パリイ：妨害わざを打ち消す（旗を狙う妨害は、その予定も使い切る）
+  try{ if(FLAG_EVS.includes(type)) takeAutoPlan(type); }catch(e){}
+  const inf=EVENT_INFO[type]||{}, nm=(inf.label||DIS_NAME[type]||type).replace(/（.*$/,'').replace(/\(.*$/,'');
+  try{ dlog('parry',{event:type}); }catch(e){}
+  try{ bigFx('⚔','パリイ！',`役が揃った瞬間、${inf.icon||''}${nm}をはじき返した`); }catch(e){}
+  hint(`⚔ パリイ！ 役が揃ったのと同じタイミングで来た敵の${inf.icon||''}${nm}を打ち消した！`,true); playSfx('combo');
+}
 const waveTurns=()=>Math.max(0,turnCounter-((typeof accStat!=='undefined'&&accStat&&accStat.turn0)||0));   // このwaveで自分が使ったターン数（画面の「ターンN/12」と同じ数え方。早撃ちのブーツ・じっくりのサンダルはこれで判定）
 function advanceTurn(usedCard){
   if(usedCard&&!usedCard.curse&&!isCurse(usedCard)&&!(mimicFree)){ if(usedCard.kind==='tactics') lastAct={type:'tactic',t:usedCard.type}; else if(usedCard.kind==='troop'||(usedCard.kind==='monster'&&!usedCard.enemyCard)||usedCard.kind==='wild') lastAct={type:'card',card:{...usedCard}}; }
@@ -3965,7 +3974,7 @@ function advanceTurn(usedCard){
       enemyTurn++; try{ eaterExpire(); }catch(e){}
       if(poisonPer>0) poisonPenalty+=poisonPer;
       const e1=enemySched[enemyTurn];
-      if(e1){ applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; }
+      if(e1){ if(parryNow&&isDisEv(e1)){ parryFire(e1); ev=(ev?ev+'+':'')+'parry:'+e1; } else { applyEnemyEvent(e1); ev=ev?ev+'+'+e1:e1; } }
     }
   }
   if(stepped&&!gameEnded){ try{ bigCountdown(); }catch(e){} }
@@ -4768,7 +4777,8 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const ate=eaterEatPlaced(f,placed,mon,mon?f.cards.indexOf(placed):-1);   // 食べられたら、装備は倒せていない（装備は旗に残る）
     showPlacementComment(card, f, posBefore);
     playSfx('place');
-    advanceTurn(placed);
+    parryNow=!ate&&willYaku(f);   // この1枚で役が揃うなら、同じタイミングの妨害わざはパリイで消える
+    try{ advanceTurn(placed); } finally { parryNow=false; }
     if(forcedCf) comboLoss(DIS_PARAM.cfieldPenalty,`💀 カラフルフィールドに逆らった代償で、スーパーコンボが−${DIS_PARAM.cfieldPenalty}された！`,mon.color);
     if(!mon) closeCheck(fi, false);
     const refilled=autoRefill(1);
@@ -6657,7 +6667,7 @@ function buildHowtoPage(){
     [{color:'green',value:4},{color:'blue',value:5},{color:'blue',value:6}],
     '役の例','緑4→青5→青6。4→5→6と数字がつながっているので「連番（スカーミッシュ）」の役が成立し、得点×3。');
 
-  fillPage('howtoEnemy', `<div class="howto-section" id="howtoEnemySec"><p>画面の「敵の予測」には、これから先の敵の動きが表示される。何もなければその時点での<b style="color:var(--danger)">敵の攻撃力</b>、特殊行動があれば印がつく。印をタップすると、どんな攻撃が来るかが分かる。</p><p style="margin-top:8px;">敵は最初から攻撃力を持っていて、役を揃えて戦力で上回らないと差分で負けてしまう。ターンが進むほど攻撃力は上がり、厳しい行動も増える。<b style="color:var(--gold)">攻撃するとターンはリセット</b>されるので、その前に攻撃しよう。</p><p style="margin-top:8px;">敵ごとに得意な特殊行動がちがう（同じ技ばかり出す敵もいる）。<b>序盤の敵は、旗やカードに仕掛ける妨害だけ</b>で、プレイで対処できる。防御（次の攻撃が半分）やコンボを減らす技は、強い敵になってから出てくる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">次の敵の決まり方</b>：敵を倒すと、<b>倒した時の攻撃力が高いほど、より強い敵へ飛ぶ</b>（弱い敵を何度も倒さなくていい）。攻撃力が足りないと、少しずつしか進まない。戦いごとにHPは全回復する。</p><p style="margin-top:10px;"><b style="color:var(--gold)">敵の特殊行動の一覧</b></p>${Object.keys(EVENT_DESC).filter(k=>EVENT_INFO[k]).map(k=>`<p style="margin-top:6px;"><b>${EVENT_INFO[k].icon} ${EVENT_INFO[k].label}</b>：${EVENT_DESC[k]()}</p>`).join('')}</div>`);
+  fillPage('howtoEnemy', `<div class="howto-section" id="howtoEnemySec"><p>画面の「敵の予測」には、これから先の敵の動きが表示される。何もなければその時点での<b style="color:var(--danger)">敵の攻撃力</b>、特殊行動があれば印がつく。印をタップすると、どんな攻撃が来るかが分かる。</p><p style="margin-top:8px;">敵は最初から攻撃力を持っていて、役を揃えて戦力で上回らないと差分で負けてしまう。ターンが進むほど攻撃力は上がり、厳しい行動も増える。<b style="color:var(--gold)">攻撃するとターンはリセット</b>されるので、その前に攻撃しよう。</p><p style="margin-top:8px;">敵ごとに得意な特殊行動がちがう（同じ技ばかり出す敵もいる）。<b>序盤の敵は、旗やカードに仕掛ける妨害だけ</b>で、プレイで対処できる。防御（次の攻撃が半分）やコンボを減らす技は、強い敵になってから出てくる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">次の敵の決まり方</b>：敵を倒すと、<b>倒した時の攻撃力が高いほど、より強い敵へ飛ぶ</b>（弱い敵を何度も倒さなくていい）。攻撃力が足りないと、少しずつしか進まない。戦いごとにHPは全回復する。</p><p style="margin-top:10px;"><b style="color:var(--gold)">敵の特殊行動の一覧</b></p>${Object.keys(EVENT_DESC).filter(k=>EVENT_INFO[k]).map(k=>`<p style="margin-top:6px;"><b>${EVENT_INFO[k].icon} ${EVENT_INFO[k].label}</b>：${EVENT_DESC[k]()}</p>`).join('')}<p style="margin-top:8px;"><b style="color:var(--gold)">⚔ パリイ</b>：敵の妨害わざ（暗殺・矢印パネル・ワームホールなど、攻撃力×2以外の全部）が来るターンに、カードを置いて旗の<b>役を揃える</b>と、その妨害わざをはじき返して消せる。役なし（ホスト）では発動しない。</p></div>`);
 
 
   fillPage('howtoShop', `<div class="howto-section" id="howtoShopSec"><p>敵を倒すと<b style="color:var(--gold)">次の戦いの準備</b>画面になる。ここでお金を使って強くなれる。</p><p style="margin-top:8px;"><b style="color:var(--gold)">お金の入り方</b>：旗で役を作るたびに入る（${Object.entries(YAKU_GOLD).filter(([k,v])=>v>0).map(([k,v])=>`${k}${v}G`).join('、')}）。アクセサリーに書かれた条件を達成した時にも入る。コガネムシを使うキャラなら、特殊技「コガネモチ」で100G。持っているアクセサリーを売ってもお金になる（売値は買値の約3割）。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーを買う</b>：装備すると毎回効く。付けられるのは${3}つまで。装備枠がいっぱいの時は、どれかを外して付け替える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">デッキを買う</b>：使い捨てのカードなどを山札に加える。</p><p style="margin-top:8px;"><b style="color:var(--gold)">手付金</b>：アクセサリーのお金が足りない時だけ、半額を手付金として払って<b>取り置き</b>できる。取り置いた品は、品揃えが入れ替わっても棚に残り、残りの金額を払えば買える。お金が足りている時は、手付金は出ない。</p><p style="margin-top:8px;"><b style="color:var(--gold)">アクセサリーの入手</b>：お店で買うほか、戦闘中に書かれた条件を満たすと貰えるものもある（例：<b>早撃ちのブーツ</b>＝12ターン以内に旗を全部完成させて攻撃すると、総攻撃力が×5になる。条件達成で入手でき、買うこともできる）。ショップには今の山札と、付けているアクセサリーも表示される。</p><p style="margin-top:8px;"><b style="color:var(--gold)">山札確認</b>：今の山札に何が入っているかを確認できる。</p></div>`);
