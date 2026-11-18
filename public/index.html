@@ -8465,6 +8465,7 @@ const PANEL_CUM_GROW=0.5;   // 累計の条件の数は、パネルが1枚進む
 /* ★累計の条件（戦闘をまたいで数える。パネルが出てからの合計）：[種類, 基本の数, 文（{n}が数）, 単位] */
 const CUM_DEF=[['tac',6,'軍師カードを累計{n}枚使う','枚'],['role',6,'役のある旗（ホスト以外）を累計{n}回完成させる','回'],['win',2,'敵を累計{n}体倒す','体'],['atk',8,'一斉攻撃を累計{n}回する','回'],['eq',4,'5以上の装備カードを累計{n}枚使う','枚']];
 const CUM_MULS=[1,1.5,2,3];   // 同じ種類でも、数を何倍にした条件を作るか（倍が大きいほどむずかしいマス）
+let panelMakeNo=1;   // いま作っているパネルの番号
 let panel=null;   // {no:何枚目, cells:[{key,lv,ok}], cum:{種類:前の戦闘までの合計}, clear:全部クリアしたか}
 let goalToastQ=[], goalToastBusy=false;
 /* ★条件をふやす・変える時はここ。キーの形：x_種類_数字…／lv＝難しさ（1やさしい〜6むずかしい）。戦闘の何個目か・ゲームの進み具合に合わせて、近い難しさの条件が出る */
@@ -8477,7 +8478,7 @@ function extraKeys(){
   const k=[]; X_ROLE.forEach(([n])=>k.push('x_role_'+n)); X_SUPER.forEach(([n])=>k.push('x_super_'+n)); X_TWO.forEach(([n])=>k.push('x_two_'+n));
   X_EQ.forEach(([v,n])=>k.push(`x_eq_${v}_${n}`)); X_TAC.forEach(([n])=>k.push('x_tac_'+n)); X_KINDS.forEach(([n])=>k.push('x_kinds_'+n)); X_SAME.forEach(([n])=>k.push('x_same_'+n)); X_DMG.forEach(([n])=>k.push('x_dmg_'+n));
   k.push('x_allsame_1','x_allsame_3','x_hp_90','x_over_15','x_over_2','x_fast_3','x_fast_2','x_long_6');
-  const all=allPileCards(); TACTICS_ON.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true).forEach(t=>{ const have=all.filter(c=>c.kind==='tactics'&&c.type===t.type).length; X_TT.forEach(([n])=>{ if(have>=n) k.push(`x_tt_${t.type}_${n}`); }); });
+  const all=allPileCards(); TACTICS_ON.filter(t=>t.type==='alexander'?CHARACTER.blueInf:t.type==='darius'?CHARACTER.redInf:true).forEach(t=>{ const have=all.filter(c=>c.kind==='tactics'&&c.type===t.type).length; if(have>=1) X_TT.forEach(([n])=>{ if(n===1||panelMakeNo>=n+1) k.push(`c_tt:${t.type}_${n}`); }); });   // 特定の軍師カードは「累計」で数える。最初は1枚でよく、パネルが進むと2枚・3枚になる
   return k;
 }
 function extraDef(key){
@@ -8490,7 +8491,7 @@ function extraDef(key){
     case 'two': { const g=()=>Object.values(S.super).filter(v=>v>=n).length; return {text:`2色以上でスーパーコンボを戦闘で×${n}以上決める`,lv:f(X_TWO)[1],done:()=>g()>=2,prog:`${Math.min(2,g())} / 2色`}; }
     case 'eq': { const v=+p[2], x=+p[3], e=X_EQ.find(a=>a[0]===v&&a[1]===x)||[0,0,3], g=()=>v>=8?(S.eq8||0):(S.eq5||0); return cnt(`${v}以上の装備カードを${x}枚使う`,g,x,'枚',e[2]); }
     case 'tac': return cnt(`軍師カードを${n}枚使う`,()=>S.tac||0,n,'枚',f(X_TAC)[1]);
-    case 'tt': { const t=TACTICS.find(a=>a.type===p[2]); const g=()=>(S.tacBy&&S.tacBy[p[2]])||0; return cnt(`軍師カード「${t?t.name:p[2]}」を${n}枚使う`,g,n,'枚',f(X_TT)[1]); }
+    case 'tt': { const cd=cumDef(`c_tt:${p[2]}_1`); if(cd) return cd; const t=TACTICS.find(a=>a.type===p[2]); const g=()=>(S.tacBy&&S.tacBy[p[2]])||0; return cnt(`軍師カード「${t?t.name:p[2]}」を${n}枚使う`,g,n,'枚',f(X_TT)[1]); }
     case 'kinds': return {text:`1回の攻撃で${n}種類以上の役をそろえる`,lv:f(X_KINDS)[1],done:()=>S.maxKinds>=n};
     case 'same': return {text:`同じ役の旗を${n}つ以上そろえて攻撃する`,lv:f(X_SAME)[1],done:()=>S.maxSame>=n};
     case 'dmg': { const q=Math.round(thr*n/100); return {text:`1回の攻撃で敵に${q}以上のダメージ`,lv:f(X_DMG)[1],done:()=>S.maxDealt>=q,prog:`最高 ${Math.min(q,S.maxDealt)} / ${q}`}; }
@@ -8522,13 +8523,16 @@ const condOff=()=>isWeakBody()||introOn;   // ミジンコの時は、アクセ�
 const panelRange=no=>{ const lo=Math.min(PANEL_LV.max-1,PANEL_LV.lo+(no-1)*PANEL_LV.step), hi=Math.min(PANEL_LV.max,PANEL_LV.hi+(no-1)*PANEL_LV.step); return [lo,Math.max(lo+0.5,hi)]; };
 function cumBattleVal(kind){ const S=accStat; if(S.folded) return 0;
   switch(kind){ case 'tac': return S.tac||0; case 'role': return Object.keys(S.roles||{}).filter(k=>k!=='ホスト').reduce((a,k)=>a+S.roles[k],0); case 'win': return S.won||0; case 'atk': return Math.max(0,totalWaves-(S.w0||0)); case 'eq': return S.eq5||0; }
+  if(kind.startsWith('tt:')) return (S.tacBy&&S.tacBy[kind.slice(3)])||0;
   return 0; }
 const cumVal=kind=>((panel&&panel.cum&&panel.cum[kind])||0)+cumBattleVal(kind);
-function cumDef(key){ const p=key.split('_'), kind=p[1], n=+p[2], d=CUM_DEF.find(x=>x[0]===kind); if(!d||!n) return null;
+function cumDef(key){ const p=key.split('_'), kind=p[1], n=+p[2];
+  if(kind&&kind.startsWith('tt:')){ if(!n) return null; const ty=kind.slice(3), t=TACTICS.find(a=>a.type===ty); if(!t) return null; const lv=(X_TT.find(a=>a[0]===n)||[0,3])[1]; return {text:`軍師カード「${t.name}」を累計${n}枚使う`,cum:true,lv,done:()=>cumVal(kind)>=n,prog:`${Math.min(n,cumVal(kind))} / ${n}枚`}; }
+  const d=CUM_DEF.find(x=>x[0]===kind); if(!d||!n) return null;
   return {text:d[2].replace('{n}',n),cum:true,done:()=>cumVal(kind)>=n,prog:`${Math.min(n,cumVal(kind))} / ${n}${d[3]}`}; }
 function cumAllowed(kind){ return kind==='tac'?!!CHARACTER.tactics:kind==='eq'?!!CHARACTER.equipment:true; }
 function makePanel(no){   // パネルを1枚作る：難しさを lo→hi に並べた9マスに、近い難しさの条件を1つずつ入れる
-  const [lo,hi]=panelRange(no), used=new Set(), cells=[];
+  panelMakeNo=no; const [lo,hi]=panelRange(no), used=new Set(), cells=[];
   const battle=condPool().filter(x=>!(x.g.done&&!x.g.final&&x.g.done()));
   const cum=[]; CUM_DEF.filter(d=>cumAllowed(d[0])).forEach(d=>CUM_MULS.forEach((m,mi)=>{ const n=Math.round(d[1]*m*(1+PANEL_CUM_GROW*(no-1))); cum.push({key:`c_${d[0]}_${n}`,kind:d[0],lv:lo+(hi-lo)*mi/(CUM_MULS.length-1)}); }));
   const cumSlots=new Set(shuffle([0,1,2,3,4,5,6,7,8]).slice(0,PANEL_MIX.cum)); let finals=0; const cumKinds=new Set(), fam={};
@@ -8548,7 +8552,7 @@ function makePanel(no){   // パネルを1枚作る：難しさを lo→hi に�
 function ensurePanel(){ if(condOff()||introNoAcc()) return false; if(!panel||!panel.cells||!panel.cells.length){ panel=makePanel(1); panelNew=true; } return true; }
 let panelNew=false;   // 新しいパネルが出たところ（戦闘の最初にパネルを大きく見せる）
 function foldPanelBattle(){   // 戦闘が終わった時：この戦闘の数を、パネルの累計に足す
-  if(!panel||accStat.folded) return; panel.cum=panel.cum||{}; CUM_DEF.forEach(d=>{ panel.cum[d[0]]=(panel.cum[d[0]]||0)+cumBattleVal(d[0]); }); accStat.folded=true; }
+  if(!panel||accStat.folded) return; panel.cum=panel.cum||{}; CUM_DEF.forEach(d=>{ panel.cum[d[0]]=(panel.cum[d[0]]||0)+cumBattleVal(d[0]); }); Object.keys(accStat.tacBy||{}).forEach(ty=>{ panel.cum['tt:'+ty]=(panel.cum['tt:'+ty]||0)+cumBattleVal('tt:'+ty); }); accStat.folded=true; }
 function checkGoalAnnounce(final){   // 攻撃のたび・戦闘が終わった時に、パネルのマスを判定。クリアしたマス1つにつき、戦闘後にアクセサリーを1つ選べる
   if(condOff()||introNoAcc()||inPrep){ return; }
   if(!ensurePanel()) return;
