@@ -3483,7 +3483,8 @@ function fitBoardCalc(){
   if(availW<=0||availH<=0) return null;
   const rl=document.getElementById('predBox'), rlH=rl?rl.offsetHeight:0;
   const cellW=(availW-gap*(cols-1))/cols;
-  let cellH=(availH-rlH-gap*(rows-1))/rows;   // 盤面は空いている高さを全部使う（上下に余白を作らない）
+  const padTop=parseFloat(getComputedStyle(board).paddingTop)||0;   // 盤面の上の余白（予定バッジ用）も高さに数える。数えないと旗の下が切れる
+  let cellH=(availH-rlH-padTop-gap*(rows-1))/rows;   // 盤面は空いている高さを全部使う（上下に余白を作らない）
   const sRaw=(cellH-18)/1.84;
   const s=Math.max(46, Math.min(96, (cellH-18)/1.84, cellW-14));
   cellH=Math.min(cellH, s*1.84+30);   // カードが最大サイズでも埋まらないほど縦長の画面では、枠だけ伸ばさない
