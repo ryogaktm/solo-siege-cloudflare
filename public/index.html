@@ -2829,14 +2829,10 @@ function askComboPenalty(n, ok){
   bg.querySelector('#cpNo').onclick=()=>bg.remove();
   bg.querySelector('#cpYes').onclick=()=>{ bg.remove(); ok(); };
 }
-function giveHandCard(c){
-  picked=null;
-  if(hand.length>=currentHandMax()){
-    const cand=hand.map((x,i)=>i).filter(i=>!isCurse(hand[i]));
-    if(!cand.length) return false;
-    graveyard.push(hand.splice(cand[Math.floor(Math.random()*cand.length)],1)[0]);   // 手札が上限なら1枚押し出される（上限は超えない）
-  }
-  hand.push(c); return true;
+function giveHandCard(c){   // 鉄則：手札が上限をこえても勝手に1枚消さない。こえた分は、自分で選んで捨てる（trimHand）
+  picked=null; hand.push(c);
+  try{ trimHand(); }catch(e){}
+  return true;
 }
 const isCurse=c=>!!c && c.curse===true;
 function makeCurse(sub){ return {kind:'tactics',...CURSE_DEF[sub],curse:true,sub:undefined,uid:uid()}; }
