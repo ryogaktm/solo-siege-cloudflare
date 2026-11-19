@@ -8243,6 +8243,7 @@ function lanternRefill(){   // 墓守のランタン：山札が尽きた時、�
   if(activeDeck.length>0||!hasAcc('lantern')||lanternUsed||!graveyard.length) return false;
   lanternUsed=true; const n=graveyard.length; activeDeck=shuffle(graveyard.splice(0)); hint(`🏮 墓守のランタン！ 墓地の${n}枚を切り直して山札にした。`,true); playSfx('combo'); return true;
 }
+const TREE_STAFF_BONUS=5;   // 大樹の杖：1回ごとにそのシートへ足す加点（武器カードと同じ扱い）
 const BLADE_ATK_DOWN=0.1;   // 氷結の槍：1回ごとに敵の攻撃力を減らす割合
 function bladeFire(col,f){   // 色の武器：その色のスーパーコンボが10以上（雷鳴刀は設定の数）の時、出すたびの効果
   const cr=carryMap[col], cnt=flags.filter(g=>g.closed&&g.baseCombo&&g.symbolColor===col).length;
@@ -8252,12 +8253,10 @@ function bladeFire(col,f){   // 色の武器：その色のスーパーコンボ
   const k=accX(); let msg='';
   if(col==='yellow'){ enemyFreeze+=1*k; msg=`⚡ 雷鳴刀！ 敵の動きが${k}ターン止まる。`; }
   else if(col==='blue'){ const b=currentEnemyAtk(); monAtkMult*=Math.max(0,1-BLADE_ATK_DOWN*k); msg=`🔱 氷結の槍！ 敵の攻撃力が${Math.round(BLADE_ATK_DOWN*k*100)}％下がった。（${fmtCompact(b)}→${fmtCompact(currentEnemyAtk())}）`; }
-  else if(col==='green'){   // そのシートの数字カードが+1（役がくずれる時は上げない）
-    const ts=f?f.cards.filter(c=>c&&c.kind==='troop'&&c.value<10):[];
-    if(f&&ts.length){ const old=ts.map(c=>c.value), was=f.result; ts.forEach(c=>{ if(c.origValue===undefined) c.origValue=c.value; c.value=Math.min(10,c.value+k); }); const nr=evaluate(f);
-      if(nr&&was&&nr.mult>=was.mult){ f.result=nr; msg=`🌳 大樹の杖！ 旗のカードが+${k}になった。`; }
-      else { ts.forEach((c,i)=>{ c.value=old[i]; if(c.origValue===c.value) delete c.origValue; }); msg='🌳 大樹の杖！（役がくずれるので、数字は上げなかった）'; } }
-    else msg='🌳 大樹の杖！（上げられるカードがなかった）'; }
+  else if(col==='green'){   // そのシートに「+5」の加点（武器カードと同じ：カードの数字は変えず、役の倍率も掛かる）
+    const add=TREE_STAFF_BONUS*k;
+    if(f&&f.cards.some(c=>c&&(c.kind==='troop'||c.kind==='wild'))){ f.eqBonus=(f.eqBonus||0)+add; const nr=evaluate(f); if(nr) f.result=nr; msg=`🌳 大樹の杖！ 旗に+${add}の加点（武器カードと同じ）。`; }
+    else msg='🌳 大樹の杖！（加点できるカードがなかった）'; }
   else if(col==='purple'){ const jt=nextDisTurn(); if(jt!=null){ const jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); msg=`🌙 冥府の鎌！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた！`; } else msg='🌙 冥府の鎌！（消せる妨害はなかった）'; }
   if(msg) setTimeout(()=>{ hint(msg,true); try{ playSfx('combo'); }catch(e){} },300);
   dlog('action',{name:'blade_'+col,raw});
@@ -8267,7 +8266,7 @@ const COMBO_BLADES={
   yellow:{name:'雷鳴刀',icon:'⚡',need:10,goal:8,price:350,desc:'黄のコンボが10以上のとき、黄のスーパーコンボを出すたびに敵の動きが1ターン止まる'},
   red:{name:'烈火の剣',icon:'🔥',need:30,goal:12,price:450,desc:'赤のコンボが30以上のとき、赤のスーパーコンボの攻撃力が3倍になる'},
   blue:{name:'氷結の槍',icon:'🔱',need:30,goal:8,price:350,desc:'青のコンボが30以上のとき、青のスーパーコンボを出すたびに、敵の攻撃力を10％減らす'},
-  green:{name:'大樹の杖',icon:'🌳',need:30,goal:8,price:350,desc:'緑のコンボが30以上のとき、緑のスーパーコンボを出すたびに、そのシートのカードが+1になる（役がくずれる時は上がらない）'},
+  green:{name:'大樹の杖',icon:'🌳',need:30,goal:8,price:350,desc:'緑のコンボが30以上のとき、緑のスーパーコンボを出すたびに、そのシートに武器カードのように+5の加点がつく（カードの数字は変わらない）'},
   purple:{name:'冥府の鎌',icon:'🪦',need:30,goal:8,price:350,desc:'紫のコンボが30以上のとき、紫のスーパーコンボを出すたびに、次の敵の妨害を1つ消す'}
 };
 const bladeNeed=(c)=>{ const b=COMBO_BLADES[c]; return b?b.need:0; };
