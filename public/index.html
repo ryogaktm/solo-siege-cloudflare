@@ -2014,7 +2014,7 @@ SKFN.chimera=m=>{   // キメラ：今使えるものからランダムに1つ
 };
 SKFN.bunshin=m=>{
   if(!skPay(m)) return;
-  giveHandCard({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true});
+  picked=null; hand.push({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true});   // 手札が満杯でも勝手に1枚消さない：上限をこえた分は、skDoneの後で自分で選んで捨てる
   skDone('🥷 分身！ 複製のカードが手札に来た。（この戦いの間だけ）');
 };
 SKFN.tentacle=m=>{
