@@ -2554,7 +2554,7 @@ const EVENT_INFO={
   rage:{icon:'🔥',label:'攻撃力×2',cls:'ev-rage'},
   seal:{icon:'🔒',label:'旗を封鎖',cls:'ev-seal'},
   poison:{icon:'☠',label:'毒',cls:'ev-poison'},
-  half:{icon:'🛡',label:'防御（次の攻撃半減）',cls:'ev-dis'},
+  half:{icon:'🛡',label:'防御（次の攻撃3割減）',cls:'ev-dis'},
   colnull:{icon:'🎨',label:'色封じ（特定色のコンボ無効）',cls:'ev-dis'},
   cfield:{icon:'💀',label:'カラフルフィールド',cls:'ev-dis'},
   pfield:{icon:'🌀',label:'パニックフィールド',cls:'ev-dis'},
@@ -2589,9 +2589,9 @@ const CURSE_DEF={
 };
 /* ===== 敵の妨害行動（月の民を倒した後、強めの敵から）：数字はここで調整 ===== */
 const DIS_START_LV=3;   // この強さ(lv)以上の敵から妨害を始める（72位→lv1 … 55位=lv18）
-const DIS_PARAM={jamRate:0.7, bashRate:0.7, bashPerCard:0.3, bashMulMin:0, bashTurnDown:0.05, bashHitDown:0.1, bashRateMin:0.1, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:13, earlyEvery:0.8, lateLv:40, lateEvery:0.25, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
+const DIS_PARAM={halfAtk:0.7, jamRate:0.7, bashRate:0.7, bashPerCard:0.3, bashMulMin:0, bashTurnDown:0.05, bashHitDown:0.1, bashRateMin:0.1, bashBase:200, venomDmg:2, punchRate:0.7, punchDmg:70, blindTurns:3, startTurn:6, assassinLv:22, midLv:58, minusRangeMid:[1,4], numMaxMid:6, earlyLv:13, earlyEvery:0.8, lateLv:40, lateEvery:0.25, softLv:28, softEvery:1.2, poisonTurns:5, removePenalty:5, bombPenalty:20, cfieldPenalty:5, colnullTurns:5, minusRange:[3,8], nullTurns:5, guardTurns:6, bguardTurns:4, bombFuse:5, bombKeep:0.5, darkTurns:5, halfTurns:6, rainTurns:10, harshLv:30, harshFavLv:48, every:0.40, wipeLv:8, softMul:1.1, wipeW:1};   // every＝妨害の間隔（敵のgap×この値）。妨害は最初の攻撃×2の半gap後から入り、順番は同じ敵との戦闘中は攻撃(wave)をまたいで続く
 // 通常敵：[最低lv, 行動の順番]（該当する最大のlvの行を使う。攻撃×2の次の枠に、この順で1つずつ入る）
-// half＝防御(次の攻撃半減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
+// half＝防御(次の攻撃3割減)／colnull＝色封じ(5ターン特定の色のコンボ無効)／guard,bguard＝コンボダウン(−1/−10：頻度は少なめ)／cfield＝カラフルフィールド／bomb＝時限ボム
 const DIS_TIERS=[
   [3,['half']],
   [10,['half','autonum','colnull','autonum']],
@@ -2608,7 +2608,7 @@ const DIS_BOSS={'火星人':['half','colnull','guard'],'水星人':['half','cfie
 ['assassinLv','midLv','earlyLv','lateLv','softLv','harshLv','harshFavLv','wipeLv'].forEach(k=>{ DIS_PARAM[k]=LV84(DIS_PARAM[k]); });
 DIS_TIERS.forEach(t=>{ t[0]=LV84(t[0]-(t[0]>80?10:0)); });   // 最後の段（LADDER_N-6）は、84体の時の78番目
 const DIS_OFF=['dark','deatheater'];   // 停止したい行動の名前を入れると、その行動は出なくなる
-const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(次に置いたカード1枚が一緒に墓地へ)',half:'防御(次の攻撃半減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',arrow:'矢印パネル(置いたカードが矢印の方向の旗へ滑る)',wipe:'全滅(旗を1つ空にするカード)'};
+const DIS_NAME={punch:'物理攻撃(70%で70ダメージ)',blind:'ブラインド(旗を3ターン黒い煙で覆う)',assassin:'暗殺(旗のカード1枚が墓地へ)',ghost:'ワームホール(次に置いたカード1枚が一緒に墓地へ)',half:'防御(次の攻撃3割減)',colnull:'色封じ(5T特定色コンボ無効)',guard:'コンボダウン(−1)',bguard:'大コンボダウン(−10)',bomb:'時限ボム',cfield:'カラフルフィールド',pfield:'パニックフィールド',autonum:'敵の数字カード設置',minus:'マイナスの武器(装備)',freeze:'いてつくはどう',dark:'暗闇',colhalf:'色コンボ半減',null:'無効の呪い',comboreset:'コンボリセット(全コンボ0)',minusrain:'マイナスレイン(10T数字−1)',deatheater:'デスイーター(旗の1枚目を食う)',arrow:'矢印パネル(置いたカードが矢印の方向の旗へ滑る)',wipe:'全滅(旗を1つ空にするカード)'};
 const EVENT_SHORT={punch:'殴る',blind:'煙',assassin:'暗殺',ghost:'ワーム',poison:'毒',seal:'封鎖',half:'防御',colnull:'色封じ',colhalf:'色半減',guard:'ｺﾝﾎﾞ↓',bguard:'ｺﾝﾎﾞ↓↓',bomb:'ボム',cfield:'カラフル',pfield:'パニック',autonum:'敵数字',minus:'マイナス',null:'無効',dark:'暗闇',freeze:'いてつく',comboreset:'ｺﾝﾎﾞ0',minusrain:'ﾏｲﾅｽ雨',deatheater:'ﾃﾞｽｲｰﾀｰ',arrow:'矢印',wipe:'全滅'};
 const BIG_EVS=['colhalf','colnull','comboreset','bguard','half','freeze','minusrain','punch'];   // 急に来ると困る「大技」：数ターン前からカウントダウンで知らせる
 const BIG_LEAD=3;
@@ -2728,7 +2728,7 @@ function disList(w){
   }
   return r;
 }
-const HARSH_DIS=['half','guard','bguard','comboreset','colnull','colhalf','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃半減、コンボ減らし等）
+const HARSH_DIS=['half','guard','bguard','comboreset','colnull','colhalf','null','freeze','dark'];   // 避けようがない妨害（防御＝次の攻撃3割減、コンボ減らし等）
 // ── 妨害技のレベル表 ──  [難しさ(1やさしい〜5きつい), 出始めの敵(何番目の敵から使うか。1〜94)]
 //  1＝置き方で避けられる／2＝旗1つが不自由になる／3＝カードや旗を失う／4＝数ターン全体に効く・攻撃が弱まる／5＝スーパーコンボを直接こわす
 const DIS_LEVEL={
@@ -2908,7 +2908,7 @@ const MB_COL={red:'#ff6a5a',orange:'#ffa94d',yellow:'#ffd84a',green:'#6fdc7a',bl
 function atkMultList(){   // 全体にかかる倍率（内訳と、常時表示で共通）
   const ms=[]; const add=(n,v)=>{ if(v!==1&&v!=null&&!isNaN(v)) ms.push([n,v]); };
   let qm=1; try{ qm=quickMult(waveTurns(),hasNoRoleFlag()); }catch(e){}
-  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃半減）',dis.halfNext?0.5:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
+  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃3割減）',dis.halfNext?DIS_PARAM.halfAtk:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
   add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?3:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
   let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
   return ms;
@@ -2956,7 +2956,7 @@ function liveAtk(){
   let v=score;
   if(!waveAdvancing){ try{ v+=computeMarkSynergyBonus().bonus; }catch(e){} v+=fireBonus(); }
   if(!waveAdvancing) v+=openFlagAtk();
-  return Math.max(0, v-poisonPenalty)*quickMult(waveTurns(),hasNoRoleFlag())*(dis.halfNext?0.5:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?3:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(waveTurns());
+  return Math.max(0, v-poisonPenalty)*quickMult(waveTurns(),hasNoRoleFlag())*(dis.halfNext?DIS_PARAM.halfAtk:1)*plAtkMult*(monkQ.length?monkQ[0]:1)*(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?3:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accAtkMul(waveTurns());
 }
 /* ================= DEBUG LOG ================= */
 let dbgLog=[], dbgSeq=0;
@@ -3149,7 +3149,7 @@ function gameAlert(msg){   // 画面に出るアラート（OKで閉じる）
 function syncGuardFx(){ try{ const m=document.getElementById('fighterMo'); if(m) m.classList.toggle('guarding',!!dis.halfNext); }catch(e){} }
 function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾マークを出し続ける
   try{ const el=document.getElementById('evSweep'); if(!el) return;
-    el.innerHTML='<span style="font-size:min(22px,5.2vw);white-space:nowrap">🛡 敵が防御！ 次の攻撃は半分</span>'; el.className='ev-sweep'; void el.offsetWidth; el.className='ev-sweep go shield'; }catch(e){}
+    el.innerHTML='<span style="font-size:min(22px,5.2vw);white-space:nowrap">🛡 敵が防御！ 次の攻撃は3割減</span>'; el.className='ev-sweep'; void el.offsetWidth; el.className='ev-sweep go shield'; }catch(e){}
 }
 /* ----- 敵の数字カード設置の「予定」：置くカード（色・数字）と置く旗は前もって決めておき、予測レーンと旗の右上に出す。旗が埋まったら、予定は別の旗へ移る ----- */
 let autoQ={}, autoSeq=0;   // autoQ[種類]=[予定,...]：その種類の「これから来る予定」を順番に持つ。敵の攻撃でラウンドがリセットされても、発動するまで同じ予定（カード・旗）が残る
@@ -3348,7 +3348,7 @@ function applyEnemyEvent(type,target,viaCard){
       hint(`🌀 敵が旗${pfi+1}にパニックフィールドを置いた！ 次にその旗へ置くカードの数字が逆転（革命）する。`,true); playSfx('warn'); try{ render(); }catch(e){}
     }
   } else if(type==='half'){
-    dis.halfNext=true; shieldAlert(); syncGuardFx(); hint('🛡 敵が防御の構え！ 次の攻撃のダメージが半分になる…',true); playSfx('warn');
+    dis.halfNext=true; shieldAlert(); syncGuardFx(); hint('🛡 敵が防御の構え！ 次の攻撃のダメージが3割減る…',true); playSfx('warn');
   } else if(type==='minus'){
     { const mpl=takeAutoPlan('minus'), mfi=autoTargetIdx(mpl); const me=makeMinusEq(); me.value=mpl.v; const cand=mfi<0?[]:[{f:flags[mfi],i:mfi}]; if(!cand.length){ hint('敵がマイナスの武器を置こうとしたが、置ける旗がなかった（封鎖などで防いだ）。',true); } else { const f=cand[Math.floor(Math.random()*cand.length)].f, ex=flagMonster(f); if(hauntBlock(flags.indexOf(f),'マイナスの武器')) return; if(ex){ const tot=monsterBonusFor(ex)+me.value; if(tot===0){ f.cards.splice(f.cards.indexOf(ex),1); } else { Object.assign(ex,{sub:'number',value:tot,accumulatedBonus:tot,color:undefined}); } hint(`➖ 敵がマイナスの武器（${me.value}）を重ねた！ 旗の装備が合計${tot}になった。プラスの武器を重ねれば減らせる。`,true); } else { me.accumulatedBonus=me.value; f.cards.push(me); hint(`➖ 敵が旗にマイナスの武器（${me.value}）を勝手に置いた！ 数字カードを置くと、その旗の合計が${me.value}される。プラスの武器を重ねれば減らせる。`,true); } playSfx('warn'); try{ render(); }catch(e){} } } 
   } else if(type==='null'){
@@ -4386,9 +4386,9 @@ function checkWaveOutcome(){
   if(qTurn<=ACC_PARAM.quickTurns) accStat.fastAtk=(accStat.fastAtk||0)+1;   // 取得条件：ブーツを持っていなくても数える
   if(qm>1){ try{ hint(`👢 早撃ち！ ${qTurn}ターンで完成${noRoleQ?'（役のない旗あり）':'（全部役あり）'} → 総攻撃力×${qm}`,true); playSfx('combo'); }catch(e){} }
   const accParts=accAtkParts(qTurn), coinHead=hasAcc('gambler')?Math.random()<0.5:null, coinM=coinHead===null?1:coinHead?1+ACC_NEW.coinWin*accX():ACC_NEW.coinLose, accM2=accParts.reduce((a,p)=>a*p[1],1)*coinM;
-  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?3:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accM2, pAtk=rawAtk*(halved?0.5:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1)*(atkFx.slime?0.5:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
+  const monkM=monkQ.length?monkQ.shift():1, fxM=(atkFx.oath?SKP.oath:1)*(atkFx.rush?2:1)*(atkFx.dive?3:1)*(atkFx.golem?0.5:1)*(provenOn()?2:1)*accM2, pAtk=rawAtk*(halved?DIS_PARAM.halfAtk:1)*plAtkMult*monkM*fxM, eAtk=enemyAtkAt(atkTurn)*(atkFx.rush?2:1)*(atkFx.slime?0.5:1);   // 突進（敵も自分も2倍）・闇の誓い（自分10倍）
   if(atkFx.rush||atkFx.oath){ try{ stageDmgPop('player',(atkFx.oath?'🌑闇の誓い ×'+SKP.oath+' ':'')+(atkFx.rush?'🐂突進 ×2':''),'',true); }catch(e){} atkFx.rush=false; atkFx.oath=false; }
-  if(atkFx.dive||atkFx.golem||atkFx.slime){ try{ stageDmgPop('player',[atkFx.dive?'🦅急降下 ×3':'',atkFx.golem?'🗿石の体 ×0.5':'',atkFx.slime?'🐌ぬめり 敵×0.5':''].filter(Boolean).join(' '),'',true); }catch(e){} atkFx.dive=false; atkFx.golem=false; atkFx.slime=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は半分
+  if(atkFx.dive||atkFx.golem||atkFx.slime){ try{ stageDmgPop('player',[atkFx.dive?'🦅急降下 ×3':'',atkFx.golem?'🗿石の体 ×0.5':'',atkFx.slime?'🐌ぬめり 敵×0.5':''].filter(Boolean).join(' '),'',true); }catch(e){} atkFx.dive=false; atkFx.golem=false; atkFx.slime=false; }   // モンク：ためる（次の攻撃が半分、その次が2倍）   // 敵の防御：次の攻撃は3割減
   if(accParts.length||coinHead!==null){ try{ const tx=accParts.map(p=>p[0]+' ×'+(Math.round(p[1]*100)/100)).concat(coinHead===null?[]:[coinHead?'🪙表！ ×'+coinM:'🪙裏… ×'+coinM]).join('  '); stageDmgPop('player',tx,'',true); hint(tx,true); }catch(e){} }
   if(halved){ dis.halfNext=false; syncGuardFx(); try{ stageDmgPop('monster','🛡防御！ 攻撃'+rawAtk+'→'+pAtk,''); }catch(e){} }
   let diff=pAtk-eAtk;
@@ -4425,7 +4425,7 @@ function checkWaveOutcome(){
   if(defeated){ try{ saveGame(true); }catch(e){} }   // 敵を倒した瞬間に保存（演出中にアプリが落ちても、勝利の続きから再開できる）
   if(synFx){ try{ synFx(); }catch(e){} }
   dlog('attack_calc',{stage:stageIndex+1, wave:waveAttempt, flags:dbgFlags0, scoreBefore:dbgScore0, superBonus:synergyBonus, superDetail:dbgSyn?dbgSyn.details:[], superMultUsed:dbgSyn&&dbgSyn.bonus>0?[].concat.apply([],dbgSyn.details.map(d=>d.mults)):null, superCarryAfter:carryTxt(), poison:atkPoison, atkTurn:atkTurn, enemyTurnNow:enemyTurn, pAtk:pAtk, eAtk:eAtk, eAtkNow:currentEnemyAtk(), diff:diff, dealt:dealt, taken:taken, dmgMult:damageMult(), takenReal:takenReal, rolesAllDone:allRolesDone(), sealPenalty:sealPenalty, pHpBefore:dbgP0, pHpAfter:playerHp, eHpBefore:dbgB0, eHpAfter:bossHp, defeated:defeated});
-  hint(`${halved?`🛡敵の防御で攻撃が半分に！（${rawAtk}→${pAtk}）\n`:''}攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
+  hint(`${halved?`🛡敵の防御で攻撃が3割減！（${rawAtk}→${pAtk}）\n`:''}攻撃！ 戦力${pAtk} − 敵${eAtk} = ${diff>=0?'+':''}${diff}${diff>0?'（敵にダメージ）':(diff<0?(damageMult()>1?`（役が揃っていないためダメージ${takenReal}＝${taken}×2）`:'（自分がダメージ）'):'（相殺）')}${sealPenalty>0?` ／ 封鎖された旗のため追加で${sealPenalty}ダメージ`:''}`, diff<0||sealPenalty>0);
   let revivedNow=false;
   if(!defeated && playerHp<=0 && (hpStock>0||zombieRevive||immortalReady||phxReady())){ revivedNow=tryRevive(); }
   if(!defeated && playerHp<=0){
@@ -5838,7 +5838,7 @@ const EVENT_DESC={
   rage:()=>`敵が怒り狂い、攻撃力が${BALANCE.rageMultiplier}倍になる。`,
   poison:()=>`山札にある「毒」の呪いカード。引いて使うと${DIS_PARAM.poisonTurns}ターンの間、毎ターン${DIS_PARAM.venomDmg}ダメージを受ける。捨てられない。`,
   seal:()=>`山札にある「封鎖」の呪いカード。使うと好きな旗を1つ封鎖できる。捨てられない。`,
-  half:()=>'敵が防御の構え。次のあなたの攻撃のダメージが半分になる。',
+  half:()=>'敵が防御の構え。次のあなたの攻撃のダメージが3割減る。',
   colnull:()=>`特定の色の力を${DIS_PARAM.colnullTurns}ターン封じる。その色のコンボが無効になる。`,
   colhalf:()=>`特定の色のコンボ威力が一定ターン半分になる。`,
   guard:()=>`コンボが−1される状態が${DIS_PARAM.guardTurns}ターン続く。`,
@@ -6018,7 +6018,7 @@ function renderBattle(){
   const pend = !!prevSnap && flags.length>0 && flags.every(f=>f.closed);
   { let db=document.getElementById('disBadge'); const pb=document.getElementById('predBox');
     if(!db&&pb){ db=document.createElement('div'); db.id='disBadge'; db.style.cssText='grid-column:1/-1;font-size:11px;color:#e3c8ff;text-align:center;min-height:0;white-space:normal;'; pb.appendChild(db); }
-    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃半減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×'+SKP.oath); if(fireOn) a.push('🔥火炎放射:このwaveは赤の旗の攻撃力×'+SKP.fireMul); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の'+bulletLeft+'回の行動はターンを使わない'); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); try{ accAtkParts(enemyTurn).forEach(p=>a.push(p[0]+':総攻撃力×'+(Math.round(p[1]*100)/100))); if(hasAcc('discard_glove')) a.push(`🧤手袋あと${Math.max(0,ACC_NEW.glove*accX()-gloveUsed)}回`); if(hasAcc('lantern')) a.push(lanternUsed?'🏮ランタン使用済み':'🏮ランタン待機中'); if(hasAcc('rod')) a.push('⚡避雷針:妨害は一番カードが少ない旗へ'); }catch(e){} db.textContent=a.join('  '); }
+    if(db){ const a=[]; if(disGuardOn()) a.push(`🛡コンボ−${dis.guardN}(あと${dis.guardUntil-enemyTurn})`); if(dis.halfNext) a.push('🛡次の攻撃3割減'); if(dis.halfColor&&enemyTurn<dis.halfUntil) a.push(`🎨${CNAME[dis.halfColor]}${dis.halfMul===0?'無効':'×½'}(あと${dis.halfUntil-enemyTurn})`); if(disDarkOn()) a.push(`🌑暗闇(あと${dis.darkUntil-turnCounter})`); if(nullOn()) a.push(`🚫軍師無効(あと${dis.nullUntil-turnCounter})`); if(poisonOn()) a.push(`🌧マイナスレイン:数字−1(あと${dis.poisonUntil-turnCounter})`); if(atkFx.rush) a.push('🐂突進:次の一斉攻撃 敵も自分も×2'); if(atkFx.oath) a.push('🌑闇の誓い:次の攻撃×'+SKP.oath); if(fireOn) a.push('🔥火炎放射:このwaveは赤の旗の攻撃力×'+SKP.fireMul); if(mountOn) a.push('⛰山のように:妨害でコンボが減らない'); if(bulletLeft>0&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='twohead') a.push('🐲次の'+bulletLeft+'回の行動はターンを使わない'); if(immortalReady) a.push('♾不死身:1回だけ生き返る'); if(provenOn()) a.push('🏆最強の証明:総攻撃力×2'); try{ accAtkParts(enemyTurn).forEach(p=>a.push(p[0]+':総攻撃力×'+(Math.round(p[1]*100)/100))); if(hasAcc('discard_glove')) a.push(`🧤手袋あと${Math.max(0,ACC_NEW.glove*accX()-gloveUsed)}回`); if(hasAcc('lantern')) a.push(lanternUsed?'🏮ランタン使用済み':'🏮ランタン待機中'); if(hasAcc('rod')) a.push('⚡避雷針:妨害は一番カードが少ない旗へ'); }catch(e){} db.textContent=a.join('  '); }
     try{ document.body.classList.toggle('rain-on', !!poisonOn()&&!gameEnded&&document.getElementById('titleScreen').style.display!=='flex'); }catch(e){} }
   try{ updateMultBar(); }catch(e){}
   const eA = pend ? enemyAtkAt(prevSnap.t) : currentEnemyAtk();
