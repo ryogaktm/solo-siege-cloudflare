@@ -1799,13 +1799,13 @@ function skPay(m){ const bad=skCheck(m); if(bad){ gameAlert(bad); return false; 
   if(c.comboAll && !scPay(c.comboAll,1,v=>v)) return false;
   if(hpN) playerHp-=hpN; if(c.gold) gold-=skGoldCost(c); if(c.count) spec.mon++; return true; }
 function skDone(msg){ if(msg) hint(msg,true); playSfx('combo'); render(); try{ layoutHand(false); }catch(e){} trimHand(); }
-function trimHand(cb){   // 鉄則：手札が上限をこえたら、こえた分を選んで墓地へ捨てる（キャンセル不可）
-  const over=hand.length-currentHandMax(), cand=hand.filter(c=>!isCurse(c)&&!isEnemyEq(c));
+function trimHand(cb,reserve=0){   // 鉄則：手札が上限をこえたら、こえた分を選んで墓地へ捨てる（キャンセル不可）。reserve＝これから加えるカードの分の空きを先に作る
+  const over=hand.length-(currentHandMax()-reserve), cand=hand.filter(c=>!isCurse(c)&&!isEnemyEq(c));
   if(over<=0||!cand.length){ if(cb) cb(); return; }
   const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.cssText='display:flex;z-index:10000';
-  bg.innerHTML=`<div class="reward-box"><div class="reward-title">手札が上限（${currentHandMax()}枚）をこえました</div><div class="reward-sub">捨てるカードを選んでください（あと${over}枚）</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:60vh;overflow:auto">${cand.map((c,i)=>`<button class="btn" data-i="${i}">${cardLabelHtml(c)}</button>`).join('')}</div></div>`;
+  bg.innerHTML=`<div class="reward-box"><div class="reward-title">${reserve?'手札がいっぱいです（カードを加える前に捨てます）':`手札が上限（${currentHandMax()}枚）をこえました`}</div><div class="reward-sub">捨てるカードを選んでください（あと${over}枚）</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:60vh;overflow:auto">${cand.map((c,i)=>`<button class="btn" data-i="${i}">${cardLabelHtml(c)}</button>`).join('')}</div></div>`;
   document.body.appendChild(bg);
-  bg.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ bg.remove(); const c=cand[+b.dataset.i], ix=hand.indexOf(c); if(ix>=0) graveyard.push(hand.splice(ix,1)[0]); render(); try{ layoutHand(false); }catch(e){} trimHand(cb); });
+  bg.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ bg.remove(); const c=cand[+b.dataset.i], ix=hand.indexOf(c); if(ix>=0) graveyard.push(hand.splice(ix,1)[0]); render(); try{ layoutHand(false); }catch(e){} trimHand(cb,reserve); });
 }
 function waitIdle(){ return new Promise(res=>{ const t=()=>{ if(!busy&&!pending) res(); else setTimeout(t,80); }; t(); }); }
 function dyeClear(){ try{ [activeDeck,grandDeck,hand,graveyard,stomach,pendingRewardCards,...flags.map(f=>f.cards)].forEach(arr=>{ if(arr) arr.forEach(c=>{ if(c&&c.dyeOrig){ Object.assign(c,c.dyeOrig); delete c.dyeOrig; } }); }); }catch(e){} }
@@ -2014,8 +2014,8 @@ SKFN.chimera=m=>{   // キメラ：今使えるものからランダムに1つ
 };
 SKFN.bunshin=m=>{
   if(!skPay(m)) return;
-  picked=null; hand.push({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true});   // 手札が満杯でも勝手に1枚消さない：上限をこえた分は、skDoneの後で自分で選んで捨てる
-  skDone('🥷 分身！ 複製のカードが手札に来た。（この戦いの間だけ）');
+  picked=null;   // 手札がいっぱいなら、先に捨てるカードを自分で選ぶ。そのあとで複製のカードを手札に加える
+  trimHand(()=>{ hand.push({kind:'tactics',...TACTICS.find(t=>t.type==='duplicate'),uid:uid(),temp:true}); skDone('🥷 分身！ 複製のカードが手札に来た。（この戦いの間だけ）'); },1);
 };
 SKFN.tentacle=m=>{
   const fl=ownFlagTroops(); if(!fl.length) return hint('未完成の旗に、戻せる数字カードがありません。',true);
