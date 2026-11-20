@@ -1175,7 +1175,7 @@
   <div class="topbar">
     <div class="char-badge-wrap"><div class="char-badge">
       <span class="char-badge-name" id="topCharName">歴戦の英雄</span>
-      <span class="char-badge-score">ベスト <b id="topCharBest">0</b></span>
+      <span class="char-badge-score">ベスト <b id="topCharBest">0</b>　<span title="所持金">💰<b id="topGold">0</b>G</span></span>
     </div></div>
     <div class="topbar-btns">
 <div class="actionrow topact">
@@ -6071,6 +6071,7 @@ function updateSpecGauges(){   // 特殊技ボタンの下に、「次の+1ま�
     const got=Math.min(mx,(specProg[k]||0)+(spec[k]||0)); b.setAttribute('data-gp','1'); b.style.setProperty('--gp',got/mx); b.title='貯まり '+got+'/'+mx+'（貯まりきると次の戦いから回数+1）'; });
 }
 function render(){
+  try{ const tg=document.getElementById('topGold'); if(tg) tg.textContent=Math.max(0,Math.floor(gold||0)); }catch(e){}   // 戦闘中も所持金が見える
   refreshClosedFlags();
   if(slotStash&&!pending) slotBack();
   sanitizeHandAndDeck();
