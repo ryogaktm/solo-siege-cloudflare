@@ -479,6 +479,8 @@
 
   .actionrow{ display:flex; gap:8px; margin-bottom:4px; }
   .actionrow.topact{ margin:0; gap:5px; }
+  .gold-chip{ white-space:nowrap; flex:none; padding:5px 9px; font-size:12px; font-weight:800; color:var(--cream-2); background:rgba(0,0,0,.28); border:1px solid rgba(240,200,90,.35); border-radius:10px; font-family:'Noto Sans JP',sans-serif; }
+  .gold-chip b{ color:var(--gold); font-family:'Cinzel',serif; margin:0 1px; }
   .topact .giveup-btn{ white-space:nowrap; flex:none; padding:5px 9px; font-size:11.5px; }
   .topbar-btns{ gap:5px; }
 
@@ -1175,12 +1177,10 @@
   <div class="topbar">
     <div class="char-badge-wrap"><div class="char-badge">
       <span class="char-badge-name" id="topCharName">歴戦の英雄</span>
-      <span class="char-badge-score">ベスト <b id="topCharBest">0</b>　<span title="所持金">💰<b id="topGold">0</b>G</span></span>
+      <span class="char-badge-score">ベスト <b id="topCharBest">0</b></span>
     </div></div>
     <div class="topbar-btns">
-<div class="actionrow topact">
-        <button class="giveup-btn" id="giveupBtn">ギブアップ</button>
-      </div>
+<div class="gold-chip" title="所持金">💰<b id="topGold">0</b>G</div>
       <button class="iconbtn" id="panelBtn" aria-label="アクセサリー獲得パネル">🎯</button>
       <button class="iconbtn" id="accBtn">🎒</button>
       <button class="iconbtn" id="helpBtn">?</button>
@@ -1192,6 +1192,7 @@
     <button class="menu-item" id="bgmToggleBtn">🎵 BGM：ON</button>
     <button class="menu-item" id="dbgLogBtn">🐞 デバッグログ</button>
     <button class="menu-item" id="menuToTitleBtn">🏠 タイトルへ戻る</button>
+    <button class="menu-item" id="giveupBtn" style="color:#ffcfc2">🏳 ギブアップ</button>
   </div>
 
   <div class="stage" id="stage">
