@@ -452,6 +452,18 @@
   .ev-sweep{ position:fixed; left:0; right:0; top:42%; height:64px; z-index:160; pointer-events:none; display:none; align-items:center; justify-content:center; background:linear-gradient(90deg,rgba(0,0,0,0),rgba(200,40,30,.88) 18%,rgba(200,40,30,.88) 82%,rgba(0,0,0,0)); color:#fff; font-size:28px; font-weight:900; text-shadow:0 0 8px #000; white-space:nowrap; }
   .ev-sweep.go{ display:flex; animation:ev-sweep-go 1.15s cubic-bezier(.2,.7,.3,1) forwards; }
   .ev-sweep.shield{ background:linear-gradient(90deg,rgba(0,0,0,0),rgba(30,110,230,.95) 18%,rgba(30,110,230,.95) 82%,rgba(0,0,0,0)); }
+  /* 身を守る系（骨の盾・鉄壁・石の体・防御・山のように）：キャラのまわりにシールド */
+  .fighter.pl .pl-shield{ position:absolute; left:50%; top:50%; width:74px; height:74px; margin:-40px 0 0 -37px; border-radius:50%; pointer-events:none; z-index:5; opacity:0; transition:opacity .25s;
+    background:radial-gradient(circle at 50% 45%, rgba(120,190,255,.10) 40%, rgba(80,160,255,.30) 72%, rgba(190,230,255,.75) 100%);
+    box-shadow:0 0 10px 2px rgba(80,170,255,.75), inset 0 0 12px rgba(160,215,255,.8); border:2px solid rgba(200,235,255,.9); }
+  .fighter.pl.shielded .pl-shield{ opacity:1; animation:plShieldPulse 1.6s ease-in-out infinite; }
+  .fighter.pl .pl-shield::after{ content:attr(data-n); position:absolute; right:-4px; top:-6px; min-width:18px; height:18px; border-radius:9px; background:#1e6ee6; border:2px solid #bfe0ff; color:#fff; font-size:11px; font-weight:900; line-height:14px; text-align:center; display:none; }
+  .fighter.pl .pl-shield[data-n]:not([data-n="1"]):not([data-n=""])::after{ display:block; }
+  .fighter.pl .pl-shield.pop{ animation:plShieldPop .6s ease-out 1; opacity:1; }
+  .fighter.pl .pl-shield.hit{ animation:plShieldHit .45s ease-out 1; opacity:1; }
+  @keyframes plShieldPulse{ 0%,100%{ transform:scale(1); filter:brightness(1); } 50%{ transform:scale(1.06); filter:brightness(1.25); } }
+  @keyframes plShieldPop{ 0%{ transform:scale(.3); filter:brightness(2.2); } 60%{ transform:scale(1.25); } 100%{ transform:scale(1); filter:brightness(1); } }
+  @keyframes plShieldHit{ 0%{ transform:scale(1); filter:brightness(3); } 40%{ transform:scale(1.3); opacity:.9; } 100%{ transform:scale(1.7); opacity:0; } }
   .fighter.mo.guarding .spr, .fighter.mo.guarding #waveSpr{ filter:drop-shadow(0 0 6px #4aa8ff) drop-shadow(0 0 12px #2a7bff); }
   .fighter.mo.guarding::after{ content:'🛡 攻撃半減'; position:absolute; left:50%; top:-22px; transform:translateX(-50%); white-space:nowrap; font-size:13px; font-weight:900; color:#fff; background:#1e6ee6; border:2px solid #bfe0ff; border-radius:12px; padding:1px 8px; box-shadow:0 0 10px #4aa8ff; animation:evSoft 1.2s ease-in-out infinite; z-index:7; }
   .ev-sweep.k1{ background:linear-gradient(90deg,rgba(0,0,0,0),rgba(235,25,15,.95) 18%,rgba(235,25,15,.95) 82%,rgba(0,0,0,0)); }
@@ -1205,7 +1217,7 @@
       <div class="st-side pl"><div class="atk-grp" id="atkGrp" style="cursor:pointer"><span class="atk-sw" id="plAtkSw">⚔</span><span class="power-num" id="scoreNum">0</span><span style="font-size:10px;opacity:.75;margin-left:2px">📊</span></div></div>
       <div class="st-side en"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num enemy-num" id="enemyAtkNum">0</span><span id="evCountdown" class="ev-cd" style="display:none"></span></div></div>
     </div>
-    <div class="fighter pl" id="fighterPl"><span id="topCharSpr"></span></div>
+    <div class="fighter pl" id="fighterPl"><span id="topCharSpr"></span><div class="pl-shield" id="plShield"></div></div>
     <div class="fighter mo" id="fighterMo"><span id="waveSpr"></span></div>
     <div id="evBanner" class="ev-banner"></div>
   </div>
@@ -2002,7 +2014,7 @@ SKFN.sacrifice=m=>{
 const NEWMON_FX={   // [使えない理由（なければ null）, 効果（メッセージを返す）]
   slimy:[()=>atkFx.slime?'すでにぬめりの準備ができています。':null, ()=>{ atkFx.slime=true; return '🐌 ぬめり！ 次の一斉攻撃で、敵の攻撃力が半分になる。'; }],
   boneshield:[()=>boneUsedAt===null||waveSerial>=boneUsedAt+2?null:(waveSerial===boneUsedAt?'骨の盾は、このwaveではもう使いました。':'骨の盾は、続けて2つのwaveでは使えません。（次のwaveで使えます）'), ()=>{ wallOn=(+wallOn||0)+1; boneUsedAt=waveSerial; return `🦴 骨の盾！ 次に受ける敵の攻撃を無効にする。（次のwaveは使えません）`; }],   // 何度でも使えるが、続けて2つのwaveでは使えない   // 何度でも重ねて使える（重ねた回数ぶん、敵の攻撃を無効）
-  phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
+  phase:[()=>nextDisTurn()==null?'この先に妨害の予定がありません。':null, ()=>{ const jt=nextDisTurn(), jty=enemySched[jt]; delete enemySched[jt]; if(FLAG_EVS.includes(jty)) takeAutoPlan(jty); try{ playerShieldPop('pop'); }catch(e){} return `👻 すり抜け！ 次の妨害（${(EVENT_INFO[jty]||{}).label||jty}）が消えた。`; }],
   stonebody:[()=>atkFx.golem?'すでに石の体になっています。':null, ()=>{ atkFx.golem=true; guardOn=true; try{ syncGuardFx(); }catch(e){} return '🗿 石の体！ このwaveは受けるダメージが半分。次の一斉攻撃の攻撃力も半分。'; }],
   cauldron:[()=>{ graveyard=graveyard.filter(c=>!isEnemyCard(c)); return !graveyard.some(c=>!c.temp)?'墓地にカードがありません。':null; }, ()=>{ const got=[]; for(let i=0;i<2;i++){ const ix=graveyard.map((c,j)=>c.temp?-1:j).filter(j=>j>=0); if(!ix.length) break; const c=graveyard.splice(ix[Math.floor(Math.random()*ix.length)],1)[0]; hand.push(c); got.push(c.kind==='troop'?`${CNAME[c.color]||''}${c.value}`:(c.name||'カード')); } return `🧙 呪いの鍋！ 墓地から${got.join('・')}が手札に戻った。`; }],
   stampede:[()=>flags.some(f=>f.closed&&f.result&&f.result.base>0)?null:'攻撃力のある閉じた旗がありません。', ()=>{ const cl=flags.filter(f=>f.closed&&f.result&&f.result.base>0); const mx=cl.reduce((a,f)=>flagShown(a)>=flagShown(f)?a:f); const d=flagShown(mx); score+=mx.result.base; mx.result.base*=2; return `🐃 猛進！ 一番強い旗の攻撃力が2倍になった。（+${fmtCompact(d)}）`; }],
@@ -3143,6 +3155,14 @@ function gameAlert(msg){   // 画面に出るアラート（OKで閉じる）
   bg.innerHTML=`<div class="reward-box"><div class="reward-title">⚠ できません</div><div class="reward-sub" style="margin-top:8px;white-space:pre-line">${msg}</div><button class="btn" id="gaOk" style="width:100%;margin-top:12px">OK</button></div>`;
   document.body.appendChild(bg); bg.querySelector('#gaOk').onclick=()=>bg.remove();
 }
+let _shPrev=0;
+function playerShieldPop(kind){ try{ const e=document.getElementById('plShield'); if(!e) return; e.classList.remove('pop','hit'); void e.offsetWidth; e.classList.add(kind||'pop'); setTimeout(()=>e.classList.remove('pop','hit'),700); }catch(err){} }
+function syncPlayerShield(){   // 身を守る状態（骨の盾・仲間の壁・鉄壁・石の体・防御・山のように）の間、キャラのまわりにシールドを出す
+  try{ const f=document.getElementById('fighterPl'), e=document.getElementById('plShield'); if(!f||!e) return;
+    const w=Math.max(0,+wallOn||0), n=w+(guardOn?1:0)+(defendOn?1:0)+(mountOn?1:0);
+    f.classList.toggle('shielded',n>0); e.setAttribute('data-n',n>1?String(n):'');
+    if(n>_shPrev){ playerShieldPop('pop'); try{ playSfx('place'); }catch(x){} }
+    _shPrev=n; }catch(err){} }
 function syncGuardFx(){ try{ const m=document.getElementById('fighterMo'); if(m) m.classList.toggle('guarding',!!dis.halfNext); }catch(e){} }
 function shieldAlert(){   // 防御：画面いっぱいの青い帯＋敵に盾マークを出し続ける
   try{ const el=document.getElementById('evSweep'); if(!el) return;
@@ -4409,7 +4429,7 @@ function checkWaveOutcome(){
   const sealedCount=flags.filter(f=>isLocked(f)).length;
   let sealPenalty = sealedCount>0 ? buzzGate(Math.max(1,Math.round(eAtk*BALANCE.sealPenaltyRate*(guardOn?0.5:1)))) : 0;
   if(wallOn&&sealPenalty>0){ sealPenalty=0; wallHit=true; }
-  if(wallHit){ wallOn=Math.max(0,(+wallOn||0)-1); try{ stageDmgPop('monster','🧱仲間の壁！ 攻撃を無効','',true); }catch(e){} }
+  if(wallHit){ wallOn=Math.max(0,(+wallOn||0)-1); try{ stageDmgPop('monster','🧱仲間の壁！ 攻撃を無効','',true); }catch(e){} try{ playerShieldPop('hit'); }catch(e){} }
   if(guardOn && (taken>0||sealPenalty>0)) guardOn=false;
   if(sealPenalty>0) sealPenalty=shieldAbsorb(sealPenalty);
   if(sealPenalty>0){ playerHp=Math.max(0, playerHp-sealPenalty); }
@@ -6004,7 +6024,7 @@ function specUpAlert(lines){
 }
 function renderBattle(){
   checkSpecMaxUp();
-  updateBarrier(); syncGuardFx();
+  updateBarrier(); syncGuardFx(); syncPlayerShield();
   const pct=Math.min(100,Math.max(0,playerHp/playerHpMax*100));
   const f=document.getElementById('playerHpFill'); if(f){ f.style.width=pct+'%'; f.classList.toggle('over',playerHp>playerHpMax); }
   { const fp=document.getElementById('fighterPl'); if(fp) fp.classList.toggle('buzz',buzzTurns>0); }
