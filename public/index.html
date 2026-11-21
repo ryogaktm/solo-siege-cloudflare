@@ -8936,7 +8936,7 @@ function refreshPrep(){
   const nx=WAVES[nextStageIdx>=0?nextStageIdx:Math.min(stageIndex+1,LADDER_N-1)];
   try{ document.getElementById('prepFoe').innerHTML=spriteSVG(monSprKey(nx),72,'',true); }catch(e){}
   const nb=battleNo+1, nbTxt=`第${nb}戦`;
-  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
+  document.getElementById('prepInfo').innerHTML=`<b style="color:var(--gold);font-size:1.15em">${nbTxt}</b><br>次の敵：${nx.name}${nx.boss?'':`（${nx.rank}位／${LADDER_N}）`}<br>❤ 自分 <b>${Math.ceil(playerHp)}/${playerHpMax}</b>　💀 敵 <b>${fmtCompact(nx.threshold)}</b><br>所持金 <b>${gold}G</b>　装備枠 ${accEq.length}/${ACC_SLOTS}`;
   try{ const pc=document.getElementById('prepCarry'); if(pc&&comboRestricted()){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">コンボ制限中：倍率×'+COMBO_CAP+'まで・次の戦いへの持ち越し無し（月の民を倒すと解除）</span>'; } else if(pc){ const ks=Object.keys(carryMap).filter(c=>carryMap[c]>0&&CFILL[c]); if(ks.length){ pc.style.display='flex'; pc.innerHTML='<span class="pc-t">引き継ぎ</span>'+ks.map(c=>`<span class="pc-i">${miniIcon(EMBLEM[c],CFILL[c])}×${carryMap[c]}</span>`).join(''); } else pc.style.display='none'; } }catch(e){}
 }
 function prepGo(){
