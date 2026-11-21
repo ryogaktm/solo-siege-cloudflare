@@ -619,14 +619,14 @@
     filter:drop-shadow(0 0 4px rgba(224,90,74,.9));
   }
   .pcard.mini.purchased::after{ font-size:11px; }
-  .arrow-panel{ position:absolute; left:50%; top:50%; width:44%; max-width:64px; aspect-ratio:1/1.3; margin:0; transform:translate(-50%,-50%); z-index:12; pointer-events:none; border-radius:8px; border:2px solid #ffb45e; background:linear-gradient(145deg, rgba(122,74,18,.93), rgba(58,34,6,.93)); box-shadow:0 0 12px rgba(255,170,60,.8); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  .arrow-panel{ position:absolute; left:50%; top:50%; width:44%; max-width:64px; aspect-ratio:1/1.3; margin:0; transform:translate(-50%,-50%); z-index:12; pointer-events:none; border-radius:8px; border:2px dashed #ffb45e; background:linear-gradient(145deg, rgba(122,74,18,.16), rgba(58,34,6,.16)); box-shadow:0 0 10px rgba(255,170,60,.7);   /* 下に置かれたカードの数字が見えるよう、ほぼ透明にする */ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
   .hole-panel{ position:absolute; left:50%; top:50%; width:46%; max-width:70px; transform:translate(-50%,-50%); z-index:12; pointer-events:none; display:flex; flex-direction:column; align-items:center; gap:2px; }
   .hole-panel i{ display:block; width:100%; aspect-ratio:1/1; border-radius:50%; background:radial-gradient(circle, #000 0 34%, #2a0a4a 52%, #6a2ad0 68%, rgba(120,60,220,0) 74%); box-shadow:0 0 14px rgba(140,80,255,.85); animation:holeSpin 2.4s linear infinite; }
   .hole-panel span{ font-size:8.5px; font-weight:900; color:#e6d4ff; white-space:nowrap; text-shadow:0 1px 2px #000; }
   @keyframes holeSpin{ 0%{ transform:scale(1) rotate(0); } 50%{ transform:scale(1.1) rotate(180deg); } 100%{ transform:scale(1) rotate(360deg); } }
-  .arrow-panel svg{ width:66%; height:auto; }
+  .arrow-panel svg{ width:66%; height:auto; filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 3px rgba(0,0,0,.9)); }
   .arrow-panel svg path{ animation:arrowNudge 1s ease-in-out infinite; }
-  .arrow-panel span{ font-size:9px; font-weight:900; color:#ffe9a8; white-space:nowrap; }
+  .arrow-panel span{ font-size:9px; font-weight:900; color:#ffe9a8; white-space:nowrap; text-shadow:0 0 3px #000,0 1px 2px #000; }
   .arrow-panel.go{ box-shadow:0 0 22px 6px rgba(255,215,94,1); border-color:#fff3c4; }
   @keyframes arrowNudge{ 0%,100%{ transform:translateY(1.5px); } 50%{ transform:translateY(-2px); } }
   .pcard.special{
