@@ -619,13 +619,16 @@
     filter:drop-shadow(0 0 4px rgba(224,90,74,.9));
   }
   .pcard.mini.purchased::after{ font-size:11px; }
-  .arrow-panel{ position:absolute; left:50%; top:50%; width:44%; max-width:64px; aspect-ratio:1/1.3; margin:0; transform:translate(-50%,-50%); z-index:12; pointer-events:none; border-radius:8px; border:2px dashed #ffb45e; background:linear-gradient(145deg, rgba(122,74,18,.16), rgba(58,34,6,.16)); box-shadow:0 0 10px rgba(255,170,60,.7);   /* 下に置かれたカードの数字が見えるよう、ほぼ透明にする */ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  .arrow-panel{ position:absolute; left:50%; top:50%; width:44%; max-width:64px; aspect-ratio:1/1.3; margin:0; transform:translate(-50%,-50%); z-index:12; overflow:visible; pointer-events:none; border-radius:8px; border:2px dashed #ffb45e; background:linear-gradient(145deg, rgba(122,74,18,.16), rgba(58,34,6,.16)); box-shadow:0 0 10px rgba(255,170,60,.7);   /* 下に置かれたカードの数字が見えるよう、ほぼ透明にする */ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
   .hole-panel{ position:absolute; left:50%; top:50%; width:46%; max-width:70px; transform:translate(-50%,-50%); z-index:12; pointer-events:none; display:flex; flex-direction:column; align-items:center; gap:2px; }
   .hole-panel i{ display:block; width:100%; aspect-ratio:1/1; border-radius:50%; background:radial-gradient(circle, #000 0 34%, #2a0a4a 52%, #6a2ad0 68%, rgba(120,60,220,0) 74%); box-shadow:0 0 14px rgba(140,80,255,.85); animation:holeSpin 2.4s linear infinite; }
   .hole-panel span{ font-size:8.5px; font-weight:900; color:#e6d4ff; white-space:nowrap; text-shadow:0 1px 2px #000; }
   @keyframes holeSpin{ 0%{ transform:scale(1) rotate(0); } 50%{ transform:scale(1.1) rotate(180deg); } 100%{ transform:scale(1) rotate(360deg); } }
   .arrow-panel svg{ width:66%; height:auto; filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 3px rgba(0,0,0,.9)); }
   .arrow-panel svg path{ animation:arrowNudge 1s ease-in-out infinite; }
+  .arrow-panel .ap-cards{ display:flex; flex-wrap:wrap; justify-content:center; gap:2px; max-width:100%; }
+  .arrow-panel .ap-cards i{ font-style:normal; display:inline-flex; align-items:center; gap:1px; font-size:11px; line-height:1; font-weight:900; color:#fff; background:rgba(0,0,0,.72); border-radius:6px; padding:2px 3px; }
+  .arrow-panel .ap-cards .mini-mark{ width:11px; height:11px; }
   .arrow-panel span{ font-size:9px; font-weight:900; color:#ffe9a8; white-space:nowrap; text-shadow:0 0 3px #000,0 1px 2px #000; }
   .arrow-panel.go{ box-shadow:0 0 22px 6px rgba(255,215,94,1); border-color:#fff3c4; }
   @keyframes arrowNudge{ 0%,100%{ transform:translateY(1.5px); } 50%{ transform:translateY(-2px); } }
@@ -6254,7 +6257,7 @@ function render(){
       }catch(e){}
     }
     if(haunt[i]>0&&!f.closed){ const hm=document.createElement('div'); hm.className='hole-panel'; hm.innerHTML='<i></i><span>置いたカードごと墓地へ</span>'; d.appendChild(hm); }
-    if(arrowOn(f)){ const am=document.createElement('div'); am.className='arrow-panel'; am.style.setProperty('--ax',(f.arrow.dx*5)+'px'); am.style.setProperty('--ay',(f.arrow.dy*5)+'px'); am.innerHTML=`<svg viewBox="0 0 24 24" style="transform:rotate(${f.arrow.deg}deg)"><path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="#ffd75e" stroke="#5a3206" stroke-width="1.4" stroke-linejoin="round"/></svg><span>旗${arrowDest(i,f.arrow)+1}へ</span>`; d.appendChild(am); }
+    if(arrowOn(f)){ const am=document.createElement('div'); am.className='arrow-panel'; am.style.setProperty('--ax',(f.arrow.dx*5)+'px'); am.style.setProperty('--ay',(f.arrow.dy*5)+'px'); am.innerHTML=`<svg viewBox="0 0 24 24" style="transform:rotate(${f.arrow.deg}deg)"><path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="#ffd75e" stroke="#5a3206" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="ap-cards">${f.cards.filter(c=>c&&!isEnemyCard(c)).map(c=>`<i>${upcomingChipLabel(c)}</i>`).join('')}</span>`; d.appendChild(am); }   // 下にあるカードの色と数字を小さく表示（行き先の旗は出さない）
     if(eaterOn(f)){ const em=document.createElement('div'); em.style.cssText='position:absolute;left:50%;top:-2px;transform:translateX(-50%);z-index:13;pointer-events:none;padding:2px 8px;border-radius:10px;background:rgba(120,20,40,.92);border:1px solid #ff8a9a;color:#fff;font-size:11px;font-weight:800;white-space:nowrap'; em.textContent=`👹 デスイーター あと${f.eater-enemyTurn}ターン`; d.appendChild(em); }
     if(blindOn(f)&&!f.closed){ const sm=document.createElement('div'); sm.className='smoke'; sm.innerHTML=`<span>🌫 あと${f.blindUntil-enemyTurn}ターン</span>`; d.appendChild(sm); }
     d.onclick=()=>tapFlag(i);
