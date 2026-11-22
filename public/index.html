@@ -1294,6 +1294,7 @@
       <button class="spec-btn" id="specBullet"><span class="si">⏱</span><span class="sl">バレットタイム</span><b id="specBulletN">1</b></button>
       <button class="spec-btn" id="specMon" style="display:none"><span class="si" id="specMonI">✨</span><span class="sl" id="specMonL"></span><b id="specMonN">1</b></button>
       <button class="spec-btn" id="specMon2" style="display:none"><span class="si" id="specMon2I">✨</span><span class="sl" id="specMon2L"></span><b id="specMon2N">1</b></button>
+      <button class="spec-btn" id="specMon3" style="display:none"><span class="si" id="specMon3I">✨</span><span class="sl" id="specMon3L"></span><b id="specMon3N">1</b></button>
       <span class="spec-ph"></span><span class="spec-ph"></span><span class="spec-ph"></span>
   </div>
 <div class="nextbar"><div class="next-main" id="nextMain"><div class="upcoming-label">Next</div><div class="upcoming-row" id="nextRow"></div></div></div>
@@ -2082,7 +2083,7 @@ SKFN.inherit=m=>{
       carryMap[t]=(carryMap[t]||0)+n; skDone(`🔱 継承！ ${nm(f)}のスーパーコンボ${n}を、${nm(t)}へ移した。`); }); });
 };
 SKFN.limitbreak=m=>{
-  const ks=['beg','punch','guard','cure','bullet','mon','mon2'].filter(k=>specEnabled(k)&&!specNoLimit(k)&&specMax(k)<99&&(spec[k]||0)>0&&(spec[k]||0)>=specMax(k));
+  const ks=['beg','punch','guard','cure','bullet','mon','mon2','mon3'].filter(k=>specEnabled(k)&&!specNoLimit(k)&&specMax(k)<99&&(spec[k]||0)>0&&(spec[k]||0)>=specMax(k));
   const list=ks.filter(k=>k!=='mon').concat(slotStash&&slotStash.n>0?['stash']:[]);   // 合体の2つ目の技を使っている間は、1つ目の技の回数が退避されている（この技自身は回復しない）
   if(!list.length) return hint('使い切った特殊技がありません。',true);
   if(!skPay(m)) return; list.forEach(k=>{ if(k==='stash') slotStash.n=Math.max(0,slotStash.n-1); else spec[k]=Math.max(0,(spec[k]||0)-1); });
@@ -2131,15 +2132,32 @@ SKFN.doomsday=m=>{ if(!(bossHp>1)) return; const D=Math.floor(bossHp/2); if(!skP
 SKFN.win=m=>{ if(!(bossHp>0)) return; if(!skPay(m)) return; const D=bossHp; strikeBoss(D,'👑 勝つ！ 無条件で勝利した。','win',D); };
 function cardLabelHtml(c){ if(c.kind==='troop') return `<span style="color:${CFILL[c.color]}">■</span> ${cardDisplayName(c)}`; return cardDisplayName(c); }
 function monDisp(){ return (CHARACTER&&CHARACTER.mon)?dispName(CHARACTER.monOwner||CHARACTER.mon):''; }
-const monIs=n=>!!CHARACTER&&!!CHARACTER.mon&&(dispName(CHARACTER.mon)===n||(!!CHARACTER.mon2&&dispName(CHARACTER.mon2)===n));   // 合体中は、2体のどちらかがその種類ならtrue（パッシブ技用）
+const monIs=n=>!!CHARACTER&&!!CHARACTER.mon&&(dispName(CHARACTER.mon)===n||(!!CHARACTER.mon2&&dispName(CHARACTER.mon2)===n)||(!!CHARACTER.mon3&&dispName(CHARACTER.mon3)===n));   // 合体中は、2体のどちらかがその種類ならtrue（パッシブ技用）
 /* ----- 合体（火星人と戦った後に解放）：1体目＝頭＋胴、2体目＝足。特殊技は2体分使える ----- */
 const FUSE_KEY='soloSiegeFuse', SEL2_KEY='soloSiegeSel2', FUSE_SLOTS_KEY='soloSiegeFuseSlots', FUSE_SLOT_N=5;
-const fuseSlotsGet=()=>{ let a=[]; try{ a=JSON.parse(lsGet(FUSE_SLOTS_KEY)||'[]'); }catch(e){} const o=[]; for(let i=0;i<FUSE_SLOT_N;i++){ const x=a[i]; o.push(Array.isArray(x)&&x[0]&&x[1]?[String(x[0]),String(x[1])]:null); } return o; };   // 合体スロット（5つ）：[合体1,合体2] または空
+const SEL3_KEY='soloSiegeSel3';
+const fuse3Open=()=>{ try{ return alienBeatList().includes('水星人'); }catch(e){ return false; } };   // 水星人を倒すと3体合体（頭・胴・足）が使えるようになる。それ以降、2体だけの合体はできない
+const fuseSlotsGet=()=>{ let a=[]; try{ a=JSON.parse(lsGet(FUSE_SLOTS_KEY)||'[]'); }catch(e){} const o=[]; for(let i=0;i<FUSE_SLOT_N;i++){ const x=a[i]; o.push(Array.isArray(x)&&x[0]&&x[1]?[String(x[0]),String(x[1]),x[2]?String(x[2]):'']:null); } return o; };   // 合体スロット（5つ）：[合体1,合体2] または空
 const fuseSlotsSet=a=>{ try{ lsSet(FUSE_SLOTS_KEY,JSON.stringify(a.slice(0,FUSE_SLOT_N))); }catch(e){} };
 const fuseOpen=()=>{ try{ return !!lsGet(FUSE_KEY)||alienBeatList().includes('火星人'); }catch(e){ return false; } };
 function noteMarsFought(){ try{ if(WAVES[stageIndex]&&WAVES[stageIndex].baseId==='火星人'&&!lsGet(FUSE_KEY)) lsSet(FUSE_KEY,'1'); }catch(e){} }
-function fuseChar(ch,id2){
+function fuseChar3(ch,id2,id3){   // 3体合体：1体目＝頭、2体目＝胴、3体目＝足。特殊技は3体分使える
+  const idx=id=>id==='ネクロマンサー'?HUMAN_IDX:WAVES.findIndex(w=>w.baseId===id);
+  const i2=idx(id2), i3=idx(id3); if(i2<0||i3<0) return ch;
+  const c2=makeMonChar(i2,id2), c3=makeMonChar(i3,id3), all=[ch,c2,c3];
+  const isCu=c=>!!(c.monSkill&&c.monSkill.kind&&!MON_SP_KINDS.includes(c.monSkill.kind));
+  const mush=all.find(c=>dispName(c.mon)==='毒キノコ'), cu=all.filter(c=>isCu(c)&&c!==mush);
+  const out=Object.assign({},ch,{mon2:id2,monIdx2:i2,mon3:id3,monIdx3:i3,name:all.map(c=>c.name).join('＋'),monSkillB:null,monSkillC:null,monOwner:ch.mon});
+  out.sp=[]; all.forEach(c=>(c.sp||[]).forEach(k=>{ if(k!=='mon'&&!out.sp.includes(k)) out.sp.push(k); }));
+  if(mush){ out.monOwner=mush.mon; out.monSkill=mush.monSkill; if(cu[0]){ out.monSkillB=cu[0].monSkill; out.sp.push('mon2'); } if(cu[1]){ out.monSkillC=cu[1].monSkill; out.sp.push('mon3'); } }
+  else { if(cu[0]){ out.monSkill=cu[0].monSkill; out.monOwner=cu[0].mon; out.sp.push('mon'); } else out.monSkill=ch.monSkill||c2.monSkill||c3.monSkill; if(cu[1]){ out.monSkillB=cu[1].monSkill; out.sp.push('mon2'); } if(cu[2]){ out.monSkillC=cu[2].monSkill; out.sp.push('mon3'); } }
+  out.monSkillP=all.map(c=>c.monSkill).find(m=>m&&m.kind&&MON_SP_KINDS.includes(m.kind))||null;
+  if(!out.startShuffles){ const x=all.find(c=>c.startShuffles); if(x) out.startShuffles=x.startShuffles; } if(!out.maxShuffles){ const x=all.find(c=>c.maxShuffles); if(x) out.maxShuffles=x.maxShuffles; }
+  return out;
+}
+function fuseChar(ch,id2,id3){
   if(!ch||!id2||!ch.mon||ch.mon===id2) return ch;
+  if(fuse3Open()){ if(!id3||id3===ch.mon||id3===id2) return ch; return fuseChar3(ch,id2,id3); }   // 3体合体が解放されたら、2体だけの合体はできない
   const i2=id2==='ネクロマンサー'?HUMAN_IDX:WAVES.findIndex(w=>w.baseId===id2); if(i2<0) return ch;
   const c2=makeMonChar(i2,id2);
   const isCu=c=>!!(c.monSkill&&c.monSkill.kind&&!MON_SP_KINDS.includes(c.monSkill.kind));
@@ -2153,6 +2171,17 @@ function fuseChar(ch,id2){
   return out;
 }
 /* 合体の見た目：1体目の頭〜胴＋2体目の足（絵のある範囲の上2/3と下1/3を切り貼り） */
+function fuseSprKey3(k1,k2,k3){   // 3体合体の見た目：頭（上1/3）＋胴（真ん中1/3）＋足（下1/3）
+  const key='f3_'+k1+'_'+k2+'_'+k3; if(SPR[key]) return key;
+  const bb=g=>{ let t=-1,b=-1; g.forEach((r,y)=>{ if(/[^. ]/.test(r)){ if(t<0) t=y; b=y; } }); return [t<0?0:t,b<0?15:b]; };
+  const g1=SPR[k1], g2=SPR[k2], g3=SPR[k3]; if(!g1||!g2||!g3) return fuseSprKey(k1,k2);
+  const [t1,b1]=bb(g1), [t2,b2]=bb(g2), [t3,b3]=bb(g3), h1=b1-t1+1, h2=b2-t2+1, h3=b3-t3+1;
+  const H=Math.min(16,Math.max(h1,h2,h3)), n1=Math.max(1,Math.round(H/3)), n3=Math.max(1,Math.round(H/3)), n2=Math.max(1,H-n1-n3);
+  const top=g1.slice(t1,t1+Math.min(n1,h1)), ms=t2+Math.max(0,Math.round((h2-n2)/2)), mid=g2.slice(ms,ms+Math.min(n2,h2)), bot=g3.slice(Math.max(t3,b3-n3+1),b3+1);
+  const rows=top.concat(mid,bot).slice(0,16), pad=16-rows.length;
+  SPR[key]=Array(pad).fill('.'.repeat(16)).concat(rows);
+  return key;
+}
 function fuseSprKey(k1,k2){
   const key='f_'+k1+'_'+k2; if(SPR[key]) return key;
   const bb=g=>{ let t=-1,b=-1; g.forEach((r,y)=>{ if(/[^. ]/.test(r)){ if(t<0) t=y; b=y; } }); return [t<0?0:t,b<0?15:b]; };
@@ -3073,7 +3102,7 @@ let carryMap={}, scSpent={}, frozenMults={};   // scSpent＝この戦いで、�
 //  // carryMap: 色→前のwaveまでに続いているスーパーコンボの直近の倍数（役のあった色は全部持ち越し。次のwaveでその色の役が無いと消える）
 const carryTxt=()=>Object.keys(carryMap).map(c=>c[0]+'×'+carryMap[c]).join(',')||'-';
 let defendOn=false;   // 防御カード：このwaveは攻撃せず、攻撃力×2で防御する
-let spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}, guardOn=false; // spec = 使用済み回数
+let spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0,mon3:0}, guardOn=false; // spec = 使用済み回数
 // スーパーコンボ＝象徴の色が同じ「役の旗」が2つ以上つながったとき、その旗を「閉じた順」に ×2, ×3, ×4… と掛ける。
 // 前の攻撃から続いている場合は carryCount（これまでにつながった旗の数）の続きから数える（例：2つ決めた後は次の旗が×4）。
 const SUPER_PARAM={keepSkipped:true};   // keepSkipped＝その色の役が無かったwaveがあっても、貯まった倍数は消えない（飛び飛びでも続く）。旗が1つだけなら×1のまま。元に戻すときはfalse
@@ -3588,7 +3617,7 @@ function init(){
   bestTotal=loadHighScore(CHARACTER.id);
   bossHp=WAVES[stageIndex].threshold; foughtIdx=new Set([stageIndex]);
   displayedBossHp=bossHp;
-  orgMap=new Map(); fireOn=false; waveSerial=0; boneUsedAt=null; growN=0; pocket=null; gloveUsed=0; lanternUsed=false; lastAct=null; mountOn=false; atkFx={rush:false,oath:false}; defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
+  orgMap=new Map(); fireOn=false; waveSerial=0; boneUsedAt=null; growN=0; pocket=null; gloveUsed=0; lanternUsed=false; lastAct=null; mountOn=false; atkFx={rush:false,oath:false}; defeatCause=''; stomach=[]; topUsed=false; clearKO(); stageBgIdx=-1; playerHpMax=CHARACTER.hp||100; playerHp=playerHpMax; applyWormBody(); hpStock=CHARACTER.hpStock||0; plAtkMult=1; zombieRevive=false; monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; possessOrig=null; possessUntil=0; bashDmg=DIS_PARAM.bashBase; bashRateNow=DIS_PARAM.bashRate; bashHist=[bashDmg]; bashRateHist=[bashRateNow]; jamArmed=false; carryMap={}; haunt={}; hostCarry=0; mushDmg=1; spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0,mon3:0}; guardOn=false; defendOn=false; dbgReset(); disFired=0; resetBattleRound();
   FLAG_COUNT=CHARACTER.flags;
   applyBoardGrid();
   resetAccessories();
@@ -4482,6 +4511,7 @@ function alienEncounterId(){   // 今回の負けで現れる宇宙人（出現�
   return null;
 }
 const ALIEN_SURGERY={'月の民':'コンボの制限が解除された！（倍率の上限なし・次の戦いへの持ち越しもできる）',
+  '水星人':'モンスター3体を合体できるようになった！<br><span style="opacity:.9">次のゲームのキャラ選択で、頭・胴・足の3体を選ぼう。<br>これからは、2体だけの合体はできない。</span>',
   '火星人':'モンスター2体を合体できるようになった！<br><span style="opacity:.9">次のゲームのキャラ選択で「合体」ボタンを押し、足にするモンスターを選ぼう。<br>見た目は1体目の頭と胴＋2体目の足。特殊技は2体分使える。</span>'};   // 手術で得られる強化。火星人以降は未実装なので、入れたらここへ書く
 function alienOverlay(inner){ const ov=document.createElement('div'); ov.className='modal-bg'; ov.style.cssText='display:flex;z-index:99999;background:rgba(8,8,14,.96);flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px'; ov.innerHTML=inner; document.body.appendChild(ov); try{ playSfx('combo'); }catch(e){} return ov; }
 function alienAppear(reason){   // 負けた後、出現ラインに届いていてまだ現れていない宇宙人がいれば、現れて戦いになる。いなければ false
@@ -6089,7 +6119,7 @@ function renderBattle(){
   el.className='diffline'; el.innerHTML=poisonPer>0?`<small>☠-${poisonPer}/手</small>`:''; el.style.display=poisonPer>0?'':'none';   // 「自分に〇〇ダメージ」の表示はやめて、予測の横の＋−表記に統一
 }
 function updateSpecGauges(){   // 特殊技ボタンの下に、「次の+1まで」の貯まりゲージを出す（使った回数は戦いをまたいで貯まる）
-  [['specBeg','beg'],['specPunch','punch'],['specGuard','guard'],['specCure','cure'],['specBullet','bullet'],['specMon','mon'],['specMon2','mon2']].forEach(([id,k])=>{ const b=document.getElementById(id); if(!b) return;
+  [['specBeg','beg'],['specPunch','punch'],['specGuard','guard'],['specCure','cure'],['specBullet','bullet'],['specMon','mon'],['specMon2','mon2'],['specMon3','mon3']].forEach(([id,k])=>{ const b=document.getElementById(id); if(!b) return;
     const mx=specEnabled(k)?specMax(k):0; if(!mx||mx>=99||(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))){ b.removeAttribute('data-gp'); b.title=''; return; }
     const cap=specCapFor(k);
     if(mx>=cap){ b.setAttribute('data-gp','max'); b.style.setProperty('--gp',1); b.title='回数が上限（'+cap+'回）に達している'; return; }
@@ -6117,8 +6147,10 @@ function render(){
   if(pocket){ activeDeck.push(pocket); pocket=null; shuffle(activeDeck); }   // 廃止したポケットに入っていた古いセーブのカードは、山札へ戻す
   { const mb=document.getElementById('specMon2'), ms=CHARACTER&&CHARACTER.monSkillB;   // 合体の2つ目の特殊技ボタン
     if(mb){ const on=!!ms&&specEnabled('mon2'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon2I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon2L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) L.innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; { const ne=document.getElementById('specMon2N'); ne.textContent=specNoLimit('mon2')?'':specRemain('mon2'); ne.style.display=specNoLimit('mon2')?'none':''; } mb.disabled=specRemain('mon2')<=0; } } }
+  { const mb=document.getElementById('specMon3'), ms=CHARACTER&&CHARACTER.monSkillC;   // 合体の3つ目の特殊技ボタン
+    if(mb){ const on=!!ms&&specEnabled('mon3'); mb.style.display=on?'':'none'; if(on){ document.getElementById('specMon3I').textContent=ms.icon||'✨'; const L=document.getElementById('specMon3L'); L.textContent=ms.kind==='bash'?'斧 '+fmtCompact(bashDmg)+' '+Math.round(bashRateNow*100)+'％':(ms.name||''); const sc=MONSC[ms.kind]; if(sc){ const col=sc[0], n=wormCost(sc[1]()); L.innerHTML=`${ms.name||''} ${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms.cost) L.innerHTML=`${ms.name||''} ${skCostHtml(ms)}`; { const ne=document.getElementById('specMon3N'); ne.textContent=specNoLimit('mon3')?'':specRemain('mon3'); ne.style.display=specNoLimit('mon3')?'none':''; } mb.disabled=specRemain('mon3')<=0; } } }
   { const dmgTxt=ms=>{ if(!ms) return ''; if(ms.kind==='coin') return coinUsed>=MONSK.samuraiMax?'(使い切り)':`💥${fmtCompact(gold*MONSK.samuraiMul)} 残り${MONSK.samuraiMax-coinUsed}回`; if(ms.kind==='fire') return `💥${fmtCompact(Math.max(1,Math.floor(Math.max(0,bossHp)*MONSK.gargoyleHp)))}`; if(ms.kind==='spider') return playerHp>bossHp?'💥HP全部':'(HP不足)'; return ''; };   // ダメージを与える特殊技は、使う前にダメージが分かるようにする
-    [['specMonL',CHARACTER&&CHARACTER.monSkill],['specMon2L',CHARACTER&&CHARACTER.monSkillB]].forEach(([id,ms])=>{ const el=document.getElementById(id), t=dmgTxt(ms); if(el&&t) el.insertAdjacentHTML('beforeend',` <small style="color:#ffd75e">${t}</small>`); });
+    [['specMonL',CHARACTER&&CHARACTER.monSkill],['specMon2L',CHARACTER&&CHARACTER.monSkillB],['specMon3L',CHARACTER&&CHARACTER.monSkillC]].forEach(([id,ms])=>{ const el=document.getElementById(id), t=dmgTxt(ms); if(el&&t) el.insertAdjacentHTML('beforeend',` <small style="color:#ffd75e">${t}</small>`); });
     const pb=document.getElementById('specPunch'); if(pb){ const PS=CHARACTER&&(CHARACTER.monSkillP||CHARACTER.monSkill), D=(PS&&PS.kind==='punch'&&PS.dmg)||50; const sl=pb.querySelector('.sl'); if(sl) sl.innerHTML=`殴る <small style="color:#ffd75e">💥${D}</small>`; } }
   { const mb=document.getElementById('specMon'), ms=CHARACTER&&CHARACTER.monSkill; let chip=document.getElementById('stomachChip');   // 飲み込んだカードを見えるようにする
     if(mb&&ms&&ms.kind==='swallow'&&stomach.length&&specEnabled('mon')){ if(!chip){ chip=document.createElement('div'); chip.id='stomachChip'; chip.style.cssText='position:fixed;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#8ff0c4;text-shadow:0 1px 3px #000'; document.body.appendChild(chip); }
@@ -6127,7 +6159,7 @@ function render(){
   { const fb=document.getElementById('freeShuffleBtn'), inf=(CHARACTER.startShuffles===Infinity);
     document.getElementById('freeShuffleCount').textContent=inf?'∞':specRemain('shuffle');
     if(fb){ fb.style.display=specEnabled('shuffle')?'':'none'; fb.disabled=!inf && specRemain('shuffle')<=0; }
-    const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','punch','guard','cure','bullet'].filter(specEnabled).length+(CHARACTER&&CHARACTER.monSkill?1:0)+(CHARACTER&&CHARACTER.monSkillB?1:0); row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
+    const row=document.querySelector('.specrow'); if(row){ const nOn=['shuffle','punch','guard','cure','bullet'].filter(specEnabled).length+(CHARACTER&&CHARACTER.monSkill?1:0)+(CHARACTER&&CHARACTER.monSkillB?1:0)+(CHARACTER&&CHARACTER.monSkillC?1:0); row.style.display=''; row.querySelectorAll('.spec-ph').forEach((ph,i)=>{ ph.style.display=(i<1-nOn)?'block':'none'; }); } }
   if(graveyard.some(isEnemyCard)) graveyard=graveyard.filter(c=>!isEnemyCard(c));   // 敵の妨害カード（呪い・押し付けられた装備）は、墓地に行かず消える
   document.getElementById('graveCount').textContent=graveyard.length;
   document.getElementById('gravePileBtn').classList.toggle('pile-ready', picked!==null && !pending && !gameEnded);
@@ -7007,7 +7039,7 @@ function advanceToNextStage(){
       if(up){ dlog('spec_levelup',{k,max:specMaxBase(k),prog:specProg[k]}); hint(`✨ ${t.label}が貯まりきった！ 次の戦いから回数が${specMax(k)}回になる`,true); }
     });
   }catch(e){}
-  spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
+  spec={beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0,mon3:0}; sunUsed=false;   // 特殊技の回数は敵ごとに回復する
   tutStep=0; tutT=turnCounter; tutDiscarded=false;   // ミジンコの案内は、1戦ごとに最初からやり直す
   introAdv=false; battleNo++;   // ミジンコの最初の2戦も「第〇戦」に数える（4戦で終わる）
   nextStageIdx=-1;
@@ -7404,14 +7436,15 @@ document.getElementById('menuToTitleBtn').onclick=()=>{
   });
 };
 let slotStash=null;
-function slotBack(){ if(!slotStash) return; spec.mon2=spec.mon; spec.mon=slotStash.n; CHARACTER.monSkill=slotStash.ms; slotStash=null; }
+function slotBack(){ if(!slotStash) return; spec[slotStash.key||'mon2']=spec.mon; spec.mon=slotStash.n; CHARACTER.monSkill=slotStash.ms; slotStash=null; }
 function specUse(kind){
   if(gameEnded||busy||pending||waveAdvancing) return;
   slotBack();   // 合体の2つ目の技を使いかけて（払えない等で）止まっていたら、先に元へ戻す（戻さないと1つ目の技が2つ目と同じになる）
   if(kind==='mon'&&CHARACTER.monSkill&&CHARACTER.monSkill.kind==='swallow'&&stomach.length){ monSkillUse(); return; }   // 吐き出すのは回数を使わない
   if(specRemain(kind)<=0) return;
   if(kind==='mon'){ monSkillUse(); return; }
-  if(kind==='mon2'){ if(!CHARACTER.monSkillB) return; slotStash={ms:CHARACTER.monSkill,n:spec.mon}; CHARACTER.monSkill=CHARACTER.monSkillB; spec.mon=spec.mon2||0; monSkillUse(); return; }   // 合体の2つ目の特殊技：1つ目の枠に入れ替えて使い、終わったら戻す
+  if(kind==='mon2'){ if(!CHARACTER.monSkillB) return; slotStash={ms:CHARACTER.monSkill,n:spec.mon,key:'mon2'}; CHARACTER.monSkill=CHARACTER.monSkillB; spec.mon=spec.mon2||0; monSkillUse(); return; }
+  if(kind==='mon3'){ if(!CHARACTER.monSkillC) return; slotStash={ms:CHARACTER.monSkill,n:spec.mon,key:'mon3'}; CHARACTER.monSkill=CHARACTER.monSkillC; spec.mon=spec.mon3||0; monSkillUse(); return; }   // 合体の2つ目の特殊技：1つ目の枠に入れ替えて使い、終わったら戻す
   if(kind==='beg'){
     const ks=Object.keys(enemySched).map(Number).filter(t=>t>enemyTurn).sort((a,b)=>a-b);
     if(!ks.length){ hint('この先に特殊攻撃はない。',true); return; }
@@ -7492,8 +7525,8 @@ function possessPick(){   // 仲間にしているモンスターの中から1�
     b.onclick=()=>{ bg.remove(); if(gameEnded||busy) return;
       if(!scPay('purple',MONSK.possessCost,()=>MONSK.possessCost)) return;
       const idx=WAVES.indexOf(w), nc=makeMonChar(idx);
-      if(!possessOrig) possessOrig={name:CHARACTER.name,mon:CHARACTER.mon,monIdx:CHARACTER.monIdx,monSkill:CHARACTER.monSkill,sp:CHARACTER.sp,mon2:CHARACTER.mon2,monIdx2:CHARACTER.monIdx2,monSkillB:CHARACTER.monSkillB,monOwner:CHARACTER.monOwner,monSkillP:CHARACTER.monSkillP};
-      Object.assign(CHARACTER,{name:nc.name,mon:nc.mon,monIdx:nc.monIdx,monSkill:nc.monSkill,sp:nc.sp,mon2:null,monIdx2:undefined,monSkillB:null,monOwner:undefined,monSkillP:null});
+      if(!possessOrig) possessOrig={name:CHARACTER.name,mon:CHARACTER.mon,monIdx:CHARACTER.monIdx,monSkill:CHARACTER.monSkill,sp:CHARACTER.sp,mon2:CHARACTER.mon2,monIdx2:CHARACTER.monIdx2,monSkillB:CHARACTER.monSkillB,mon3:CHARACTER.mon3,monIdx3:CHARACTER.monIdx3,monSkillC:CHARACTER.monSkillC,monOwner:CHARACTER.monOwner,monSkillP:CHARACTER.monSkillP};
+      Object.assign(CHARACTER,{name:nc.name,mon:nc.mon,monIdx:nc.monIdx,monSkill:nc.monSkill,sp:nc.sp,mon2:null,monIdx2:undefined,monSkillB:null,mon3:null,monIdx3:undefined,monSkillC:null,monOwner:undefined,monSkillP:null});
       possessUntil=turnCounter+MONSK.possessTurns; spec.mon++;
       hint(`👻 憑依！ ${nc.name}に変身した。（${MONSK.possessTurns}ターン）`,true); playSfx('combo'); dlog('action',{name:'monskill_possess',to:nc.name}); render(); };
     G.appendChild(b); });
@@ -7666,7 +7699,7 @@ function bindSpecTap(id,kind){ const el=document.getElementById(id); if(!el) ret
   el.addEventListener('touchend',e=>{ if(el.disabled) return; e.preventDefault(); const q=e.changedTouches[0]; if(q){ const r=el.getBoundingClientRect(); if(Math.abs(q.clientX-sx)>12||Math.abs(q.clientY-sy)>12||q.clientX<r.left||q.clientX>r.right||q.clientY<r.top||q.clientY>r.bottom) return; } go(); },{passive:false}); }   // ボタンの外で指を離した時（境目など）は押したことにしない
 { const ag=document.getElementById('atkGrp'); if(ag) ag.addEventListener('click',()=>{ try{ if(!gameEnded&&CHARACTER) showAtkBreakdown(); }catch(e){ console.error(e); } }); }
 { const mb=document.getElementById('multBar'); if(mb) mb.addEventListener('click',()=>{ try{ if(!gameEnded&&CHARACTER) showAtkBreakdown(); }catch(e){} }); }
-bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet'); bindSpecTap('specMon','mon'); bindSpecTap('specMon2','mon2');
+bindSpecTap('specBeg','beg'); bindSpecTap('specPunch','punch'); bindSpecTap('specGuard','guard'); bindSpecTap('specCure','cure'); bindSpecTap('specBullet','bullet'); bindSpecTap('specMon','mon'); bindSpecTap('specMon2','mon2'); bindSpecTap('specMon3','mon3');
 function doShuffle(){
   if(gameEnded||busy||pending) return;
   if(!(CHARACTER.startShuffles===Infinity)){
@@ -7685,7 +7718,7 @@ const SPEC_INFO={
   bullet:{title:'⏱ バレットタイム',desc:'この先5ターンの間、時間が止まります。敵の動き（攻撃力の上昇や特殊攻撃）も、ターンも進みません。（使った時点ではターンは進みません。連続では使えません）'},
   cure:{title:'🧪 薬',desc:'今かかっている毒を止め、封鎖されている旗をすべて元に戻します。防御・色半減・暗闇・無効の効果や、手札のボム／暗闇／無効／全滅の呪い／呪いの装備、旗に置かれた呪いの装備も消します。すでに減った戦力は戻りません。（ターンは進みません）'}
 };
-function specInfoFor(k){ if(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB){ const b=CHARACTER.monSkillB; return {title:(b.icon||'')+' '+b.name,desc:b.desc+(b.cost?'\n使用条件：'+skCostText(b):'')}; } const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.kind==='bash'&&k==='mon') return {title:(m.icon||'')+' '+m.name,desc:m.desc+`（いまの命中率：${Math.round(bashRateNow*100)}％／次のダメージ：${fmtCompact(bashDmg)}／当たると今の手札で×${Math.round(bashMulNow()*100)/100}）\n攻撃力の推移：${bashHist.slice(-8).map(v=>fmtCompact(v)).join('→')}\n命中率の推移：${bashRateHist.slice(-10).map(v=>Math.round(v*100)).join('→')}％`}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
+function specInfoFor(k){ if((k==='mon2'||k==='mon3')&&CHARACTER&&(k==='mon2'?CHARACTER.monSkillB:CHARACTER.monSkillC)){ const b=k==='mon2'?CHARACTER.monSkillB:CHARACTER.monSkillC; return {title:(b.icon||'')+' '+b.name,desc:b.desc+(b.cost?'\n使用条件：'+skCostText(b):'')}; } const m=CHARACTER&&CHARACTER.monSkill; if(k==='mon'&&monDisp()==='毒キノコ') return {title:'🍄 毒の胞子',desc:MON_SKILL['毒キノコ'].desc+`（いまの次のダメージ：${fmtCompact(mushDmg)}）`}; if(m&&m.kind==='swallow'&&k==='mon'&&stomach.length) return {title:'🐸 吐き出す',desc:'飲み込んだカードを手札に吐き出し、そのあと手札から1枚捨てます。（吐き出したカードも捨てられます／回数は減りません）'}; if(m&&m.kind==='bash'&&k==='mon') return {title:(m.icon||'')+' '+m.name,desc:m.desc+`（いまの命中率：${Math.round(bashRateNow*100)}％／次のダメージ：${fmtCompact(bashDmg)}／当たると今の手札で×${Math.round(bashMulNow()*100)/100}）\n攻撃力の推移：${bashHist.slice(-8).map(v=>fmtCompact(v)).join('→')}\n命中率の推移：${bashRateHist.slice(-10).map(v=>Math.round(v*100)).join('→')}％`}; if(m&&m.desc&&(k==='mon'||k===m.kind)) return {title:(m.icon||'')+' '+m.name,desc:m.desc}; return SPEC_INFO[k]; }
 let specModalKind=null, specOpenedAt=0;
 function specLeft(k){ return (k==='shuffle'&&CHARACTER.startShuffles===Infinity)?'∞':specRemain(k); }
 function openSpecModal(k){
@@ -7857,6 +7890,7 @@ function spriteSVG(name,px,cls,anim){
 }
 function charSprName(id){ return id==='king'?'hero':id; }
 function charSpr(ch,px,anim){ if(ch.mon===HUMAN_MON) return spriteSVG('general',px,'',false);
+  if(ch.mon&&ch.mon2&&ch.mon3){ try{ const mk=(id,ix)=>monSprKey({id,tier:WAVES[ix].tier}); return spriteSVG(fuseSprKey3(mk(ch.mon,ch.monIdx),mk(ch.mon2,ch.monIdx2),mk(ch.mon3,ch.monIdx3)),px,'',false); }catch(e){} }
   if(ch.mon&&ch.mon2){ try{ return spriteSVG(fuseSprKey(monSprKey({id:ch.mon,tier:WAVES[ch.monIdx].tier}),monSprKey({id:ch.mon2,tier:WAVES[ch.monIdx2].tier})),px,'',false); }catch(e){} }
   return ch.mon ? spriteSVG(monSprKey({id:ch.mon,tier:WAVES[ch.monIdx].tier}),px,'',false) : spriteSVG(charSprName(ch.id),px,'',anim); }
 /* ===== タイトル画面（ドット絵） ===== */
@@ -7981,15 +8015,16 @@ function buildCharList(){
   document.getElementById('charFoot').style.display=wide?'flex':'none';
   document.getElementById('charBackBtn').style.display=wide?'none':'';
   let picked=null;
-  const fuseOk=fuseOpen()&&wide; let fuse2=lsGet(SEL2_KEY)||'', fuseSlot=1;
+  const fuseOk=fuseOpen()&&wide; let fuse2=lsGet(SEL2_KEY)||'', fuseSlot=1; const f3on=fuseOk&&fuse3Open(); let fuse3=f3on?(lsGet(SEL3_KEY)||''):'';
   if(!fuseOk||!got.includes(fuse2)||isWeakId(fuse2)) fuse2='';
+  if(!f3on||!got.includes(fuse3)||isWeakId(fuse3)||fuse3===fuse2) fuse3='';
   const fb=document.getElementById('charFuse');
   if(fb) fb.style.display='none';
-  const fuse2Init=fuse2;   // リセットで戻す「前回の選択」
-  const markTiles=()=>{ if(!wide) return; const s1=picked?picked.id:curMonId(), s2=fuseOk?fuse2:'';
-    grid.querySelectorAll('.mon-tile').forEach(t=>{ const id=t.dataset.id; t.classList.toggle('f1',id===s1); t.classList.toggle('f2',!!s2&&id===s2); t.classList.toggle('nofuse',!fuseOk); t.classList.toggle('taken',fuseOk&&((fuseSlot===1&&!!s2&&id===s2)||(fuseSlot===2&&id===s1))); });
-    const cb=document.getElementById('charCancel'); if(cb) cb.textContent=(picked||fuse2!==fuse2Init)?'リセット':'キャンセル'; };
-  const fuseUi=()=>{ charFuse2=fuse2; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} try{ markTiles(); }catch(e){} try{ renderFuseSlots(); }catch(e){} };
+  const fuse2Init=fuse2, fuse3Init=fuse3;   // リセットで戻す「前回の選択」
+  const markTiles=()=>{ if(!wide) return; const s1=picked?picked.id:curMonId(), s2=fuseOk?fuse2:'', s3=f3on?fuse3:'';
+    grid.querySelectorAll('.mon-tile').forEach(t=>{ const id=t.dataset.id; t.classList.toggle('f1',id===s1); t.classList.toggle('f2',(!!s2&&id===s2)||(!!s3&&id===s3)); t.classList.toggle('nofuse',!fuseOk); t.classList.toggle('taken',fuseOk&&((fuseSlot===1&&((!!s2&&id===s2)||(!!s3&&id===s3)))||(fuseSlot===2&&(id===s1||(!!s3&&id===s3)))||(fuseSlot===3&&(id===s1||(!!s2&&id===s2))))); });
+    const cb=document.getElementById('charCancel'); if(cb) cb.textContent=(picked||fuse2!==fuse2Init||fuse3!==fuse3Init)?'リセット':'キャンセル'; };
+  const fuseUi=()=>{ charFuse2=fuse2; charFuse3=fuse3; charFuseSlot=fuseSlot; charFuseOn=fuseOk; try{ renderCurPanel(picked); }catch(e){} try{ markTiles(); }catch(e){} try{ renderFuseSlots(); }catch(e){} };
   const renderFuseSlots=()=>{   // 合体スロット：空きをタップで今の組み合わせを保存、入っているものをタップで呼び出す（5つまで）
     let box=document.getElementById('fuseSlots');
     if(!box){ box=document.createElement('div'); box.id='fuseSlots'; box.style.cssText='display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;padding:4px 10px'; const cp=document.getElementById('curPanel'); cp.parentNode.insertBefore(box,cp.nextSibling); }
@@ -7997,8 +8032,8 @@ function buildCharList(){
     const slots=fuseSlotsGet(), cur1=picked?picked.id:curMonId();
     const ico=id=>{ const d=defs.find(x=>x.id===id); return d?monIconHtml(makeMonChar(d.i,id),id,d.i,26):'?'; };
     box.innerHTML='<div style="flex:0 0 100%;font-size:11px;opacity:.85">💾 合体スロット（5つまで）— 空きをタップで今の組み合わせを保存／入っているスロットをタップで呼び出し</div>'+slots.map((sl,n)=>{
-      const on=sl&&sl[0]===cur1&&sl[1]===fuse2;
-      return sl?`<div data-sl="${n}" style="flex:1 1 18%;min-width:62px;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:2px;padding:6px 4px;border:2px solid ${on?'var(--gold)':'rgba(226,192,106,.45)'};border-radius:8px;background:rgba(226,192,106,${on?.2:.08})">${ico(sl[0])}<span style="font-size:11px">＋</span>${ico(sl[1])}<span data-sd="${n}" style="position:absolute;top:-6px;right:-4px;width:18px;height:18px;line-height:16px;text-align:center;border-radius:9px;background:#733;color:#fff;font-size:11px">✕</span></div>`
+      const on=sl&&sl[0]===cur1&&sl[1]===fuse2&&(sl[2]||'')===(f3on?fuse3:'');
+      return sl?`<div data-sl="${n}" style="flex:1 1 18%;min-width:62px;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:2px;padding:6px 4px;border:2px solid ${on?'var(--gold)':'rgba(226,192,106,.45)'};border-radius:8px;background:rgba(226,192,106,${on?.2:.08})">${ico(sl[0])}<span style="font-size:11px">＋</span>${ico(sl[1])}${sl[2]?`<span style="font-size:11px">＋</span>${ico(sl[2])}`:''}<span data-sd="${n}" style="position:absolute;top:-6px;right:-4px;width:18px;height:18px;line-height:16px;text-align:center;border-radius:9px;background:#733;color:#fff;font-size:11px">✕</span></div>`
         :`<div data-sl="${n}" style="flex:1 1 18%;min-width:62px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:10px 4px;border:2px dashed rgba(226,192,106,.35);border-radius:8px;font-size:11px;opacity:.8">＋ 保存${n+1}</div>`; }).join('');
     box.onclick=e=>{
       const del=e.target.closest&&e.target.closest('[data-sd]');
@@ -8006,21 +8041,24 @@ function buildCharList(){
       const t=e.target.closest&&e.target.closest('[data-sl]'); if(!t) return; const n=+t.dataset.sl, a=fuseSlotsGet();
       if(!a[n]){
         const id1=picked?picked.id:curMonId();
-        if(!fuse2||!id1||isWeakId(id1)) return gameAlert('合体2（足）を選んでから、スロットに保存しよう。');
-        if(a.some(x=>x&&x[0]===id1&&x[1]===fuse2)) return gameAlert('その組み合わせは、すでにスロットに保存されています。');
-        a[n]=[id1,fuse2]; fuseSlotsSet(a); renderFuseSlots(); hint(`💾 スロット${n+1}に、「${dispName(id1)}＋${dispName(fuse2)}」を保存した。`,true); return;
+        if(!fuse2||!id1||isWeakId(id1)) return gameAlert('合体2を選んでから、スロットに保存しよう。');
+        if(f3on&&!fuse3) return gameAlert('3体合体では、合体3（足）まで選んでから保存しよう。');
+        if(a.some(x=>x&&x[0]===id1&&x[1]===fuse2&&(x[2]||'')===(f3on?fuse3:''))) return gameAlert('その組み合わせは、すでにスロットに保存されています。');
+        a[n]=f3on?[id1,fuse2,fuse3]:[id1,fuse2]; fuseSlotsSet(a); renderFuseSlots(); hint(`💾 スロット${n+1}に、「${[id1,fuse2,f3on?fuse3:''].filter(Boolean).map(dispName).join('＋')}」を保存した。`,true); return;
       }
-      const [id1,id2]=a[n], d1=defs.find(x=>x.id===id1), d2=defs.find(x=>x.id===id2);
-      if(!d1||d1.locked||!d2||d2.locked||isWeakId(id1)||isWeakId(id2)) return gameAlert('その組み合わせは、いまは使えません。');
-      fuse2=id2; lsSet(SEL2_KEY,fuse2); fuseSlot=1;
+      const [id1,id2,id3]=a[n], d1=defs.find(x=>x.id===id1), d2=defs.find(x=>x.id===id2), d3=id3?defs.find(x=>x.id===id3):null;
+      if(!d1||d1.locked||!d2||d2.locked||isWeakId(id1)||isWeakId(id2)||(f3on&&(!id3||!d3||d3.locked||isWeakId(id3)))||(!f3on&&id3)) return gameAlert('その組み合わせは、いまは使えません。');
+      fuse2=id2; lsSet(SEL2_KEY,fuse2); if(f3on){ fuse3=id3; lsSet(SEL3_KEY,fuse3); } fuseSlot=1;
       if(id1===curMonId()) picked=null; else { const ch=makeMonChar(d1.i,id1); picked={id:id1,i:d1.i,ch,haloOn:(ch.mon===HUMAN_MON&&!bodyBack())}; }
       grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); if(picked){ const tl=grid.querySelector(`.mon-tile[data-id="${id1}"]`); if(tl) tl.classList.add('sel'); }
-      fuseUi(); hint(`スロット${n+1}の「${dispName(id1)}＋${dispName(id2)}」を呼び出した。`);
+      fuseUi(); hint(`スロット${n+1}の「${[id1,id2,id3].filter(Boolean).map(dispName).join('＋')}」を呼び出した。`);
     }; };
   const setFuse=(d,toggle)=>{ if(d.locked||isWeakId(d.id)) return; const first=picked?picked.id:curMonId();
-    if(d.id===first) return;   // 合体1に入っているモンスターは、合体2には選べない
+    if(d.id===first) return;   // 合体1に入っているモンスターは、合体2・3には選べない
+    if(fuseSlot===3&&f3on){ if(d.id===fuse2) return; fuse3=(toggle&&fuse3===d.id)?'':d.id; lsSet(SEL3_KEY,fuse3); fuseUi(); return; }
+    if(f3on&&d.id===fuse3) return;
     fuse2=(toggle&&fuse2===d.id)?'':d.id; lsSet(SEL2_KEY,fuse2); fuseUi(); };   // 合体2を選んだあとも、選択は合体2のまま（能力を見比べやすいように）   // 合体2（足）に入れる
-  if(fuseOk){ document.getElementById('curPanel').onclick=e=>{ const t=e.target.closest&&e.target.closest('[data-fs]'); if(!t) return; if(t.dataset.fs==='1') fuseSlot=1; else if(fuseSlot===2&&fuse2){ fuse2=''; lsSet(SEL2_KEY,''); fuseSlot=1; } else fuseSlot=2; fuseUi(); }; }   // 枠をタップ：合体1／合体2を選ぶ（選んだ合体2をもう一度押すと外れる）
+  if(fuseOk){ document.getElementById('curPanel').onclick=e=>{ const t=e.target.closest&&e.target.closest('[data-fs]'); if(!t) return; if(t.dataset.fs==='1') fuseSlot=1; else if(t.dataset.fs==='3'){ if(fuseSlot===3&&fuse3){ fuse3=''; lsSet(SEL3_KEY,''); fuseSlot=1; } else fuseSlot=3; } else if(fuseSlot===2&&fuse2){ fuse2=''; lsSet(SEL2_KEY,''); fuseSlot=1; } else fuseSlot=2; fuseUi(); }; }   // 枠をタップ：合体1／合体2を選ぶ（選んだ合体2をもう一度押すと外れる）
   fuseUi();
   const prevId=wide?curMonId():hasLeader?defs[0].id:((defs.some(x=>x.id===lsGet(SEL_KEY)))?lsGet(SEL_KEY):(defs[0]&&defs[0].id));   // 前回選んだキャラ（なければ先頭）に印を付ける
   if(wide) renderCurPanel(null);
@@ -8031,7 +8069,7 @@ function buildCharList(){
     el.innerHTML=`<span class="mon-spr">${spr()}</span><b>${ch.name.replace('そこらへんの','そこらへんの<br>').replace('史上最強の','史上最強の<br>')}</b>${wide?'':`<small>${ch.sp.length?MON_SP_LABEL[ch.sp[0]]:'&nbsp;'}</small>`}`;
     const go=()=>{ lsSet(SEL_KEY,d.id); possess(el,()=>startAs(ch),()=>{ if(haloOn){ lsSet('soloSiegeBodyBack','1'); const sp=el.querySelector('.mon-spr'); if(sp) sp.innerHTML=spriteSVG('general',wide?40:48,''); } }); };   // 乗り移ると輪っかが消える
     el.onclick=wide?(()=>{
-      if(fuseSlot===2){ setFuse(d,true); return; }   // 合体2の枠を選んでいる時は、足にするモンスターを選ぶ   // 合体：足にするモンスターを選ぶ（同じものをもう一度押すと外れる）
+      if(fuseSlot===2||fuseSlot===3){ setFuse(d,true); return; }   // 合体2の枠を選んでいる時は、足にするモンスターを選ぶ   // 合体：足にするモンスターを選ぶ（同じものをもう一度押すと外れる）
       if(d.locked) return;
       if(fuseOk&&fuse2===d.id) return;   // 合体2に入っているモンスターは、合体1には選べない
       const dropDup=()=>{};
@@ -8039,7 +8077,7 @@ function buildCharList(){
       const sel=()=>{ grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); picked={id:d.id,i,ch,haloOn}; dropDup(); fuseUi(); };
       if(isWeakId(d.id)) monConfirm('チュートリアル用です。',sel); else sel();
     }):(hasLeader&&d.id===prevId?(()=>{}):go);   // ミジンコのボスが解放済みなら、今の個体（そこらへんのミジンコ）には憑依できない
-    if(wide&&fuseOk&&!d.locked) attachFuseDrag(el,()=>setFuse(d,false),()=>el.onclick&&el.onclick());
+    if(wide&&fuseOk&&!d.locked) attachFuseDrag(el,()=>{ fuseSlot=2; setFuse(d,false); },()=>el.onclick&&el.onclick(),()=>{ if(f3on){ fuseSlot=3; setFuse(d,false); } });
     grid.appendChild(el);
   });
   fuseUi();   // ①②の印を付ける
@@ -8049,11 +8087,11 @@ function buildCharList(){
   if(wide){
     const toTitle=()=>{ document.getElementById('charBackBtn').onclick(); };
     document.getElementById('charCancel').onclick=()=>{
-      if(!picked&&fuse2===fuse2Init){ toTitle(); return; }
-      picked=null; fuse2=fuse2Init; lsSet(SEL2_KEY,fuse2); fuseSlot=1; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); fuseUi();   // リセット：前回の選択（合体1・合体2）に戻す
+      if(!picked&&fuse2===fuse2Init&&fuse3===fuse3Init){ toTitle(); return; }
+      picked=null; fuse2=fuse2Init; lsSet(SEL2_KEY,fuse2); fuse3=fuse3Init; if(f3on) lsSet(SEL3_KEY,fuse3); fuseSlot=1; grid.querySelectorAll('.mon-tile.sel').forEach(x=>x.classList.remove('sel')); fuseUi();   // リセット：前回の選択（合体1・合体2）に戻す
     };
     document.getElementById('charDecide').onclick=()=>{
-      const id=picked?picked.id:curMonId(); let ch=picked?picked.ch:curMonChar(); if(fuseOk&&fuse2&&!isWeakId(ch.mon)) ch=fuseChar(ch,fuse2);   // 決定したら、そのキャラでそのままゲームを始める
+      const id=picked?picked.id:curMonId(); let ch=picked?picked.ch:curMonChar(); if(fuseOk&&fuse2&&!isWeakId(ch.mon)){ if(f3on&&!fuse3){ gameAlert('3体合体では、合体3（足）まで選ぼう。'); return; } ch=fuseChar(ch,fuse2,fuse3); }   // 決定したら、そのキャラでそのままゲームを始める
       lsSet(SEL_KEY,id); lsSet('soloSiegeWeakOk',isWeakId(id)?'1':''); if(ch.mon===HUMAN_MON&&!bodyBack()) lsSet('soloSiegeBodyBack','1');
       const fused=fuseOk&&fuse2&&!!ch.mon2, fr=document.querySelector('#curPanel .fs-row'); if(fused&&fr) fr.classList.add('fusing');   // 合体アニメーションは「この身体で戦う」を押した時だけ
       const tile=grid.querySelector('.mon-tile.f1')||grid.querySelector('.mon-tile.sel')||grid.querySelector('.mon-tile.cur'); if(tile) tile.classList.add('possessed');   // 憑依の演出のあと、ゲーム開始
@@ -8063,13 +8101,13 @@ function buildCharList(){
   }
 }
 /* モンスターのタイルを長押ししてドラッグ→合体1／合体2の枠に落とす（スマホは長押しで開始。普通のスクロールは邪魔しない） */
-function attachFuseDrag(el,dropTo2,dropTo1){
+function attachFuseDrag(el,dropTo2,dropTo1,dropTo3){
   let timer=null, ghost=null, sx=0, sy=0, lx=0, ly=0, dragging=false, mouse=false;
   const slotAt=(x,y)=>{ const e=document.elementFromPoint(x,y); return e&&e.closest?e.closest('[data-fs]'):null; };
   const clearOver=()=>document.querySelectorAll('.fs-slot').forEach(q=>q.classList.remove('over'));
   const begin=()=>{ dragging=true; ghost=el.cloneNode(true); ghost.style.cssText='position:fixed;z-index:99999;pointer-events:none;opacity:.88;width:'+el.offsetWidth+'px;transform:translate(-50%,-50%) scale(.9);left:'+lx+'px;top:'+ly+'px;margin:0'; document.body.appendChild(ghost); try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){} };
   const move=(x,y)=>{ lx=x; ly=y; if(!ghost) return; ghost.style.left=x+'px'; ghost.style.top=y+'px'; const t=slotAt(x,y); document.querySelectorAll('.fs-slot').forEach(q=>q.classList.toggle('over',q===t)); };
-  const finish=()=>{ clearTimeout(timer); if(!dragging) return; const t=slotAt(lx,ly); if(ghost) ghost.remove(); ghost=null; dragging=false; clearOver(); el._dragAt=Date.now(); if(t){ if(t.dataset.fs==='2') dropTo2(); else dropTo1(); } };
+  const finish=()=>{ clearTimeout(timer); if(!dragging) return; const t=slotAt(lx,ly); if(ghost) ghost.remove(); ghost=null; dragging=false; clearOver(); el._dragAt=Date.now(); if(t){ if(t.dataset.fs==='2') dropTo2(); else if(t.dataset.fs==='3'&&dropTo3) dropTo3(); else if(t.dataset.fs!=='3') dropTo1(); } };
   el.addEventListener('click',e=>{ if(Date.now()-(el._dragAt||0)<500){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
   el.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=lx=t.clientX; sy=ly=t.clientY; clearTimeout(timer); timer=setTimeout(begin,280); },{passive:true});
   el.addEventListener('touchmove',e=>{ const t=e.touches[0]; if(!dragging){ if(Math.abs(t.clientX-sx)+Math.abs(t.clientY-sy)>10) clearTimeout(timer); return; } e.preventDefault(); move(t.clientX,t.clientY); },{passive:false});
@@ -8104,23 +8142,24 @@ function monCostHtml(ch){   // キャラ選択に出す特殊技のコスト（�
   const parts=[n&&n<99?`1戦に${n}回まで`:'', m.cost?skCostHtml(m):''].filter(Boolean);
   return parts.length?parts.join('／'):'なし';
 }
-let charFuse2='', charFuseSlot=1, charFuseOn=false, charFuseAnim=false;   // キャラ選択で選んでいる合体の相手（足）／いま選ぶ枠（1か2）／合体の枠を出すか
+let charFuse3='', charFuse2='', charFuseSlot=1, charFuseOn=false, charFuseAnim=false;   // キャラ選択で選んでいる合体の相手（足）／いま選ぶ枠（1か2）／合体の枠を出すか
 function fuseSlotsHtml(sel){
   const f1=sel?{id:sel.id,ch:sel.ch}:{id:curMonId(),ch:curMonChar()}, i2=charFuse2?monIdxOf(charFuse2):-1;
   const box=(n,lab,id,ch,i,hint)=>`<div class="fs-slot${charFuseSlot===n?' act':''}" data-fs="${n}"><div class="fs-l"><small>${lab}</small>${id?monIconHtml(ch,id,i,44):''}</div>${id?`<div class="fs-r"><b>${ch.name}</b> ${monStatHtml(ch)}<div class="cp-desc" style="margin-top:2px">${monDesc(id,i)}</div></div>`:`<div class="fs-r"><span class="fs-empty">${hint}</span></div>`}</div>`;
   const an=charFuseAnim; charFuseAnim=false;   // 合体2を新しく選んだ時だけ、2体が寄って光るアニメーション
+  if(fuse3Open()){ const i3=charFuse3?monIdxOf(charFuse3):-1; return `<div class="fs-row${an?' fusing':''}">${box(1,'合体1（頭）',f1.id,f1.ch,monIdxOf(f1.id),'')}<div class="fs-plus">＋</div>${box(2,'合体2（胴）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}<div class="fs-plus">＋</div>${box(3,'合体3（足）',charFuse3,charFuse3?makeMonChar(i3,charFuse3):null,i3,'タップして選ぶ／ここへドラッグ')}</div>`; }
   return `<div class="fs-row${an?' fusing':''}">${box(1,'合体1（頭・胴）',f1.id,f1.ch,monIdxOf(f1.id),'')}<div class="fs-plus">＋</div>${box(2,'合体2（足）',charFuse2,charFuse2?makeMonChar(i2,charFuse2):null,i2,'タップして選ぶ／ここへドラッグ')}</div>`;
 }
 function renderCurPanel(sel){ if(charFuseOn){ try{ document.getElementById('curPanel').innerHTML=fuseSlotsHtml(sel); return; }catch(e){} } renderCurPanelBase(sel); }   // 合体が使える時は、合体1・合体2の2段だけ（それぞれにモンスターの能力も書く）
 function fusedPanelHtml(base,withArrow,cc,cid,ci){
-  const i2=monIdxOf(charFuse2), ch=fuseChar(base.ch,charFuse2), A=dispName(base.id), B=dispName(charFuse2);
+  const i2=monIdxOf(charFuse2), i3=charFuse3?monIdxOf(charFuse3):-1, ch=fuseChar(base.ch,charFuse2,charFuse3), A=dispName(base.id), B=dispName(charFuse2), C=charFuse3?dispName(charFuse3):'';
   const spr=(()=>{ try{ return charSpr(ch,64); }catch(e){ return ''; } })();
-  const skills=[[A,'頭・胴',monDesc(base.id,base.i)],[B,'足',monDesc(charFuse2,i2)]].map(([n,pt,d])=>`<div style="margin-top:4px"><b>${n}</b>（${pt}）<br>${d}</div>`).join('');
-  return (withArrow?`<div class="cp-ico">${monIconHtml(cc,cid,ci,48)}<span>${cc.name}</span></div><div class="cp-arrow">▶</div>`:'')+`<div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${spr}</div><div class="cp-st"><b>${A}＋${B}</b><div style="font-size:12px">頭・胴：${A}／足：${B}</div>${monStatHtml(ch)}</div></div><div class="cp-desc"><b>合体：特殊技は2体分</b>${skills}</div></div>`;
+  const three=!!(C&&ch.mon3), skills=(three?[[A,'頭',monDesc(base.id,base.i)],[B,'胴',monDesc(charFuse2,i2)],[C,'足',monDesc(charFuse3,i3)]]:[[A,'頭・胴',monDesc(base.id,base.i)],[B,'足',monDesc(charFuse2,i2)]]).map(([n,pt,d])=>`<div style="margin-top:4px"><b>${n}</b>（${pt}）<br>${d}</div>`).join('');
+  return (withArrow?`<div class="cp-ico">${monIconHtml(cc,cid,ci,48)}<span>${cc.name}</span></div><div class="cp-arrow">▶</div>`:'')+`<div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${spr}</div><div class="cp-st"><b>${A}＋${B}${three?'＋'+C:''}</b><div style="font-size:12px">${three?`頭：${A}／胴：${B}／足：${C}`:`頭・胴：${A}／足：${B}`}</div>${monStatHtml(ch)}</div></div><div class="cp-desc"><b>合体：特殊技は${three?3:2}体分</b>${skills}</div></div>`;
 }
 function renderCurPanelBase(sel){
   const cid=curMonId(), ci=monIdxOf(cid), cc=curMonChar(), el=document.getElementById('curPanel');
-  { const base=sel||{id:cid,i:ci,ch:cc}; if(charFuse2&&charFuse2!==base.id&&fuseOpen()&&!isWeakId(base.id)){ el.innerHTML=fusedPanelHtml(base,!!sel,cc,cid,ci); return; } }
+  { const base=sel||{id:cid,i:ci,ch:cc}; if(charFuse2&&charFuse2!==base.id&&fuseOpen()&&!isWeakId(base.id)&&(!fuse3Open()||(charFuse3&&charFuse3!==base.id&&charFuse3!==charFuse2))){ el.innerHTML=fusedPanelHtml(base,!!sel,cc,cid,ci); return; } }
   if(!sel){ el.innerHTML=`<div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${monIconHtml(cc,cid,ci,64)}</div><div class="cp-st"><b>${cc.name}</b>${monStatHtml(cc)}</div></div><div class="cp-desc">${monDesc(cid,ci)}</div></div>`; return; }
   el.innerHTML=`<div class="cp-ico">${monIconHtml(cc,cid,ci,48)}<span>${cc.name}</span></div><div class="cp-arrow">▶</div><div style="flex:1;min-width:0"><div class="cp-box"><div class="cp-ico">${monIconHtml(sel.ch,sel.id,sel.i,56)}</div><div class="cp-st"><b>${sel.ch.name}</b>${monStatHtml(sel.ch)}</div></div><div class="cp-desc">${monDesc(sel.id,sel.i)}</div></div>`;
 }
@@ -8420,22 +8459,22 @@ function superMultFor(sym,raw){
   return m;
 }
 function specEnabled(k){ return (CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k)) || (k==='shuffle'&&CHARACTER&&CHARACTER.startShuffles===Infinity) || hasAcc('sp_'+k); }
-function spBonusFor(k){ let n=((k==='mon'||k==='mon2')&&CHARACTER&&CHARACTER.mon2&&hasAcc('union_bond'))?ACC_NEW.union*accX():0; n+=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
+function spBonusFor(k){ let n=((k==='mon'||k==='mon2'||k==='mon3')&&CHARACTER&&CHARACTER.mon2&&hasAcc('union_bond'))?ACC_NEW.union*accX():0; n+=(CHARACTER&&CHARACTER.sp&&CHARACTER.sp.includes(k))?(specBonusK[k]||0):0; accOwned.forEach(o=>{ if(accEq.includes(o.aid)&&o.id==='sp_'+k) n+=o.spb||0; }); return n; }   // 持ち技の分＋装備中のアクセサリーに付いた分
 const SPEC_CAP={all:5,   // 特殊技の回数の上限。技ごとに個別の値（書いてない技はallを使う）。後から技ごとに数字を変える
   beg:5, punch:5, guard:5, cure:5, bullet:5, shuffle:5,   // 基本の持ち技
   'ブーン':5, '丸のみ':5, '一刺し':5, '細胞分裂':5, '溶かす':5, 'エサになる':5, '悪食':5, '捕食':5, 'コガネモチ':5, '首席アタック':5, 'トリックオアトリート':5,   // モンスター技（技の名前で指定）
   'ブラインド':5, '斧で攻撃':5, '行動封じ':5, 'パニックフィールド':5, '毒の牙':5,
   '意外ときれい好き':5, '月光':5, '大巨漢':5, '模造品':5, '完全武装':5, '憑依':5, '石化':5, '仲間の壁':5, '過去の財宝':5, 'ファイアブレス':5, '蘇り':5, 'ためる':5, '銭投げ':5, '収穫祭':5};
-function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&CHARACTER.monSkillB.name)||k; }
+function specCapKey(k){ return (k==='mon'&&CHARACTER&&CHARACTER.monSkill&&CHARACTER.monSkill.name)||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&CHARACTER.monSkillB.name)||(k==='mon3'&&CHARACTER&&CHARACTER.monSkillC&&CHARACTER.monSkillC.name)||k; }
 function specCapFor(k){ const v=SPEC_CAP[specCapKey(k)]; return v!=null?v:SPEC_CAP.all; }
-const hasWormBody=()=>!!CHARACTER&&[CHARACTER.mon,CHARACTER.mon2].some(id=>id&&dispName(id)==='ミミズ');
+const hasWormBody=()=>!!CHARACTER&&[CHARACTER.mon,CHARACTER.mon2,CHARACTER.mon3].some(id=>id&&dispName(id)==='ミミズ');
 function applyWormBody(){ wormUp=0; if(hasWormBody()){ playerHp=Math.max(1,Math.ceil(playerHpMax/2)); wormUp=MONSK.wormSpec; } }   // ミミズの特異体質：戦いの最初から体力半分・特殊技の上限+3（合体の相手がミミズでも）
 function specMaxBase(k){ return Math.min(specCapFor(k), specMaxRaw(k)); }
-const specNoLimit=k=>{ const ms=k==='mon'?(CHARACTER&&CHARACTER.monSkill):k==='mon2'?(CHARACTER&&CHARACTER.monSkillB):null; return !!(ms&&ms.kind&&(MONSC[ms.kind]||(ms.cost&&!ms.cost.count))); };   // スーパーコンボを払う特殊技は、回数の上限なし（コンボの数が制限になる）
-function specMax(k){ if(specNoLimit(k)) return 99; const fixed1=(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&['trick','top'].includes(CHARACTER.monSkillB.kind)); return specMaxBase(k)+(fixed1?0:wormUp); }   // エサになる：その戦いの間、特殊技の回数の上限が増える（1回きりの技は除く）
-function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; if(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&(CHARACTER.monSkillB.kind==='trick'||CHARACTER.monSkillB.kind==='top')) return 1; { const ms=k==='mon'?(CHARACTER&&CHARACTER.monSkill):k==='mon2'?(CHARACTER&&CHARACTER.monSkillB):null; if(ms&&ms.cost&&ms.cost.count) return ms.cost.count*accX()+spBonusFor(k); } return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
+const specNoLimit=k=>{ const ms=k==='mon'?(CHARACTER&&CHARACTER.monSkill):k==='mon2'?(CHARACTER&&CHARACTER.monSkillB):k==='mon3'?(CHARACTER&&CHARACTER.monSkillC):null; return !!(ms&&ms.kind&&(MONSC[ms.kind]||(ms.cost&&!ms.cost.count))); };   // スーパーコンボを払う特殊技は、回数の上限なし（コンボの数が制限になる）
+function specMax(k){ if(specNoLimit(k)) return 99; const fixed1=(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&['trick','top'].includes(CHARACTER.monSkill.kind))||(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&['trick','top'].includes(CHARACTER.monSkillB.kind))||(k==='mon3'&&CHARACTER&&CHARACTER.monSkillC&&['trick','top'].includes(CHARACTER.monSkillC.kind)); return specMaxBase(k)+(fixed1?0:wormUp); }   // エサになる：その戦いの間、特殊技の回数の上限が増える（1回きりの技は除く）
+function specMaxRaw(k){ if(k==='mon'&&CHARACTER&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return 1; if(k==='mon2'&&CHARACTER&&CHARACTER.monSkillB&&(CHARACTER.monSkillB.kind==='trick'||CHARACTER.monSkillB.kind==='top')) return 1; if(k==='mon3'&&CHARACTER&&CHARACTER.monSkillC&&(CHARACTER.monSkillC.kind==='trick'||CHARACTER.monSkillC.kind==='top')) return 1; { const ms=k==='mon'?(CHARACTER&&CHARACTER.monSkill):k==='mon2'?(CHARACTER&&CHARACTER.monSkillB):k==='mon3'?(CHARACTER&&CHARACTER.monSkillC):null; if(ms&&ms.cost&&ms.cost.count) return ms.cost.count*accX()+spBonusFor(k); } return (hasAcc('sp_double')?4:2)*accX()+spBonusFor(k); }
 function spTargets(){   // 「特殊技+1」を付けられる先：最初から持っている技と、装備中のアクセサリーが与えている技
-  const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; if(k==='mon'&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return; const ms=k==='mon2'?CHARACTER.monSkillB:CHARACTER.monSkill; out.push({k,acc:null,label:(k==='mon'||k==='mon2')?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
+  const out=[]; (CHARACTER.sp||[]).forEach(k=>{ if(k==='shuffle') return; if(k==='mon'&&CHARACTER.monSkill&&(CHARACTER.monSkill.kind==='trick'||CHARACTER.monSkill.kind==='top')) return; const ms=k==='mon2'?CHARACTER.monSkillB:k==='mon3'?CHARACTER.monSkillC:CHARACTER.monSkill; out.push({k,acc:null,label:(k==='mon'||k==='mon2'||k==='mon3')?((ms&&ms.icon||'')+(ms&&ms.name||'')):((SPEC_INFO[k]||{title:k}).title)}); });
   accEq.forEach(aid=>{ const o=accOwned.find(x=>x.aid===aid); if(o&&o.id.startsWith('sp_')&&o.id!=='sp_double'&&o.id!=='sp_shuffle'){ const d=accDef(o.id); if(d) out.push({k:o.id.slice(3),acc:o,label:d.name}); } });
   return out;
 }
@@ -8917,7 +8956,7 @@ function showPrep(keepStock){
 }
 function prepSpecHtml(){   // 準備画面：今の特殊技と、次の戦いで使える回数
   if(!CHARACTER) return '';
-  const ks=[...new Set([...(CHARACTER.sp||[]), ...(CHARACTER.startShuffles===Infinity?['shuffle']:[]), ...(CHARACTER.monSkillB?['mon2']:[])])].filter(k=>specEnabled(k)||k==='mon2');
+  const ks=[...new Set([...(CHARACTER.sp||[]), ...(CHARACTER.startShuffles===Infinity?['shuffle']:[]), ...(CHARACTER.monSkillB?['mon2']:[]), ...(CHARACTER.monSkillC?['mon3']:[])])].filter(k=>specEnabled(k)||k==='mon2'||k==='mon3');
   const rows=ks.map(k=>{
     let si; try{ si=specInfoFor(k); }catch(e){ return ''; } if(!si||!si.title) return '';
     const passive=(k==='mon'&&monDisp()==='毒キノコ');
@@ -8925,10 +8964,10 @@ function prepSpecHtml(){   // 準備画面：今の特殊技と、次の戦い�
     if(passive) cnt='常時';
     else if(k==='shuffle'&&CHARACTER.startShuffles===Infinity) cnt='回数制限なし';
     else if(specNoLimit(k)){   // スーパーコンボを払う技：回数ではなく、払うコンボが使用条件
-      const ms0=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):null, sc0=ms0&&MONSC[ms0.kind];
+      const ms0=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):k==='mon3'?(CHARACTER.monSkillC):null, sc0=ms0&&MONSC[ms0.kind];
       if(sc0){ const col=sc0[0], n=wormCost(sc0[1]()); cnt=`使用条件：${miniIcon(EMBLEM[col],CFILL[col])}×${n}`; } else if(ms0&&ms0.cost) cnt=`使用条件：${skCostHtml(ms0)}`; else cnt='回数制限なし';
-    } else { const w=wormUp; wormUp=hasWormBody()?MONSK.wormSpec:0; const m=specMax(k); wormUp=w; cnt=`1戦に${m}回まで`; { const mz=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):null; if(mz&&mz.cost) cnt+=`／${skCostHtml(mz)}`; } }
-    const ms=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):null;
+    } else { const w=wormUp; wormUp=hasWormBody()?MONSK.wormSpec:0; const m=specMax(k); wormUp=w; cnt=`1戦に${m}回まで`; { const mz=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):k==='mon3'?(CHARACTER.monSkillC):null; if(mz&&mz.cost) cnt+=`／${skCostHtml(mz)}`; } }
+    const ms=k==='mon'?(CHARACTER.monSkill):k==='mon2'?(CHARACTER.monSkillB):k==='mon3'?(CHARACTER.monSkillC):null;
     if(ms&&ms.kind==='coin') cnt+=`（ゲーム全体で残り${Math.max(0,MONSK.samuraiMax-coinUsed)}回）`;
     if(ms&&ms.kind==='top') cnt=topUsed?'使用済み（ゲームで1回）':'ゲームで1回';
     return `<div class="ps-row"><span class="ps-n">${si.title}</span><span class="ps-c">${cnt}</span></div>`;
@@ -9393,8 +9432,8 @@ function saveGame(force){
     if(open('deckBuildModal')||open('endModal')) return;
     if(document.getElementById('appRoot').style.display==='none') return;
     const nmOf=i=>(i>=0&&WAVES[i])?WAVES[i].baseId:null;
-    const st={v:1, lad:8, gn:growN, pk:pocket, gu:gloveUsed, lu:lanternUsed, hb:hpBonus, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
-      score, totalScore, carryMap, scSpent, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,mon2:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,panel,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
+    const st={v:1, lad:8, gn:growN, pk:pocket, gu:gloveUsed, lu:lanternUsed, hb:hpBonus, topUsed, hpStock, plAtkMult, autoQ, autoSeq, bashDmg, bashRateNow, bashHist, bashRateHist, nm:[nmOf(stageIndex),nmOf(lastDefeatedIdx),nmOf(nextStageIdx),Array.from(foughtIdx).map(nmOf)], mon:(possessOrig?possessOrig.mon:CHARACTER.mon)||null, mon2:(possessOrig?possessOrig.mon2:CHARACTER.mon2)||null, mon3:(possessOrig?possessOrig.mon3:CHARACTER.mon3)||null, intro:[introOn,introAdv], battleNo, lastDefeatedIdx, nextStageIdx, ch:CHARACTER.id, stageIndex, waveAttempt, bossHp, playerHp, playerHpMax, monAtkMult, wormUp, buzzTurns, fought:Array.from(foughtIdx), enemyTurn, poisonPenalty, poisonPer, enemySched, prevSnap, lastFi,
+      score, totalScore, carryMap, scSpent, haunt, hostCarry, carryDamage, lastPower, powerHist, coinUsed, spec:(slotStash?Object.assign({},spec,{mon:slotStash.n,[slotStash.key||'mon2']:spec.mon}):spec), guardOn, defendOn, freeShuffles, handSlotBonus, prep:inPrep, win:(force||(bossHp<=0&&!inPrep))?1:0, lastDealt, lg:(typeof lgExport==='function'?lgExport():null), acc:{slb:accSlotBonus, fz:gameFuse,so:shopOnce,hb:hpBonus,spk:specBonusK,spp:specProg,ast:accStat,spn:specPlusBought,sb:shopBought,glass:hpGlassSave,cond:accCond,panel,deckOffer,gold,sold:[...soldIds],shop:shopStock,stat:accStat,sealed:sealedCards,owned:accOwned,eq:accEq,seq:accSeq,deleted:[...deletedUids],colors:GAME_COLORS.slice()}, turnCounter, totalWaves, immortalKills,
       activeDeck:(pending&&pending.scout&&pending.used)?activeDeck.concat(hand.filter(c=>(pending.drawn||[]).includes(c.uid)).reverse()):activeDeck, grandDeck, hand:(pending&&pending.scout&&pending.used)?[...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(0,pending.handIdx),pending.used,...hand.filter(c=>!(pending.drawn||[]).includes(c.uid)).slice(pending.handIdx)]:(pending&&pending.type==='replace_select'&&pending.used)?[...hand.slice(0,pending.handIdx),pending.used,...hand.slice(pending.handIdx)]:hand, flags, graveyard, stomach, pendingRewardCards, deckUids:[...deckUids], closeSeqCounter, uidN, FLAG_COUNT, victory};
     localStorage.setItem(SAVE_KEY, JSON.stringify(st));
   }catch(e){}
@@ -9407,7 +9446,7 @@ function refreshResumeBtn(){ const b=document.getElementById('titleResumeBtn'), 
 function resumeGame(){
   let st; try{ st=JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(e){ st=null; }
   let ch=st && CHARACTERS.find(c=>c.id===st.ch);
-  if(st&&ch&&st.mon){ const mi=st.mon==='ネクロマンサー'?HUMAN_IDX:WAVES.findIndex(w=>w.baseId===st.mon); if(mi>=0){ ch=makeMonChar(mi,st.mon); if(st.mon2) ch=fuseChar(ch,st.mon2); } }
+  if(st&&ch&&st.mon){ const mi=st.mon==='ネクロマンサー'?HUMAN_IDX:WAVES.findIndex(w=>w.baseId===st.mon); if(mi>=0){ ch=makeMonChar(mi,st.mon); if(st.mon2) ch=fuseChar(ch,st.mon2,st.mon3); } }
   if(!st||!ch){ clearSave(); return; }
   ensureAudio(); window.__onTitle=false;
   CHARACTER=ch; applyEnemyNames();
@@ -9441,7 +9480,7 @@ function resumeGame(){
   enemyTurn=st.enemyTurn; poisonPenalty=st.poisonPenalty; poisonPer=st.poisonPer; enemySched=stripDisabledEv(st.enemySched||{}); prevSnap=st.prevSnap; lastFi=st.lastFi;
   score=st.score; displayedScore=st.score; totalScore=st.totalScore; haunt=st.haunt||{}; scSpent=st.scSpent||{}; carryMap=st.carryMap||(st.carryColor&&st.carryCount?{[st.carryColor]:st.carryCount+1}:{}); carryDamage=st.carryDamage; hostCarry=st.hostCarry||0;
   { const ac=st.acc||{}; accSlotBonus=ac.slb||0; shopOnce=ac.so||{}; gameFuse=!!ac.fz; ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+accSlotBonus; deckOffer=ac.deckOffer||null; gold=ac.gold||0; soldIds=new Set(ac.sold||[]); shopStock=ac.shop||[]; accStat=Object.assign(blankBattleStat(),ac.stat||{}); accCond=Object.assign({n:0,cur:null,picks:0,used:[],ok:[],special:0},ac.cond||{}); panel=ac.panel||null; hpGlassSave=ac.glass||null; hpBonus=ac.hb||0; specBonusK=ac.spk||{}; specProg=ac.spp||{}; accStat=Object.assign(blankBattleStat(),ac.ast||{}); specPlusBought=ac.spn||0; shopBought=!!ac.sb; sealedCards=ac.sealed||[]; accOwned=(ac.owned||[]).filter(o=>accDef(o.id)); accEq=(ac.eq||[]).filter(a=>accOwned.some(o=>o.aid===a)).slice(0,ACC_SLOTS); accSeq=ac.seq||1; deletedUids=new Set(ac.deleted||[]); GAME_COLORS.length=0; (ac.colors||ALL_GAME_COLORS).forEach(c=>GAME_COLORS.push(c)); }
-  spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0},st.spec||{}); guardOn=st.guardOn; defendOn=!!st.defendOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
+  spec=Object.assign({beg:0,punch:0,guard:0,cure:0,shuffle:0,bullet:0,mon:0,mon2:0,mon3:0},st.spec||{}); guardOn=st.guardOn; defendOn=!!st.defendOn; freeShuffles=st.freeShuffles; handSlotBonus=st.handSlotBonus; turnCounter=st.turnCounter; totalWaves=st.totalWaves; immortalKills=st.immortalKills;
   activeDeck=st.activeDeck; grandDeck=st.grandDeck; hand=st.hand; flags=st.flags; graveyard=st.graveyard; stomach=st.stomach||[]; pendingRewardCards=st.pendingRewardCards||[];
   deckUids=new Set(st.deckUids||[]); closeSeqCounter=st.closeSeqCounter||0; uidN=Math.max(uidN,st.uidN||1); victory=!!st.victory;
   lastDealt=st.lastDealt||0; lastPower=st.lastPower||0; powerHist=Array.isArray(st.powerHist)?st.powerHist.slice(-3):[]; coinUsed=st.coinUsed||0;
@@ -9695,7 +9734,7 @@ function lgImport(x){
       const cur={}; sk().forEach(k=>{ if(!KEEP[k]) cur[k]=localStorage.getItem(k); });
       if(!localStorage.getItem('soloSiegeDbgBackup')) localStorage.setItem('soloSiegeDbgBackup',JSON.stringify(cur));
       const keepMons=localStorage.getItem('soloSiegeMons');
-      const drop=cp.clearAll?sk().filter(k=>!KEEP[k]):['soloSiegeSave1','soloSiegeAlienSeen','soloSiegeWinStreak','soloSiegeStreakPend','soloSiegeAlienBeat',FUSE_KEY,SEL2_KEY,FUSE_SLOTS_KEY];
+      const drop=cp.clearAll?sk().filter(k=>!KEEP[k]):['soloSiegeSave1','soloSiegeAlienSeen','soloSiegeWinStreak','soloSiegeStreakPend','soloSiegeAlienBeat',FUSE_KEY,SEL2_KEY,SEL3_KEY,FUSE_SLOTS_KEY];
       drop.forEach(k=>localStorage.removeItem(k));
       if(cp.beat.length) localStorage.setItem('soloSiegeAlienBeat',JSON.stringify(cp.beat));
       let mons=typeof cp.mons==='function'?cp.mons():cp.mons.slice();
