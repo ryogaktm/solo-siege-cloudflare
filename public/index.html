@@ -2955,7 +2955,7 @@ function showAtkBreakdown(){   // 今の攻撃力が、どんな倍率ででき�
   cols.forEach(c=>row(`${CNAME[c]||c}の色`,`${cn[c]}コンボ`));
   const cl=flags.map((fl,i)=>({fl,i})).filter(o=>o.fl.closed&&o.fl.result);
   cl.forEach(o=>{ const m=flagMul(o.fl); row(`旗${o.i+1}：${o.fl.result.name||'役なし'}　${f(o.fl.result.base||0)}`,`${x(m)} ＝ ${f(flagShown(o.fl))}`); });
-  if(hasAcc('color_bond')) row('🎀 色違いの絆','2色以上で ×1.2（旗の倍率に含む）');
+  if(hasAcc('color_bond')) row('🎀 色違いの絆','2色以上で ×3（旗の倍率に含む）');
   sec('③ 全体にかかる倍率（かけ算）');
   const ms=atkMultList();
   if(!ms.length) row('なし','×1'); ms.forEach(([n,v])=>row(n,x(v),v<1?'color:#ff9a8a':'color:#9fe6a0'));
@@ -8244,7 +8244,7 @@ const SP_NAME={shuffle:'シャッフル',beg:'命乞い',punch:'殴る',guard:'�
 const SP_ACC={shuffle:'ブレスレット',beg:'首輪',punch:'指輪',guard:'バングル',cure:'鼻輪'};
 const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
 /* ★新しいアクセサリー（40個の追加分）の数字はここ。倍の腕輪（accX）は「増え分」にかかる */
-const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:0.2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
+const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
 function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリーの倍率（発動している分だけ [名前, 倍率]）
   const P=[]; if(!accEq.length) return P; const k=accX();
   const cl=flags.filter(f=>f.closed&&f.result);
@@ -8349,7 +8349,7 @@ function buildAccDefs(){
    ['charm_curse','呪い除けのお守り','🧿','呪いのカードを捨てる時の、スーパーコンボのペナルティがなくなる'],
    ['antidote','毒消しのスカーフ','🧣','毒・マイナスレインの「数字−1」を受けない'],
    ['combo_bank','コンボ貯金のブレスレット','🏦','次の戦いへ持ち越すスーパーコンボが、持っている色すべてで+1される'],
-   ['color_bond','色違いの絆','🎀','2色以上のスーパーコンボが同時に続いている時、どの色も倍率が1.2倍になる'],
+   ['color_bond','色違いの絆','🎀','2色以上のスーパーコンボが同時に続いている時、どの色も倍率が3倍になる'],
    ['combo_ins','コンボ保険','🛟','妨害やペナルティでスーパーコンボが減る時、減る量が半分になる'],
    ['first_ring','初撃の指輪','🥊','役のある旗が1つだけの色（×1）を、×2として数える'],
    ['foresight','予知の水晶','🔮','妨害の警告が、1ターン前ではなく3ターン前に出る'],
