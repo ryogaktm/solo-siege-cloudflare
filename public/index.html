@@ -6439,7 +6439,7 @@ function hint(msg,warn){
 /* ---- always-on NOW telop ---- */
 const HOW_TIPS = {
   beginner: '敵の攻撃力は毎ターン増える。役を揃えて戦力で上回り、全旗そろえて攻撃！',
-  equip: '数の装備をシートに置くと、それ以上の数のカードを置かなければいけない。色の装備は、カードが置いてある旗に使うと、そのカードのマークが装備の色にすべて変わる。',
+  equip: '数の装備をシートに置くと、それ以上の数のカードを置かなければいけない。色の装備は、カードが置いてある旗に使うと、そのカードのマークが装備の色にすべて変わる。同じ色の敵のカラフルフィールドは、この装備で消せる。',
   combo: '役を揃えて、3枚目のマークも他の旗と揃えるとさらに2倍',
   tactics: '軍師カードには様々な効果があるぞ'
 };
@@ -6580,7 +6580,7 @@ function cardInfoContent(c){
     if(c.sub==='number'){
       return `<p><b>${c.value}以上の力の装備</b></p><p>${c.value}以上の数しか置けない。置くと<b>+${monsterBonusFor(c)}</b>加点される。</p>`;
     }
-    return `<p><b>${CNAME[c.color]}の装備</b></p><p>旗の3枚目のマークが<b>${CNAME[c.color]}に変わる</b>（1ターン消費）。役やスーパーコンボも変わる。</p>`;
+    return `<p><b>${CNAME[c.color]}の装備</b></p><p>旗の3枚目のマークが<b>${CNAME[c.color]}に変わる</b>（1ターン消費）。役やスーパーコンボも変わる。<br><b>同じ色の敵のカラフルフィールドが置かれた旗に使うと、そのフィールドを消せる</b>（違う色だとその色に変わる）。</p>`;
   }
   let extra;
   if(isDariusCard(c)) extra=TACTIC_EXTRA.darius;
@@ -6819,7 +6819,7 @@ function buildMonsterList(){
     {card:{kind:'monster',sub:'number',value:7,uid:'mon-num'},
      name:'力の装備', desc:'表示された数字以上の数しか置けない。置くと加点される。'},
     {card:{kind:'monster',sub:'mark',color:'blue',uid:'mon-mark'},
-     name:'色の装備', desc:'カードが置いてある旗（役が固まった旗も可）にドラッグすると、最後に置いたカード（3枚目）のマークが装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままで、役やスーパーコンボも変わります。'}
+     name:'色の装備', desc:'カードが置いてある旗（役が固まった旗も可）にドラッグすると、最後に置いたカード（3枚目）のマークが装備の色に変わります（1ターン消費・装備は墓地へ）。数字はそのままで、役やスーパーコンボも変わります。\n同じ色の敵のカラフルフィールドが置かれた旗に使うと、そのフィールドを消せます（違う色だと、フィールドがその色に変わります）。'}
   ];
   entries.forEach(e=>{
     const row=document.createElement('div'); row.className='formation-example';
