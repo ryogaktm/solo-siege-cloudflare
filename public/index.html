@@ -8556,7 +8556,8 @@ function cumAllowed(kind){ return kind==='tac'?!!CHARACTER.tactics:kind==='eq'?!
 function makePanel(no){   // パネルを1枚作る：難しさを lo→hi に並べた9マスに、近い難しさの条件を1つずつ入れる
   panelMakeNo=no; const [lo,hi]=panelRange(no), used=new Set(), cells=[];
   const battle=condPool().filter(x=>!(x.g.done&&!x.g.final&&x.g.done()));
-  const cum=[]; CUM_DEF.filter(d=>cumAllowed(d[0])).forEach(d=>CUM_MULS.forEach((m,mi)=>{ const n=Math.round(d[1]*m*(1+PANEL_CUM_GROW*(no-1))); cum.push({key:`c_${d[0]}_${n}`,kind:d[0],lv:lo+(hi-lo)*mi/(CUM_MULS.length-1)}); }));
+  const cum=[]; CUM_DEF.filter(d=>d[0]!=='win'&&cumAllowed(d[0]))   // 「敵を累計○体倒す」は重いので、新しく出さない（保存済みのパネルでは今までどおり数える）
+    .forEach(d=>CUM_MULS.forEach((m,mi)=>{ const n=Math.round(d[1]*m*(1+PANEL_CUM_GROW*(no-1))); cum.push({key:`c_${d[0]}_${n}`,kind:d[0],lv:lo+(hi-lo)*mi/(CUM_MULS.length-1)}); }));
   const cumSlots=new Set(shuffle([0,1,2,3,4,5,6,7,8]).slice(0,PANEL_MIX.cum)); let finals=0; const cumKinds=new Set(), fam={};
   for(let i=0;i<PANEL_N;i++){
     const t=lo+(hi-lo)*i/(PANEL_N-1);
