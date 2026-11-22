@@ -3932,7 +3932,7 @@ function targetsBase(card){   // 置かれた旗そのものの制限だけで�
     }
     else if(card.kind==='monster' && card.sub==='mark'){
       // 数字カードが置いてあれば使える。力の装備（武器）が乗っていても染められる。色指定の装備がある旗には、同じ色の装備だけ
-      if(f.cards.some(c=>c.kind==='troop') && (!mon || mon.sub==='number' || mon.color===card.color)) out.push(i);
+      if((f.cards.some(c=>c.kind==='troop') && (!mon || mon.sub==='number' || mon.color===card.color)) || (mon&&mon.sub==='cfield'&&mon.color===card.color)) out.push(i);   // 同じ色の敵のカラフルフィールド（妨害）は、同じ色のマーク装備で相殺できる
     }
     else if(card.kind==='monster' && (card.sub==='cfield'||card.sub==='pfield')){
       if(!mon && f.cards.length<3) out.push(i);
