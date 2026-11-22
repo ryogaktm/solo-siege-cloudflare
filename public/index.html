@@ -4042,6 +4042,7 @@ function closeCheck(fi){
   const f=flags[fi];
   if(!f.closed&&f.cards.length>=3&&!flagMonster(f)){   // 装備(武器など)が乗っている間は、数字カード2枚+装備でも閉じない（装備を数字カードで換装して3枚そろった時に閉じる）
     f.closed=true; f.closeSeq=++closeSeqCounter; f.result=evaluate(f);
+    try{ if(f.result&&f.result.name){ accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; f.roleCounted=true; } }catch(e){}   // 旗が完成した瞬間に数える（一斉攻撃を待たずに、達成条件が埋まる）
     if(f.negated){ f.result.base=-Math.abs(f.result.base||f.result.sum||0); f.result.mult=1; }   // マイナスの武器：得点がマイナス・役なし
     f.symbolColor = flagSymbolColor(f);
     {
@@ -4397,7 +4398,7 @@ function checkWaveOutcome(){
     carryMap=carryNext(); scSpent={};
   } else { carryMap={}; scSpent={}; }
   hostCarry=hostNx;
-  flags.forEach(f=>{ if(f.closed&&f.result&&f.result.name) accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; });
+  flags.forEach(f=>{ if(f.closed&&f.result&&f.result.name&&!f.roleCounted) accStat.roles[f.result.name]=(accStat.roles[f.result.name]||0)+1; });
   try{ if(flags.length&&flags.every(f=>f.closed&&f.symbolColor&&f.symbolColor===flags[0].symbolColor)) { accStat.allSame=1; accStat.sameRun=(accStat.sameRun||0)+1; accStat.maxSameRun=Math.max(accStat.maxSameRun||0,accStat.sameRun); } else accStat.sameRun=0; }catch(e){}   // 取得条件：全部の旗が同じ色
   try{ const nm={}; flags.forEach(f=>{ if(f.closed&&f.result&&f.result.name&&f.result.name!=='ホスト') nm[f.result.name]=(nm[f.result.name]||0)+1; });
     accStat.maxKinds=Math.max(accStat.maxKinds||0,Object.keys(nm).length); accStat.maxSame=Math.max(accStat.maxSame||0,0,...Object.values(nm)); }catch(e){}
