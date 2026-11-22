@@ -8245,7 +8245,7 @@ const SP_NAME={shuffle:'シャッフル',beg:'命乞い',punch:'殴る',guard:'�
 const SP_ACC={shuffle:'ブレスレット',beg:'首輪',punch:'指輪',guard:'バングル',cure:'鼻輪'};
 const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
 /* ★新しいアクセサリー（40個の追加分）の数字はここ。倍の腕輪（accX）は「増え分」にかかる */
-const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:0.3, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
+const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:4, tiaraKinds:3, tiaraInc:0.5, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:2, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
 function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリーの倍率（発動している分だけ [名前, 倍率]）
   const P=[]; if(!accEq.length) return P; const k=accX();
   const cl=flags.filter(f=>f.closed&&f.result);
@@ -8331,7 +8331,7 @@ function buildAccDefs(){
    ['almost_ring','あと一歩の指輪','💍','役のない旗でも、2枚が同じ色か同じ数字なら、攻撃力が1.2倍になる'],
    ['big_bracelet','大きい数字の腕輪','💪','3枚の合計が24以上の旗は、攻撃力が1.5倍になる'],
    ['small_bracelet','小さい数字の腕輪','🐜','3枚の合計が9以下の旗は、攻撃力が2倍になる'],
-   ['rainbow_brooch','虹のブローチ','🌈','3枚とも色が違う旗は、攻撃力が1.3倍になる'],
+   ['rainbow_brooch','虹のブローチ','🌈','3枚とも色が違う旗は、攻撃力が5倍になる'],
    ['tiara','役集めのティアラ','👑','1つのwaveで違う役を3種類以上作ると、総攻撃力が1.5倍になる（役なしは数えない）'],
    ['medal','おそろいの勲章','🎖','全部の旗が同じ役（役なし以外）なら、総攻撃力が2倍になる'],
    ['sandal','じっくりのサンダル','🩴','同じ敵との戦いが5wave目以降になってから攻撃すると、総攻撃力が4倍になる'],
