@@ -2955,7 +2955,7 @@ function showAtkBreakdown(){   // 今の攻撃力が、どんな倍率ででき�
   cols.forEach(c=>row(`${CNAME[c]||c}の色`,`${cn[c]}コンボ`));
   const cl=flags.map((fl,i)=>({fl,i})).filter(o=>o.fl.closed&&o.fl.result);
   cl.forEach(o=>{ const m=flagMul(o.fl); row(`旗${o.i+1}：${o.fl.result.name||'役なし'}　${f(o.fl.result.base||0)}`,`${x(m)} ＝ ${f(flagShown(o.fl))}`); });
-  if(hasAcc('color_bond')) row('🎀 色違いの絆','2色以上で ×3（旗の倍率に含む）');
+  if(hasAcc('color_bond')) row('🎀 色違いの絆','2色で ×3／3色で ×4／4色以上で ×5（旗の倍率に含む）');
   sec('③ 全体にかかる倍率（かけ算）');
   const ms=atkMultList();
   if(!ms.length) row('なし','×1'); ms.forEach(([n,v])=>row(n,x(v),v<1?'color:#ff9a8a':'color:#9fe6a0'));
@@ -3090,7 +3090,7 @@ function superMults(){
     a.sort((x,y)=>(flags[x].closeSeq||0)-(flags[y].closeSeq||0)||x-y);
     a.forEach((i,k)=>{ const mm=superMultFor(col, (cr||1)+k+1); if(mm>1) m[i]=mm; });
   });
-  if(hasAcc('color_bond')){ const cs=new Set(Object.keys(m).map(i=>flags[i].symbolColor)); if(cs.size>=2) Object.keys(m).forEach(i=>{ m[i]*=1+ACC_NEW.bond*accX(); }); }   // 色違いの絆
+  if(hasAcc('color_bond')){ const cs=new Set(Object.keys(m).map(i=>flags[i].symbolColor)); if(cs.size>=2){ const inc=cs.size>=4?4:cs.size>=3?3:ACC_NEW.bond; Object.keys(m).forEach(i=>{ m[i]*=1+inc*accX(); }); } }   // 2色で×3／3色で×4／4色以上で×5   // 色違いの絆
   return m;
 }
 let hostCarry=0, frozenHost={};   // ホストの指輪：役のない旗の連続数（前のwaveから）
@@ -8350,7 +8350,7 @@ function buildAccDefs(){
    ['charm_curse','呪い除けのお守り','🧿','呪いのカードを捨てる時の、スーパーコンボのペナルティがなくなる'],
    ['antidote','毒消しのスカーフ','🧣','毒・マイナスレインの「数字−1」を受けない'],
    ['combo_bank','コンボ貯金のブレスレット','🏦','次の戦いへ持ち越すスーパーコンボが、持っている色すべてで+1される'],
-   ['color_bond','色違いの絆','🎀','2色以上のスーパーコンボが同時に続いている時、どの色も倍率が3倍になる'],
+   ['color_bond','色違いの絆','🎀','スーパーコンボが同時に続いている色の数で、どの色も倍率が上がる（2色で3倍／3色で4倍／4色以上で5倍）'],
    ['combo_ins','コンボ保険','🛟','妨害やペナルティでスーパーコンボが減る時、減る量が半分になる'],
    ['first_ring','初撃の指輪','🥊','役のある旗が1つだけの色（×1）を、×2として数える'],
    ['foresight','予知の水晶','🔮','妨害の警告が、1ターン前ではなく3ターン前に出る'],
