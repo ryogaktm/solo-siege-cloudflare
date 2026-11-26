@@ -5025,8 +5025,8 @@ const holyAny=skipUid=>holyGlobals().length>0||holyFlagCands().length>0||hand.so
 function useHoly(handIdx){
   const used=hand[handIdx]; if(!used) return;
   if(!holyAny(used.uid)) return hint('今かかっている状態異常がありません。',true);
-  const done=holyAll(used.uid);
-  pending={type:'holy', uid:used.uid}; finishHoly(`💧 聖水：状態異常をすべて消した！（${done.join('・')}）`, 0);
+  const h0=hand.length, done=holyAll(used.uid), gone=h0-hand.length;   // 手札から消した呪いの枚数ぶん、山札から補充する
+  pending={type:'holy', uid:used.uid}; finishHoly(`💧 聖水：状態異常をすべて消した！（${done.join('・')}）`, gone);
 }
 function finishHoly(msg,extra){
   const hi=hand.findIndex(c=>c.uid===pending.uid), used=hand[hi]; pending=null;
