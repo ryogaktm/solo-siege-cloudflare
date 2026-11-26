@@ -140,7 +140,7 @@
 
   .iconbtn{ width:30px; height:30px; border-radius:50%; border:1px solid var(--gold-3); background:rgba(0,0,0,.35);
     color:var(--gold); font-family:'Cinzel',serif; font-weight:800; cursor:pointer; font-size:14px; flex:0 0 auto; }
-  .topbar-btns{ display:flex; gap:6px; align-items:center; }
+  .topbar-btns{ display:flex; gap:6px; align-items:center; flex:none; }   /* 合体で名前が長くなっても、？や☰のボタンが画面の外に押し出されないように */
   .sound-btn{ font-size:13px; opacity:1; transition:opacity .15s; }
   .sound-btn.muted{ opacity:.35; }
   .spr{ image-rendering:pixelated; flex:0 0 auto; display:block; }
@@ -197,7 +197,7 @@
   .mon-tile b{ font-size:11px; color:var(--gold); line-height:1.25; }
   .mon-tile small{ font-size:9.5px; color:var(--glow); }
   .char-card .char-info{ flex:1; min-width:0; }
-  .char-badge-wrap{ display:flex; align-items:center; gap:8px; }
+  .char-badge-wrap{ display:flex; align-items:center; gap:8px; flex:1 1 0; min-width:0; }
   .wavebar{ display:flex; align-items:center; gap:8px; }
   .wavebar .wave-main{ flex:1; min-width:0; }
   .stage{ position:relative; height:142px; flex:0 0 auto; margin:6px 0 10px; border-radius:10px; overflow:hidden; border:1px solid rgba(226,192,106,.4); background:#10181a; box-shadow:inset 0 0 12px rgba(0,0,0,.5); }
@@ -228,8 +228,8 @@
   .dmgpop{ position:absolute; z-index:6; transform:translate(-50%,0); font-family:'Cinzel',serif; font-weight:800; font-size:20px; color:#fff; text-shadow:0 0 6px #ff4a2a,0 2px 0 #7a1208; pointer-events:none; animation:dmgRise 1s ease-out forwards; }
   .dmgpop.me{ color:#ffd0d0; text-shadow:0 0 6px #ff2a4a,0 2px 0 #50061a; }
   @keyframes dmgRise{ 0%{ opacity:0; margin-top:6px; } 15%{ opacity:1; } 100%{ opacity:0; margin-top:-26px; } }
-  .char-badge{ display:flex; flex-direction:column; line-height:1.3; }
-  .char-badge-name{ white-space:nowrap; font-size:13px; font-weight:800; color:var(--gold); font-family:'Noto Sans JP',sans-serif; }
+  .char-badge{ display:flex; flex-direction:column; line-height:1.3; min-width:0; max-width:100%; }
+  .char-badge-name{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-all; font-size:13px; font-weight:800; color:var(--gold); font-family:'Noto Sans JP',sans-serif; }
   .char-badge-score{ font-size:10.5px; color:var(--cream-2); opacity:.8; }
   .char-badge-score b{ color:var(--gold); font-family:'Cinzel',serif; }
   .menu-panel{
