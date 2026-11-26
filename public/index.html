@@ -1222,7 +1222,7 @@
       <div class="st-side en"><span class="hp-icon foe">💀</span><div class="boss-hp-bar"><div class="boss-hp-fill" id="bossHpFill"></div><div class="pred-seg boss" id="bossPred" style="display:none"></div></div><div class="boss-hp-num"><b id="bossHpNum">200</b>/<span id="bossHpMax">200</span></div></div>
     </div>
     <div class="st-row st-atk">
-      <div class="st-side pl"><div class="atk-grp" id="atkGrp" style="cursor:pointer"><span class="atk-sw" id="plAtkSw">⚔</span><span class="power-num" id="scoreNum">0</span><span style="font-size:10px;opacity:.75;margin-left:2px">📊</span></div></div>
+      <div class="st-side pl"><div class="atk-grp" id="atkGrp" style="cursor:pointer"><span class="atk-sw" id="plAtkSw">⚔</span><span class="power-num" id="scoreNum">0</span><span style="font-size:10px;opacity:.75;margin-left:2px">📊</span><span id="plMulBadge" style="display:none;margin-left:4px;font-size:12px;font-weight:900;padding:0 5px;border-radius:8px;background:rgba(0,0,0,.45)"></span></div></div>
       <div class="st-side en"><div class="atk-grp"><span class="atk-sw">⚔</span><span class="power-num enemy-num" id="enemyAtkNum">0</span><span id="evCountdown" class="ev-cd" style="display:none"></span></div></div>
     </div>
     <div class="fighter pl" id="fighterPl"><span id="topCharSpr"></span><div class="pl-shield" id="plShield"></div></div>
@@ -1760,7 +1760,7 @@ const MON_SKILL_NEW={
   '最強の四天王':{name:'最強の証明',icon:'🏆',desc:'体質：閉じた旗が全部役ありなら、総攻撃力が2倍になる。'},
   '魔王の影':{kind:'shadow',name:'影うつし',icon:'🪞',cost:{count:1},desc:'閉じた旗を1つ選ぶ。その3枚の写しを、空の旗に置いて閉じる。'},
   '魔王の化身':{kind:'usurp',name:'乗っ取り',icon:'👿',cost:{combo:['red',2]},desc:'敵の今の攻撃力の1割を、自分の攻撃力に足す（そのwaveだけ）。'},
-  '不死身の魔王':{name:'不死身',icon:'♾',desc:'体質：1戦に1回、体力が0になっても全回復で生き返る。一度蘇ると、それ以降のWAVEは、ずっと攻撃力が2倍。'},
+  '不死身の魔王':{name:'不死身',icon:'♾',desc:'体質：1戦に1回、体力が0になっても全回復で生き返る。一度蘇ると、そのWAVEの途中から、以降ずっと攻撃力が2倍。'},
   '深淵の魔王':{kind:'bloodwrite',name:'血文字',icon:'✒',cost:{hp:50},desc:'体力50を払って、手札の数字カード1枚を、好きな色・好きな数字に書き換える。'},
   '終焉の魔王':{kind:'end',name:'終焉',icon:'🌌',cost:{hp:100},desc:'体力100を払って、この戦いの残りの「攻撃力×2」の予定を全部消す。'},
   '滅びの化身':{kind:'annihilate',name:'滅ぼす',icon:'☠',cost:{count:3},desc:'手札の1枚をゲームから消して（墓地にも行かない）、1枚引く。'},
@@ -2590,7 +2590,7 @@ let waveSerial=0, boneUsedAt=null;   // waveSerial＝一斉攻撃のたびに1�
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1, immortalBoost=false;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
 function phxReady(){ return hasAcc('sp_phoenix')&&(accStat.phx||0)<accCount('sp_phoenix'); }
-function tryRevive(){ if(phxReady()){ accStat.phx=(accStat.phx||0)+1; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} hint('🪶 不死鳥の羽！ 体力が半分で生き返った！',true); playSfx('combo'); return true; } if(immortalReady){ immortalReady=false; immortalBoost=true; playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！これ以降のWAVEは、ずっと攻撃力2倍！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
+function tryRevive(){ if(phxReady()){ accStat.phx=(accStat.phx||0)+1; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} hint('🪶 不死鳥の羽！ 体力が半分で生き返った！',true); playSfx('combo'); return true; } if(immortalReady){ immortalReady=false; if(!immortalBoost){ immortalBoost=true; plAtkMult*=2; } playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！ここから先、ずっと攻撃力2倍！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
@@ -2954,7 +2954,7 @@ const MB_COL={red:'#ff6a5a',orange:'#ffa94d',yellow:'#ffd84a',green:'#6fdc7a',bl
 function atkMultList(){   // 全体にかかる倍率（内訳と、常時表示で共通）
   const ms=[]; const add=(n,v)=>{ if(v!==1&&v!=null&&!isNaN(v)) ms.push([n,v]); };
   let qm=1; try{ qm=quickMult(waveTurns(),hasNoRoleFlag()); }catch(e){}
-  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃3割減）',dis.halfNext?DIS_PARAM.halfAtk:1); add('攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
+  add(`スピード（${waveTurns()}ターン）`,qm); add('🛡 敵の防御（次の攻撃3割減）',dis.halfNext?DIS_PARAM.halfAtk:1); add(immortalBoost&&plAtkMult>=2?'♾ 不死身の蘇り（攻撃力2倍）':'攻撃倍率（細胞分裂など）',plAtkMult); add('ためる',monkQ.length?monkQ[0]:1);
   add('闇の誓い',atkFx.oath?SKP.oath:1); add('突進',atkFx.rush?2:1); add('急降下',atkFx.dive?3:1); add('石の体',atkFx.golem?0.5:1); add('立証',provenOn()?2:1);
   let am=1; try{ am=accAtkMul(waveTurns()); }catch(e){} add('アクセサリー',am);
   return ms;
@@ -6083,6 +6083,7 @@ function renderBattle(){
   try{ const sw=document.getElementById('plAtkSw'); if(sw) sw.textContent=defendOn?'🛡':'⚔'; }catch(e){}
   const d=defendOn?Math.min(0,pA*2-eA):pA-eA, el=document.getElementById('diffLine');
   try{ const bw=document.querySelector('.board-wrap'); if(bw) bw.dataset.bg=d>0?'win':d<0?'lose':'even'; }catch(e){}   // 盤面の背景色で、いま勝っているかを一目でわかるように
+  try{ const mb=document.getElementById('plMulBadge'); if(mb){ const ms=atkMultList(), all=ms.reduce((a,[,v])=>a*v,1); if(ms.length&&all!==1){ mb.style.display=''; mb.textContent='×'+(Math.round(all*100)/100); mb.style.color=all<1?'#ff9a8a':'#ffe08a'; mb.title=ms.map(([n,v])=>n+' ×'+(Math.round(v*100)/100)).join('／'); } else mb.style.display='none'; } }catch(e){}   // 今かかっている倍率（不死身の2倍など）を攻撃力の横に常に出す
   const tot=pA+eA, tug=document.getElementById('tugMe');
   if(tug) tug.style.width=(tot>0?Math.max(4,Math.min(96,pA/tot*100)):50)+'%';
   let txt;
