@@ -1760,7 +1760,7 @@ const MON_SKILL_NEW={
   '最強の四天王':{name:'最強の証明',icon:'🏆',desc:'体質：閉じた旗が全部役ありなら、総攻撃力が2倍になる。'},
   '魔王の影':{kind:'shadow',name:'影うつし',icon:'🪞',cost:{count:1},desc:'閉じた旗を1つ選ぶ。その3枚の写しを、空の旗に置いて閉じる。'},
   '魔王の化身':{kind:'usurp',name:'乗っ取り',icon:'👿',cost:{combo:['red',2]},desc:'敵の今の攻撃力の1割を、自分の攻撃力に足す（そのwaveだけ）。'},
-  '不死身の魔王':{name:'不死身',icon:'♾',desc:'体質：1戦に1回、体力が0になっても全回復で生き返る。蘇った次のWAVEは、攻撃力が2倍。'},
+  '不死身の魔王':{name:'不死身',icon:'♾',desc:'体質：1戦に1回、体力が0になっても全回復で生き返る。一度蘇ると、それ以降のWAVEは、ずっと攻撃力が2倍。'},
   '深淵の魔王':{kind:'bloodwrite',name:'血文字',icon:'✒',cost:{hp:50},desc:'体力50を払って、手札の数字カード1枚を、好きな色・好きな数字に書き換える。'},
   '終焉の魔王':{kind:'end',name:'終焉',icon:'🌌',cost:{hp:100},desc:'体力100を払って、この戦いの残りの「攻撃力×2」の予定を全部消す。'},
   '滅びの化身':{kind:'annihilate',name:'滅ぼす',icon:'☠',cost:{count:3},desc:'手札の1枚をゲームから消して（墓地にも行かない）、1枚引く。'},
@@ -2590,7 +2590,7 @@ let waveSerial=0, boneUsedAt=null;   // waveSerial＝一斉攻撃のたびに1�
 let zombieRevive=false, monkQ=[], farmerHealAt=0, wallOn=false, mummyOn=false, copyN=0, armedOn=false, stoneLeft=0, possessUntil=0, possessOrig=null;   // copyN＝このwaveの模造品の回数／armedOn＝完全武装／stoneLeft＝石化の残りターン／possess＝憑依   // 蘇りの準備／ためる（次の攻撃の倍率）／収穫祭の回復予定ターン／仲間の壁／ミイラの宝（この戦いの金系アクセサリー売値2倍）
 let hpStock=0, plAtkMult=1, immortalBoost=false;   // 体力ストック：HPが0になっても1つ消費して復活する（初期値0／その戦いの間だけ。次の敵に進むと元に戻る）。plAtkMult＝細胞分裂で下がる自分の攻撃力倍率（その戦いの間）
 function phxReady(){ return hasAcc('sp_phoenix')&&(accStat.phx||0)<accCount('sp_phoenix'); }
-function tryRevive(){ if(phxReady()){ accStat.phx=(accStat.phx||0)+1; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} hint('🪶 不死鳥の羽！ 体力が半分で生き返った！',true); playSfx('combo'); return true; } if(immortalReady){ immortalReady=false; immortalBoost=true; playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！次のWAVEは攻撃力2倍！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
+function tryRevive(){ if(phxReady()){ accStat.phx=(accStat.phx||0)+1; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} hint('🪶 不死鳥の羽！ 体力が半分で生き返った！',true); playSfx('combo'); return true; } if(immortalReady){ immortalReady=false; immortalBoost=true; playerHp=playerHpMax; try{ clearKO(); }catch(e){} hint('♾ 不死身！ 体力が全回復して生き返った！これ以降のWAVEは、ずっと攻撃力2倍！',true); playSfx('combo'); return true; } if(zombieRevive){ zombieRevive=false; playerHp=Math.max(1,Math.ceil(playerHpMax/2)); try{ clearKO(); }catch(e){} dlog('action',{name:'zombie_revive'}); hint('🧟 蘇り！ 体力が半分で生き返った！',true); return true; } if(!(hpStock>0)) return false; hpStock--; playerHp=playerHpMax; try{ clearKO(); }catch(e){} dlog('action',{name:'hp_stock_revive',left:hpStock}); hint(`💖 体力ストックを1つ使って復活した！体力が全回復（残りストック${hpStock}）`,true); playSfx('combo'); return true; }   // topUsed＝首席アタックを今回のゲームで使ったか（敵が変わっても戻らない）
 //   // stomach＝カエルが飲み込んだカード
 function buzzGate(d){ if(!(buzzTurns>0)||!(d>0)) return d; if(Math.random()<0.5){ hint('ブーン！ひらりと躱した！',true); return 0; } hint('ブーン…分身が外れた！',true); return Math.max(d,playerHp); }
 let playerHp=100, playerHpMax=100, enemyTurn=0, poisonPenalty=0, poisonPer=0, enemySched={}, lastFi=-1;
@@ -7066,7 +7066,7 @@ function advanceToNextStage(){
   lastAct=null; mountOn=false; haunt={}; jamArmed=false; score=0; displayedScore=0; atkFx={rush:false,oath:false}; if(monIs('元の身体')){ score=SKP.growAtk*growN; displayedScore=score; }   // 体質「成長」：倒した敵の数だけ、戦闘の最初の攻撃力が増える
   hostCarry=0; guardOn=false; defendOn=false; disFired=0; disCount={}; disLast=null; autoQ={}; autoSeq=0; resetBattleRound();   // carryMap（スーパーコンボの連続）は次の敵にも持ち越す（月の民を倒すまでは、次の戦いには持ち越せない）
   if(comboRestricted()&&!tutorialOn()) carryMap={};   // ミジンコの間は、スーパーコンボを次の戦いへ引き継げる
-  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=immortalBoost?2:1; immortalBoost=false; applyWormBody(); zombieRevive=false; immortalReady=monIs('不死身の魔王'); monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
+  playerHp=playerHpMax; hpStock=CHARACTER.hpStock||0; monAtkMult=1; wormUp=0; plAtkMult=immortalBoost?2:1; applyWormBody(); zombieRevive=false; immortalReady=monIs('不死身の魔王'); monkQ=[]; farmerHealAt=0; wallOn=false; mummyOn=false; copyN=0; armedOn=false; stoneLeft=0; buzzTurns=0; mushDmg=1; stomach=[];  // 毎戦、体力は全回復
   startBattleGoals();
   flags.forEach(f=>{ graveyard.push(...f.cards); }); graveyard.push(...stomach); stomach=[];
   flags=freshFlags();
