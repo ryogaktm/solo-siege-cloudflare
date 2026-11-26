@@ -206,7 +206,6 @@
   .fighter{ position:absolute; bottom:4px; width:50px; height:50px; z-index:2; }
   .fighter.pl{ left:calc(var(--cx,50%) - 54px); } .fighter.mo{ left:calc(var(--cx,50%) + 4px); }   /* 2体は隣同士で競り合い、優勢だと右（敵側）、劣勢だと左へ寄る */
   .fighter.pl,.fighter.mo{ transition:left .5s ease-out; }
-  @keyframes shopGlow{ from{ box-shadow:0 0 8px rgba(255,200,80,.4),inset 0 0 8px rgba(255,220,120,.15); } to{ box-shadow:0 0 20px rgba(255,210,90,.9),inset 0 0 16px rgba(255,220,120,.35); } }
   .fighter{ --cyc:.8s; }
   .fighter.lunge{ --cyc:.32s; }
   .fighter .spr{ width:50px; height:50px; filter:drop-shadow(0 3px 0 rgba(0,0,0,.45)); transform-origin:50% 100%; animation:stepIdle var(--cyc) steps(1) infinite; }
@@ -9144,7 +9143,7 @@ function renderShop_(){
   }
   if(kind==='acc'&&accEmpty){ head('売っているアクセサリー'); const e=document.createElement('div'); e.className='reward-sub'; e.textContent='品切れ'; body.appendChild(e); }
   items.filter(x=>x.tab===kind).forEach(x=>{ if(x.head) head(x.head); const q=buyQty[x.key]||0;
-    if(x.btn){ const bt=document.createElement('button'); bt.className='reward-option acc-opt'; bt.style.cssText='border:3px solid var(--gold);background:linear-gradient(135deg,rgba(226,192,106,.35),rgba(255,120,60,.22));box-shadow:0 0 14px rgba(255,200,80,.65),inset 0 0 12px rgba(255,220,120,.25);padding:14px 10px;margin-bottom:12px;animation:shopGlow 1.4s ease-in-out infinite alternate'; bt.innerHTML=`<div class="acc-ico" style="font-size:34px">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">選ぶ</span></div><div class="acc-desc">${x.desc}</div></div>`; bt.onclick=openCardShop; body.appendChild(bt); return; }
+    if(x.btn){ const bt=document.createElement('button'); bt.className='reward-option acc-opt'; bt.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">選ぶ</span></div><div class="acc-desc">${x.desc}</div></div>`; bt.onclick=openCardShop; body.appendChild(bt); return; }
     const el=document.createElement('div'); el.className='reward-option acc-opt'; if(x.sold) el.style.opacity='.55';
     el.innerHTML=`<div class="acc-ico">${x.icon}</div><div class="acc-txt"><div class="reward-name">${x.name}<span class="acc-tag">${x.sold?'売り切れ':x.reserved?`取り置き中・残り${x.price}G`:`${x.price}G`}</span>${(!x.sold&&!x.reserved&&x.key.startsWith('acc_')&&x.price>gold)?`<span class="acc-tag" style="margin-left:4px;background:#1e6ee6;color:#fff">手付金${Math.ceil(x.price/2)}G</span>`:''}</div><div class="acc-desc">${x.desc}</div></div>`+
       (x.sold?'':`<div class="qty-box"><button class="qty-btn" data-d="-1" ${q<=0?'disabled':''}>−</button><span class="qty-num ${q>0?'on':''}">${q}</span><button class="qty-btn" data-d="1" ${q>=x.max?'disabled':''}>＋</button></div>`);
