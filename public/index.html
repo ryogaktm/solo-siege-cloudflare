@@ -4745,12 +4745,31 @@ function whyNotPlace(card,fi){   // 置けない理由（できるだけ具体�
   }
   return `${nm}は、この旗には使えません。`;
 }
+let yakuSkipAsk=false;
+const isYakuRing=a=>{ const o=accOwned.find(x=>x.aid===a); return !!o&&o.id==='yaku_only'; };
+function yakuRingBlocks(card,fi){   // 役のみの指輪さえなければ置ける時 true（指輪のせいで置けない）
+  if(!card||!hasAcc('yaku_only')) return false;
+  const keep=accEq; accEq=accEq.filter(a=>!isYakuRing(a)); try{ return targetsFor(card).includes(fi); }catch(e){ return false; } finally{ accEq=keep; }
+}
+function yakuRingBreakAsk(card,fi,fromRect){   // 役のみの指輪で詰まないよう、無理に役なしを置くなら指輪が壊れて倍率が戻る
+  if(!yakuRingBlocks(card,fi)) return false;
+  monConfirm('📜 このカードを置くと、役が成り立ちません。<br>それでも置くと<b>役のみの指輪が壊れて</b>、役のある旗の1.5倍も無くなります。', ()=>{
+    accEq.filter(isYakuRing).forEach(a=>{ try{ accUnequip(a); }catch(e){ accEq=accEq.filter(x=>x!==a); } });
+    accOwned=accOwned.filter(o=>o.id!=='yaku_only');
+    try{ playSfx('warn'); }catch(e){}
+    const hi=hand.findIndex(c=>c.uid===card.uid); if(hi<0){ render(); return; }
+    yakuSkipAsk=true; let ok=false; try{ ok=playOnFlag(hi,fi,fromRect); }finally{ yakuSkipAsk=false; } if(!ok){ render(); layoutHand(false); }   // 指輪の確認をしたので、「役なし」の最終確認は重ねて出さない
+    setTimeout(()=>hint('📜 役のみの指輪が壊れた…（役のある旗の1.5倍も無くなった）',true),450);
+  });
+  const y=document.getElementById('mcYes'); if(y) y.textContent='指輪を壊して置く';
+  return true;
+}
 function playOnFlag(handIdx, fi, fromRect, noAsk){
   const card=hand[handIdx], f=flags[fi];
   if(!card||!f) return false;   // 手札の並びが変わった直後など、カードが見つからない時は何もしない
   try{ if(!noAsk) dlog('place_try',{置く:dbgCardStr(card), idx:handIdx, 掴んだ表示:dbgGrab, 手札:hand.map(dbgCardStr).join(' '), 画面の手札:[...document.querySelectorAll('.hand .pcard')].map(e=>{ const c=hand.find(x=>x.uid===e.dataset.uid); return (e.querySelector('.corner')||{}).textContent+'/'+(c?dbgCardStr(c):'?'); }).join(' '), 旗:fi+1, 結果:(targetsFor(card).includes(fi)?'置ける':'置けない'), 理由:(targetsFor(card).includes(fi)?'':(f.closed?'閉じた旗':isLocked(f)?'封鎖中':(f.cards.length>=3?'3枚埋まっている':'役・装備の条件に合わない'))), 旗の中:f.cards.map(dbgCardStr).join(' ')}); }catch(e){}
   if(!targetsFor(card).includes(fi)){
-    if(!noAsk) gameAlert(whyNotPlace(card,fi)||'この旗には置けません。');
+    if(!noAsk&&!yakuRingBreakAsk(card,fi,fromRect)) gameAlert(whyNotPlace(card,fi)||'この旗には置けません。');
     return false;
   }
   if(isCurse(card) && haunt[fi]>0){ picked=null; doCurse(handIdx, fi); return true; }   // 呪いカードをワームホールへ：効果を出さずに一緒に消える
@@ -4793,7 +4812,7 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
       return true;
     } }
   // 3枚目で「役なし（ホスト）」になる置き方は、最終確認を出す
-  if(!noAsk && !(isWeakBody()&&tutStepNow()===0) && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
+  if(!noAsk && !yakuSkipAsk && !(isWeakBody()&&tutStepNow()===0) && (card.kind==='troop'||isAlexanderCard(card)||isDariusCard(card)) && !flagMonster(f) && f.cards.length===2 && f.cards.every(c=>c.kind==='troop'||c.kind==='wild')){
     const tmp={cards:f.cards.concat(card.kind==='troop'?[card]:[{kind:'wild',color:'wild',label:card.short,uid:card.uid}])};
     const ev0=evaluate(tmp);   // 効果なしの時の役
     let cause='';   // 効果（マイナスレイン・王の炎など）で数字が変わった結果の役
@@ -7359,7 +7378,7 @@ function attachDrag(el){
         const gr=cardVisualRect(ghost); ghost.remove(); ghost=null;
         if(!playOnFlag(i,fi,gr)){ picked=null; render(); layoutHand(false); }
       } else {
-        try{ ghost.style.display='none'; let u=document.elementFromPoint(e.clientX,e.clientY-30); if(!u||!u.closest('.flag')) u=document.elementFromPoint(e.clientX,e.clientY); ghost.style.display=''; const fl=u&&u.closest('.flag'); if(fl&&fl.dataset.index!==undefined){ const why=whyNotPlace(hand[i],+fl.dataset.index); if(why) gameAlert(why); } }catch(er){}   // 置けない旗に落とした時は、理由を出す
+        try{ ghost.style.display='none'; let u=document.elementFromPoint(e.clientX,e.clientY-30); if(!u||!u.closest('.flag')) u=document.elementFromPoint(e.clientX,e.clientY); ghost.style.display=''; const fl=u&&u.closest('.flag'); if(fl&&fl.dataset.index!==undefined){ if(!yakuRingBreakAsk(hand[i],+fl.dataset.index)){ const why=whyNotPlace(hand[i],+fl.dataset.index); if(why) gameAlert(why); } } }catch(er){}   // 置けない旗に落とした時は、理由を出す
         ghost.style.transition='left .25s, top .25s, transform .25s'; ghost.style.left=startRect.left+'px'; ghost.style.top=startRect.top+'px'; ghost.style.transform='none';
         const g=ghost; ghost=null; setTimeout(()=>g.remove(),250);
         picked=null; render(); layoutHand(false);
@@ -8363,7 +8382,7 @@ function buildAccDefs(){
   L.push({id:'double_x',name:'倍の腕輪',icon:'✖️',desc:'ほかのアクセサリーの効果が2倍になる（倍率の増え分・体力の増え分・手札の増える数・特殊技の回数など）。代わりに敵のターンも2倍の速さで進む'});
   L.push({id:'hand',name:'手札+1のチャーム',icon:'🃏',desc:'手札の枚数が1枚増える'});
   L.push({id:'quick_boots',name:'早撃ちのブーツ',icon:'👢',desc:`全部の旗を完成させて攻撃すると、${ACC_PARAM.quickTurns}ターン以内なら総攻撃力が${ACC_PARAM.quickMul}倍、${ACC_PARAM.quickTurns2}ターン以内なら${ACC_PARAM.quickMul2}倍になる（全部の旗が役ありの時。役のない旗が混ざっていると、それぞれ${ACC_PARAM.quickMulNoRole}倍・${ACC_PARAM.quickMulNoRole2}倍）`});
-  L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる'});
+  L.push({id:'yaku_only',name:'役のみの指輪',icon:'📜',desc:'装備中、役が成り立つカードしか旗に置けなくなる。代わりに、役のある旗の攻撃力が1.5倍になる。無理に役なしのカードを置くと、指輪が壊れて倍率も元に戻る'});
   L.push({id:'sp_bullet',sp:'bullet',name:'素早さのバンダナ',icon:'⏱',desc:'特殊技「バレットタイム」が使えるようになる（敵ごとに2回）。使うと5ターンの間、時間が止まる（敵も、ターンも進まない。連続では使えない）'});
   Object.keys(SP_NAME).forEach(k=>L.push({id:'sp_'+k,sp:k,name:`${SP_NAME[k]}の${SP_ACC[k]}`,icon:SP_ICON[k],desc:`特殊技「${SP_NAME[k]}」が使えるようになる（敵ごとに2回）`}));
   [['sp_crown','王者の冠','👑','総攻撃力が1.5倍になる（重ねて持つと×2、×2.5…）'],['sp_phoenix','不死鳥の羽','🪶','体力が0になっても、1回の戦闘に1回、体力が半分で生き返る（重ねて持つと回数が増える）'],['sp_scale','黄金の天秤','⚖️','戦闘で手に入るお金が2倍になる（重ねて持つと3倍、4倍…）']].forEach(([id,name,icon,desc])=>L.push({id,name,icon,desc:desc+'【パネル全クリアの特別品】',special:true,repeat:true}));
