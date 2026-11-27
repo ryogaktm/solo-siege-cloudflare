@@ -1746,7 +1746,7 @@ const MON_SKILL_NEW={
   '氷の古竜':{kind:'ice',name:'氷漬け',icon:'🧊',cost:{combo:['blue',1]},desc:'閉じた旗を1つ凍らせる。その旗は一斉攻撃のあとも消えず、次のwaveも閉じたまま残る。（今のwaveもその旗で攻撃して、次のwaveでもそのまま使える。その次は消える）'},
   '雷を操る竜':{kind:'bolt',name:'いなずま',icon:'⚡',cost:{combo:['yellow',1]},desc:'閉じた旗を一つ切り離して、敵のHPにダメージを与える。(waveは消費しない)'},
   '山を砕く巨竜':{kind:'mountain',name:'山のように',icon:'⛰',cost:{combo:['green',1]},desc:'このwaveの間、敵の妨害でスーパーコンボが減らなくなる。（自分で使った場合は減る）'},
-  '悪魔の将軍':{kind:'order',name:'号令',icon:'📣',cost:{combo:['purple',1]},desc:'手札の数字カードを全部、同じ数字にそろえる。（手札で一番多い数字。同じ枚数なら大きい方）'},
+  '悪魔の将軍':{kind:'order',name:'号令',icon:'📣',cost:{combo:['purple',1]},desc:'手札の数字カードを全部、同じ数字にそろえる。（手札で一番大きい数字）'},
   '全ての邪悪を背負った魔王':{kind:'sacrifice',name:'生贄',icon:'🩸',cost:{hp:100},desc:`体力100を払って、好きな1色のスーパーコンボを${SKP.sacrifice}増やす。`},
   '魔王の親衛兵':{kind:'wall',name:'鉄壁',icon:'🧱',cost:{combo:['blue',1],hp:10,gold:20},desc:'このwaveの間、受けるダメージが半分になる。'},
   '四天王もどき':{kind:'mimic',name:'見よう見まね',icon:'🎭',cost:{gold:10,hp:10,comboBest:1,count:3},desc:'直前の自分の行動と、同じ行動をもう1回する。数字カードや装備を置いた直後なら、同じカードの写しをもう1枚、好きな旗に置く。軍師カードの直後なら、同じ効果をもう1回。特殊技の直後なら、その技をもう1回（その技のコストは払わない）。見よう見まね自身は真似できない。使うたびにお金10G・体力10・スーパーコンボ1（一番多い色から）を払う。1戦に3回まで。どれか1つでも足りないと使えない。'},
@@ -2012,7 +2012,7 @@ SKFN.ahead=m=>{
 };
 SKFN.order=m=>{
   const T=hand.filter(c=>c.kind==='troop'); if(!T.length) return hint('手札に数字カードがありません。',true);
-  const cnt={}; T.forEach(c=>cnt[c.value]=(cnt[c.value]||0)+1); const mx=Math.max(...Object.values(cnt)), v=Math.max(...Object.keys(cnt).filter(k=>cnt[k]===mx).map(Number));
+  const v=Math.max(...T.map(c=>c.value));   // 手札で一番大きい数字にそろえる
   if(T.every(c=>c.value===v)) return hint('手札の数字はすでにそろっています。',true);
   if(!skPay(m)) return; T.forEach(c=>{ if(c.origValue===undefined) c.origValue=c.value; c.value=v; });
   skDone(`📣 号令！ 手札の数字カードがすべて${v}になった。`);
