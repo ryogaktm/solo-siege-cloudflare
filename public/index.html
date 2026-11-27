@@ -1729,7 +1729,7 @@ const MON_SKILL_NEW={
   '暗黒の傭兵':{kind:'hire',name:'雇われ仕事',icon:'💼',cost:{combo:['blue',1],hp:10,gold:20},desc:'お金を払って、好きな軍師カードを1枚、手札に加える（その戦いの間だけ）。'},
   '暗黒騎士の師匠':{kind:'lead',name:'導く',icon:'🧭',cost:{combo:['purple',1]},desc:'閉じた旗のうち一番弱い旗の攻撃力を、一番強い旗と同じにする（そのwaveだけ）。'},
   'マジシャン':{kind:'dye',name:'色替えの魔法',icon:'🪄',cost:{combo:['green',1]},desc:'手札の数字カードを全部、青色に変える（その戦いの間）。'},
-  '二股竜':{kind:'twohead',name:'3つの頭',icon:'🐲',cost:{combo:['red',1]},desc:'次の行動はターンを使わない。（1ターンに3回動ける）'},
+  '阿修羅':{name:'六本の腕',icon:'🦾',desc:'体質：アクセサリーを最初から6つ付けられる（ふつうは3つ）。'},
   '先導者':{kind:'ahead',name:'先回り',icon:'🧭',cost:{hp:15},desc:'予測に出ている「旗を狙う妨害」を、自分で選んだ旗にまとめる。'},
   '探究者':{kind:'explore',name:'探索',icon:'🔎',cost:{hp:30},desc:'手札をすべて山札に加えてシャッフルした後、山札から好きなカードを選んで手札に加える（3秒カウントダウンのあと、制限時間5秒）。選びきれなかった分は、ランダムで手札に加わる。'},
   '革命者':{kind:'tac_revolution',name:'革命',icon:'🔁',cost:{hp:30},desc:'大革命のカード効果を発動させる。'},
@@ -2370,7 +2370,7 @@ const ROLE_P={'ウェッジ':'同じ色の連番にした','ロイヤルファ�
 const ENEMY_SCALE=0.9;
 const HUMAN_INS=36; let HUMAN_IDX=38; const HUMAN_MON='元の身体';   // HUMAN_INS＝作る時の位置、HUMAN_IDX＝最下層にミジンコ系2体を足した後の位置
 const INTRO_LEADER=1, INTRO_KING=2;   // ミジンコで始めた時の最初の2戦の敵   // 真ん中に出す人間（0始まりの位置）
-const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'若いオーク','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'侍','墓場の亡霊':'ガーゴイル','オークの軍勢':'メデューサ','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'探究者','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'バイキング','ゴブリンの戦士団':'ゴブリン','ホブゴブリンの群れ':'ミイラ','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'農夫','動く鎧の群れ':'騎士','死霊術師の一団':'死霊術師','呪われた農夫たち':'モンク','オークの斥候隊':'ドラキュラ','オークの戦士長':'狼男','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'暗黒騎士の師匠','魔術師団':'マジシャン','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先導者','嵐の巨人族':'革命者','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ','双頭の竜':'二股竜','炎の巨人王':'追従者','悪魔の斥候':'聖職者','地獄の番犬':'敗者','魔王の側近':'躍動者'}, dispName=id=>DISP_NAME[id]||id;
+const DISP_NAME={'巨大ムカデ':'アサシン','ミジンコ':'そこらへんのミジンコ','ミジンコリーダー':'ミジンコのボス','ミジンコキング':'史上最強のミジンコ','何匹かのスライム':'スライム','コウモリの群れ':'コウモリ','ゴブリンの集団':'若いオーク','ゴブリンの斥候':'ガンマン','骸骨戦士の集団':'侍','墓場の亡霊':'ガーゴイル','オークの軍勢':'メデューサ','暗黒騎士団':'暗黒騎士','地平線いっぱいの巨人族':'探究者','野ネズミの群れ':'野ネズミ','毒キノコの群れ':'毒キノコ','大グモの巣':'大グモ','コボルトの一団':'コボルト','吸血コウモリの大群':'吸血コウモリ','野盗の一団':'バイキング','ゴブリンの戦士団':'ゴブリン','ホブゴブリンの群れ':'ミイラ','ゾンビの群れ':'ゾンビ','ジャックランタン':'ジャックランタン','骸骨弓兵団':'農夫','動く鎧の群れ':'騎士','死霊術師の一団':'死霊術師','呪われた農夫たち':'モンク','オークの斥候隊':'ドラキュラ','オークの戦士長':'狼男','トロルの群れ':'トロル','山賊王の軍':'山賊王','猛牛の戦車隊':'猛牛の戦車','暗黒の傭兵団':'暗黒の傭兵','暗黒騎士の精鋭':'暗黒騎士の師匠','魔術師団':'マジシャン','小竜の群れ':'小竜','竜騎士団':'竜騎士','巨人の先遣隊':'先導者','嵐の巨人族':'革命者','悪魔の軍団':'悪魔の将軍','魔王の親衛隊':'魔王の親衛兵','暗黒の四天王':'最弱の四天王','ハエの群れ':'ハエ','カエルの群れ':'カエル','ミミズの群れ':'ミミズ','アリの行列':'アリ','コガネムシの群れ':'コガネムシ','双頭の竜':'阿修羅','炎の巨人王':'追従者','悪魔の斥候':'聖職者','地獄の番犬':'敗者','魔王の側近':'躍動者'}, dispName=id=>DISP_NAME[id]||id;
 /* ===== モンスターを足す時の置き場 =====
    ここに { name:'新モンスター名', after:'この敵の次に入れる（今いる敵の名前）', spr:'MON_ARCHに足した絵のキー' } を書くと、
    前後の敵の強さの間（幾何平均）に1体入る。敵の特殊技・妨害は ENEMY_CFG、特殊技(自分で使う時)は MON_SKILL、表示名は DISP_NAME に足す。
@@ -2457,7 +2457,7 @@ WAVES.forEach((w,i)=>{ if((!w.boss&&i<=HALF_UPTO)||w.name==='月の民'){ w.hp=M
 { const mo=WAVES.find(w=>w.name==='月の民'), sp=WAVES.find(w=>w.name==='大グモの巣'&&!w.boss); if(mo&&sp){ mo.hp=sp.hp; mo.atk=sp.atk; mo.grow=sp.grow; mo.threshold=sp.hp; } }   // 月の民の強さは大グモと同じ
 WAVES.forEach(w=>{ w.baseId=w.name; w.id=w.name; });   // 名前は表示用（「別の」が付くことがある）、idは種類の判定用
 function applyEnemyNames(){
-  ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3)+(accSlotBonus||0);
+  ACC_SLOTS=baseAccSlots()+(accSlotBonus||0);
   const nec=!!(CHARACTER&&CHARACTER.mon===HUMAN_MON);   // 元の身体（人間）に戻っている時は、敵の人間枠がネクロマンサーに変わる
   WAVES.forEach((w,i)=>{ let id=w.baseId; if(i===HUMAN_IDX&&nec) id='ネクロマンサー'; w.id=id; w.name=(CHARACTER&&CHARACTER.mon===id?'別の':'')+dispName(id); });   // 自分と同じモンスターは「別の」〇〇
 }
@@ -2725,7 +2725,7 @@ const ENEMY_CFG={
   '古龍':{dis:['cfield','autonum','colnull','autonum','minusrain','arrow','ghost'],nums:[['yellow',2],['green',1],['orange',1]]},   // lv46
   '氷の古竜':{dis:['cfield','autonum','colnull','autonum','minusrain','arrow','ghost'],nums:[['yellow',6],['purple',5],['red',6]]},   // lv47
   '雷を操る竜':{dis:['null','autonum','minus','autonum','minusrain','arrow','ghost'],nums:[['yellow',1],['purple',2],['red',3]]},   // lv48
-  '二股竜':{dis:['minus','guard','pfield','autonum','autonum','minusrain','arrow','ghost'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
+  '阿修羅':{dis:['minus','guard','pfield','autonum','autonum','minusrain','arrow','ghost'],nums:[['blue',3],['purple',2],['orange',1]]},   // lv49
   '山を砕く巨竜':{dis:['cfield','null','autonum','guard','autonum','minusrain','arrow','ghost'],nums:[['red',1],['purple',3],['orange',2]]},   // lv50
   '先導者':{dis:['pfield','minus','autonum','autonum','minusrain','arrow','ghost'],nums:[['green',1],['red',6],['orange',5]]},   // lv51
   '探究者':{dis:['colnull','null','autonum','autonum','minusrain','arrow','ghost'],nums:[['blue',4],['red',5],['blue',4]]},   // lv52
@@ -8458,10 +8458,11 @@ let accOwned=[], accEq=[], accSeq=1, deletedUids=new Set(), sealedCards=[], accS
 var sunUsed=false, _streakDone=false;
 var accSlotBonus=0, shopOnce={};
 var gameFuse=false;   // 火星人と戦ったことがあるゲームは、合体できる（アクセサリー枠は変わらない）
+function baseAccSlots(){ return (CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:monIs('阿修羅')?6:3; }   // 阿修羅の体（合体含む）はアクセサリー6枠
 var ACC_SLOTS=3+accSlotBonus;   // ミジンコ・ミジンコリーダーの体はアクセサリーを付けられない（0枠）
 function resetAccessories(){
   sunUsed=false; _streakDone=false; accSlotBonus=0; shopOnce={}; gameFuse=fuseOpen();
-  ACC_SLOTS=((CHARACTER&&(CHARACTER.mon==='ミジンコ'||CHARACTER.mon==='ミジンコリーダー'))?0:3);   // 買った装備枠を持ち越さない
+  ACC_SLOTS=baseAccSlots();   // 買った装備枠を持ち越さない
   accOwned=[]; accEq=[]; accSeq=1; deletedUids=new Set(); sealedCards=[]; sealMap={}; hpGlassSave=null; hpBonus=0; specBonusK={}; specProg={}; specPlusBought=0; accStat=blankBattleStat(); panel=null; panelNew=false; gold=0; soldIds=new Set(); shopStock=[]; inPrep=false;
   GAME_COLORS.length=0; ALL_GAME_COLORS.forEach(c=>GAME_COLORS.push(c));
 }
