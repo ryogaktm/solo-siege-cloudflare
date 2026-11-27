@@ -1710,7 +1710,7 @@ const MON_SKILL={   // モンスターが自分のキャラになった時の特
 };
 
 /* ===== 新しい特殊技（lv36〜）：コスト（体力・お金・スーパーコンボ・回数）を共通で扱う ===== */
-const SKP={oath:3, fireMul:2, exploreSec:5, exploreCount:3, weak:5, diceHeal:100, diceHp:0.1, shadowMiss:0.5, usurpRate:0.1, stareat:0.03, rewind:5, growAtk:3000, growHp:50, fireUp:1, sacrifice:3, spy:3};   // 体質「成長」「成長期」の増える量
+const SKP={oath:3, fireMul:3, exploreSec:5, exploreCount:3, weak:5, diceHeal:100, diceHp:0.1, shadowMiss:0.5, usurpRate:0.1, stareat:0.03, rewind:5, growAtk:3000, growHp:50, fireUp:1, sacrifice:3, spy:3};   // 体質「成長」「成長期」の増える量
 const MON_SKILL_NEW={
   'ナメクジ':{kind:'slimy',name:'ぬめり',icon:'🐌',cost:{hp:50},desc:'次の一斉攻撃で、敵の攻撃力が半分になる。'},
   'スケルトン':{kind:'boneshield',name:'骨の盾',icon:'🦴',cost:{hp:50},desc:'次に受ける敵の攻撃を1回無効にする。何度でも使えるが、続けて2つのwaveでは使えない（使ったwaveの次のwaveは休み）。'},
@@ -1740,7 +1740,7 @@ const MON_SKILL_NEW={
   '元の身体':{name:'成長',icon:'🌱',desc:`体質：敵を倒すごとに、戦闘の最初から持ってる攻撃力が＋${SKP.growAtk}される。`},
   '暗黒騎士':{kind:'oath',name:'闇の誓い',icon:'🌑',cost:{hp:100},desc:'旗をすべて更地にする（旗のカードは墓地へ、敵のカードや効果もなくなる。貯めたスーパーコンボは消えない）。次の一斉攻撃の攻撃力を3倍にする。（体力100を払う。払ったあとに体力が1以上残る時だけ使える）'},
   '小竜':{name:'成長期',icon:'🐉',desc:`体質：敵を倒すたびに、最大体力が${SKP.growHp}増える（ゲームを通して）。`},
-  '火を吹くワイバーン':{kind:'flame',name:'火炎放射',icon:'🔥',cost:{combo:['red',1]},desc:'シートが炎に包まれる。このwaveの間、赤の旗の攻撃力が2倍になる。'},
+  '火を吹くワイバーン':{kind:'flame',name:'火炎放射',icon:'🔥',cost:{combo:['red',1]},desc:'シートが炎に包まれる。このwaveの間、赤の旗の攻撃力が3倍になる。'},
   '古龍':{kind:'wisdom',name:'古の知恵',icon:'📜',cost:{combo:['purple',2]},desc:'手札とシートの異常を全て消す。'},
   '氷の古竜':{kind:'ice',name:'氷漬け',icon:'🧊',cost:{combo:['blue',1]},desc:'閉じた旗を1つ凍らせる。その旗は一斉攻撃のあとも消えず、次のwaveも閉じたまま残る。（今のwaveもその旗で攻撃して、次のwaveでもそのまま使える。その次は消える）'},
   '雷を操る竜':{kind:'bolt',name:'いなずま',icon:'⚡',cost:{combo:['yellow',1]},desc:'閉じた旗を一つ切り離して、敵のHPにダメージを与える。(waveは消費しない)'},
@@ -1773,7 +1773,7 @@ const MON_SKILL_NEW={
 };
 Object.assign(MON_SKILL,MON_SKILL_NEW);
 const provenOn=()=>monIs('最強の四天王')&&flags.length>0&&flags.every(f=>f.closed&&f.result&&f.result.mult>1);   // 最強の証明：閉じた旗が全部役あり
-let fireOn=false;   // 火炎放射：このwaveの間、赤の旗の攻撃力が2倍
+let fireOn=false;   // 火炎放射：このwaveの間、赤の旗の攻撃力が3倍
 const flagMul=f=>{ const i=flags.indexOf(f); let m={}, hm={}; try{ m=superMults()||{}; hm=hostMults()||{}; }catch(e){} return (m[i]||1)+((hm[i]||1)-1); };   // その旗にかかっているスーパーコンボ（ホスト）の倍率
 const flagShown=f=>(f&&f.result)?(f.result.base||0)*flagMul(f):0;   // 旗に出ている攻撃力（スーパーコンボの倍率こみ）。「旗の攻撃力」に効く技は、必ずこの数字を基準にする
 function openFlagAtk(){ let v=0; flags.forEach(f=>{ if(!f.closed){ let has=false; f.cards.forEach(c=>{ if(c && (c.kind==='troop'||c.kind==='wild')){ v+=ptv(c); has=true; } }); if(has) v+=(f.eqBonus||0); } }); return v; }   // 完成していない旗に置いてあるカードの攻撃力
