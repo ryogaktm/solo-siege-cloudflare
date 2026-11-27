@@ -8126,14 +8126,42 @@ function buildCharList(){
     document.getElementById('charDecide').onclick=()=>{
       const id=picked?picked.id:curMonId(); let ch=picked?picked.ch:curMonChar(); if(fuseOk&&fuse2&&!isWeakId(ch.mon)){ if(f3on&&!fuse3){ gameAlert('3体合体では、合体3（足）まで選ぼう。'); return; } ch=fuseChar(ch,fuse2,fuse3); }   // 決定したら、そのキャラでそのままゲームを始める
       lsSet(SEL_KEY,id); lsSet('soloSiegeWeakOk',isWeakId(id)?'1':''); if(ch.mon===HUMAN_MON&&!bodyBack()) lsSet('soloSiegeBodyBack','1');
-      const fused=fuseOk&&fuse2&&!!ch.mon2, fr=document.querySelector('#curPanel .fs-row'); if(fused&&fr) fr.classList.add('fusing');   // 合体アニメーションは「この身体で戦う」を押した時だけ
+      const fused=fuseOk&&fuse2&&!!ch.mon2, fr=document.querySelector('#curPanel .fs-row'); if(fused&&fr){ try{ playFuseAnim(fr,ch); }catch(e){} }   // 合体アニメーションは「この身体で戦う」を押した時だけ
       const tile=grid.querySelector('.mon-tile.f1')||grid.querySelector('.mon-tile.sel')||grid.querySelector('.mon-tile.cur'); if(tile) tile.classList.add('possessed');   // 憑依の演出のあと、ゲーム開始
       document.getElementById('charDecide').disabled=true; try{ playSfx('shuffle'); }catch(e){}
-      setTimeout(()=>{ document.getElementById('charDecide').disabled=false; startAs(ch); },fused?1000:(tile?650:0));
+      setTimeout(()=>{ document.getElementById('charDecide').disabled=false; startAs(ch); },fused?2000:(tile?650:0));
     };
   }
 }
 /* モンスターのタイルを長押ししてドラッグ→合体1／合体2の枠に落とす（スマホは長押しで開始。普通のスクロールは邪魔しない） */
+function playFuseAnim(fr,ch){   // 合体の演出：各モンスターが画面の真ん中へ寄って重なり、光って、合体したモンスターに変わる
+  const old=document.getElementById('fuseFx'); if(old) old.remove();
+  const ov=document.createElement('div'); ov.id='fuseFx';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(6,10,8,.82);overflow:hidden;pointer-events:none;opacity:0';
+  document.body.appendChild(ov);
+  const cx=innerWidth/2, cy=innerHeight/2, S=88, parts=[];
+  [...fr.querySelectorAll('.fs-slot .fs-l')].forEach((l,k,all)=>{
+    const ic=[...l.children].find(x=>x.tagName!=='SMALL'); if(!ic) return;
+    const r=ic.getBoundingClientRect(), d=document.createElement('div');
+    d.style.cssText=`position:absolute;left:${r.left+r.width/2-S/2}px;top:${r.top+r.height/2-S/2}px;width:${S}px;height:${S}px;display:flex;align-items:center;justify-content:center;will-change:transform,opacity`;
+    d.innerHTML=ic.outerHTML; const sv=d.firstElementChild; if(sv){ sv.style.width=S+'px'; sv.style.height=S+'px'; }
+    ov.appendChild(d); parts.push({d,r,k,n:all.length});
+  });
+  const fz=document.createElement('div'); fz.style.cssText=`position:absolute;left:${cx-70}px;top:${cy-70}px;width:140px;height:140px;display:flex;align-items:center;justify-content:center;opacity:0`;
+  fz.innerHTML=charSpr(ch,140,false); ov.appendChild(fz);
+  const ring=document.createElement('div'); ring.style.cssText=`position:absolute;left:${cx-60}px;top:${cy-60}px;width:120px;height:120px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 40px #ffe9a8,inset 0 0 30px #ffe9a8;opacity:0`; ov.appendChild(ring);
+  const A=(el,kf,o)=>{ try{ return el.animate(kf,Object.assign({fill:'forwards'},o)); }catch(e){ return null; } };
+  A(ov,[{opacity:0},{opacity:1}],{duration:200});
+  parts.forEach(({d,r,k,n})=>{   // 3体なら上・真ん中・下の3体すべてが動く。少しずつずらして重ねる
+    const ox=(k-(n-1)/2)*16, oy=(k-(n-1)/2)*18, tx=cx+ox-(r.left+r.width/2), ty=cy+oy-(r.top+r.height/2);
+    A(d,[{transform:'translate(0,0) scale(.6)',opacity:1},{transform:`translate(${tx*.9}px,${ty*.9}px) scale(1.15)`,opacity:1,offset:.55},{transform:`translate(${tx}px,${ty}px) scale(1.3)`,opacity:1,offset:.78},{transform:`translate(${tx}px,${ty}px) scale(1.6)`,opacity:0}],{duration:1150,easing:'ease-in',delay:150+k*60});
+  });
+  const t0=1250;   // 重なった瞬間に光って、合体したモンスターが現れる
+  A(ring,[{transform:'scale(.3)',opacity:.95},{transform:'scale(3.2)',opacity:0}],{duration:650,delay:t0,easing:'ease-out'});
+  A(fz,[{transform:'scale(.2)',opacity:0,filter:'brightness(6)'},{transform:'scale(1.35)',opacity:1,filter:'brightness(3)',offset:.4},{transform:'scale(1)',opacity:1,filter:'brightness(1)'}],{duration:700,delay:t0,easing:'ease-out'});
+  setTimeout(()=>{ try{ playSfx('shuffle'); }catch(e){} },t0);
+  setTimeout(()=>{ const o=document.getElementById('fuseFx'); if(o) o.remove(); },2600);
+}
 function attachFuseDrag(el,dropTo2,dropTo1,dropTo3){
   let timer=null, ghost=null, sx=0, sy=0, lx=0, ly=0, dragging=false, mouse=false;
   const slotAt=(x,y)=>{ const e=document.elementFromPoint(x,y); return e&&e.closest?e.closest('[data-fs]'):null; };
