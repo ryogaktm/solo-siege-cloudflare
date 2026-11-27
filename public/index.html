@@ -1716,7 +1716,7 @@ const MON_SKILL_NEW={
   'スケルトン':{kind:'boneshield',name:'骨の盾',icon:'🦴',cost:{hp:50},desc:'次に受ける敵の攻撃を1回無効にする。何度でも使えるが、続けて2つのwaveでは使えない（使ったwaveの次のwaveは休み）。'},
   '幽霊':{kind:'phase',name:'すり抜け',icon:'👻',cost:{hp:20},desc:'次に来る敵の妨害を1つ消す。'},
   'ゴーレム':{kind:'stonebody',name:'石の体',icon:'🗿',cost:{combo:['green',1]},desc:'このwaveは受けるダメージが半分。そのかわり次の一斉攻撃の攻撃力も半分になる。'},
-  '忍者':{kind:'bunshin',name:'分身',icon:'🥷',cost:{hp:50},desc:'複製のカードを手札に加える（その戦いの間だけ）。'},
+  '忍者':{kind:'nitou',name:'2回攻撃',icon:'🥷',cost:{hp:50},desc:'このターン、もう1回動ける（1ターンに2回動ける）。敵の予測に時計マークが1つ入り、その分だけ敵の動きもターンも止まる。'},
   '魔女':{kind:'cauldron',name:'呪いの鍋',icon:'🧙',cost:{hp:50},desc:'墓地からランダムに2枚、手札に戻す。'},
   'ミノタウロス':{kind:'stampede',name:'猛進',icon:'🐃',cost:{combo:['red',1]},desc:'閉じた旗のうち一番強い旗の攻撃力を2倍にする（そのwaveだけ）。'},
   'クラーケン':{kind:'tentacle',name:'8本の足',icon:'🐙',cost:{hp:30},desc:'未完成の旗の数字カードを1枚手札に戻して、山札から1枚引く。'},
@@ -1988,6 +1988,7 @@ SKFN.bolt=m=>{
     strikeBoss(Math.min(D,bossHp),`⚡ いなずま！ 旗${x.i+1}を切り離して、敵に${fmtCompact(D)}ダメージ。`,'bolt',D); });
 };
 SKFN.twohead=m=>{ if(bulletLeft>0) return hint('すでに次の行動はターンを使いません。',true); if(!skPay(m)) return; bulletLeft+=2; skDone('🐲 3つの頭！ 次の2回の行動はターンを使わない。（1ターンに3回動ける）'); };
+SKFN.nitou=m=>{ if(!skPay(m)) return; bulletLeft+=1; enemyFreeze+=1; skDone('🥷 2回攻撃！ 次の行動はターンを使わない（1ターンに2回動ける）。敵の予測に⏱が1つ入った。'); };   // バレットタイムと同じ仕組みで、1回分だけ時間を止める
 SKFN.mountain=m=>{ if(mountOn) return hint('すでに山のように構えています。',true); if(!skPay(m)) return; mountOn=true; skDone('⛰ 山のように！ このwaveの間、敵の妨害でスーパーコンボが減らない。'); };
 function forecastPlans(){   // 予測レーンに出ている、旗を狙う妨害の予定（autoForecastと同じ数え方）
   const out=[]; try{
