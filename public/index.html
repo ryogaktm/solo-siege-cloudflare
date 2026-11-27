@@ -3994,6 +3994,7 @@ function autoRefill(n){
 
 /* ================= ACTIONS ================= */
 let prevSnap=null;
+let parryFlag=null;   // パリイのきっかけになった旗（そのマークの色のスーパーコンボを増やす）
 let parryNow=false;   // パリイ：このターンに置いたカードで役が揃った。同じタイミングで来た敵の妨害わざをはじき返す
 function willYaku(f){ try{ if(!f||f.closed||f.negated||f.cards.length<3||flagMonster(f)) return false; const r=evaluate(f); return !!(r&&r.mult>1); }catch(e){ return false; } }
 function parryFire(type){   // パリイ：妨害わざを打ち消す（旗を狙う妨害は、その予定も使い切る）
@@ -4002,6 +4003,10 @@ function parryFire(type){   // パリイ：妨害わざを打ち消す（旗を�
   try{ dlog('parry',{event:type}); }catch(e){}
   try{ bigFx('⚔','パリイ！',`役が揃った瞬間、${inf.icon||''}${nm}をはじき返した`); }catch(e){}
   hint(`⚔ パリイ！ 役が揃ったのと同じタイミングで来た敵の${inf.icon||''}${nm}を打ち消した！`,true); playSfx('combo');
+  try{   // パリイ成功：その旗の色のスーパーコンボ+1（パリイの籠手を装備していれば+3）
+    const col=parryFlag&&flagSymbolColor(parryFlag); if(col){ const n=(hasAcc('parry_gauntlet')?ACC_NEW.parryGauntlet:1)*(hasAcc('parry_gauntlet')?accX():1);
+      carryMap[col]=(carryMap[col]||0)+n; setTimeout(()=>{ hint(`⚔ パリイ成功！ ${CNAME[col].replace('旗','')}のスーパーコンボ+${n}`,true); },700); }
+  }catch(e){}
 }
 const waveTurns=()=>Math.max(0,turnCounter-((typeof accStat!=='undefined'&&accStat&&accStat.turn0)||0));   // このwaveで自分が使ったターン数（画面の「ターンN/12」と同じ数え方。早撃ちのブーツ・じっくりのサンダルはこれで判定）
 function advanceTurn(usedCard){
@@ -4858,8 +4863,8 @@ function playOnFlag(handIdx, fi, fromRect, noAsk){
     const ate=eaterEatPlaced(f,placed,mon,mon?f.cards.indexOf(placed):-1);   // 食べられたら、装備は倒せていない（装備は旗に残る）
     showPlacementComment(card, f, posBefore);
     playSfx('place');
-    parryNow=!ate&&willYaku(f);   // この1枚で役が揃うなら、同じタイミングの妨害わざはパリイで消える
-    try{ advanceTurn(placed); } finally { parryNow=false; }
+    parryNow=!ate&&willYaku(f); parryFlag=f;   // この1枚で役が揃うなら、同じタイミングの妨害わざはパリイで消える
+    try{ advanceTurn(placed); } finally { parryNow=false; parryFlag=null; }
     if(forcedCf) comboLoss(DIS_PARAM.cfieldPenalty,`💀 カラフルフィールドに逆らった代償で、スーパーコンボが−${DIS_PARAM.cfieldPenalty}された！`,mon.color);
     if(!mon) closeCheck(fi, false);
     const refilled=autoRefill(1);
@@ -8345,7 +8350,7 @@ const SP_NAME={shuffle:'シャッフル',beg:'命乞い',punch:'殴る',guard:'�
 const SP_ACC={shuffle:'ブレスレット',beg:'首輪',punch:'指輪',guard:'バングル',cure:'鼻輪'};
 const SP_ICON={shuffle:'🔄',beg:'🙏',punch:'👊',guard:'🛡',cure:'🧪'};
 /* ★新しいアクセサリー（40個の追加分）の数字はここ。倍の腕輪（accX）は「増え分」にかかる */
-const ACC_NEW={almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:2, tiaraKinds:3, tiaraInc:2, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:1, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
+const ACC_NEW={ parryGauntlet:3, almost:0.2, bigSum:24, bigInc:0.5, smallSum:9, smallInc:1, rainbow:2, tiaraKinds:3, tiaraInc:2, medalInc:1, sandalWave:5, sandalInc:3, badgeInc:1, abacusInc:1, haggle:0.2, piggyRate:0.1, piggyCap:200, fang:0.1, lastHp:0.3, lastInc:1, fullInc:0.3, glove:3, bond:1, ins:0.5, foresight:3, chain:0.2, bell:0.5, anklet:1, union:1, coinWin:1, coinLose:0.5, bladeHeal:0.2, bladeBack:1};
 function accAtkParts(atkTurn){   // 総攻撃力にかかる、アクセサリーの倍率（発動している分だけ [名前, 倍率]）
   const P=[]; if(!accEq.length) return P; const k=accX();
   const cl=flags.filter(f=>f.closed&&f.result);
@@ -8453,6 +8458,7 @@ function buildAccDefs(){
    ['color_bond','色違いの絆','🎀','スーパーコンボが同時に続いている色の数で、どの色も倍率が上がる（2色で3.5倍／3色で5倍／4色以上で6.5倍）'],
    ['combo_ins','コンボ保険','🛟','妨害やペナルティでスーパーコンボが減る時、減る量が半分になる'],
    ['first_ring','初撃の指輪','🥊','役のある旗が1つだけの色（×1）を、×2として数える'],
+   ['parry_gauntlet','パリィの籠手','🥋','パリイに成功すると、その旗の色のスーパーコンボが+3される（ふつうは+1）'],
    ['foresight','予知の水晶','🔮','妨害の警告が、1ターン前ではなく3ターン前に出る'],
    ['rod','避雷針','⚡','旗を狙う妨害は、必ずカードが一番少ない旗を狙う'],
    ['slow_chain','鈍足の鎖','⛓','敵の攻撃力の上昇が2割遅くなる'],
@@ -8891,7 +8897,7 @@ function accPriceBase(d){
   const id=d.id;
   if(id.startsWith('super15_')) return 100; if(id.startsWith('super2_')) return 150; if(id.startsWith('blade_')) return (COMBO_BLADES[d.color]||{}).price||350;
   if(id==='sp_double') return 150; if(id.endsWith('_out')) return 120;
-  { const NP={almost_ring:100,big_bracelet:150,small_bracelet:150,rainbow_brooch:150,tiara:200,medal:250,sandal:150,first_badge:120,last_badge:120,abacus:150,haggle:150,piggy:120,shield_gold:200,fang:150,thorns:200,last_stand:200,full_pride:150,discard_glove:200,lantern:150,pocket:150,charm_curse:100,antidote:100,combo_bank:200,color_bond:200,combo_ins:150,first_ring:150,foresight:150,rod:100,slow_chain:150,rage_bell:200,saving_anklet:120,union_bond:150,gambler:100}; if(NP[id]) return NP[id]; }   // 新しい40個の基本の値段（ここで調整）
+  { const NP={almost_ring:100,big_bracelet:150,small_bracelet:150,rainbow_brooch:150,tiara:200,medal:250,sandal:150,first_badge:120,last_badge:120,abacus:150,haggle:150,piggy:120,shield_gold:200,fang:150,thorns:200,last_stand:200,full_pride:150,discard_glove:200,lantern:150,pocket:150,charm_curse:100,antidote:100,combo_bank:200,color_bond:200,combo_ins:150,first_ring:150,parry_gauntlet:150,foresight:150,rod:100,slow_chain:150,rage_bell:200,saving_anklet:120,union_bond:150,gambler:100}; if(NP[id]) return NP[id]; }   // 新しい40個の基本の値段（ここで調整）
   if(id.startsWith('sp_')) return id==='sp_shuffle'?60:100;
   if(id==='yaku_only') return 200; if(id==='role_royal') return 250; if(id==='role_wedge') return 200; if(id.startsWith('role_')) return 150;
   if(id==='glass') return 200;
